@@ -47,8 +47,7 @@ function teamStrength(s: StandingEntry): number {
   const ppg = s.playedGames > 0 ? s.points / s.playedGames : 0;
   const gdpg = s.playedGames > 0 ? s.goalDifference / s.playedGames : 0;
   const form = formScore(s.form);
-  // weighted combination: ppg (max ~3), gdpg (max ~3), form (0-1), position penalty
-  const posScore = (19 - s.position) / 17; // 1st = 1.0, 18th = 0.0
+  const posScore = (19 - s.position) / 17;
   return 0.35 * (ppg / 3) + 0.25 * ((gdpg + 3) / 6) + 0.25 * form + 0.15 * posScore;
 }
 
@@ -61,7 +60,6 @@ function predict(home: StandingEntry, away: StandingEntry) {
   const rawHome = homeStr / total;
   const rawAway = awayStr / total;
 
-  // Draw probability: higher when teams are close
   const diff = Math.abs(rawHome - rawAway);
   const drawFactor = Math.max(0.12, 0.32 - diff * 0.6);
 
@@ -69,7 +67,6 @@ function predict(home: StandingEntry, away: StandingEntry) {
   let awayProb = rawAway * (1 - drawFactor);
   let drawProb = drawFactor;
 
-  // normalize
   const sum = homeProb + awayProb + drawProb;
   homeProb = Math.round((homeProb / sum) * 100);
   awayProb = Math.round((awayProb / sum) * 100);
@@ -83,7 +80,6 @@ function predict(home: StandingEntry, away: StandingEntry) {
     Math.max(homeProb, awayProb, drawProb) >= 55 ? "high" :
     Math.max(homeProb, awayProb, drawProb) >= 42 ? "medium" : "low";
 
-  // Expected goals (rough estimate)
   const homeXG = +(((home.goalsFor / Math.max(home.playedGames, 1)) * 0.6 +
     (away.goalsAgainst / Math.max(away.playedGames, 1)) * 0.4) * (1 + HOME_ADVANTAGE / 2)).toFixed(1);
   const awayXG = +(((away.goalsFor / Math.max(away.playedGames, 1)) * 0.6 +
@@ -92,71 +88,11 @@ function predict(home: StandingEntry, away: StandingEntry) {
   return { homeProb, drawProb, awayProb, winner, confidence, homeXG, awayXG };
 }
 
-interface EmotionalEntry { teamId: number; emotionalScore: number; predictionDelta: number }
-
-async function fetchEmotionalScores(): Promise<Map<number, EmotionalEntry>> {
-  try {
-    const baseUrl = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000";
-    const res = await fetch(`${baseUrl}/api/emotional-score`, { next: { revalidate: 1800 } });
-    if (!res.ok) return new Map();
-    const data = await res.json();
-    const map = new Map<number, EmotionalEntry>();
-    for (const s of data.scores ?? []) map.set(s.teamId, s);
-    return map;
-  } catch {
-    return new Map();
-  }
-}
-
-function applyEmotionalCorrection(
-  pred: ReturnType<typeof predict>,
-  homeEmo: EmotionalEntry | undefined,
-  awayEmo: EmotionalEntry | undefined,
-) {
-  const homeDelta = homeEmo?.predictionDelta ?? 0;
-  const awayDelta = awayEmo?.predictionDelta ?? 0;
-  if (homeDelta === 0 && awayDelta === 0) return { ...pred, emotionalCorrection: null };
-
-  let homeProb = pred.homeProb + homeDelta - awayDelta;
-  let awayProb = pred.awayProb + awayDelta - homeDelta;
-  let drawProb = pred.drawProb;
-
-  homeProb = Math.max(5, Math.min(90, homeProb));
-  awayProb = Math.max(5, Math.min(90, awayProb));
-  const sum = homeProb + awayProb + drawProb;
-  homeProb = Math.round((homeProb / sum) * 100);
-  awayProb = Math.round((awayProb / sum) * 100);
-  drawProb = 100 - homeProb - awayProb;
-
-  const winner =
-    homeProb > awayProb && homeProb > drawProb ? "home" :
-    awayProb > homeProb && awayProb > drawProb ? "away" : "draw";
-
-  const confidence =
-    Math.max(homeProb, awayProb, drawProb) >= 55 ? "high" :
-    Math.max(homeProb, awayProb, drawProb) >= 42 ? "medium" : "low";
-
-  return {
-    ...pred,
-    homeProb, awayProb, drawProb, winner, confidence,
-    emotionalCorrection: {
-      originalHomeProb: pred.homeProb,
-      originalAwayProb: pred.awayProb,
-      homeDelta,
-      awayDelta,
-      homeEmotionalScore: homeEmo?.emotionalScore ?? null,
-      awayEmotionalScore: awayEmo?.emotionalScore ?? null,
-    },
-  };
-}
-
 export async function GET() {
   if (!API_KEY) return NextResponse.json({ error: "API key not configured" }, { status: 500 });
 
   try {
-    const [standingsRes, matchesRes, emotionalMap] = await Promise.all([
+    const [standingsRes, matchesRes] = await Promise.all([
       fetch(`https://api.football-data.org/v4/competitions/${COMPETITION}/standings`, {
         headers: { "X-Auth-Token": API_KEY },
         next: { revalidate: 300 },
@@ -165,7 +101,6 @@ export async function GET() {
         headers: { "X-Auth-Token": API_KEY },
         next: { revalidate: 300 },
       }),
-      fetchEmotionalScores(),
     ]);
 
     if (!standingsRes.ok || !matchesRes.ok) throw new Error("API error");
@@ -188,12 +123,7 @@ export async function GET() {
         const awayStanding = standingMap.get(m.awayTeam.id);
         if (!homeStanding || !awayStanding) return null;
 
-        const basePred = predict(homeStanding, awayStanding);
-        const pred = applyEmotionalCorrection(
-          basePred,
-          emotionalMap.get(m.homeTeam.id),
-          emotionalMap.get(m.awayTeam.id),
-        );
+        const pred = predict(homeStanding, awayStanding);
 
         return {
           id: m.id,

@@ -1,23 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   Heart, TrendingUp, TrendingDown, Minus, Users, Newspaper,
   Building2, ChevronDown, AlertTriangle, Star, Zap,
-  Info, BarChart2, Radio, Globe, MessageCircle, ThumbsUp,
+  Info, BarChart2, Radio, Globe, MessageCircle, ThumbsUp, RefreshCw,
+  Sliders,
 } from "lucide-react";
 
 interface Article { title: string; pubDate: string; source: string; sentiment: "positive" | "negative" | "neutral" }
 interface SourceBreakdown { source: string; articleCount: number; positive: number; negative: number; score: number }
-interface RedditPost {
-  title: string;
-  score: number;
-  upvoteRatio: number;
-  url: string;
-  subreddit: string;
-  created: number;
-  sentiment: "positive" | "negative" | "neutral";
-}
+interface RedditPost { title: string; score: number; upvoteRatio: number; url: string; subreddit: string; created: number; sentiment: "positive" | "negative" | "neutral" }
 
 interface ClubScore {
   teamId: number;
@@ -28,26 +21,31 @@ interface ClubScore {
     economic: { score: number; label: string; revenue: string; owner: string; weight: number };
     media: { score: number; positive: number; negative: number; total: number; articles: Article[]; sourceBreakdown: SourceBreakdown[]; weight: number };
     human: { score: number; totalValue: number; avgValue: number; injuryRate: number; topPlayer: string | null; playerCount: number; injuredPlayers: string[]; weight: number };
-    fan: { score: number; posts: RedditPost[]; positive: number; negative: number; total: number; subreddit: string; weight: number };
+    fan: { score: number; posts: RedditPost[]; positive: number; negative: number; total: number; subreddit: string; weight: number } | undefined;
     market: { score: number; weight: number; source: string } | null;
   };
 }
 
 interface EmotionalData {
   scores: ClubScore[];
-  sources: { media: string[]; fan: string; mercato: string; economic: string; market: string | null };
+  sources: { media: string[]; fan?: string; mercato: string; economic: string; market: string | null };
   updatedAt: string;
 }
 
 interface PlayerSquad {
   id: string; name: string; position: string; age: number;
-  nationality: string[]; marketValue: number; status?: string; foot?: string; contract?: string;
+  nationality: string[]; marketValue: number; status?: string;
 }
 interface SquadData {
   team: { name: string; crest: string; venue: string; coach: string };
   squad: PlayerSquad[];
   stats: { totalValue: number; avgValue: number; playerCount: number; injuredCount: number; injuryRate: number };
 }
+
+interface Weights { eco: number; media: number; human: number; fan: number }
+const DEFAULT_WEIGHTS: Weights = { eco: 28, media: 28, human: 30, fan: 14 };
+
+// ── helpers ──────────────────────────────────────────────────────────────────
 
 function emotionColor(score: number) {
   if (score >= 70) return { color: "#22c55e", bg: "rgba(34,197,94,0.1)", border: "rgba(34,197,94,0.25)" };
@@ -56,7 +54,6 @@ function emotionColor(score: number) {
   if (score >= 28) return { color: "#f97316", bg: "rgba(249,115,22,0.1)", border: "rgba(249,115,22,0.25)" };
   return { color: "#ef4444", bg: "rgba(239,68,68,0.1)", border: "rgba(239,68,68,0.25)" };
 }
-
 function emotionLabel(score: number) {
   if (score >= 70) return "Excellent";
   if (score >= 55) return "Positif";
@@ -64,13 +61,37 @@ function emotionLabel(score: number) {
   if (score >= 28) return "Tendu";
   return "Critique";
 }
-
 function formatValue(v: number) {
   if (v >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(1)}Md€`;
   if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(0)}M€`;
   if (v >= 1_000) return `${(v / 1_000).toFixed(0)}K€`;
   return `${v}€`;
 }
+
+function computeScore(c: ClubScore["components"], weights: Weights): number {
+  const w = weights;
+  const total = w.eco + w.media + w.human + w.fan + (c.market ? 10 : 0);
+  if (total === 0) return 50;
+  const score =
+    c.economic.score * w.eco +
+    c.media.score * w.media +
+    c.human.score * w.human +
+    (c.fan?.score ?? 50) * w.fan +
+    (c.market ? c.market.score * 10 : 0);
+  return Math.max(0, Math.min(100, Math.round(score / total)));
+}
+
+function computeDelta(score: number): number {
+  if (score >= 72) return 7;
+  if (score >= 62) return 4;
+  if (score >= 52) return 1;
+  if (score <= 22) return -8;
+  if (score <= 32) return -5;
+  if (score <= 42) return -2;
+  return 0;
+}
+
+// ── sub-components ────────────────────────────────────────────────────────────
 
 function ScoreGauge({ score, size = 64 }: { score: number; size?: number }) {
   const { color } = emotionColor(score);
@@ -92,14 +113,89 @@ function ScoreGauge({ score, size = 64 }: { score: number; size?: number }) {
   );
 }
 
+function WeightSliders({ weights, onChange }: { weights: Weights; onChange: (w: Weights) => void }) {
+  const [open, setOpen] = useState(false);
+  const total = weights.eco + weights.media + weights.human + weights.fan;
+
+  const items = [
+    { key: "eco",   label: "Économique",   color: "#f59e0b", icon: <Building2 size={12} /> },
+    { key: "media", label: "Médias",       color: "#00d4ff", icon: <Newspaper size={12} /> },
+    { key: "human", label: "Humain",       color: "#22c55e", icon: <Users size={12} /> },
+    { key: "fan",   label: "Supporters",  color: "#f472b6", icon: <MessageCircle size={12} /> },
+  ] as const;
+
+  const isDefault = weights.eco === DEFAULT_WEIGHTS.eco && weights.media === DEFAULT_WEIGHTS.media &&
+    weights.human === DEFAULT_WEIGHTS.human && weights.fan === DEFAULT_WEIGHTS.fan;
+
+  return (
+    <div className="rounded-2xl mb-4 overflow-hidden" style={{ border: "1px solid #1e2d42" }}>
+      <button onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-3 px-5 py-4 transition-colors hover:bg-white/[0.02]">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: "rgba(124,58,237,0.12)", border: "1px solid rgba(124,58,237,0.25)" }}>
+          <Sliders size={15} style={{ color: "#a78bfa" }} />
+        </div>
+        <div className="flex-1 text-left">
+          <p className="text-sm font-bold" style={{ color: "#e8edf5" }}>Pondération des dimensions</p>
+          <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>
+            {items.map(i => `${i.label} ${total > 0 ? Math.round(weights[i.key] / total * 100) : 0}%`).join(" · ")}
+          </p>
+        </div>
+        {!isDefault && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(124,58,237,0.2)", color: "#a78bfa" }}>Modifié</span>}
+        <ChevronDown size={15} style={{ color: "#6b7c96" }} className={`flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="px-5 pb-5 space-y-4" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+          <p className="text-xs mt-3" style={{ color: "#6b7c96" }}>
+            Ajustez la pondération relative de chaque dimension. Les scores sont recalculés en temps réel.
+          </p>
+          <div className="space-y-4">
+            {items.map((item) => {
+              const val = weights[item.key];
+              const eff = total > 0 ? Math.round(val / total * 100) : 0;
+              return (
+                <div key={item.key}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1.5 text-xs font-medium" style={{ color: item.color }}>
+                      {item.icon} {item.label}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                        <div className="h-full rounded-full transition-all" style={{ width: `${eff}%`, background: item.color }} />
+                      </div>
+                      <span className="text-xs font-black w-8 text-right" style={{ color: item.color }}>{eff}%</span>
+                    </div>
+                  </div>
+                  <input
+                    type="range" min={0} max={50} value={val}
+                    onChange={(e) => onChange({ ...weights, [item.key]: parseInt(e.target.value) })}
+                    className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+                    style={{ accentColor: item.color }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+          <button
+            onClick={() => onChange({ ...DEFAULT_WEIGHTS })}
+            disabled={isDefault}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all disabled:opacity-40"
+            style={{ background: "rgba(255,255,255,0.06)", color: "#6b7c96" }}>
+            <RefreshCw size={11} /> Réinitialiser les poids par défaut
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Methodology({ sources }: { sources: EmotionalData["sources"] }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="rounded-2xl mb-6 overflow-hidden" style={{ border: "1px solid #1e2d42" }}>
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-3 px-5 py-4 transition-colors hover:bg-white/[0.02]"
-      >
+    <div className="rounded-2xl mb-4 overflow-hidden" style={{ border: "1px solid #1e2d42" }}>
+      <button onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-3 px-5 py-4 transition-colors hover:bg-white/[0.02]">
         <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
           style={{ background: "rgba(236,72,153,0.12)", border: "1px solid rgba(236,72,153,0.25)" }}>
           <Info size={15} className="text-pink-400" />
@@ -108,77 +204,38 @@ function Methodology({ sources }: { sources: EmotionalData["sources"] }) {
           <p className="text-sm font-bold" style={{ color: "#e8edf5" }}>Comment est calculé le Score Émotionnel ?</p>
           <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>
             {sources.media.join(" · ")} · Reddit · Transfermarkt · Données économiques publiques
-            {sources.market ? ` · ${sources.market}` : ""}
           </p>
         </div>
-        <ChevronDown size={15} style={{ color: "#6b7c96" }} className={`transition-transform flex-shrink-0 ${open ? "rotate-180" : ""}`} />
+        <ChevronDown size={15} style={{ color: "#6b7c96" }} className={`flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (
-        <div className="px-5 pb-5 space-y-5" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+        <div className="px-5 pb-5 space-y-4" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
           <p className="text-sm mt-4" style={{ color: "#94a3b8" }}>
-            Le Score Émotionnel (0–100) mesure la <strong style={{ color: "#e8edf5" }}>santé globale d'un club</strong> au-delà des stats sportives.
-            Il est calculé à partir de <strong style={{ color: "#e8edf5" }}>4 dimensions</strong> pondérées,
-            puis utilisé pour <strong style={{ color: "#e8edf5" }}>corriger automatiquement les prédictions IA</strong> (±2 à ±7%).
+            Le Score Émotionnel (0–100) mesure la <strong style={{ color: "#e8edf5" }}>santé globale d'un club</strong> en 4 dimensions,
+            puis corrige automatiquement les <strong style={{ color: "#e8edf5" }}>prédictions IA</strong> (±2 à ±7%).
           </p>
-
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {[
-              {
-                icon: <Building2 size={18} />, color: "#f59e0b", weight: "28%",
-                title: "Économique",
-                desc: "Solidité financière du club : propriétaire, budget estimé, revenus annuels, niveau d'investissement récent.",
-                source: sources.economic,
-              },
-              {
-                icon: <Newspaper size={18} />, color: "#00d4ff", weight: "28%",
-                title: "Médias & Sentiment",
-                desc: "Analyse de sentiment sur les 15 derniers articles par club. Mots positifs (victoire, record…) vs négatifs (crise, blessure…).",
-                source: sources.media.join(", "),
-              },
-              {
-                icon: <Users size={18} />, color: "#22c55e", weight: "30%",
-                title: "Humain & Mercato",
-                desc: "Valeur totale + moyenne de l'effectif, taux de blessures. Un effectif coûteux et disponible = score élevé.",
-                source: sources.mercato,
-              },
-              {
-                icon: <MessageCircle size={18} />, color: "#f472b6", weight: "14%",
-                title: "Supporters (Reddit)",
-                desc: "Sentiment des posts Reddit du subreddit officiel du club. Posts pondérés par les upvotes pour refléter l'opinion collective.",
-                source: sources.fan ?? "Reddit r/[club] + r/ligue1",
-              },
+              { icon: <Building2 size={16} />, color: "#f59e0b", weight: "28%", title: "Économique", desc: "Propriétaire, revenus annuels, solidité financière.", source: sources.economic },
+              { icon: <Newspaper size={16} />, color: "#00d4ff", weight: "28%", title: "Médias & Sentiment", desc: "Analyse des 15 derniers articles par club (positifs vs négatifs).", source: sources.media.join(", ") },
+              { icon: <Users size={16} />, color: "#22c55e", weight: "30%", title: "Humain & Mercato", desc: "Valeur totale de l'effectif et taux de blessures.", source: sources.mercato },
+              { icon: <MessageCircle size={16} />, color: "#f472b6", weight: "14%", title: "Supporters (Reddit)", desc: "Sentiment des posts Reddit, pondérés par upvotes.", source: sources.fan ?? "Reddit r/[club]" },
             ].map((c) => (
-              <div key={c.title} className="rounded-xl p-4" style={{ background: `${c.color}08`, border: `1px solid ${c.color}20` }}>
-                <div className="flex items-center justify-between mb-2">
+              <div key={c.title} className="rounded-xl p-3" style={{ background: `${c.color}08`, border: `1px solid ${c.color}20` }}>
+                <div className="flex items-center justify-between mb-1.5">
                   <span style={{ color: c.color }}>{c.icon}</span>
-                  <span className="text-xs font-black px-2 py-0.5 rounded-full"
-                    style={{ background: `${c.color}20`, color: c.color }}>{c.weight}</span>
+                  <span className="text-xs font-black px-1.5 py-0.5 rounded-full" style={{ background: `${c.color}20`, color: c.color }}>{c.weight}</span>
                 </div>
-                <p className="font-bold text-sm mb-1" style={{ color: "#e8edf5" }}>{c.title}</p>
-                <p className="text-xs mb-2 leading-relaxed" style={{ color: "#6b7c96" }}>{c.desc}</p>
+                <p className="font-bold text-xs mb-1" style={{ color: "#e8edf5" }}>{c.title}</p>
+                <p className="text-xs leading-relaxed mb-1" style={{ color: "#6b7c96" }}>{c.desc}</p>
                 <p className="text-xs italic" style={{ color: "#6b7c96" }}>Source : {c.source}</p>
               </div>
             ))}
           </div>
-
-          {sources.market && (
-            <div className="rounded-xl p-4" style={{ background: "rgba(124,58,237,0.08)", border: "1px solid rgba(124,58,237,0.2)" }}>
-              <div className="flex items-center gap-2 mb-2">
-                <BarChart2 size={15} style={{ color: "#a78bfa" }} />
-                <p className="font-bold text-sm" style={{ color: "#a78bfa" }}>Cotes Paris Sportifs (+10%)</p>
-              </div>
-              <p className="text-xs leading-relaxed" style={{ color: "#6b7c96" }}>
-                Les cotes bookmakers (Betclic, Unibet, Winamax…) reflètent la confiance collective du marché.
-                Un club favori (cotes basses = probabilité implicite haute) reçoit un bonus, un outsider reçoit une pénalité.
-                <br /><span style={{ color: "#a78bfa" }}>Source : {sources.market}</span>
-              </p>
-            </div>
-          )}
-
           <div className="rounded-xl p-4" style={{ background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.06)" }}>
             <p className="text-xs font-semibold mb-2" style={{ color: "#6b7c96" }}>IMPACT SUR LES PRÉDICTIONS</p>
-            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 text-xs text-center">
+            <div className="grid grid-cols-5 gap-2 text-xs text-center">
               {[
                 { range: "≥ 72", delta: "+7%", color: "#22c55e" },
                 { range: "62–72", delta: "+4%", color: "#86efac" },
@@ -213,8 +270,7 @@ function ComponentBar({ label, score, icon, detail, weight }: { label: string; s
         <span className="text-xs font-bold" style={{ color }}>{score}/100</span>
       </div>
       <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
-        <div className="h-full rounded-full transition-all duration-700"
-          style={{ width: `${score}%`, background: color, boxShadow: `0 0 6px ${color}50` }} />
+        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${score}%`, background: color, boxShadow: `0 0 6px ${color}50` }} />
       </div>
     </div>
   );
@@ -239,16 +295,15 @@ function SourceRow({ src }: { src: SourceBreakdown }) {
 }
 
 function ArticleRow({ article }: { article: Article }) {
-  const cfg: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
-    positive: { color: "#22c55e", icon: <TrendingUp size={9} />, label: "+" },
-    negative: { color: "#ef4444", icon: <TrendingDown size={9} />, label: "−" },
-    neutral:  { color: "#94a3b8", icon: <Minus size={9} />, label: "·" },
+  const cfg: Record<string, { color: string; icon: React.ReactNode }> = {
+    positive: { color: "#22c55e", icon: <TrendingUp size={9} /> },
+    negative: { color: "#ef4444", icon: <TrendingDown size={9} /> },
+    neutral:  { color: "#94a3b8", icon: <Minus size={9} /> },
   };
-  const { color, icon, label } = cfg[article.sentiment];
+  const { color, icon } = cfg[article.sentiment];
   return (
     <div className="flex items-start gap-2 py-1.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
-      <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-black flex-shrink-0 mt-0.5"
-        style={{ background: `${color}15`, color }}>{icon}{label}</span>
+      <span className="px-1.5 py-0.5 rounded text-xs font-black flex-shrink-0 mt-0.5" style={{ background: `${color}15`, color }}>{icon}</span>
       <div className="min-w-0">
         <p className="text-xs leading-snug truncate" style={{ color: "#94a3b8" }}>{article.title}</p>
         <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>{article.source}</p>
@@ -267,8 +322,7 @@ function RedditPostRow({ post }: { post: RedditPost }) {
   const ago = post.created ? Math.round((Date.now() / 1000 - post.created) / 3600) : null;
   return (
     <div className="flex items-start gap-2 py-1.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
-      <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-black flex-shrink-0 mt-0.5"
-        style={{ background: `${color}15`, color }}>{icon}</span>
+      <span className="px-1.5 py-0.5 rounded text-xs font-black flex-shrink-0 mt-0.5" style={{ background: `${color}15`, color }}>{icon}</span>
       <div className="flex-1 min-w-0">
         <p className="text-xs leading-snug" style={{ color: "#94a3b8" }}>{post.title}</p>
         <div className="flex items-center gap-2 mt-0.5">
@@ -284,23 +338,15 @@ function RedditPostRow({ post }: { post: RedditPost }) {
 
 function PlayerRow({ player }: { player: PlayerSquad }) {
   const isInjured = player.status?.toLowerCase().includes("injury");
-  const posColors: Record<string, string> = {
-    Goalkeeper: "#f59e0b", Defender: "#3b82f6", Midfielder: "#22c55e",
-    Winger: "#a78bfa", "Centre-Forward": "#ef4444",
-  };
-  const posLabels: Record<string, string> = {
-    Goalkeeper: "Gardien", Defender: "Défenseur", Midfielder: "Milieu",
-    Winger: "Ailier", "Centre-Forward": "Attaquant",
-  };
+  const posColors: Record<string, string> = { Goalkeeper: "#f59e0b", Defender: "#3b82f6", Midfielder: "#22c55e", Winger: "#a78bfa", "Centre-Forward": "#ef4444" };
+  const posLabels: Record<string, string> = { Goalkeeper: "Gardien", Defender: "Défenseur", Midfielder: "Milieu", Winger: "Ailier", "Centre-Forward": "Attaquant" };
   return (
-    <div className="grid items-center px-3 py-2 hover:bg-white/[0.02] rounded-lg transition-colors"
-      style={{ gridTemplateColumns: "1fr 90px 55px 90px" }}>
+    <div className="grid items-center px-3 py-2 hover:bg-white/[0.02] rounded-lg transition-colors" style={{ gridTemplateColumns: "1fr 90px 55px 90px" }}>
       <div className="flex items-center gap-2 min-w-0">
         {isInjured && <AlertTriangle size={11} className="text-orange-400 flex-shrink-0" />}
         <span className="text-sm truncate" style={{ color: isInjured ? "#f97316" : "#e8edf5" }}>{player.name}</span>
         {player.nationality?.[0] && (
-          <span className="text-xs px-1 rounded flex-shrink-0 hidden sm:block"
-            style={{ background: "rgba(255,255,255,0.06)", color: "#6b7c96" }}>
+          <span className="text-xs px-1 rounded flex-shrink-0 hidden sm:block" style={{ background: "rgba(255,255,255,0.06)", color: "#6b7c96" }}>
             {player.nationality[0].slice(0, 3).toUpperCase()}
           </span>
         )}
@@ -318,62 +364,105 @@ function PlayerRow({ player }: { player: PlayerSquad }) {
   );
 }
 
-function ClubDetail({ club }: { club: ClubScore }) {
+function RedditSection({ teamId, fanData, subredditLabel }: {
+  teamId: number;
+  fanData: ClubScore["components"]["fan"];
+  subredditLabel: string;
+}) {
+  const [posts, setPosts] = useState<RedditPost[]>(fanData?.posts ?? []);
+  const [loading, setLoading] = useState(false);
+  const [fetched, setFetched] = useState((fanData?.posts?.length ?? 0) > 0);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchPosts = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/reddit-feed?teamId=${teamId}`);
+      const data = await res.json();
+      if (data.error && !data.posts?.length) throw new Error(data.error);
+      setPosts(data.posts ?? []);
+      setFetched(true);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-semibold" style={{ color: "#6b7c96" }}>SUPPORTERS REDDIT</p>
+        <div className="flex items-center gap-2">
+          <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(244,114,182,0.1)", color: "#f472b6" }}>
+            {subredditLabel}
+          </span>
+          {fanData && fanData.total > 0 && (
+            <span className="text-xs" style={{ color: "#6b7c96" }}>
+              <span style={{ color: "#22c55e" }}>+{fanData.positive}</span> / <span style={{ color: "#ef4444" }}>-{fanData.negative}</span>
+            </span>
+          )}
+          <button
+            onClick={fetchPosts}
+            disabled={loading}
+            className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-lg transition-all hover:opacity-70 disabled:opacity-40"
+            style={{ background: "rgba(244,114,182,0.1)", color: "#f472b6", border: "1px solid rgba(244,114,182,0.2)" }}>
+            <RefreshCw size={10} className={loading ? "animate-spin" : ""} />
+            {loading ? "Chargement…" : fetched ? "Actualiser" : "Charger"}
+          </button>
+        </div>
+      </div>
+
+      {error && <p className="text-xs" style={{ color: "#ef4444" }}>Erreur : {error}</p>}
+
+      {fetched && posts.length === 0 && !error && (
+        <p className="text-xs" style={{ color: "#6b7c96" }}>Aucun post récent trouvé sur {subredditLabel}</p>
+      )}
+
+      {posts.map((p, i) => <RedditPostRow key={i} post={p} />)}
+
+      {!fetched && !loading && (
+        <p className="text-xs" style={{ color: "#6b7c96" }}>
+          Cliquez sur "Charger" pour récupérer les derniers posts Reddit
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ClubDetail({ club, weights }: { club: ClubScore; weights: Weights }) {
   const [squad, setSquad] = useState<SquadData | null>(null);
   const [loadingSquad, setLoadingSquad] = useState(false);
   const [showSquad, setShowSquad] = useState(false);
   const c = club.components;
 
+  const total = weights.eco + weights.media + weights.human + weights.fan + (c.market ? 10 : 0);
+  const effWeight = (w: number) => total > 0 ? Math.round(w / total * 100) : 0;
+
   const loadSquad = () => {
     if (squad) { setShowSquad(!showSquad); return; }
     setLoadingSquad(true);
-    fetch(`/api/squad/${club.teamId}`)
-      .then((r) => r.json()).then(setSquad)
-      .finally(() => { setLoadingSquad(false); setShowSquad(true); });
+    fetch(`/api/squad/${club.teamId}`).then((r) => r.json()).then(setSquad).finally(() => { setLoadingSquad(false); setShowSquad(true); });
   };
 
   return (
     <div className="mt-4 space-y-4">
-      {/* Score breakdown */}
+      {/* Component bars */}
       <div className="space-y-3 px-1">
-        <ComponentBar label="Économique" score={c.economic.score} icon={<Building2 size={12} />}
-          detail={c.economic.owner} weight={c.economic.weight} />
-        <ComponentBar label="Médias & Sentiment" score={c.media.score} icon={<Newspaper size={12} />}
-          detail={c.media.total > 0 ? `${c.media.positive} positifs · ${c.media.negative} négatifs` : "en attente"}
-          weight={c.media.weight} />
-        <ComponentBar label="Humain & Mercato" score={c.human.score} icon={<Users size={12} />}
-          detail={c.human.totalValue > 0 ? formatValue(c.human.totalValue) : "—"}
-          weight={c.human.weight} />
-        {c.fan && (
-          <ComponentBar label={`Supporters (${c.fan.subreddit})`} score={c.fan.score} icon={<MessageCircle size={12} />}
-            detail={c.fan.total > 0 ? `${c.fan.positive} pos · ${c.fan.negative} nég` : "en attente"}
-            weight={c.fan.weight} />
-        )}
-        {c.market && (
-          <ComponentBar label="Marché Paris Sportifs" score={c.market.score} icon={<BarChart2 size={12} />}
-            detail={c.market.source} weight={c.market.weight} />
-        )}
+        <ComponentBar label="Économique" score={c.economic.score} icon={<Building2 size={12} />} detail={c.economic.owner} weight={effWeight(weights.eco)} />
+        <ComponentBar label="Médias & Sentiment" score={c.media.score} icon={<Newspaper size={12} />} detail={c.media.total > 0 ? `${c.media.positive} pos · ${c.media.negative} nég` : "en attente"} weight={effWeight(weights.media)} />
+        <ComponentBar label="Humain & Mercato" score={c.human.score} icon={<Users size={12} />} detail={c.human.totalValue > 0 ? formatValue(c.human.totalValue) : "—"} weight={effWeight(weights.human)} />
+        {c.fan && <ComponentBar label={`Supporters (${c.fan.subreddit})`} score={c.fan.score} icon={<MessageCircle size={12} />} detail={c.fan.total > 0 ? `${c.fan.positive} pos · ${c.fan.negative} nég` : "en attente"} weight={effWeight(weights.fan)} />}
+        {c.market && <ComponentBar label="Paris Sportifs" score={c.market.score} icon={<BarChart2 size={12} />} detail={c.market.source} weight={effWeight(10)} />}
       </div>
 
-      {/* Economic */}
-      <div className="rounded-xl p-3 grid grid-cols-2 gap-3 text-xs"
-        style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-        <div>
-          <p style={{ color: "#6b7c96" }}>Propriétaire</p>
-          <p className="font-semibold mt-0.5" style={{ color: "#e8edf5" }}>{c.economic.owner}</p>
-        </div>
-        <div>
-          <p style={{ color: "#6b7c96" }}>Revenus estimés</p>
-          <p className="font-semibold mt-0.5" style={{ color: "#e8edf5" }}>{c.economic.revenue}</p>
-        </div>
-        <div>
-          <p style={{ color: "#6b7c96" }}>Stabilité financière</p>
-          <p className="font-semibold mt-0.5" style={{ color: "#e8edf5" }}>{c.economic.label}</p>
-        </div>
-        <div>
-          <p style={{ color: "#6b7c96" }}>Score économique</p>
-          <p className="font-semibold mt-0.5" style={{ color: emotionColor(c.economic.score).color }}>{c.economic.score}/100</p>
-        </div>
+      {/* Economic info */}
+      <div className="rounded-xl p-3 grid grid-cols-2 gap-3 text-xs" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+        <div><p style={{ color: "#6b7c96" }}>Propriétaire</p><p className="font-semibold mt-0.5" style={{ color: "#e8edf5" }}>{c.economic.owner}</p></div>
+        <div><p style={{ color: "#6b7c96" }}>Revenus estimés</p><p className="font-semibold mt-0.5" style={{ color: "#e8edf5" }}>{c.economic.revenue}</p></div>
+        <div><p style={{ color: "#6b7c96" }}>Stabilité</p><p className="font-semibold mt-0.5" style={{ color: "#e8edf5" }}>{c.economic.label}</p></div>
+        <div><p style={{ color: "#6b7c96" }}>Score éco.</p><p className="font-semibold mt-0.5" style={{ color: emotionColor(c.economic.score).color }}>{c.economic.score}/100</p></div>
       </div>
 
       {/* Mercato */}
@@ -383,7 +472,7 @@ function ClubDetail({ club }: { club: ClubScore }) {
           <div className="grid grid-cols-3 gap-2 mb-3">
             {[
               { label: "Valeur totale", value: formatValue(c.human.totalValue), color: "#00d4ff" },
-              { label: "Valeur moyenne", value: formatValue(c.human.avgValue), color: "#e8edf5" },
+              { label: "Valeur moy.", value: formatValue(c.human.avgValue), color: "#e8edf5" },
               { label: "Blessés", value: `${c.human.injuryRate}%`, color: c.human.injuryRate > 20 ? "#ef4444" : c.human.injuryRate > 10 ? "#f59e0b" : "#22c55e" },
             ].map((s) => (
               <div key={s.label} className="text-center">
@@ -401,24 +490,21 @@ function ClubDetail({ club }: { club: ClubScore }) {
           )}
           {c.human.injuredPlayers.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2 pt-2" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-              <span className="text-xs flex items-center gap-1" style={{ color: "#f97316" }}>
-                <AlertTriangle size={10} /> Blessés :
-              </span>
+              <span className="text-xs flex items-center gap-1" style={{ color: "#f97316" }}><AlertTriangle size={10} /> Blessés :</span>
               {c.human.injuredPlayers.map((p) => (
-                <span key={p} className="text-xs px-1.5 py-0.5 rounded"
-                  style={{ background: "rgba(249,115,22,0.1)", color: "#f97316" }}>{p}</span>
+                <span key={p} className="text-xs px-1.5 py-0.5 rounded" style={{ background: "rgba(249,115,22,0.1)", color: "#f97316" }}>{p}</span>
               ))}
             </div>
           )}
         </div>
       )}
 
-      {/* Media sources breakdown */}
+      {/* Media sources */}
       {c.media.sourceBreakdown.length > 0 && (
         <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
           <p className="text-xs font-semibold mb-2" style={{ color: "#6b7c96" }}>SOURCES MÉDIAS</p>
           <div className="flex justify-between text-xs mb-1 px-1" style={{ color: "#6b7c96" }}>
-            <span>Source</span><span>Articles</span><span>Positifs</span><span>Négatifs</span><span>Score</span>
+            <span>Source</span><span>Articles</span><span>Pos</span><span>Nég</span><span>Score</span>
           </div>
           {c.media.sourceBreakdown.map((s) => <SourceRow key={s.source} src={s} />)}
         </div>
@@ -433,38 +519,18 @@ function ClubDetail({ club }: { club: ClubScore }) {
       )}
 
       {/* Reddit fan feed */}
-      {c.fan && (c.fan.posts.length > 0 || c.fan.total > 0) && (
-        <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-semibold" style={{ color: "#6b7c96" }}>SENTIMENT SUPPORTERS</p>
-            <div className="flex items-center gap-2">
-              <span className="text-xs px-2 py-0.5 rounded-full"
-                style={{ background: "rgba(244,114,182,0.1)", color: "#f472b6" }}>
-                {c.fan.subreddit}
-              </span>
-              {c.fan.total > 0 && (
-                <span className="text-xs" style={{ color: "#6b7c96" }}>
-                  <span style={{ color: "#22c55e" }}>+{c.fan.positive}</span>
-                  {" / "}
-                  <span style={{ color: "#ef4444" }}>-{c.fan.negative}</span>
-                </span>
-              )}
-            </div>
-          </div>
-          {c.fan.posts.length > 0 ? (
-            c.fan.posts.map((p, i) => <RedditPostRow key={i} post={p} />)
-          ) : (
-            <p className="text-xs" style={{ color: "#6b7c96" }}>Aucun post récent trouvé</p>
-          )}
-        </div>
-      )}
+      <RedditSection
+        teamId={club.teamId}
+        fanData={c.fan}
+        subredditLabel={c.fan?.subreddit ?? "r/ligue1"}
+      />
 
       {/* Squad */}
       <button onClick={loadSquad}
         className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-80"
         style={{ background: "rgba(0,212,255,0.06)", border: "1px solid rgba(0,212,255,0.15)", color: "#00d4ff" }}>
         <Users size={14} />
-        {loadingSquad ? "Chargement…" : showSquad ? "Masquer l'effectif" : "Effectif complet & cotes Transfermarkt"}
+        {loadingSquad ? "Chargement…" : showSquad ? "Masquer l'effectif" : "Effectif & cotes Transfermarkt"}
         {!loadingSquad && <ChevronDown size={14} className={`transition-transform ${showSquad ? "rotate-180" : ""}`} />}
       </button>
 
@@ -472,18 +538,12 @@ function ClubDetail({ club }: { club: ClubScore }) {
         <div className="rounded-xl overflow-hidden" style={{ border: "1px solid #1e2d42" }}>
           <div className="grid px-3 py-2 text-xs font-semibold uppercase tracking-widest"
             style={{ gridTemplateColumns: "1fr 90px 55px 90px", background: "#0d1421", color: "#6b7c96", borderBottom: "1px solid #1e2d42" }}>
-            <span>Joueur</span><span className="text-center">Poste</span>
-            <span className="text-center">Âge</span><span className="text-right">Valeur mercato</span>
+            <span>Joueur</span><span className="text-center">Poste</span><span className="text-center">Âge</span><span className="text-right">Valeur</span>
           </div>
-          <div className="px-1 py-1">
-            {squad.squad.map((p) => <PlayerRow key={p.id} player={p} />)}
-          </div>
-          <div className="flex justify-between px-3 py-2 text-xs font-bold"
-            style={{ borderTop: "1px solid #1e2d42", background: "#0d1421", color: "#6b7c96" }}>
+          <div className="px-1 py-1">{squad.squad.map((p) => <PlayerRow key={p.id} player={p} />)}</div>
+          <div className="flex justify-between px-3 py-2 text-xs font-bold" style={{ borderTop: "1px solid #1e2d42", background: "#0d1421", color: "#6b7c96" }}>
             <span>{squad.stats.playerCount} joueurs</span>
-            {squad.stats.injuredCount > 0 && (
-              <span className="text-orange-400">{squad.stats.injuredCount} blessé{squad.stats.injuredCount > 1 ? "s" : ""}</span>
-            )}
+            {squad.stats.injuredCount > 0 && <span className="text-orange-400">{squad.stats.injuredCount} blessé{squad.stats.injuredCount > 1 ? "s" : ""}</span>}
             <span style={{ color: "#00d4ff" }}>Total : {formatValue(squad.stats.totalValue)}</span>
           </div>
         </div>
@@ -492,57 +552,53 @@ function ClubDetail({ club }: { club: ClubScore }) {
   );
 }
 
-function ClubCard({ club }: { club: ClubScore }) {
+function ClubCard({ club, customScore, weights }: { club: ClubScore; customScore: number; weights: Weights }) {
   const [expanded, setExpanded] = useState(false);
-  const { color, bg, border } = emotionColor(club.emotionalScore);
+  const { color, border } = emotionColor(customScore);
+  const delta = computeDelta(customScore);
+  const c = club.components;
+
+  const total = weights.eco + weights.media + weights.human + weights.fan + (c.market ? 10 : 0);
+  const effWeight = (w: number) => total > 0 ? Math.round(w / total * 100) : 0;
 
   return (
-    <div className="rounded-2xl overflow-hidden animate-fade-in-up" style={{ background: "#0d1421", border: `1px solid ${border}` }}>
+    <div className="rounded-2xl overflow-hidden" style={{ background: "#0d1421", border: `1px solid ${border}` }}>
       <button className="w-full flex items-center gap-4 px-5 py-4 transition-all hover:bg-white/[0.02]"
         onClick={() => setExpanded(!expanded)}>
-        <ScoreGauge score={club.emotionalScore} size={64} />
-
-        {club.team.crest ? (
+        <ScoreGauge score={customScore} size={64} />
+        {club.team.crest
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={club.team.crest} alt={club.team.shortName} className="w-9 h-9 object-contain flex-shrink-0" />
-        ) : (
-          <div className="w-9 h-9 rounded bg-white/5 flex-shrink-0 flex items-center justify-center text-xs font-black" style={{ color: "#6b7c96" }}>
-            {club.team.tla?.slice(0, 2)}
-          </div>
-        )}
-
+          ? <img src={club.team.crest} alt={club.team.shortName} className="w-9 h-9 object-contain flex-shrink-0" />
+          : <div className="w-9 h-9 rounded bg-white/5 flex-shrink-0 flex items-center justify-center text-xs font-black" style={{ color: "#6b7c96" }}>{club.team.tla?.slice(0, 2)}</div>
+        }
         <div className="flex-1 min-w-0 text-left">
           <p className="font-bold text-sm truncate" style={{ color: "#e8edf5" }}>{club.team.name}</p>
-          <p className="text-xs mt-0.5 font-medium" style={{ color }}>{emotionLabel(club.emotionalScore)}</p>
+          <p className="text-xs mt-0.5 font-medium" style={{ color }}>{emotionLabel(customScore)}</p>
           <div className="flex flex-wrap items-center gap-2 mt-1">
             <span className="text-xs" style={{ color: "#6b7c96" }}>{club.team.position}e au classement</span>
-            {club.predictionDelta !== 0 && (
+            {delta !== 0 && (
               <span className="flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full"
-                style={{
-                  background: club.predictionDelta > 0 ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)",
-                  color: club.predictionDelta > 0 ? "#22c55e" : "#ef4444",
-                }}>
-                <Zap size={9} />
-                {club.predictionDelta > 0 ? "+" : ""}{club.predictionDelta}% prédiction
+                style={{ background: delta > 0 ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)", color: delta > 0 ? "#22c55e" : "#ef4444" }}>
+                <Zap size={9} />{delta > 0 ? "+" : ""}{delta}% prédiction
               </span>
             )}
           </div>
         </div>
 
-        <div className="hidden sm:flex flex-col gap-2 items-end flex-shrink-0 mr-2">
+        {/* Mini bars */}
+        <div className="hidden sm:flex flex-col gap-1.5 items-end flex-shrink-0 mr-2">
           {[
-            { label: "Éco", score: club.components.economic.score },
-            { label: "Média", score: club.components.media.score },
-            { label: "Humain", score: club.components.human.score },
-            ...(club.components.fan ? [{ label: "Fans", score: club.components.fan.score }] : []),
+            { label: "Éco",    score: c.economic.score, eff: effWeight(weights.eco) },
+            { label: "Média",  score: c.media.score, eff: effWeight(weights.media) },
+            { label: "Humain", score: c.human.score, eff: effWeight(weights.human) },
+            { label: "Fans",   score: c.fan?.score ?? 50, eff: effWeight(weights.fan) },
           ].map((comp) => {
             const cc = emotionColor(comp.score);
             return (
               <div key={comp.label} className="flex items-center gap-2">
                 <span className="text-xs w-10 text-right" style={{ color: "#6b7c96" }}>{comp.label}</span>
-                <div className="w-20 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
-                  <div className="h-full rounded-full transition-all"
-                    style={{ width: `${comp.score}%`, background: cc.color }} />
+                <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                  <div className="h-full rounded-full transition-all" style={{ width: `${comp.score}%`, background: cc.color }} />
                 </div>
                 <span className="text-xs w-5" style={{ color: cc.color }}>{comp.score}</span>
               </div>
@@ -550,24 +606,26 @@ function ClubCard({ club }: { club: ClubScore }) {
           })}
         </div>
 
-        <ChevronDown size={16} style={{ color: "#6b7c96", flexShrink: 0 }}
-          className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
+        <ChevronDown size={16} style={{ color: "#6b7c96", flexShrink: 0 }} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
       </button>
 
       {expanded && (
         <div className="px-5 pb-5" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-          <ClubDetail club={club} />
+          <ClubDetail club={club} weights={weights} />
         </div>
       )}
     </div>
   );
 }
 
+// ── Main ──────────────────────────────────────────────────────────────────────
+
 export default function EmotionalScoreTab() {
   const [data, setData] = useState<EmotionalData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"score" | "rank">("score");
+  const [weights, setWeights] = useState<Weights>({ ...DEFAULT_WEIGHTS });
 
   useEffect(() => {
     fetch("/api/emotional-score")
@@ -577,9 +635,19 @@ export default function EmotionalScoreTab() {
       .finally(() => setLoading(false));
   }, []);
 
-  const sorted = data?.scores.slice().sort((a, b) =>
-    sortBy === "score" ? b.emotionalScore - a.emotionalScore : a.team.position - b.team.position
-  ) ?? [];
+  const scored = useMemo(() => {
+    if (!data) return [];
+    return data.scores.map((club) => ({
+      club,
+      customScore: computeScore(club.components, weights),
+    }));
+  }, [data, weights]);
+
+  const sorted = useMemo(() => {
+    return scored.slice().sort((a, b) =>
+      sortBy === "score" ? b.customScore - a.customScore : a.club.team.position - b.club.team.position
+    );
+  }, [scored, sortBy]);
 
   if (loading) {
     return (
@@ -587,9 +655,7 @@ export default function EmotionalScoreTab() {
         <div className="text-center py-6">
           <Heart size={24} className="text-pink-400 mx-auto mb-3 animate-pulse" />
           <p className="text-sm font-medium" style={{ color: "#e8edf5" }}>Analyse en cours…</p>
-          <p className="text-xs mt-1" style={{ color: "#6b7c96" }}>
-            Collecte des données : RMC, Figaro, Google News, Reddit, Transfermarkt
-          </p>
+          <p className="text-xs mt-1" style={{ color: "#6b7c96" }}>Collecte : RMC, Figaro, Google News, Reddit, Transfermarkt</p>
         </div>
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="h-20 rounded-2xl animate-pulse" style={{ background: "#0d1421", border: "1px solid #1e2d42" }} />
@@ -597,33 +663,25 @@ export default function EmotionalScoreTab() {
       </div>
     );
   }
-
   if (error) return <div className="text-center py-16 text-red-400 text-sm">{error}</div>;
 
   return (
     <div>
       {data && <Methodology sources={data.sources} />}
+      <WeightSliders weights={weights} onChange={setWeights} />
 
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-base font-bold flex items-center gap-2" style={{ color: "#e8edf5" }}>
             <Heart size={17} className="text-pink-400" /> Score Émotionnel — {sorted.length} clubs
           </h2>
-          <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>
-            Cliquez un club pour voir le détail complet
-          </p>
+          <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>Cliquez un club pour le détail · Reddit chargeable par club</p>
         </div>
         <div className="flex gap-1 p-1 rounded-lg" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
-          {[
-            { id: "score", label: "Par score" },
-            { id: "rank", label: "Par classement" },
-          ].map((opt) => (
+          {[{ id: "score", label: "Par score" }, { id: "rank", label: "Par classement" }].map((opt) => (
             <button key={opt.id} onClick={() => setSortBy(opt.id as "score" | "rank")}
               className="px-3 py-1 rounded text-xs font-medium transition-all"
-              style={{
-                background: sortBy === opt.id ? "rgba(255,255,255,0.06)" : "transparent",
-                color: sortBy === opt.id ? "#e8edf5" : "#6b7c96",
-              }}>
+              style={{ background: sortBy === opt.id ? "rgba(255,255,255,0.06)" : "transparent", color: sortBy === opt.id ? "#e8edf5" : "#6b7c96" }}>
               {opt.label}
             </button>
           ))}
@@ -646,9 +704,9 @@ export default function EmotionalScoreTab() {
       </div>
 
       <div className="space-y-3">
-        {sorted.map((club, i) => (
-          <div key={club.teamId} style={{ animationDelay: `${i * 35}ms` }}>
-            <ClubCard club={club} />
+        {sorted.map(({ club, customScore }, i) => (
+          <div key={club.teamId} className="animate-fade-in-up" style={{ animationDelay: `${i * 35}ms` }}>
+            <ClubCard club={club} customScore={customScore} weights={weights} />
           </div>
         ))}
       </div>

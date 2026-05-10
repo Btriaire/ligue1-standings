@@ -43,6 +43,28 @@ export const ECONOMIC_SCORES: Record<number, { score: number; label: string; rev
   545: { score: 37, label: "Précaire", revenue: "~35M€/an",  owner: "FC Metz SASP" },
 };
 
+// Reddit subreddits for fan sentiment (null = use r/ligue1 search)
+export const CLUB_SUBREDDITS: Record<number, string | null> = {
+  524: "psg",
+  546: "rclens",
+  523: "OlympiqueLyonnais",
+  521: "LOSC",
+  529: null,          // Rennes → r/ligue1 search
+  548: "ASMonaco",
+  516: "olympiquedemarseille",
+  576: null,          // Strasbourg → r/ligue1 search
+  525: null,
+  511: null,
+  1045: null,
+  512: null,
+  532: null,
+  533: null,
+  522: null,
+  519: null,
+  543: null,
+  545: null,
+};
+
 // Google News RSS search terms per club
 export const CLUB_SEARCH_TERMS: Record<number, string> = {
   524: "PSG+Paris+Saint-Germain",
