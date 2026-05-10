@@ -4,11 +4,20 @@ import { useEffect, useState } from "react";
 import {
   Heart, TrendingUp, TrendingDown, Minus, Users, Newspaper,
   Building2, ChevronDown, AlertTriangle, Star, Zap,
-  Info, BarChart2, Radio, Globe,
+  Info, BarChart2, Radio, Globe, MessageCircle, ThumbsUp,
 } from "lucide-react";
 
 interface Article { title: string; pubDate: string; source: string; sentiment: "positive" | "negative" | "neutral" }
 interface SourceBreakdown { source: string; articleCount: number; positive: number; negative: number; score: number }
+interface RedditPost {
+  title: string;
+  score: number;
+  upvoteRatio: number;
+  url: string;
+  subreddit: string;
+  created: number;
+  sentiment: "positive" | "negative" | "neutral";
+}
 
 interface ClubScore {
   teamId: number;
@@ -19,13 +28,14 @@ interface ClubScore {
     economic: { score: number; label: string; revenue: string; owner: string; weight: number };
     media: { score: number; positive: number; negative: number; total: number; articles: Article[]; sourceBreakdown: SourceBreakdown[]; weight: number };
     human: { score: number; totalValue: number; avgValue: number; injuryRate: number; topPlayer: string | null; playerCount: number; injuredPlayers: string[]; weight: number };
+    fan: { score: number; posts: RedditPost[]; positive: number; negative: number; total: number; subreddit: string; weight: number };
     market: { score: number; weight: number; source: string } | null;
   };
 }
 
 interface EmotionalData {
   scores: ClubScore[];
-  sources: { media: string[]; mercato: string; economic: string; market: string | null };
+  sources: { media: string[]; fan: string; mercato: string; economic: string; market: string | null };
   updatedAt: string;
 }
 
@@ -97,7 +107,7 @@ function Methodology({ sources }: { sources: EmotionalData["sources"] }) {
         <div className="flex-1 text-left">
           <p className="text-sm font-bold" style={{ color: "#e8edf5" }}>Comment est calculé le Score Émotionnel ?</p>
           <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>
-            {sources.media.join(" · ")} · Transfermarkt · Données économiques publiques
+            {sources.media.join(" · ")} · Reddit · Transfermarkt · Données économiques publiques
             {sources.market ? ` · ${sources.market}` : ""}
           </p>
         </div>
@@ -108,29 +118,35 @@ function Methodology({ sources }: { sources: EmotionalData["sources"] }) {
         <div className="px-5 pb-5 space-y-5" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
           <p className="text-sm mt-4" style={{ color: "#94a3b8" }}>
             Le Score Émotionnel (0–100) mesure la <strong style={{ color: "#e8edf5" }}>santé globale d'un club</strong> au-delà des stats sportives.
-            Il est calculé à partir de <strong style={{ color: "#e8edf5" }}>3 dimensions</strong> pondérées,
+            Il est calculé à partir de <strong style={{ color: "#e8edf5" }}>4 dimensions</strong> pondérées,
             puis utilisé pour <strong style={{ color: "#e8edf5" }}>corriger automatiquement les prédictions IA</strong> (±2 à ±7%).
           </p>
 
-          <div className="grid sm:grid-cols-3 gap-3">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {[
               {
-                icon: <Building2 size={18} />, color: "#f59e0b", weight: "30%",
+                icon: <Building2 size={18} />, color: "#f59e0b", weight: "28%",
                 title: "Économique",
                 desc: "Solidité financière du club : propriétaire, budget estimé, revenus annuels, niveau d'investissement récent.",
                 source: sources.economic,
               },
               {
-                icon: <Newspaper size={18} />, color: "#00d4ff", weight: "35%",
+                icon: <Newspaper size={18} />, color: "#00d4ff", weight: "28%",
                 title: "Médias & Sentiment",
                 desc: "Analyse de sentiment sur les 15 derniers articles par club. Mots positifs (victoire, record…) vs négatifs (crise, blessure…).",
                 source: sources.media.join(", "),
               },
               {
-                icon: <Users size={18} />, color: "#22c55e", weight: "35%",
+                icon: <Users size={18} />, color: "#22c55e", weight: "30%",
                 title: "Humain & Mercato",
                 desc: "Valeur totale + moyenne de l'effectif, taux de blessures. Un effectif coûteux et disponible = score élevé.",
                 source: sources.mercato,
+              },
+              {
+                icon: <MessageCircle size={18} />, color: "#f472b6", weight: "14%",
+                title: "Supporters (Reddit)",
+                desc: "Sentiment des posts Reddit du subreddit officiel du club. Posts pondérés par les upvotes pour refléter l'opinion collective.",
+                source: sources.fan ?? "Reddit r/[club] + r/ligue1",
               },
             ].map((c) => (
               <div key={c.title} className="rounded-xl p-4" style={{ background: `${c.color}08`, border: `1px solid ${c.color}20` }}>
@@ -241,6 +257,31 @@ function ArticleRow({ article }: { article: Article }) {
   );
 }
 
+function RedditPostRow({ post }: { post: RedditPost }) {
+  const cfg: Record<string, { color: string; icon: React.ReactNode }> = {
+    positive: { color: "#22c55e", icon: <TrendingUp size={9} /> },
+    negative: { color: "#ef4444", icon: <TrendingDown size={9} /> },
+    neutral:  { color: "#94a3b8", icon: <Minus size={9} /> },
+  };
+  const { color, icon } = cfg[post.sentiment];
+  const ago = post.created ? Math.round((Date.now() / 1000 - post.created) / 3600) : null;
+  return (
+    <div className="flex items-start gap-2 py-1.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
+      <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-black flex-shrink-0 mt-0.5"
+        style={{ background: `${color}15`, color }}>{icon}</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs leading-snug" style={{ color: "#94a3b8" }}>{post.title}</p>
+        <div className="flex items-center gap-2 mt-0.5">
+          <span className="flex items-center gap-0.5 text-xs" style={{ color: "#6b7c96" }}>
+            <ThumbsUp size={9} /> {post.score}
+          </span>
+          {ago !== null && <span className="text-xs" style={{ color: "#6b7c96" }}>il y a {ago}h</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PlayerRow({ player }: { player: PlayerSquad }) {
   const isInjured = player.status?.toLowerCase().includes("injury");
   const posColors: Record<string, string> = {
@@ -303,6 +344,11 @@ function ClubDetail({ club }: { club: ClubScore }) {
         <ComponentBar label="Humain & Mercato" score={c.human.score} icon={<Users size={12} />}
           detail={c.human.totalValue > 0 ? formatValue(c.human.totalValue) : "—"}
           weight={c.human.weight} />
+        {c.fan && (
+          <ComponentBar label={`Supporters (${c.fan.subreddit})`} score={c.fan.score} icon={<MessageCircle size={12} />}
+            detail={c.fan.total > 0 ? `${c.fan.positive} pos · ${c.fan.negative} nég` : "en attente"}
+            weight={c.fan.weight} />
+        )}
         {c.market && (
           <ComponentBar label="Marché Paris Sportifs" score={c.market.score} icon={<BarChart2 size={12} />}
             detail={c.market.source} weight={c.market.weight} />
@@ -386,6 +432,33 @@ function ClubDetail({ club }: { club: ClubScore }) {
         </div>
       )}
 
+      {/* Reddit fan feed */}
+      {c.fan && (c.fan.posts.length > 0 || c.fan.total > 0) && (
+        <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold" style={{ color: "#6b7c96" }}>SENTIMENT SUPPORTERS</p>
+            <div className="flex items-center gap-2">
+              <span className="text-xs px-2 py-0.5 rounded-full"
+                style={{ background: "rgba(244,114,182,0.1)", color: "#f472b6" }}>
+                {c.fan.subreddit}
+              </span>
+              {c.fan.total > 0 && (
+                <span className="text-xs" style={{ color: "#6b7c96" }}>
+                  <span style={{ color: "#22c55e" }}>+{c.fan.positive}</span>
+                  {" / "}
+                  <span style={{ color: "#ef4444" }}>-{c.fan.negative}</span>
+                </span>
+              )}
+            </div>
+          </div>
+          {c.fan.posts.length > 0 ? (
+            c.fan.posts.map((p, i) => <RedditPostRow key={i} post={p} />)
+          ) : (
+            <p className="text-xs" style={{ color: "#6b7c96" }}>Aucun post récent trouvé</p>
+          )}
+        </div>
+      )}
+
       {/* Squad */}
       <button onClick={loadSquad}
         className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-80"
@@ -461,6 +534,7 @@ function ClubCard({ club }: { club: ClubScore }) {
             { label: "Éco", score: club.components.economic.score },
             { label: "Média", score: club.components.media.score },
             { label: "Humain", score: club.components.human.score },
+            ...(club.components.fan ? [{ label: "Fans", score: club.components.fan.score }] : []),
           ].map((comp) => {
             const cc = emotionColor(comp.score);
             return (
@@ -514,7 +588,7 @@ export default function EmotionalScoreTab() {
           <Heart size={24} className="text-pink-400 mx-auto mb-3 animate-pulse" />
           <p className="text-sm font-medium" style={{ color: "#e8edf5" }}>Analyse en cours…</p>
           <p className="text-xs mt-1" style={{ color: "#6b7c96" }}>
-            Collecte des données : RMC, Figaro, Google News, Transfermarkt
+            Collecte des données : RMC, Figaro, Google News, Reddit, Transfermarkt
           </p>
         </div>
         {Array.from({ length: 5 }).map((_, i) => (
@@ -528,10 +602,8 @@ export default function EmotionalScoreTab() {
 
   return (
     <div>
-      {/* Methodology */}
       {data && <Methodology sources={data.sources} />}
 
-      {/* Header + sort */}
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-base font-bold flex items-center gap-2" style={{ color: "#e8edf5" }}>
@@ -558,7 +630,6 @@ export default function EmotionalScoreTab() {
         </div>
       </div>
 
-      {/* Legend */}
       <div className="flex flex-wrap gap-3 mb-5">
         {[
           { label: "Excellent (70+)", color: "#22c55e" },

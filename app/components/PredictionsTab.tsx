@@ -51,6 +51,11 @@ interface PredData {
   matchday: number;
 }
 
+interface EmoEntry {
+  predictionDelta: number;
+  emotionalScore: number;
+}
+
 function formatDate(dateStr: string) {
   const d = new Date(dateStr);
   return {
@@ -80,6 +85,15 @@ const CONFIDENCE_CONFIG = {
   medium: { label: "Confiance moyenne", color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
   low: { label: "Match serré", color: "#94a3b8", bg: "rgba(148,163,184,0.1)" },
 };
+
+function calcWinner(h: number, d: number, a: number): "home" | "away" | "draw" {
+  return h > a && h > d ? "home" : a > h && a > d ? "away" : "draw";
+}
+
+function calcConfidence(h: number, d: number, a: number): "high" | "medium" | "low" {
+  const m = Math.max(h, d, a);
+  return m >= 55 ? "high" : m >= 42 ? "medium" : "low";
+}
 
 function ProbBar({ homeProb, drawProb, awayProb, winner }: {
   homeProb: number; drawProb: number; awayProb: number; winner: string;
@@ -120,7 +134,6 @@ function MatchCard({ match }: { match: MatchPrediction }) {
       className="rounded-2xl overflow-hidden animate-fade-in-up"
       style={{ background: "#0d1421", border: "1px solid #1e2d42" }}
     >
-      {/* Match header */}
       <div className="flex items-center justify-between px-4 py-2.5" style={{ borderBottom: "1px solid #1e2d42", background: "rgba(0,0,0,0.2)" }}>
         <div className="flex items-center gap-2 text-xs" style={{ color: "#6b7c96" }}>
           <Clock size={11} />
@@ -134,9 +147,7 @@ function MatchCard({ match }: { match: MatchPrediction }) {
       </div>
 
       <div className="px-5 py-5">
-        {/* Teams row */}
         <div className="grid grid-cols-3 items-center gap-4 mb-5">
-          {/* Home team */}
           <div className={`flex flex-col items-center gap-2 ${pred.winner === "home" ? "opacity-100" : "opacity-60"}`}>
             {match.homeTeam.crest ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -157,7 +168,6 @@ function MatchCard({ match }: { match: MatchPrediction }) {
             )}
           </div>
 
-          {/* VS + XG */}
           <div className="flex flex-col items-center gap-2">
             <div className="text-center">
               <p className="text-2xl font-black" style={{ color: "#e8edf5" }}>VS</p>
@@ -180,7 +190,6 @@ function MatchCard({ match }: { match: MatchPrediction }) {
             </div>
           </div>
 
-          {/* Away team */}
           <div className={`flex flex-col items-center gap-2 ${pred.winner === "away" ? "opacity-100" : "opacity-60"}`}>
             {match.awayTeam.crest ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -202,7 +211,6 @@ function MatchCard({ match }: { match: MatchPrediction }) {
           </div>
         </div>
 
-        {/* Probability bar */}
         <div className="mb-5">
           <div className="flex justify-between text-xs mb-1.5" style={{ color: "#6b7c96" }}>
             <span>Victoire dom.</span>
@@ -217,7 +225,6 @@ function MatchCard({ match }: { match: MatchPrediction }) {
           />
         </div>
 
-        {/* Stats comparison */}
         <div className="grid grid-cols-3 gap-2 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
           {[
             {
@@ -261,14 +268,12 @@ function MatchCard({ match }: { match: MatchPrediction }) {
           ))}
         </div>
 
-        {/* Form */}
         <div className="flex items-center justify-between mt-4 pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
           <FormMini form={match.homeTeam.form} />
           <span className="text-xs" style={{ color: "#6b7c96" }}>Forme récente</span>
           <FormMini form={match.awayTeam.form} />
         </div>
 
-        {/* Prediction summary */}
         {winnerTeam && (
           <div className="mt-4 px-4 py-3 rounded-xl text-center" style={{ background: "rgba(0,212,255,0.05)", border: "1px solid rgba(0,212,255,0.15)" }}>
             <p className="text-xs" style={{ color: "#6b7c96" }}>Prédiction IA</p>
@@ -286,12 +291,11 @@ function MatchCard({ match }: { match: MatchPrediction }) {
           </div>
         )}
 
-        {/* Emotional correction badge */}
         {pred.emotionalCorrection && (pred.emotionalCorrection.homeDelta !== 0 || pred.emotionalCorrection.awayDelta !== 0) && (
           <div className="mt-2 px-3 py-2 rounded-xl flex items-center gap-2 text-xs"
             style={{ background: "rgba(236,72,153,0.06)", border: "1px solid rgba(236,72,153,0.2)" }}>
             <Heart size={12} className="text-pink-400 flex-shrink-0" />
-            <span style={{ color: "#f472b6" }}>Correction émotionnelle appliquée :</span>
+            <span style={{ color: "#f472b6" }}>Correction émotionnelle :</span>
             <span style={{ color: "#94a3b8" }}>
               base {pred.emotionalCorrection.originalHomeProb}%–{pred.emotionalCorrection.originalAwayProb}%
               → {pred.homeProb}%–{pred.awayProb}%
@@ -326,37 +330,102 @@ function Toggle({ enabled, onToggle, label }: { enabled: boolean; onToggle: () =
   );
 }
 
+function applyClientCorrection(
+  pred: Prediction,
+  homeEmo: EmoEntry | undefined,
+  awayEmo: EmoEntry | undefined,
+): Prediction {
+  const homeDelta = homeEmo?.predictionDelta ?? 0;
+  const awayDelta = awayEmo?.predictionDelta ?? 0;
+  if (homeDelta === 0 && awayDelta === 0) return pred;
+
+  const baseHomeProb = pred.homeProb;
+  const baseAwayProb = pred.awayProb;
+
+  let homeProb = Math.max(5, Math.min(90, baseHomeProb + homeDelta - awayDelta));
+  let awayProb = Math.max(5, Math.min(90, baseAwayProb + awayDelta - homeDelta));
+  let drawProb = pred.drawProb;
+  const sum = homeProb + awayProb + drawProb;
+  homeProb = Math.round((homeProb / sum) * 100);
+  awayProb = Math.round((awayProb / sum) * 100);
+  drawProb = 100 - homeProb - awayProb;
+
+  return {
+    ...pred,
+    homeProb, awayProb, drawProb,
+    winner: calcWinner(homeProb, drawProb, awayProb),
+    confidence: calcConfidence(homeProb, drawProb, awayProb),
+    emotionalCorrection: {
+      originalHomeProb: baseHomeProb,
+      originalAwayProb: baseAwayProb,
+      homeDelta,
+      awayDelta,
+      homeEmotionalScore: homeEmo?.emotionalScore ?? null,
+      awayEmotionalScore: awayEmo?.emotionalScore ?? null,
+    },
+  };
+}
+
 export default function PredictionsTab() {
   const [data, setData] = useState<PredData | null>(null);
+  const [emotionalMap, setEmotionalMap] = useState<Map<number, EmoEntry>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [useEmotional, setUseEmotional] = useState(true);
 
   useEffect(() => {
-    fetch("/api/predictions")
-      .then((r) => r.json())
-      .then((d) => { if (d.error) throw new Error(d.error); setData(d); })
+    Promise.all([
+      fetch("/api/predictions").then((r) => r.json()),
+      fetch("/api/emotional-score").then((r) => r.json()).catch(() => ({ scores: [] })),
+    ])
+      .then(([predsData, emoData]) => {
+        if (predsData.error) throw new Error(predsData.error);
+        setData(predsData);
+        const map = new Map<number, EmoEntry>();
+        for (const s of emoData.scores ?? []) {
+          map.set(s.teamId, { predictionDelta: s.predictionDelta, emotionalScore: s.emotionalScore });
+        }
+        setEmotionalMap(map);
+      })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
 
-  // Override predictions with original values if emotional toggle is OFF
   const displayData = data ? {
     ...data,
     predictions: data.predictions.map((match) => {
-      if (useEmotional || !match.prediction.emotionalCorrection) return match;
-      const ec = match.prediction.emotionalCorrection;
-      const orig = { ...match.prediction,
-        homeProb: ec.originalHomeProb,
-        awayProb: ec.originalAwayProb,
-        drawProb: 100 - ec.originalHomeProb - ec.originalAwayProb,
-        emotionalCorrection: null,
-        winner: ec.originalHomeProb > ec.originalAwayProb && ec.originalHomeProb > (100 - ec.originalHomeProb - ec.originalAwayProb)
-          ? "home" as const
-          : ec.originalAwayProb > ec.originalHomeProb && ec.originalAwayProb > (100 - ec.originalHomeProb - ec.originalAwayProb)
-          ? "away" as const : "draw" as const,
+      // Base probs: if server applied correction, recover originals; otherwise current IS the base
+      const baseHomeProb = match.prediction.emotionalCorrection?.originalHomeProb ?? match.prediction.homeProb;
+      const baseAwayProb = match.prediction.emotionalCorrection?.originalAwayProb ?? match.prediction.awayProb;
+      const baseDrawProb = 100 - baseHomeProb - baseAwayProb;
+
+      if (!useEmotional) {
+        return {
+          ...match,
+          prediction: {
+            ...match.prediction,
+            homeProb: baseHomeProb,
+            awayProb: baseAwayProb,
+            drawProb: baseDrawProb,
+            winner: calcWinner(baseHomeProb, baseDrawProb, baseAwayProb),
+            confidence: calcConfidence(baseHomeProb, baseDrawProb, baseAwayProb),
+            emotionalCorrection: null,
+          },
+        };
+      }
+
+      // Toggle ON: if server already corrected, keep it; otherwise apply client-side from emotional map
+      if (match.prediction.emotionalCorrection) return match;
+
+      const basePred = { ...match.prediction, homeProb: baseHomeProb, awayProb: baseAwayProb, drawProb: baseDrawProb };
+      return {
+        ...match,
+        prediction: applyClientCorrection(
+          basePred,
+          emotionalMap.get(match.homeTeam.id),
+          emotionalMap.get(match.awayTeam.id),
+        ),
       };
-      return { ...match, prediction: orig };
     }),
   } : null;
 
@@ -384,7 +453,6 @@ export default function PredictionsTab() {
 
   return (
     <div>
-      {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
           <h2 className="text-base font-bold" style={{ color: "#e8edf5" }}>
@@ -397,7 +465,6 @@ export default function PredictionsTab() {
           </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          {/* Emotional toggle */}
           <Toggle
             enabled={useEmotional}
             onToggle={() => setUseEmotional(!useEmotional)}
@@ -411,7 +478,6 @@ export default function PredictionsTab() {
         </div>
       </div>
 
-      {/* Emotional info banner */}
       {useEmotional && correctedCount > 0 && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl mb-5 text-xs"
           style={{ background: "rgba(236,72,153,0.06)", border: "1px solid rgba(236,72,153,0.2)" }}>
@@ -423,7 +489,6 @@ export default function PredictionsTab() {
         </div>
       )}
 
-      {/* Cards grid */}
       <div className="grid sm:grid-cols-2 gap-4">
         {displayData.predictions.map((match, i) => (
           <div key={match.id} style={{ animationDelay: `${i * 60}ms` }}>
