@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Zap, TrendingUp, Shield, Target, Clock } from "lucide-react";
+import { Zap, TrendingUp, Shield, Target, Clock, Heart } from "lucide-react";
 
 interface TeamPred {
   id: number;
@@ -17,6 +17,15 @@ interface TeamPred {
   goalsAgainst: number;
 }
 
+interface EmotionalCorrection {
+  originalHomeProb: number;
+  originalAwayProb: number;
+  homeDelta: number;
+  awayDelta: number;
+  homeEmotionalScore: number | null;
+  awayEmotionalScore: number | null;
+}
+
 interface Prediction {
   homeProb: number;
   drawProb: number;
@@ -25,6 +34,7 @@ interface Prediction {
   confidence: "high" | "medium" | "low";
   homeXG: number;
   awayXG: number;
+  emotionalCorrection: EmotionalCorrection | null;
 }
 
 interface MatchPrediction {
@@ -273,6 +283,22 @@ function MatchCard({ match }: { match: MatchPrediction }) {
             <p className="text-sm font-bold mt-0.5" style={{ color: "#94a3b8" }}>
               Match nul probable — {pred.drawProb}% de probabilité
             </p>
+          </div>
+        )}
+
+        {/* Emotional correction badge */}
+        {pred.emotionalCorrection && (pred.emotionalCorrection.homeDelta !== 0 || pred.emotionalCorrection.awayDelta !== 0) && (
+          <div className="mt-2 px-3 py-2 rounded-xl flex items-center gap-2 text-xs"
+            style={{ background: "rgba(236,72,153,0.06)", border: "1px solid rgba(236,72,153,0.2)" }}>
+            <Heart size={12} className="text-pink-400 flex-shrink-0" />
+            <span style={{ color: "#f472b6" }}>Correction émotionnelle appliquée :</span>
+            <span style={{ color: "#94a3b8" }}>
+              base {pred.emotionalCorrection.originalHomeProb}%–{pred.emotionalCorrection.originalAwayProb}%
+              → {pred.homeProb}%–{pred.awayProb}%
+              {pred.emotionalCorrection.homeEmotionalScore !== null && (
+                <> (score: {pred.emotionalCorrection.homeEmotionalScore} | {pred.emotionalCorrection.awayEmotionalScore})</>
+              )}
+            </span>
           </div>
         )}
       </div>

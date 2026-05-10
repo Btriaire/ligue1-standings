@@ -92,11 +92,71 @@ function predict(home: StandingEntry, away: StandingEntry) {
   return { homeProb, drawProb, awayProb, winner, confidence, homeXG, awayXG };
 }
 
+interface EmotionalEntry { teamId: number; emotionalScore: number; predictionDelta: number }
+
+async function fetchEmotionalScores(): Promise<Map<number, EmotionalEntry>> {
+  try {
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000";
+    const res = await fetch(`${baseUrl}/api/emotional-score`, { next: { revalidate: 1800 } });
+    if (!res.ok) return new Map();
+    const data = await res.json();
+    const map = new Map<number, EmotionalEntry>();
+    for (const s of data.scores ?? []) map.set(s.teamId, s);
+    return map;
+  } catch {
+    return new Map();
+  }
+}
+
+function applyEmotionalCorrection(
+  pred: ReturnType<typeof predict>,
+  homeEmo: EmotionalEntry | undefined,
+  awayEmo: EmotionalEntry | undefined,
+) {
+  const homeDelta = homeEmo?.predictionDelta ?? 0;
+  const awayDelta = awayEmo?.predictionDelta ?? 0;
+  if (homeDelta === 0 && awayDelta === 0) return { ...pred, emotionalCorrection: null };
+
+  let homeProb = pred.homeProb + homeDelta - awayDelta;
+  let awayProb = pred.awayProb + awayDelta - homeDelta;
+  let drawProb = pred.drawProb;
+
+  homeProb = Math.max(5, Math.min(90, homeProb));
+  awayProb = Math.max(5, Math.min(90, awayProb));
+  const sum = homeProb + awayProb + drawProb;
+  homeProb = Math.round((homeProb / sum) * 100);
+  awayProb = Math.round((awayProb / sum) * 100);
+  drawProb = 100 - homeProb - awayProb;
+
+  const winner =
+    homeProb > awayProb && homeProb > drawProb ? "home" :
+    awayProb > homeProb && awayProb > drawProb ? "away" : "draw";
+
+  const confidence =
+    Math.max(homeProb, awayProb, drawProb) >= 55 ? "high" :
+    Math.max(homeProb, awayProb, drawProb) >= 42 ? "medium" : "low";
+
+  return {
+    ...pred,
+    homeProb, awayProb, drawProb, winner, confidence,
+    emotionalCorrection: {
+      originalHomeProb: pred.homeProb,
+      originalAwayProb: pred.awayProb,
+      homeDelta,
+      awayDelta,
+      homeEmotionalScore: homeEmo?.emotionalScore ?? null,
+      awayEmotionalScore: awayEmo?.emotionalScore ?? null,
+    },
+  };
+}
+
 export async function GET() {
   if (!API_KEY) return NextResponse.json({ error: "API key not configured" }, { status: 500 });
 
   try {
-    const [standingsRes, matchesRes] = await Promise.all([
+    const [standingsRes, matchesRes, emotionalMap] = await Promise.all([
       fetch(`https://api.football-data.org/v4/competitions/${COMPETITION}/standings`, {
         headers: { "X-Auth-Token": API_KEY },
         next: { revalidate: 300 },
@@ -105,6 +165,7 @@ export async function GET() {
         headers: { "X-Auth-Token": API_KEY },
         next: { revalidate: 300 },
       }),
+      fetchEmotionalScores(),
     ]);
 
     if (!standingsRes.ok || !matchesRes.ok) throw new Error("API error");
@@ -127,7 +188,12 @@ export async function GET() {
         const awayStanding = standingMap.get(m.awayTeam.id);
         if (!homeStanding || !awayStanding) return null;
 
-        const pred = predict(homeStanding, awayStanding);
+        const basePred = predict(homeStanding, awayStanding);
+        const pred = applyEmotionalCorrection(
+          basePred,
+          emotionalMap.get(m.homeTeam.id),
+          emotionalMap.get(m.awayTeam.id),
+        );
 
         return {
           id: m.id,

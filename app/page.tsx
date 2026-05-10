@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { RefreshCw, TrendingUp, TrendingDown, Minus, Trophy, Wifi, WifiOff, Clock, Zap, BarChart2 } from "lucide-react";
+import { RefreshCw, TrendingUp, TrendingDown, Minus, Trophy, Wifi, WifiOff, Clock, Zap, BarChart2, Heart } from "lucide-react";
 import TeamModal from "./components/TeamModal";
 import PredictionsTab from "./components/PredictionsTab";
+import EmotionalScoreTab from "./components/EmotionalScoreTab";
 
 interface Team {
   id: number;
@@ -259,7 +260,7 @@ function ErrorState({ error, onRetry }: { error: string; onRetry: () => void }) 
 }
 
 export default function Home() {
-  const [tab, setTab] = useState<"standings" | "predictions">("standings");
+  const [tab, setTab] = useState<"standings" | "predictions" | "emotional">("standings");
   const [data, setData] = useState<StandingsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -367,6 +368,7 @@ export default function Home() {
           {[
             { id: "standings", label: "Classement", icon: <BarChart2 size={14} /> },
             { id: "predictions", label: "Prédictions IA", icon: <Zap size={14} /> },
+            { id: "emotional", label: "Score Émotionnel", icon: <Heart size={14} /> },
           ].map((t) => (
             <button
               key={t.id}
@@ -406,6 +408,7 @@ export default function Home() {
         )}
 
         {tab === "predictions" && <PredictionsTab />}
+        {tab === "emotional" && <EmotionalScoreTab />}
 
         {/* Footer */}
         <div className="mt-6 flex items-center justify-between text-xs" style={{ color: "#6b7c96" }}>
