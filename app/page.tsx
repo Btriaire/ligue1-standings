@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { RefreshCw, TrendingUp, TrendingDown, Minus, Trophy, Wifi, WifiOff, Clock } from "lucide-react";
+import TeamModal from "./components/TeamModal";
 
 interface Team {
   id: number;
@@ -105,7 +106,11 @@ function Trend({ form }: { form: string }) {
 }
 
 function StandingsTable({ standings }: { standings: Standing[] }) {
+  const [selected, setSelected] = useState<Standing | null>(null);
+
   return (
+    <>
+    {selected && <TeamModal standing={selected} onClose={() => setSelected(null)} />}
     <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42" }}>
       <div
         className="grid items-center px-4 py-3 text-xs font-semibold uppercase tracking-widest"
@@ -133,7 +138,8 @@ function StandingsTable({ standings }: { standings: Standing[] }) {
         return (
           <div
             key={s.team.id}
-            className="group grid items-center px-4 py-3 transition-all duration-200 hover:brightness-125 animate-fade-in-up"
+            onClick={() => setSelected(s)}
+            className="group grid items-center px-4 py-3 transition-all duration-200 hover:brightness-125 animate-fade-in-up cursor-pointer"
             style={{
               gridTemplateColumns: "44px 1fr 40px 90px 40px 40px 48px 56px 100px 40px",
               background: zone ? zone.bg : idx % 2 === 0 ? "rgba(13,20,33,0.6)" : "transparent",
@@ -204,6 +210,7 @@ function StandingsTable({ standings }: { standings: Standing[] }) {
         );
       })}
     </div>
+    </>
   );
 }
 
