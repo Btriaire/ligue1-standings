@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { RefreshCw, TrendingUp, TrendingDown, Minus, Trophy, Wifi, WifiOff, Clock } from "lucide-react";
+import { RefreshCw, TrendingUp, TrendingDown, Minus, Trophy, Wifi, WifiOff, Clock, Zap, BarChart2 } from "lucide-react";
 import TeamModal from "./components/TeamModal";
+import PredictionsTab from "./components/PredictionsTab";
 
 interface Team {
   id: number;
@@ -258,6 +259,7 @@ function ErrorState({ error, onRetry }: { error: string; onRetry: () => void }) 
 }
 
 export default function Home() {
+  const [tab, setTab] = useState<"standings" | "predictions">("standings");
   const [data, setData] = useState<StandingsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -360,23 +362,50 @@ export default function Home() {
       </header>
 
       <div className="max-w-5xl mx-auto px-4 py-6">
-        {/* Legend */}
-        <div className="flex flex-wrap gap-x-5 gap-y-2 mb-6">
-          {ZONE_CONFIG.map((z) => (
-            <div key={z.label} className="flex items-center gap-2 text-xs" style={{ color: "#6b7c96" }}>
-              <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: z.color, opacity: 0.8 }} />
-              <span style={{ color: z.color }}>{z.label}</span>
-            </div>
+        {/* Tab switcher */}
+        <div className="flex gap-2 mb-6 p-1 rounded-xl w-fit" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
+          {[
+            { id: "standings", label: "Classement", icon: <BarChart2 size={14} /> },
+            { id: "predictions", label: "Prédictions IA", icon: <Zap size={14} /> },
+          ].map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id as "standings" | "predictions")}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+              style={{
+                background: tab === t.id ? (t.id === "predictions" ? "linear-gradient(135deg, rgba(0,212,255,0.15), rgba(124,58,237,0.15))" : "rgba(255,255,255,0.06)") : "transparent",
+                color: tab === t.id ? "#e8edf5" : "#6b7c96",
+                border: tab === t.id ? "1px solid rgba(255,255,255,0.1)" : "1px solid transparent",
+              }}
+            >
+              <span style={{ color: tab === t.id && t.id === "predictions" ? "#00d4ff" : "inherit" }}>{t.icon}</span>
+              {t.label}
+            </button>
           ))}
         </div>
 
-        {loading && !data ? (
-          <LoadingSkeleton />
-        ) : error && !data ? (
-          <ErrorState error={error} onRetry={() => fetchStandings(true)} />
-        ) : data ? (
-          <StandingsTable standings={data.standings} />
-        ) : null}
+        {tab === "standings" && (
+          <>
+            {/* Legend */}
+            <div className="flex flex-wrap gap-x-5 gap-y-2 mb-6">
+              {ZONE_CONFIG.map((z) => (
+                <div key={z.label} className="flex items-center gap-2 text-xs" style={{ color: "#6b7c96" }}>
+                  <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: z.color, opacity: 0.8 }} />
+                  <span style={{ color: z.color }}>{z.label}</span>
+                </div>
+              ))}
+            </div>
+            {loading && !data ? (
+              <LoadingSkeleton />
+            ) : error && !data ? (
+              <ErrorState error={error} onRetry={() => fetchStandings(true)} />
+            ) : data ? (
+              <StandingsTable standings={data.standings} />
+            ) : null}
+          </>
+        )}
+
+        {tab === "predictions" && <PredictionsTab />}
 
         {/* Footer */}
         <div className="mt-6 flex items-center justify-between text-xs" style={{ color: "#6b7c96" }}>
