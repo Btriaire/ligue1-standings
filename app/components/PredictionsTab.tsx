@@ -306,21 +306,59 @@ function MatchCard({ match }: { match: MatchPrediction }) {
   );
 }
 
+function Toggle({ enabled, onToggle, label }: { enabled: boolean; onToggle: () => void; label: string }) {
+  return (
+    <button onClick={onToggle} className="flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all"
+      style={{
+        background: enabled ? "rgba(236,72,153,0.1)" : "rgba(255,255,255,0.04)",
+        border: enabled ? "1px solid rgba(236,72,153,0.3)" : "1px solid rgba(255,255,255,0.08)",
+      }}>
+      <div className="w-9 h-5 rounded-full relative transition-colors flex-shrink-0"
+        style={{ background: enabled ? "rgba(236,72,153,0.6)" : "rgba(255,255,255,0.15)" }}>
+        <div className="w-4 h-4 rounded-full absolute top-0.5 transition-all"
+          style={{ left: enabled ? "18px" : "2px", background: enabled ? "#f472b6" : "#6b7c96" }} />
+      </div>
+      <span className="text-xs font-semibold" style={{ color: enabled ? "#f472b6" : "#6b7c96" }}>
+        {label}
+      </span>
+      <Heart size={11} style={{ color: enabled ? "#f472b6" : "#6b7c96" }} />
+    </button>
+  );
+}
+
 export default function PredictionsTab() {
   const [data, setData] = useState<PredData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [useEmotional, setUseEmotional] = useState(true);
 
   useEffect(() => {
     fetch("/api/predictions")
       .then((r) => r.json())
-      .then((d) => {
-        if (d.error) throw new Error(d.error);
-        setData(d);
-      })
+      .then((d) => { if (d.error) throw new Error(d.error); setData(d); })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
+
+  // Override predictions with original values if emotional toggle is OFF
+  const displayData = data ? {
+    ...data,
+    predictions: data.predictions.map((match) => {
+      if (useEmotional || !match.prediction.emotionalCorrection) return match;
+      const ec = match.prediction.emotionalCorrection;
+      const orig = { ...match.prediction,
+        homeProb: ec.originalHomeProb,
+        awayProb: ec.originalAwayProb,
+        drawProb: 100 - ec.originalHomeProb - ec.originalAwayProb,
+        emotionalCorrection: null,
+        winner: ec.originalHomeProb > ec.originalAwayProb && ec.originalHomeProb > (100 - ec.originalHomeProb - ec.originalAwayProb)
+          ? "home" as const
+          : ec.originalAwayProb > ec.originalHomeProb && ec.originalAwayProb > (100 - ec.originalHomeProb - ec.originalAwayProb)
+          ? "away" as const : "draw" as const,
+      };
+      return { ...match, prediction: orig };
+    }),
+  } : null;
 
   if (loading) {
     return (
@@ -333,43 +371,61 @@ export default function PredictionsTab() {
   }
 
   if (error) {
-    return (
-      <div className="text-center py-16" style={{ color: "#6b7c96" }}>
-        <p className="text-red-400 mb-2">Erreur : {error}</p>
-      </div>
-    );
+    return <div className="text-center py-16 text-red-400 text-sm">{error}</div>;
   }
 
-  if (!data?.predictions.length) {
-    return (
-      <div className="text-center py-16" style={{ color: "#6b7c96" }}>
-        <p>Aucun match à venir disponible.</p>
-      </div>
-    );
+  if (!displayData?.predictions.length) {
+    return <div className="text-center py-16" style={{ color: "#6b7c96" }}>Aucun match à venir disponible.</div>;
   }
+
+  const correctedCount = displayData.predictions.filter(
+    (m) => m.prediction.emotionalCorrection !== null
+  ).length;
 
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
           <h2 className="text-base font-bold" style={{ color: "#e8edf5" }}>
-            Journée {data.matchday} — Analyse prédictive
+            Journée {displayData.matchday} — Analyse prédictive
           </h2>
           <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>
-            Basée sur la forme, le classement, les buts et l&apos;avantage domicile
+            {useEmotional
+              ? `Forme · classement · buts · avantage domicile · score émotionnel`
+              : `Forme · classement · buts · avantage domicile (sans correction émotionnelle)`}
           </p>
         </div>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
-          style={{ background: "rgba(0,212,255,0.08)", border: "1px solid rgba(0,212,255,0.2)", color: "#00d4ff" }}>
-          <Zap size={12} />
-          IA Prédictive
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Emotional toggle */}
+          <Toggle
+            enabled={useEmotional}
+            onToggle={() => setUseEmotional(!useEmotional)}
+            label="Score émotionnel"
+          />
+          <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
+            style={{ background: "rgba(0,212,255,0.08)", border: "1px solid rgba(0,212,255,0.2)", color: "#00d4ff" }}>
+            <Zap size={12} />
+            IA Prédictive
+          </div>
         </div>
       </div>
 
+      {/* Emotional info banner */}
+      {useEmotional && correctedCount > 0 && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl mb-5 text-xs"
+          style={{ background: "rgba(236,72,153,0.06)", border: "1px solid rgba(236,72,153,0.2)" }}>
+          <Heart size={14} className="text-pink-400 flex-shrink-0" />
+          <span style={{ color: "#f472b6" }}>
+            <strong>{correctedCount} match{correctedCount > 1 ? "s" : ""}</strong> ajusté{correctedCount > 1 ? "s" : ""} par le score émotionnel
+          </span>
+          <span style={{ color: "#6b7c96" }}>· Désactivez le toggle pour voir les prédictions brutes</span>
+        </div>
+      )}
+
       {/* Cards grid */}
       <div className="grid sm:grid-cols-2 gap-4">
-        {data.predictions.map((match, i) => (
+        {displayData.predictions.map((match, i) => (
           <div key={match.id} style={{ animationDelay: `${i * 60}ms` }}>
             <MatchCard match={match} />
           </div>
