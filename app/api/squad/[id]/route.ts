@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { TEAM_TM_MAP } from "@/app/lib/teamMapping";
+import { TEAM_TM_MAP, UNDERSTAT_TEAM_MAP } from "@/app/lib/teamMapping";
 
 const API_KEY = process.env.FOOTBALL_DATA_API_KEY;
 
@@ -20,6 +20,54 @@ interface TmPlayer {
   marketValue: number;
   status?: string;
   imageUrl?: string;
+  // Understat stats
+  xG?: number;
+  xA?: number;
+  usGoals?: number;
+  usAssists?: number;
+  shots?: number;
+  minutes?: number;
+  games?: number;
+}
+
+interface UnderstatPlayer {
+  id: string;
+  player: string;
+  games: string;
+  time: string;
+  goals: string;
+  xG: string;
+  assists: string;
+  xA: string;
+  shots: string;
+  key_passes: string;
+  yellow_cards: string;
+  red_cards: string;
+  position: string;
+  npg: string;
+  npxG: string;
+}
+
+async function fetchUnderstatPlayers(teamName: string): Promise<UnderstatPlayer[]> {
+  const now = new Date();
+  // Ligue 1 season starts in August; if we're before August use previous year
+  const seasonYear = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+  try {
+    const html = await fetch(
+      `https://understat.com/team/${teamName}/${seasonYear}`,
+      {
+        signal: AbortSignal.timeout(8000),
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; FootPredictom/1.0)" },
+        next: { revalidate: 3600 },
+      } as RequestInit
+    ).then(r => r.ok ? r.text() : "");
+    const m = html.match(/var playersData\s*=\s*JSON\.parse\('([^']+)'\)/);
+    if (!m) return [];
+    const decoded = m[1].replace(/\\x([0-9a-fA-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+    return JSON.parse(decoded) as UnderstatPlayer[];
+  } catch {
+    return [];
+  }
 }
 
 interface FdGoal {
@@ -147,13 +195,52 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     }));
   }
 
-  // Build team form from recent matches (derive from win/draw/loss if available)
+  // Fetch Understat season stats for this team
+  const understatName = UNDERSTAT_TEAM_MAP[teamId];
+  const usPlayers = understatName ? await fetchUnderstatPlayers(understatName) : [];
+
+  // Merge Understat stats into player list
+  if (usPlayers.length > 0) {
+    players = players.map(p => {
+      const usp = usPlayers.find(u => playerNamesMatch(u.player, p.name));
+      if (!usp) return p;
+      return {
+        ...p,
+        xG: parseFloat(usp.xG) || 0,
+        xA: parseFloat(usp.xA) || 0,
+        usGoals: parseInt(usp.goals) || 0,
+        usAssists: parseInt(usp.assists) || 0,
+        shots: parseInt(usp.shots) || 0,
+        minutes: parseInt(usp.time) || 0,
+        games: parseInt(usp.games) || 0,
+      };
+    });
+    // Also add players found on Understat but missing from our list (edge case)
+    for (const usp of usPlayers) {
+      if (!players.some(p => playerNamesMatch(usp.player, p.name))) {
+        players.push({
+          id: usp.id,
+          name: usp.player,
+          position: usp.position?.split(", ")[0] ?? "Unknown",
+          dateOfBirth: "", age: 0, nationality: [],
+          height: 0, foot: "", joinedOn: "", signedFrom: "", contract: "", marketValue: 0,
+          xG: parseFloat(usp.xG) || 0,
+          xA: parseFloat(usp.xA) || 0,
+          usGoals: parseInt(usp.goals) || 0,
+          usAssists: parseInt(usp.assists) || 0,
+          shots: parseInt(usp.shots) || 0,
+          minutes: parseInt(usp.time) || 0,
+          games: parseInt(usp.games) || 0,
+        });
+      }
+    }
+  }
+
   const totalValue = players.reduce((sum, p) => sum + (p.marketValue ?? 0), 0);
   const avgValue = players.length > 0 ? totalValue / players.length : 0;
   const injured = players.filter((p) => p.status && p.status.toLowerCase().includes("injury"));
   const injuryRate = players.length > 0 ? injured.length / players.length : 0;
 
-  // Enrich each player with form data
   const positionOrder: Record<string, number> = {
     Goalkeeper: 1, Defender: 2, Midfielder: 3, Winger: 4, "Centre-Forward": 5,
   };
@@ -161,41 +248,31 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const enrichedPlayers = players.map((p) => {
     const isInjured = p.status?.toLowerCase().includes("injury") ?? false;
 
-    // Find goals/assists by loose name matching
     let recentGoals = 0;
     let recentAssists = 0;
-
     for (const [scorerName, goals] of goalsByPlayer) {
-      if (playerNamesMatch(scorerName, p.name)) {
-        recentGoals += goals;
-        break;
-      }
+      if (playerNamesMatch(scorerName, p.name)) { recentGoals += goals; break; }
     }
     for (const [assistName, assists] of assistsByPlayer) {
-      if (playerNamesMatch(assistName, p.name)) {
-        recentAssists += assists;
-        break;
-      }
+      if (playerNamesMatch(assistName, p.name)) { recentAssists += assists; break; }
     }
 
-    // Form badge
+    // Form badge: prefer Understat xG+assists per 90 over raw goal counts
+    const xG90 = p.minutes && p.minutes > 0 ? ((p.xG ?? 0) + (p.xA ?? 0)) / (p.minutes / 90) : 0;
+    const usCombined = (p.usGoals ?? 0) + (p.usAssists ?? 0);
+
     let formBadge: "hot" | "good" | "neutral" | "cold";
     if (isInjured) {
       formBadge = "cold";
-    } else if (recentGoals >= 2 || recentAssists >= 2 || (recentGoals + recentAssists) >= 3) {
+    } else if (xG90 >= 0.5 || usCombined >= 8 || recentGoals >= 2 || recentAssists >= 2) {
       formBadge = "hot";
-    } else if (recentGoals >= 1 || recentAssists >= 1) {
+    } else if (xG90 >= 0.2 || usCombined >= 3 || recentGoals >= 1 || recentAssists >= 1) {
       formBadge = "good";
     } else {
       formBadge = "neutral";
     }
 
-    return {
-      ...p,
-      recentGoals,
-      recentAssists,
-      formBadge,
-    };
+    return { ...p, recentGoals, recentAssists, formBadge };
   });
 
   const sortedPlayers = [...enrichedPlayers].sort(

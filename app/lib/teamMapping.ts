@@ -65,6 +65,27 @@ export const CLUB_SUBREDDITS: Record<number, string | null> = {
   545: null,
 };
 
+// Understat.com team names (for xG/stats scraping)
+export const UNDERSTAT_TEAM_MAP: Record<number, string> = {
+  524: "PSG",
+  548: "Monaco",
+  523: "Lyon",
+  521: "Lille",
+  529: "Rennes",
+  516: "Marseille",
+  576: "Strasbourg",
+  525: "Lorient",
+  511: "Toulouse",
+  512: "Brest",
+  532: "Angers",
+  533: "Le_Havre",
+  522: "Nice",
+  519: "Auxerre",
+  543: "Nantes",
+  545: "Metz",
+  546: "Lens",
+};
+
 // Google News RSS search terms per club
 export const CLUB_SEARCH_TERMS: Record<number, string> = {
   524: "PSG+Paris+Saint-Germain",
