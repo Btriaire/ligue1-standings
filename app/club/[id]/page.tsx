@@ -562,22 +562,23 @@ export default function ClubPage() {
       fetch(`/api/squad/${teamId}`).then(r => r.json()).catch(() => null),
       fetch(`/api/team/${teamId}`).then(r => r.json()).catch(() => null),
       fetch("/api/transfers").then(r => r.json()).catch(() => null),
-      fetch("/api/emotional-score").then(r => r.json()).catch(() => null),
       fetch("/api/standings").then(r => r.json()).catch(() => null),
-    ]).then(([sq, mt, tr, em, st]) => {
+    ]).then(([sq, mt, tr, st]) => {
       setSquad(sq?.team ? sq : null);
       setMatches(mt?.recent ? mt : null);
       if (tr?.clubs) {
         const c = tr.clubs.find((x: { teamId: number; items: TransferItem[] }) => x.teamId === teamId);
         setTransfers(c?.items ?? []);
       }
-      if (em?.scores) {
-        setEmotional(em.scores.find((s: EmotionalEntry) => s.teamId === teamId) ?? null);
-      }
       if (st?.standings) {
         setStandings(st.standings);
       }
     }).finally(() => setLoading(false));
+
+    // Load emotional score separately — it calls all 18 teams and can be slow
+    fetch("/api/emotional-score").then(r => r.json())
+      .then(em => { if (em?.scores) setEmotional(em.scores.find((s: EmotionalEntry) => s.teamId === teamId) ?? null); })
+      .catch(() => null);
   }, [teamId]);
 
   if (loading) {
