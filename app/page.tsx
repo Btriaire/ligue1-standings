@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { RefreshCw, TrendingUp, TrendingDown, Minus, Trophy, Wifi, WifiOff, Clock, Zap, BarChart2, Heart, Globe, Settings, Target } from "lucide-react";
+import { RefreshCw, TrendingUp, TrendingDown, Minus, Trophy, Wifi, WifiOff, Clock, Zap, BarChart2, Heart, Globe, Settings, Target, ArrowLeftRight } from "lucide-react";
 import TeamModal from "./components/TeamModal";
 import PredictionsTab from "./components/PredictionsTab";
 import EmotionalScoreTab from "./components/EmotionalScoreTab";
 import ResultsTab from "./components/ResultsTab";
 import WorldCupTab from "./components/WorldCupTab";
 import ConfigTab from "./components/ConfigTab";
+import TransfersTab from "./components/TransfersTab";
 
 interface Team {
   id: number;
@@ -37,7 +38,7 @@ interface StandingsData {
   updatedAt: string;
 }
 
-type TabId = "standings" | "predictions" | "results" | "emotional" | "worldcup" | "config";
+type TabId = "standings" | "predictions" | "results" | "emotional" | "worldcup" | "transfers" | "config";
 
 const ZONE_CONFIG = [
   { label: "Champion", positions: [1], color: "#00d4ff", bg: "rgba(0,212,255,0.06)" },
@@ -299,8 +300,9 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode; shortLabel?: stri
   { id: "predictions", label: "Prédictions IA",   icon: <Zap size={14} />,         shortLabel: "Préd. IA" },
   { id: "results",     label: "Résultats",         icon: <Target size={14} /> },
   { id: "emotional",   label: "Score Émotionnel",  icon: <Heart size={14} />,       shortLabel: "Émotionnel" },
-  { id: "worldcup",    label: "Coupe du Monde",    icon: <Globe size={14} />,       shortLabel: "WC 2026" },
-  { id: "config",      label: "Configuration",     icon: <Settings size={14} />,    shortLabel: "Config" },
+  { id: "worldcup",    label: "Coupe du Monde",    icon: <Globe size={14} />,            shortLabel: "WC 2026" },
+  { id: "transfers",   label: "Transferts",         icon: <ArrowLeftRight size={14} />,  shortLabel: "Mercato" },
+  { id: "config",      label: "Configuration",     icon: <Settings size={14} />,         shortLabel: "Config" },
 ];
 
 export default function Home() {
@@ -392,12 +394,13 @@ export default function Home() {
                 background: tab === t.id
                   ? t.id === "predictions" ? "linear-gradient(135deg, rgba(0,212,255,0.15), rgba(124,58,237,0.15))"
                   : t.id === "worldcup" ? "linear-gradient(135deg, rgba(34,197,94,0.12), rgba(0,212,255,0.12))"
+                  : t.id === "transfers" ? "linear-gradient(135deg, rgba(245,158,11,0.12), rgba(239,68,68,0.10))"
                   : "rgba(255,255,255,0.06)"
                   : "transparent",
                 color: tab === t.id ? "#e8edf5" : "#6b7c96",
                 border: tab === t.id ? "1px solid rgba(255,255,255,0.1)" : "1px solid transparent",
               }}>
-              <span style={{ color: tab === t.id ? (t.id === "predictions" ? "#00d4ff" : t.id === "emotional" ? "#f472b6" : t.id === "worldcup" ? "#22c55e" : "inherit") : "inherit" }}>
+              <span style={{ color: tab === t.id ? (t.id === "predictions" ? "#00d4ff" : t.id === "emotional" ? "#f472b6" : t.id === "worldcup" ? "#22c55e" : t.id === "transfers" ? "#f59e0b" : "inherit") : "inherit" }}>
                 {t.icon}
               </span>
               <span className="hidden sm:inline">{t.label}</span>
@@ -431,6 +434,7 @@ export default function Home() {
         {tab === "results" && <ResultsTab />}
         {tab === "emotional" && <EmotionalScoreTab />}
         {tab === "worldcup" && <WorldCupTab />}
+        {tab === "transfers" && <TransfersTab />}
         {tab === "config" && <ConfigTab />}
 
         {/* Footer */}
