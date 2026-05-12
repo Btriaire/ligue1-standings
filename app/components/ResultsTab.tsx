@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle, XCircle, Minus, Clock, Target, ChevronDown, Download, Trophy } from "lucide-react";
+import { CheckCircle, XCircle, Minus, Clock, Target, Download, Trophy } from "lucide-react";
 import { loadPredictions, downloadCSV, SavedPrediction } from "@/app/lib/predictions-store";
 
 interface GoalEntry {
@@ -60,7 +60,7 @@ function GoalList({ goals, teamName }: { goals: GoalEntry[]; teamName: string })
 function PredictionBadge({ saved, actualResult }: { saved: SavedPrediction | null; actualResult: "home" | "away" | "draw" }) {
   if (!saved) {
     return (
-      <div className="px-2 py-1 rounded-lg text-xs" style={{ background: "rgba(255,255,255,0.04)", color: "#6b7c96" }}>
+      <div className="px-3 py-2 rounded-xl text-xs" style={{ background: "rgba(255,255,255,0.04)", color: "#6b7c96" }}>
         Pas de prédiction
       </div>
     );
@@ -70,21 +70,24 @@ function PredictionBadge({ saved, actualResult }: { saved: SavedPrediction | nul
   const correct = predicted === actualResult;
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs"
-      style={{ background: correct ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)", border: `1px solid ${correct ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}` }}>
+    <div className="flex items-start gap-3 px-4 py-3 rounded-xl"
+      style={{
+        background: correct ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)",
+        border: `2px solid ${correct ? "rgba(34,197,94,0.4)" : "rgba(239,68,68,0.4)"}`,
+      }}>
       {correct
-        ? <CheckCircle size={13} style={{ color: "#22c55e", flexShrink: 0 }} />
-        : <XCircle size={13} style={{ color: "#ef4444", flexShrink: 0 }} />}
-      <div>
-        <p className="font-bold" style={{ color: correct ? "#22c55e" : "#ef4444" }}>
+        ? <CheckCircle size={22} style={{ color: "#22c55e", flexShrink: 0, marginTop: 1 }} />
+        : <XCircle size={22} style={{ color: "#ef4444", flexShrink: 0, marginTop: 1 }} />}
+      <div className="space-y-1">
+        <p className="font-black" style={{ fontSize: 14, color: correct ? "#22c55e" : "#ef4444" }}>
           {correct ? "✓ Prédiction correcte" : "✗ Prédiction incorrecte"}
         </p>
-        <p style={{ color: "#6b7c96" }}>
+        <p className="text-xs" style={{ color: "#94a3b8" }}>
           Prédit : {predicted === "home" ? `Vic. ${saved.homeTeam.shortName || saved.homeTeam.tla}` : predicted === "away" ? `Vic. ${saved.awayTeam.shortName || saved.awayTeam.tla}` : "Match nul"}
           {" · "}{saved.prediction.homeProb}%–{saved.prediction.drawProb}%–{saved.prediction.awayProb}%
         </p>
         {saved.emotional?.applied && (
-          <p style={{ color: "#f472b6" }}>
+          <p className="text-xs" style={{ color: "#f472b6" }}>
             ❤ Score émot. dom. {saved.emotional.homeScore} · ext. {saved.emotional.awayScore}
           </p>
         )}
@@ -94,7 +97,6 @@ function PredictionBadge({ saved, actualResult }: { saved: SavedPrediction | nul
 }
 
 function MatchResultCard({ match, savedPrediction }: { match: ResultMatch; savedPrediction: SavedPrediction | null }) {
-  const [expanded, setExpanded] = useState(false);
   const { day, time } = formatDate(match.date);
 
   const homeWon = match.result === "home";
@@ -180,44 +182,33 @@ function MatchResultCard({ match, savedPrediction }: { match: ResultMatch; saved
           </div>
         </div>
 
-        {/* Toggle details */}
-        {(hasGoalDetails || hasPrediction) && (
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="w-full mt-3 flex items-center justify-center gap-1.5 py-1.5 text-xs transition-colors hover:opacity-70"
-            style={{ color: "#6b7c96" }}>
-            <ChevronDown size={12} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
-            {expanded ? "Moins" : "Buteurs & prédiction"}
-          </button>
+        {/* Goal details — always visible */}
+        {hasGoalDetails && (
+          <div className="mt-4 pt-3 grid grid-cols-2 gap-4" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+            <div>
+              <p className="text-xs font-semibold mb-2 uppercase tracking-widest" style={{ color: "#6b7c96" }}>
+                {match.homeTeam.shortName || match.homeTeam.tla}
+              </p>
+              <GoalList goals={match.homeGoals} teamName={match.homeTeam.name} />
+              {match.homeGoals.length === 0 && (
+                <p className="text-xs" style={{ color: "#6b7c96" }}>–</p>
+              )}
+            </div>
+            <div>
+              <p className="text-xs font-semibold mb-2 uppercase tracking-widest" style={{ color: "#6b7c96" }}>
+                {match.awayTeam.shortName || match.awayTeam.tla}
+              </p>
+              <GoalList goals={match.awayGoals} teamName={match.awayTeam.name} />
+              {match.awayGoals.length === 0 && (
+                <p className="text-xs" style={{ color: "#6b7c96" }}>–</p>
+              )}
+            </div>
+          </div>
         )}
 
-        {expanded && (
-          <div className="mt-3 space-y-3 pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-            {/* Goal details */}
-            {hasGoalDetails && (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs font-semibold mb-2 uppercase tracking-widest" style={{ color: "#6b7c96" }}>
-                    {match.homeTeam.shortName || match.homeTeam.tla}
-                  </p>
-                  <GoalList goals={match.homeGoals} teamName={match.homeTeam.name} />
-                  {match.homeGoals.length === 0 && (
-                    <p className="text-xs" style={{ color: "#6b7c96" }}>–</p>
-                  )}
-                </div>
-                <div>
-                  <p className="text-xs font-semibold mb-2 uppercase tracking-widest" style={{ color: "#6b7c96" }}>
-                    {match.awayTeam.shortName || match.awayTeam.tla}
-                  </p>
-                  <GoalList goals={match.awayGoals} teamName={match.awayTeam.name} />
-                  {match.awayGoals.length === 0 && (
-                    <p className="text-xs" style={{ color: "#6b7c96" }}>–</p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Saved prediction */}
+        {/* Prediction badge — always visible */}
+        {hasPrediction && (
+          <div className={hasGoalDetails ? "mt-3" : "mt-4 pt-3"} style={!hasGoalDetails ? { borderTop: "1px solid rgba(255,255,255,0.05)" } : undefined}>
             <PredictionBadge saved={savedPrediction} actualResult={match.result} />
           </div>
         )}

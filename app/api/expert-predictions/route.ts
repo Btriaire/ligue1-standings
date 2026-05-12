@@ -108,9 +108,128 @@ function parseRawData(raw: unknown): ExpertMatch[] {
   return matches;
 }
 
+interface OddsApiOutcome {
+  name: string;
+  price: number;
+}
+
+interface OddsApiBookmaker {
+  key: string;
+  markets: Array<{
+    key: string;
+    outcomes: OddsApiOutcome[];
+  }>;
+}
+
+interface OddsApiMatch {
+  id: string;
+  home_team: string;
+  away_team: string;
+  commence_time: string;
+  bookmakers: OddsApiBookmaker[];
+}
+
+function parseBetclicData(raw: unknown): ExpertMatch[] {
+  if (!Array.isArray(raw)) return [];
+  const matches: ExpertMatch[] = [];
+
+  for (const item of raw as OddsApiMatch[]) {
+    if (!item || !item.home_team || !item.away_team) continue;
+
+    const bookmaker = item.bookmakers?.find((b) => b.key === "betclic");
+    if (!bookmaker) continue;
+
+    const h2hMarket = bookmaker.markets?.find((m) => m.key === "h2h");
+    if (!h2hMarket || !h2hMarket.outcomes?.length) continue;
+
+    // Find home, draw, away outcomes
+    const homeOutcome = h2hMarket.outcomes.find((o) => o.name === item.home_team);
+    const awayOutcome = h2hMarket.outcomes.find((o) => o.name === item.away_team);
+    const drawOutcome = h2hMarket.outcomes.find((o) => o.name === "Draw");
+
+    if (!homeOutcome || !awayOutcome) continue;
+
+    const homeOdds = homeOutcome.price;
+    const awayOdds = awayOutcome.price;
+    const drawOdds = drawOutcome?.price ?? 0;
+
+    // Lowest odds = favorite
+    const candidates: Array<{ outcome: "home" | "draw" | "away"; odds: number }> = [
+      { outcome: "home", odds: homeOdds },
+      { outcome: "away", odds: awayOdds },
+    ];
+    if (drawOdds > 0) candidates.push({ outcome: "draw", odds: drawOdds });
+
+    candidates.sort((a, b) => a.odds - b.odds);
+    const favorite = candidates[0];
+    const prediction = favorite.outcome;
+
+    // Implicit probability from odds
+    const homeProb = homeOdds > 0 ? 1 / homeOdds : 0;
+    const awayProb = awayOdds > 0 ? 1 / awayOdds : 0;
+    const drawProb = drawOdds > 0 ? 1 / drawOdds : 0;
+    const totalProb = homeProb + awayProb + drawProb;
+
+    // Confidence based on gap between best and second-best odds probability
+    const normalizedFavProb = totalProb > 0 ? (1 / favorite.odds) / totalProb * 100 : 0;
+    const secondOdds = candidates[1]?.odds ?? 0;
+    const secondProb = totalProb > 0 && secondOdds > 0 ? (1 / secondOdds) / totalProb * 100 : 0;
+    const gap = normalizedFavProb - secondProb;
+    const confidence: "high" | "medium" | "low" = gap >= 20 ? "high" : gap >= 8 ? "medium" : "low";
+
+    matches.push({
+      homeTeam: item.home_team,
+      awayTeam: item.away_team,
+      league: "Ligue 1",
+      prediction,
+      confidence,
+      confidenceScore: Math.round(normalizedFavProb),
+      odds: {
+        home: homeOdds,
+        draw: drawOdds,
+        away: awayOdds,
+      },
+      date: item.commence_time,
+      source: "Betclic",
+    });
+  }
+
+  return matches;
+}
+
+function mergeMatches(predictors: ExpertMatch[], betclic: ExpertMatch[]): ExpertMatch[] {
+  const merged: ExpertMatch[] = [...predictors];
+
+  for (const bc of betclic) {
+    const existingIdx = merged.findIndex(
+      (m) => teamMatches(m.homeTeam, bc.homeTeam) && teamMatches(m.awayTeam, bc.awayTeam)
+    );
+
+    if (existingIdx >= 0) {
+      const existing = merged[existingIdx];
+      // Merge: keep highest confidence score, combine source label
+      const confScoreA = existing.confidenceScore ?? 0;
+      const confScoreB = bc.confidenceScore ?? 0;
+      merged[existingIdx] = {
+        ...existing,
+        confidenceScore: Math.max(confScoreA, confScoreB),
+        confidence: confScoreA >= confScoreB ? existing.confidence : bc.confidence,
+        odds: existing.odds ?? bc.odds,
+        source: "The Predictors + Betclic",
+      };
+    } else {
+      merged.push(bc);
+    }
+  }
+
+  return merged;
+}
+
 export async function GET() {
   try {
-    const res = await fetch("https://the-predictors.p.rapidapi.com/predictor/safe", {
+    const THE_ODDS_API_KEY = process.env.THE_ODDS_API_KEY;
+
+    const predictorsPromise = fetch("https://the-predictors.p.rapidapi.com/predictor/safe", {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -120,12 +239,28 @@ export async function GET() {
       next: { revalidate: 3600 },
     });
 
-    if (!res.ok) {
-      return NextResponse.json({ available: false, matches: [], error: `HTTP ${res.status}` });
+    const betclicPromise = THE_ODDS_API_KEY
+      ? fetch(
+          `https://api.the-odds-api.com/v4/sports/soccer_france_ligue_one/odds/?regions=eu&markets=h2h&bookmakers=betclic&apiKey=${THE_ODDS_API_KEY}`,
+          { next: { revalidate: 3600 } }
+        )
+      : Promise.resolve(null);
+
+    const [predictorsRes, betclicRes] = await Promise.all([predictorsPromise, betclicPromise]);
+
+    let predictorsMatches: ExpertMatch[] = [];
+    if (predictorsRes.ok) {
+      const raw = await predictorsRes.json();
+      predictorsMatches = parseRawData(raw);
     }
 
-    const raw = await res.json();
-    const matches = parseRawData(raw);
+    let betclicMatches: ExpertMatch[] = [];
+    if (betclicRes && betclicRes.ok) {
+      const raw = await betclicRes.json();
+      betclicMatches = parseBetclicData(raw);
+    }
+
+    const matches = mergeMatches(predictorsMatches, betclicMatches);
 
     return NextResponse.json({
       available: matches.length > 0,
