@@ -318,9 +318,10 @@ function MatchRow({ match, teamId, standings }: { match: MatchInfo; teamId: numb
   const done = ts !== null && os !== null;
   const rc = done ? (ts! > os! ? "#22c55e" : ts! < os! ? "#ef4444" : "#f59e0b") : "#6b7c96";
 
-  // Scorers for our team
+  // Goals and cards for our team
   const teamGoals = (match.goals ?? []).filter(g => g.teamId === teamId && g.scorer);
   const teamReds = (match.bookings ?? []).filter(b => b.teamId === teamId && (b.card === "RED" || b.card === "YELLOW_RED"));
+  const teamYellows = (match.bookings ?? []).filter(b => b.teamId === teamId && b.card === "YELLOW");
 
   // Compute prediction
   const homeS = standings.find(s => s.team.id === match.homeTeam.id);
@@ -348,6 +349,7 @@ function MatchRow({ match, teamId, standings }: { match: MatchInfo; teamId: numb
             Préd.{predForTeam === "win" ? "V" : predForTeam === "draw" ? "N" : "D"}
           </span>
         )}
+        {teamYellows.length > 0 && <span className="text-[10px] flex-shrink-0">🟨×{teamYellows.length}</span>}
         {teamReds.map((b, i) => (
           <span key={i} className="text-[10px] flex-shrink-0">🟥</span>
         ))}
@@ -543,7 +545,7 @@ export default function ClubPage() {
   const [stadiumErr, setStadiumErr] = useState(false);
   const [squadOpen, setSquadOpen] = useState(false);
   const [expandedPlayer, setExpandedPlayer] = useState<SquadPlayer | null>(null);
-  const [econOpen, setEconOpen] = useState(false);
+  const [econOpen, setEconOpen] = useState(true);
 
   useEffect(() => {
     if (!teamId) return;
@@ -783,34 +785,73 @@ export default function ClubPage() {
         </div>
 
         {/* ── MERCATO ── */}
-        {transfers.length > 0 && (
-          <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42", background: "#0d1421" }}>
-            <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: "1px solid #1e2d42" }}>
-              <ArrowLeftRight size={13} style={{ color: "#f59e0b" }} />
-              <span className="font-bold text-sm" style={{ color: "#e8edf5" }}>Mercato</span>
-              <span className="text-xs ml-auto" style={{ color: "#6b7c96" }}>{transfers.length} articles</span>
+        {transfers.length > 0 && (() => {
+          const arrivals = transfers.filter(t => t.type === "arrival");
+          const departures = transfers.filter(t => t.type === "departure");
+          const rumors = transfers.filter(t => t.type === "rumor");
+          return (
+            <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42", background: "#0d1421" }}>
+              <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: "1px solid #1e2d42" }}>
+                <ArrowLeftRight size={13} style={{ color: "#f59e0b" }} />
+                <span className="font-bold text-sm" style={{ color: "#e8edf5" }}>Mercato</span>
+                <div className="ml-auto flex items-center gap-2 text-xs">
+                  {arrivals.length > 0 && <span style={{ color: "#22c55e" }}>🟢 {arrivals.length} arrivée{arrivals.length > 1 ? "s" : ""}</span>}
+                  {departures.length > 0 && <span style={{ color: "#ef4444" }}>🔴 {departures.length} départ{departures.length > 1 ? "s" : ""}</span>}
+                  {rumors.length > 0 && <span style={{ color: "#f59e0b" }}>🟡 {rumors.length} rumeur{rumors.length > 1 ? "s" : ""}</span>}
+                </div>
+              </div>
+              {/* Summary grid */}
+              {(arrivals.length > 0 || departures.length > 0) && (
+                <div className="grid grid-cols-2 gap-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                  <div className="px-3 py-2" style={{ borderRight: "1px solid rgba(255,255,255,0.06)" }}>
+                    <p className="text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#22c55e" }}>Arrivées</p>
+                    {arrivals.length === 0
+                      ? <p className="text-[10px]" style={{ color: "#6b7c96" }}>Aucune</p>
+                      : arrivals.slice(0, 4).map((t, i) => (
+                          <a key={i} href={t.url || "#"} target="_blank" rel="noopener noreferrer"
+                            className="block text-[10px] leading-snug mb-1 hover:opacity-70 truncate" style={{ color: "#cbd5e1" }}>
+                            ↗ {t.title.slice(0, 45)}{t.title.length > 45 ? "…" : ""}
+                          </a>
+                        ))
+                    }
+                  </div>
+                  <div className="px-3 py-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#ef4444" }}>Départs</p>
+                    {departures.length === 0
+                      ? <p className="text-[10px]" style={{ color: "#6b7c96" }}>Aucun</p>
+                      : departures.slice(0, 4).map((t, i) => (
+                          <a key={i} href={t.url || "#"} target="_blank" rel="noopener noreferrer"
+                            className="block text-[10px] leading-snug mb-1 hover:opacity-70 truncate" style={{ color: "#cbd5e1" }}>
+                            ↙ {t.title.slice(0, 45)}{t.title.length > 45 ? "…" : ""}
+                          </a>
+                        ))
+                    }
+                  </div>
+                </div>
+              )}
+              {/* Full news list */}
+              <div className="px-3 py-2 space-y-1.5">
+                {transfers.map((item, i) => {
+                  const cfg = TR_CFG[item.type];
+                  return (
+                    <a key={i} href={item.url || "#"} target="_blank" rel="noopener noreferrer"
+                      className="flex items-start gap-2 py-1.5 px-2 rounded-lg hover:bg-white/[0.03] transition-colors group">
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 mt-0.5"
+                        style={{ color: cfg.color, background: `${cfg.color}15`, border: `1px solid ${cfg.color}25` }}>
+                        {cfg.emoji} {cfg.label}
+                      </span>
+                      <p className="flex-1 text-xs leading-snug" style={{ color: "#cbd5e1" }}>{item.title}</p>
+                      <div className="flex items-center gap-1 flex-shrink-0 opacity-50 group-hover:opacity-100">
+                        <span className="text-[9px]" style={{ color: "#6b7c96" }}>{item.source}</span>
+                        <ExternalLink size={9} style={{ color: "#6b7c96" }} />
+                      </div>
+                    </a>
+                  );
+                })}
+              </div>
             </div>
-            <div className="px-3 py-2 space-y-1.5">
-              {transfers.map((item, i) => {
-                const cfg = TR_CFG[item.type];
-                return (
-                  <a key={i} href={item.url || "#"} target="_blank" rel="noopener noreferrer"
-                    className="flex items-start gap-2 py-1.5 px-2 rounded-lg hover:bg-white/[0.03] transition-colors group">
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 mt-0.5"
-                      style={{ color: cfg.color, background: `${cfg.color}15`, border: `1px solid ${cfg.color}25` }}>
-                      {cfg.emoji} {cfg.label}
-                    </span>
-                    <p className="flex-1 text-xs leading-snug" style={{ color: "#cbd5e1" }}>{item.title}</p>
-                    <div className="flex items-center gap-1 flex-shrink-0 opacity-50 group-hover:opacity-100">
-                      <span className="text-[9px]" style={{ color: "#6b7c96" }}>{item.source}</span>
-                      <ExternalLink size={9} style={{ color: "#6b7c96" }} />
-                    </div>
-                  </a>
-                );
-              })}
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ── BUZZ SUPPORTERS ── */}
         <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42", background: "#0d1421" }}>
@@ -835,17 +876,30 @@ export default function ClubPage() {
             )}
           </div>
           <div className="px-3 py-2.5">
+            {/* Loading skeleton */}
+            {loadingBuzz && !buzz && (
+              <div className="space-y-2">
+                {[1,2,3].map(i => (
+                  <div key={i} className="h-10 rounded-lg animate-pulse" style={{ background: "rgba(255,255,255,0.04)" }} />
+                ))}
+              </div>
+            )}
             {/* Synthesis */}
-            {buzz?.synthesis && (
-              <div className="flex items-start gap-2 mb-2.5 px-2 py-2 rounded-xl"
-                style={{ background: `${buzzColor}08`, border: `1px solid ${buzzColor}18` }}>
+            {buzz && (
+              <div className="flex items-start gap-2 mb-2.5 px-3 py-2.5 rounded-xl"
+                style={{ background: `${buzzColor}10`, border: `1px solid ${buzzColor}25` }}>
                 {buzz.score >= 55
-                  ? <TrendingUp size={13} style={{ color: buzzColor, flexShrink: 0, marginTop: 1 }} />
+                  ? <TrendingUp size={14} style={{ color: buzzColor, flexShrink: 0, marginTop: 1 }} />
                   : buzz.score <= 44
-                  ? <TrendingDown size={13} style={{ color: buzzColor, flexShrink: 0, marginTop: 1 }} />
-                  : <Info size={13} style={{ color: buzzColor, flexShrink: 0, marginTop: 1 }} />
+                  ? <TrendingDown size={14} style={{ color: buzzColor, flexShrink: 0, marginTop: 1 }} />
+                  : <Info size={14} style={{ color: buzzColor, flexShrink: 0, marginTop: 1 }} />
                 }
-                <p className="text-xs leading-relaxed" style={{ color: "#cbd5e1" }}>{buzz.synthesis}</p>
+                <div>
+                  <p className="text-xs font-semibold mb-0.5" style={{ color: buzzColor }}>Synthèse</p>
+                  <p className="text-xs leading-relaxed" style={{ color: "#cbd5e1" }}>
+                    {buzz.synthesis || (buzz.total === 0 ? "Aucun article récent trouvé pour ce club." : `${buzz.positive} articles positifs, ${buzz.negative} négatifs sur ${buzz.total} analysés.`)}
+                  </p>
+                </div>
               </div>
             )}
 
@@ -887,9 +941,6 @@ export default function ClubPage() {
                 </div>
                 <BuzzMethodology buzz={buzz} />
               </>
-            )}
-            {buzz && buzz.items.length === 0 && (
-              <p className="text-xs" style={{ color: "#6b7c96" }}>Aucun article récent trouvé.</p>
             )}
           </div>
         </div>
@@ -980,6 +1031,15 @@ export default function ClubPage() {
 
           {squadOpen && (
             <div className="px-3 py-2 space-y-3">
+              {squad.stats.playerCount === 0 && (
+                <div className="py-4 text-center">
+                  <p className="text-xs" style={{ color: "#6b7c96" }}>Données Transfermarkt indisponibles (API temporairement limitée).</p>
+                  <a href={`https://www.transfermarkt.fr/`} target="_blank" rel="noopener noreferrer"
+                    className="text-xs mt-1 inline-flex items-center gap-1 hover:opacity-70" style={{ color: "#00d4ff" }}>
+                    Voir sur Transfermarkt <ExternalLink size={10} />
+                  </a>
+                </div>
+              )}
               {squad.stats.injuredCount > 0 && (
                 <div className="flex flex-wrap gap-1.5 pb-2" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
                   {squad.stats.injured.map(p => (
@@ -990,7 +1050,12 @@ export default function ClubPage() {
                   ))}
                 </div>
               )}
-              <p className="text-[10px]" style={{ color: "#6b7c96" }}>Cliquez sur un joueur pour les détails</p>
+              <div className="flex items-center gap-1.5 px-1 pb-1" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                <span className="flex-1 text-[10px] font-bold uppercase tracking-widest" style={{ color: "#6b7c96" }}>Joueur</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest w-14 text-right" style={{ color: "#6b7c96" }}>Forme</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest w-6 text-right hidden sm:block" style={{ color: "#6b7c96" }}>Âge</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest w-12 text-right" style={{ color: "#6b7c96" }}>Cote</span>
+              </div>
               {Object.entries(byPos).map(([pos, players]) => (
                 <div key={pos}>
                   <p className="text-[10px] font-bold uppercase tracking-widest mb-1"
@@ -1022,12 +1087,15 @@ export default function ClubPage() {
                         )}
                         {inj && <AlertTriangle size={9} className="text-orange-400 flex-shrink-0" />}
                         <span className="flex-1 text-xs truncate" style={{ color: inj ? "#f97316" : "#e8edf5" }}>{p.name}</span>
-                        {/* Form score */}
-                        <span className="text-[9px] font-bold w-5 text-center flex-shrink-0" style={{ color: formColor }}>{formScore}</span>
-                        <span className="text-[10px] hidden sm:block" style={{ color: "#6b7c96" }}>{p.age}a</span>
-                        {fb && fb !== "neutral" && fbe[fb] && (
-                          <span style={{ color: fbc[fb], fontSize: 11 }}>{fbe[fb]}</span>
-                        )}
+                        {/* Form column: emoji + score bar */}
+                        <div className="flex items-center gap-1 flex-shrink-0 w-14 justify-end">
+                          {fb && fb !== "neutral" && fbe[fb] && <span style={{ fontSize: 10 }}>{fbe[fb]}</span>}
+                          <span className="text-xs font-black" style={{ color: formColor }}>{formScore}</span>
+                          <div className="w-8 h-1 rounded-full overflow-hidden flex-shrink-0" style={{ background: "rgba(255,255,255,0.08)" }}>
+                            <div className="h-full rounded-full" style={{ width: `${formScore}%`, background: formColor }} />
+                          </div>
+                        </div>
+                        <span className="text-[10px] hidden sm:block w-6 text-right flex-shrink-0" style={{ color: "#6b7c96" }}>{p.age}</span>
                         {(p.recentGoals ?? 0) > 0 && (
                           <span className="text-[10px]" style={{ color: "#f59e0b" }}>⚽{p.recentGoals}</span>
                         )}
