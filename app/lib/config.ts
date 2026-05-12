@@ -19,6 +19,8 @@ export interface AppConfig {
   fanEnabled: boolean;
   // Refresh
   refreshInterval: number;         // seconds: 30/60/120/0(off)
+  // Transfers
+  transfersMaxAgeDays: number;     // 7/14/30/60/0(all), default 30
 }
 
 export const DEFAULT_CONFIG: AppConfig = {
@@ -34,6 +36,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   humanEnabled: true,
   fanEnabled: true,
   refreshInterval: 60,
+  transfersMaxAgeDays: 30,
 };
 
 const CONFIG_KEY = "footpredictom_config_v2";

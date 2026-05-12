@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { RefreshCw, TrendingUp, TrendingDown, Minus, Trophy, Wifi, WifiOff, Clock, Zap, BarChart2, Heart, Globe, Settings, Target, ArrowLeftRight } from "lucide-react";
+import { RefreshCw, TrendingUp, TrendingDown, Minus, Trophy, Wifi, WifiOff, Clock, Zap, BarChart2, Heart, Globe, Settings, Target, ArrowLeftRight, ChevronRight } from "lucide-react";
 import TeamModal from "./components/TeamModal";
 import PredictionsTab from "./components/PredictionsTab";
 import EmotionalScoreTab from "./components/EmotionalScoreTab";
@@ -295,6 +295,76 @@ function FootPredictomLogo() {
   );
 }
 
+// ── Club sidebar ───────────────────────────────────────────────────────────────
+
+const SIDEBAR_CLUBS = [
+  { id: 524,  shortName: "PSG",        crest: "https://crests.football-data.org/524.png" },
+  { id: 548,  shortName: "Monaco",     crest: "https://crests.football-data.org/548.png" },
+  { id: 516,  shortName: "Marseille",  crest: "https://crests.football-data.org/516.png" },
+  { id: 521,  shortName: "Lille",      crest: "https://crests.football-data.org/521.png" },
+  { id: 529,  shortName: "Rennes",     crest: "https://crests.football-data.org/529.png" },
+  { id: 522,  shortName: "Nice",       crest: "https://crests.football-data.org/522.png" },
+  { id: 546,  shortName: "Lens",       crest: "https://crests.football-data.org/546.png" },
+  { id: 523,  shortName: "Lyon",       crest: "https://crests.football-data.org/523.png" },
+  { id: 576,  shortName: "Strasbourg", crest: "https://crests.football-data.org/576.png" },
+  { id: 511,  shortName: "Toulouse",   crest: "https://crests.football-data.org/511.png" },
+  { id: 512,  shortName: "Brest",      crest: "https://crests.football-data.org/512.png" },
+  { id: 532,  shortName: "Angers",     crest: "https://crests.football-data.org/532.png" },
+  { id: 533,  shortName: "Le Havre",   crest: "https://crests.football-data.org/533.png" },
+  { id: 519,  shortName: "Auxerre",    crest: "https://crests.football-data.org/519.png" },
+  { id: 543,  shortName: "Nantes",     crest: "https://crests.football-data.org/543.png" },
+  { id: 545,  shortName: "Metz",       crest: "https://crests.football-data.org/545.png" },
+  { id: 525,  shortName: "Lorient",    crest: "https://crests.football-data.org/525.png" },
+  { id: 1045, shortName: "Paris FC",   crest: "https://crests.football-data.org/1045.png" },
+];
+
+function ClubSidebar({ standings }: { standings?: Standing[] }) {
+  const posMap = new Map(standings?.map((s) => [s.team.id, s.position]) ?? []);
+  const formMap = new Map(standings?.map((s) => [s.team.id, s.form]) ?? []);
+
+  // Sort by standings position if available, otherwise use default order
+  const sorted = standings
+    ? [...SIDEBAR_CLUBS].sort((a, b) => (posMap.get(a.id) ?? 99) - (posMap.get(b.id) ?? 99))
+    : SIDEBAR_CLUBS;
+
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42", background: "#0d1421" }}>
+      <div className="px-3 py-2.5 flex items-center justify-between" style={{ borderBottom: "1px solid #1e2d42" }}>
+        <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "#6b7c96" }}>Clubs L1</p>
+        <ChevronRight size={12} style={{ color: "#6b7c96" }} />
+      </div>
+      <div className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 140px)" }}>
+        {sorted.map((club) => {
+          const pos = posMap.get(club.id);
+          const form = formMap.get(club.id);
+          const lastResult = form ? form.split(",").filter(Boolean).slice(-1)[0] : null;
+          const resultColor = lastResult === "W" ? "#22c55e" : lastResult === "L" ? "#ef4444" : lastResult === "D" ? "#f59e0b" : null;
+          return (
+            <a key={club.id} href={`/club/${club.id}`}
+              className="flex items-center gap-2 px-3 py-2 transition-all hover:bg-white/[0.04] group"
+              style={{ borderBottom: "1px solid rgba(30,45,66,0.3)" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={club.crest} alt={club.shortName} className="w-6 h-6 object-contain flex-shrink-0" loading="lazy" />
+              <span className="flex-1 text-xs font-medium truncate transition-colors" style={{ color: "#94a3b8" }}>
+                {club.shortName}
+              </span>
+              {pos && (
+                <span className="text-xs font-mono flex-shrink-0 w-4 text-right"
+                  style={{ color: pos <= 3 ? "#22c55e" : pos >= 16 ? "#ef4444" : "#6b7c96" }}>
+                  {pos}
+                </span>
+              )}
+              {lastResult && resultColor && (
+                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: resultColor }} />
+              )}
+            </a>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 const TABS: { id: TabId; label: string; icon: React.ReactNode; shortLabel?: string }[] = [
   { id: "standings",   label: "Classement",       icon: <BarChart2 size={14} />,   shortLabel: "Classmt." },
   { id: "predictions", label: "Prédictions IA",   icon: <Zap size={14} />,         shortLabel: "Préd. IA" },
@@ -384,7 +454,9 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="max-w-5xl mx-auto px-4 py-6">
+      <div className="max-w-[1300px] mx-auto px-4 py-6">
+        <div className="lg:grid lg:gap-5 lg:items-start" style={{ gridTemplateColumns: "1fr 196px" }}>
+        <div className="min-w-0">
         {/* Tab switcher */}
         <div className="flex gap-1 mb-6 p-1 rounded-xl overflow-x-auto" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
           {TABS.map((t) => (
@@ -447,7 +519,14 @@ export default function Home() {
           </div>
           {data?.season && <span>Saison {data.season}</span>}
         </div>
-      </div>
+        </div>{/* end main-content col */}
+
+        {/* Club sidebar — always visible on lg+ */}
+        <div className="hidden lg:block" style={{ position: "sticky", top: "73px" }}>
+          <ClubSidebar standings={data?.standings} />
+        </div>
+        </div>{/* end grid */}
+      </div>{/* end max-w */}
     </main>
   );
 }

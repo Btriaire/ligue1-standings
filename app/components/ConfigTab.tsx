@@ -215,8 +215,8 @@ export default function ConfigTab() {
           color="#22c55e"
         />
         <ToggleRow
-          label={<span className="flex items-center gap-1.5"><MessageCircle size={12} style={{ color: "#f472b6" }} /> Supporters (Reddit)</span> as unknown as string}
-          description="Sentiment des fans via Reddit"
+          label={<span className="flex items-center gap-1.5"><MessageCircle size={12} style={{ color: "#f472b6" }} /> Supporters (Fan Buzz)</span> as unknown as string}
+          description="Buzz supporters via Google News et L'Équipe"
           enabled={config.fanEnabled}
           onChange={(v) => updateConfig({ fanEnabled: v })}
           color="#f472b6"
@@ -282,6 +282,28 @@ export default function ConfigTab() {
                   color: config.refreshInterval === opt.value ? "#00d4ff" : "#6b7c96",
                 }}>
                 {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="py-3" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+          <div className="mb-2">
+            <p className="text-sm font-medium" style={{ color: "#e8edf5" }}>Actualités Transferts — âge maximum</p>
+            <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>Masque les articles plus anciens que la limite choisie</p>
+          </div>
+          <div className="grid grid-cols-5 gap-2">
+            {[{ v: 7, l: "7 j" }, { v: 14, l: "14 j" }, { v: 30, l: "30 j" }, { v: 60, l: "60 j" }, { v: 0, l: "Tout" }].map((opt) => (
+              <button
+                key={opt.v}
+                onClick={() => updateConfig({ transfersMaxAgeDays: opt.v })}
+                className="px-2 py-2 rounded-xl text-xs font-semibold transition-all"
+                style={{
+                  background: config.transfersMaxAgeDays === opt.v ? "rgba(245,158,11,0.12)" : "rgba(255,255,255,0.04)",
+                  border: `1px solid ${config.transfersMaxAgeDays === opt.v ? "rgba(245,158,11,0.3)" : "rgba(255,255,255,0.08)"}`,
+                  color: config.transfersMaxAgeDays === opt.v ? "#f59e0b" : "#6b7c96",
+                }}>
+                {opt.l}
               </button>
             ))}
           </div>
