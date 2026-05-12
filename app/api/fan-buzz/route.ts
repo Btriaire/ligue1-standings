@@ -9,6 +9,8 @@ interface BuzzItem {
   source: string;
   url: string;
   sentiment: "positive" | "negative" | "neutral";
+  matchedPos?: string[];
+  matchedNeg?: string[];
 }
 
 const POS_FR = [
@@ -25,11 +27,12 @@ const NEG_FR = [
   "relégation","déficit","litige","déprimé","panique","honte","naufrage","indignation",
 ];
 
-function scoreSentiment(text: string): "positive" | "negative" | "neutral" {
+function scoreSentiment(text: string): { sentiment: "positive" | "negative" | "neutral"; matchedPos: string[]; matchedNeg: string[] } {
   const lower = text.toLowerCase();
-  const pos = POS_FR.filter((w) => lower.includes(w)).length;
-  const neg = NEG_FR.filter((w) => lower.includes(w)).length;
-  return pos > neg ? "positive" : neg > pos ? "negative" : "neutral";
+  const matchedPos = POS_FR.filter((w) => lower.includes(w));
+  const matchedNeg = NEG_FR.filter((w) => lower.includes(w));
+  const sentiment = matchedPos.length > matchedNeg.length ? "positive" : matchedNeg.length > matchedPos.length ? "negative" : "neutral";
+  return { sentiment, matchedPos, matchedNeg };
 }
 
 function parseRSS(xml: string, defaultSource: string): { title: string; pubDate: string; link: string; source: string }[] {
@@ -91,12 +94,15 @@ export async function GET(req: Request) {
     const key = item.title.toLowerCase().slice(0, 60);
     if (seen.has(key)) continue;
     seen.add(key);
+    const { sentiment, matchedPos, matchedNeg } = scoreSentiment(item.title);
     merged.push({
       title: item.title.slice(0, 140),
       pubDate: item.pubDate,
       source: item.source,
       url: item.link,
-      sentiment: scoreSentiment(item.title),
+      sentiment,
+      matchedPos,
+      matchedNeg,
     });
   }
 
@@ -117,12 +123,17 @@ export async function GET(req: Request) {
     ? 50
     : Math.max(10, Math.min(90, 50 + (positive - negative) * 3));
 
+  const allMatchedPos = [...new Set(sorted.flatMap(i => i.matchedPos ?? []))].slice(0, 5);
+  const allMatchedNeg = [...new Set(sorted.flatMap(i => i.matchedNeg ?? []))].slice(0, 5);
+
   return NextResponse.json({
     items: sorted,
     score,
     positive,
     negative,
     total,
+    topPositiveKeywords: allMatchedPos,
+    topNegativeKeywords: allMatchedNeg,
     updatedAt: new Date().toISOString(),
   });
 }
