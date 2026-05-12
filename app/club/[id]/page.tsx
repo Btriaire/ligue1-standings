@@ -130,7 +130,7 @@ interface SquadPlayer {
   recentGoals?: number;
   recentAssists?: number;
   imageUrl?: string;
-  // Understat season stats
+  // Understat season totals
   xG?: number;
   xA?: number;
   usGoals?: number;
@@ -138,6 +138,27 @@ interface SquadPlayer {
   shots?: number;
   minutes?: number;
   games?: number;
+  // Datamb per-90 rates
+  dm_goals90?: number;
+  dm_assists90?: number;
+  dm_xg90?: number;
+  dm_xa90?: number;
+  dm_shots90?: number;
+  dm_keyPasses90?: number;
+  dm_dribbles90?: number;
+  dm_dribblePct?: number;
+  dm_defDuels90?: number;
+  dm_defDuelPct?: number;
+  dm_interceptions90?: number;
+  dm_aerialPct?: number;
+  dm_passPct?: number;
+  dm_progressive90?: number;
+  dm_savePct?: number;
+  dm_gcPer90?: number;
+  dm_cleanSheets?: number;
+  dm_xgxa90?: number;
+  dm_minPerMatch?: number;
+  dm_team?: string;
 }
 
 interface SquadData {
@@ -449,6 +470,54 @@ function PlayerModal({ player, onClose }: { player: SquadPlayer; onClose: () => 
             )}
           </div>
         )}
+
+        {/* Datamb per-90 stats */}
+        {(player.dm_xg90 ?? 0) > 0 || (player.dm_savePct ?? 0) > 0 ? (() => {
+          const isGk = player.position === "Goalkeeper";
+          const stats = isGk
+            ? [
+                { label: "Arrêts %", value: `${(player.dm_savePct ?? 0).toFixed(1)}%`, color: "#00d4ff" },
+                { label: "Buts enc./90", value: (player.dm_gcPer90 ?? 0).toFixed(2), color: "#ef4444" },
+                { label: "Clean sheets", value: player.dm_cleanSheets ?? 0, color: "#22c55e" },
+                { label: "Duels aér. %", value: `${(player.dm_aerialPct ?? 0).toFixed(0)}%`, color: "#a78bfa" },
+              ]
+            : [
+                { label: "xG/90", value: (player.dm_xg90 ?? 0).toFixed(2), color: "#22c55e" },
+                { label: "xA/90", value: (player.dm_xa90 ?? 0).toFixed(2), color: "#a78bfa" },
+                { label: "Passes %", value: `${(player.dm_passPct ?? 0).toFixed(0)}%`, color: "#00d4ff" },
+                { label: "Dribbles/90", value: (player.dm_dribbles90 ?? 0).toFixed(1), color: "#f59e0b" },
+              ];
+          const extra = isGk ? [] : [
+            { label: "Def. duels/90", value: (player.dm_defDuels90 ?? 0).toFixed(1) },
+            { label: "Def. won %", value: `${(player.dm_defDuelPct ?? 0).toFixed(0)}%` },
+            { label: "Int./90", value: (player.dm_interceptions90 ?? 0).toFixed(2) },
+            { label: "Prog./90", value: (player.dm_progressive90 ?? 0).toFixed(1) },
+          ].filter(e => parseFloat(e.value) > 0);
+          return (
+            <div className="px-4 py-3" style={{ borderBottom: "1px solid #1e2d42" }}>
+              <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "#6b7c96" }}>
+                Per 90 · Datamb{player.dm_minPerMatch ? ` · ${Math.round(player.dm_minPerMatch)} min/match` : ""}
+              </p>
+              <div className="grid grid-cols-4 gap-2 text-center mb-2">
+                {stats.map(s => (
+                  <div key={s.label} className="rounded-lg py-1.5" style={{ background: "rgba(255,255,255,0.04)" }}>
+                    <p className="text-sm font-black" style={{ color: s.color }}>{s.value}</p>
+                    <p className="text-[9px] mt-0.5" style={{ color: "#6b7c96" }}>{s.label}</p>
+                  </div>
+                ))}
+              </div>
+              {extra.length > 0 && (
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  {extra.map(e => (
+                    <span key={e.label} className="text-[10px]" style={{ color: "#94a3b8" }}>
+                      <span style={{ color: "#6b7c96" }}>{e.label} </span>{e.value}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })() : null}
 
         {/* Bio grid */}
         <div className="px-4 py-3 grid grid-cols-2 gap-x-4 gap-y-2.5 text-xs">
