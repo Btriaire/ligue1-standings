@@ -14,7 +14,7 @@ interface TeamPred {
   position: number;
   points: number;
   playedGames: number;
-  form: string;
+  form: string | null;
   ppg: number;
   goalsFor: number;
   goalsAgainst: number;
@@ -57,7 +57,7 @@ interface ExpertMatch {
 
 // ── Algorithm helpers ─────────────────────────────────────────────────────────
 
-function formScore(form: string): number {
+function formScore(form: string | null | undefined): number {
   if (!form) return 0.4;
   const results = form.split(",").filter(Boolean).slice(-5);
   if (results.length === 0) return 0.4;
@@ -65,7 +65,8 @@ function formScore(form: string): number {
   return pts / (results.length * 3);
 }
 
-function calcFormMomentum(form: string): number {
+function calcFormMomentum(form: string | null | undefined): number {
+  if (!form) return 0;
   const results = form.split(",").filter(Boolean);
   if (results.length < 3) return 0;
   const calc = (rs: string[]) => {
@@ -188,7 +189,7 @@ function formatDate(dateStr: string) {
   };
 }
 
-function FormMini({ form }: { form: string }) {
+function FormMini({ form }: { form: string | null | undefined }) {
   if (!form) return null;
   const results = form.split(",").filter(Boolean).slice(-5);
   const colors: Record<string, string> = { W: "#22c55e", D: "#f59e0b", L: "#ef4444" };
@@ -204,7 +205,7 @@ function FormMini({ form }: { form: string }) {
   );
 }
 
-function MomentumBadge({ form }: { form: string }) {
+function MomentumBadge({ form }: { form: string | null | undefined }) {
   const momentum = calcFormMomentum(form);
   if (Math.abs(momentum) < 0.01) return null;
   const isPos = momentum > 0;
