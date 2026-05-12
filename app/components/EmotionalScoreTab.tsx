@@ -217,7 +217,7 @@ function Methodology({ sources }: { sources: EmotionalData["sources"] }) {
             {[
               { icon: <Building2 size={16} />, color: "#f59e0b", weight: "28%", title: "Économique", desc: "Propriétaire, revenus annuels, solidité financière.", source: sources.economic },
               { icon: <Newspaper size={16} />, color: "#00d4ff", weight: "28%", title: "Médias & Sentiment", desc: "Analyse des 15 derniers articles par club (positifs vs négatifs).", source: sources.media.join(", ") },
-              { icon: <Users size={16} />, color: "#22c55e", weight: "30%", title: "Humain & Mercato", desc: "Valeur totale de l'effectif et taux de blessures.", source: sources.mercato },
+              { icon: <Users size={16} />, color: "#22c55e", weight: "30%", title: "Humain", desc: "Valeur totale de l'effectif et taux de blessures.", source: sources.mercato },
               { icon: <MessageCircle size={16} />, color: "#f472b6", weight: "14%", title: "Buzz Supporters", desc: "Analyse des articles Google News et L'Équipe, mots-clés supporters.", source: "Google News · L'Équipe" },
             ].map((c) => (
               <div key={c.title} className="rounded-xl p-3" style={{ background: `${c.color}08`, border: `1px solid ${c.color}20` }}>
@@ -341,11 +341,36 @@ function PlayerRow({ player }: { player: PlayerSquad }) {
 
 // ── Fan Buzz Section (replaces Reddit) ───────────────────────────────────────
 
-interface BuzzItem { title: string; pubDate: string; source: string; url: string; sentiment: "positive" | "negative" | "neutral" }
+interface BuzzItem {
+  title: string; pubDate: string; source: string; url: string;
+  sentiment: "positive" | "negative" | "neutral";
+  matchedPos: string[]; matchedNeg: string[];
+  impact: "high" | "medium" | "low" | "none";
+  impactPoints: number;
+  impactReason: string;
+}
+
+interface BuzzData {
+  items: BuzzItem[];
+  score: number;
+  positive: number;
+  negative: number;
+  total: number;
+  topPositiveKeywords: string[];
+  topNegativeKeywords: string[];
+  maxAgeDays: number;
+}
+
+function buzzScoreColor(score: number) {
+  if (score >= 68) return "#22c55e";
+  if (score >= 55) return "#00d4ff";
+  if (score >= 44) return "#f59e0b";
+  if (score >= 33) return "#f97316";
+  return "#ef4444";
+}
 
 function FanBuzzSection({ teamId }: { teamId: number }) {
-  const [items, setItems] = useState<BuzzItem[]>([]);
-  const [stats, setStats] = useState<{ positive: number; negative: number; total: number } | null>(null);
+  const [data, setData] = useState<BuzzData | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetched, setFetched] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -356,9 +381,7 @@ function FanBuzzSection({ teamId }: { teamId: number }) {
     try {
       const res = await fetch(`/api/fan-buzz?teamId=${teamId}`);
       if (!res.ok) throw new Error(`Erreur ${res.status}`);
-      const data = await res.json();
-      setItems(data.items ?? []);
-      setStats({ positive: data.positive, negative: data.negative, total: data.total });
+      setData(await res.json());
       setFetched(true);
     } catch (e) {
       setError(String(e instanceof Error ? e.message : e));
@@ -367,30 +390,23 @@ function FanBuzzSection({ teamId }: { teamId: number }) {
     }
   };
 
-  const sentCfg: Record<string, { color: string; icon: React.ReactNode }> = {
-    positive: { color: "#22c55e", icon: <TrendingUp size={9} /> },
-    negative: { color: "#ef4444", icon: <TrendingDown size={9} /> },
-    neutral:  { color: "#94a3b8", icon: <Minus size={9} /> },
-  };
+  const scoreColor = data ? buzzScoreColor(data.score) : "#6b7c96";
 
   return (
     <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
       <div className="flex items-center justify-between mb-2">
         <div>
-          <p className="text-xs font-semibold" style={{ color: "#6b7c96" }}>BUZZ SUPPORTERS</p>
-          <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>Google News · L&apos;Équipe · analyse de sentiment</p>
+          <p className="text-xs font-semibold" style={{ color: "#6b7c96" }}>BUZZ SUPPORTERS — 30 derniers jours</p>
+          <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>Google News · L&apos;Équipe · impact pondéré par mots-clés</p>
         </div>
         <div className="flex items-center gap-2">
-          {stats && (
-            <div className="flex gap-1.5 text-xs">
-              <span style={{ color: "#22c55e" }}>+{stats.positive}</span>
-              <span style={{ color: "#6b7c96" }}>/</span>
-              <span style={{ color: "#ef4444" }}>-{stats.negative}</span>
-            </div>
+          {data && (
+            <span className="text-sm font-black px-2 py-0.5 rounded-lg"
+              style={{ color: scoreColor, background: `${scoreColor}15`, border: `1px solid ${scoreColor}25` }}>
+              {data.score}
+            </span>
           )}
-          <button
-            onClick={load}
-            disabled={loading}
+          <button onClick={load} disabled={loading}
             className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-lg transition-all hover:opacity-70 disabled:opacity-40"
             style={{ background: "rgba(244,114,182,0.1)", color: "#f472b6", border: "1px solid rgba(244,114,182,0.2)" }}>
             <RefreshCw size={10} className={loading ? "animate-spin" : ""} />
@@ -400,19 +416,27 @@ function FanBuzzSection({ teamId }: { teamId: number }) {
       </div>
 
       {error && <p className="text-xs" style={{ color: "#ef4444" }}>Erreur : {error}</p>}
-
-      {fetched && items.length === 0 && !error && (
-        <p className="text-xs" style={{ color: "#6b7c96" }}>Aucun article trouvé.</p>
+      {fetched && !data?.items.length && !error && (
+        <p className="text-xs" style={{ color: "#6b7c96" }}>Aucun article récent trouvé.</p>
       )}
 
-      {items.map((item, i) => {
-        const cfg = sentCfg[item.sentiment];
+      {data?.items.slice(0, 6).map((item, i) => {
+        const sc = item.sentiment === "positive" ? "#22c55e" : item.sentiment === "negative" ? "#ef4444" : "#6b7c96";
+        const pts = item.impactPoints;
         return (
           <div key={i} className="flex items-start gap-2 py-1.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
-            <span className="px-1.5 py-0.5 rounded text-xs font-black flex-shrink-0 mt-0.5" style={{ background: `${cfg.color}15`, color: cfg.color }}>{cfg.icon}</span>
+            {/* Impact blocks */}
+            <div className="flex gap-0.5 mt-1.5 flex-shrink-0">
+              {[0, 1, 2].map(n => (
+                <span key={n} className="w-1 h-3 rounded-sm"
+                  style={{ background: n < Math.abs(pts) ? sc : "rgba(255,255,255,0.08)" }} />
+              ))}
+            </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs leading-snug" style={{ color: "#94a3b8" }}>{item.title}</p>
-              <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>{item.source}</p>
+              <p className="text-[10px] mt-0.5" style={{ color: item.impact !== "none" ? sc : "#6b7c96" }}>
+                {pts > 0 ? `+${pts}` : pts < 0 ? `${pts}` : "±0"} · {item.impactReason}
+              </p>
             </div>
           </div>
         );
@@ -420,7 +444,7 @@ function FanBuzzSection({ teamId }: { teamId: number }) {
 
       {!fetched && !loading && !error && (
         <p className="text-xs" style={{ color: "#6b7c96" }}>
-          Cliquez sur &ldquo;Charger&rdquo; pour analyser le buzz supporters
+          Cliquez &ldquo;Charger&rdquo; — articles des 30 derniers jours uniquement
         </p>
       )}
     </div>
@@ -448,8 +472,8 @@ function ClubDetail({ club, weights }: { club: ClubScore; weights: Weights }) {
       <div className="space-y-3 px-1">
         <ComponentBar label="Économique" score={c.economic.score} icon={<Building2 size={12} />} detail={c.economic.owner} weight={effWeight(weights.eco)} />
         <ComponentBar label="Médias & Sentiment" score={c.media.score} icon={<Newspaper size={12} />} detail={c.media.total > 0 ? `${c.media.positive} pos · ${c.media.negative} nég` : "en attente"} weight={effWeight(weights.media)} />
-        <ComponentBar label="Humain & Mercato" score={c.human.score} icon={<Users size={12} />} detail={c.human.totalValue > 0 ? formatValue(c.human.totalValue) : "—"} weight={effWeight(weights.human)} />
-        {c.fan && <ComponentBar label={`Supporters (${c.fan.subreddit})`} score={c.fan.score} icon={<MessageCircle size={12} />} detail={c.fan.total > 0 ? `${c.fan.positive} pos · ${c.fan.negative} nég` : "en attente"} weight={effWeight(weights.fan)} />}
+        <ComponentBar label="Humain" score={c.human.score} icon={<Users size={12} />} detail={c.human.totalValue > 0 ? formatValue(c.human.totalValue) : "—"} weight={effWeight(weights.human)} />
+        {c.fan && <ComponentBar label="Supporters" score={c.fan.score} icon={<MessageCircle size={12} />} detail={c.fan.total > 0 ? `${c.fan.positive} pos · ${c.fan.negative} nég` : "en attente"} weight={effWeight(weights.fan)} />}
         {c.market && <ComponentBar label="Paris Sportifs" score={c.market.score} icon={<BarChart2 size={12} />} detail={c.market.source} weight={effWeight(10)} />}
       </div>
 

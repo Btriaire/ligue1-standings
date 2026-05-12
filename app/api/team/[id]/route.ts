@@ -34,6 +34,18 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       homeTeam: { id: m.homeTeam.id, name: m.homeTeam.shortName || m.homeTeam.name, crest: m.homeTeam.crest },
       awayTeam: { id: m.awayTeam.id, name: m.awayTeam.shortName || m.awayTeam.name, crest: m.awayTeam.crest },
       score: m.score?.fullTime ?? { home: null, away: null },
+      goals: (m.goals ?? []).map(g => ({
+        minute: g.minute,
+        scorer: g.scorer?.name ?? null,
+        type: g.type ?? "REGULAR",
+        teamId: g.team?.id ?? null,
+      })),
+      bookings: (m.bookings ?? []).map(b => ({
+        minute: b.minute,
+        player: b.playerName,
+        card: b.card,
+        teamId: b.teamId,
+      })),
     });
 
     return NextResponse.json({
@@ -54,4 +66,6 @@ interface MatchRaw {
   homeTeam: { id: number; name: string; shortName: string; crest: string };
   awayTeam: { id: number; name: string; shortName: string; crest: string };
   score: { fullTime: { home: number | null; away: number | null } };
+  goals?: { minute: number; type: string; team: { id: number } | null; scorer: { id: number; name: string } | null }[];
+  bookings?: { minute: number; card: string; teamId: number; playerName: string }[];
 }

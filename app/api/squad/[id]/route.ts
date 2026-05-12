@@ -19,6 +19,7 @@ interface TmPlayer {
   contract: string;
   marketValue: number;
   status?: string;
+  imageUrl?: string;
 }
 
 interface FdGoal {
