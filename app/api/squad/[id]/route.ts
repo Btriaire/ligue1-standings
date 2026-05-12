@@ -55,6 +55,12 @@ function playerNamesMatch(scorerName: string, playerName: string): boolean {
   return sWords.some((sw) => sw.length > 3 && pWords.some((pw) => pw === sw));
 }
 
+const EMPTY_RESPONSE = (teamId: number) => NextResponse.json({
+  team: { id: teamId, name: null, shortName: null, crest: null, venue: null, founded: null, coach: null },
+  squad: [],
+  stats: { totalValue: 0, avgValue: 0, playerCount: 0, injuredCount: 0, injuryRate: 0, injured: [], recentMatchCount: 0, teamWins: 0, teamDraws: 0, teamLosses: 0 },
+});
+
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const teamId = parseInt(id);
@@ -64,14 +70,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     fetch(`https://api.football-data.org/v4/teams/${teamId}`, {
       headers: { "X-Auth-Token": API_KEY! },
       next: { revalidate: 3600 },
-    }),
+    }).catch(() => null),
     fetch(`https://api.football-data.org/v4/teams/${teamId}/matches?status=FINISHED&limit=5`, {
       headers: { "X-Auth-Token": API_KEY! },
       next: { revalidate: 3600 },
     }).catch(() => null),
   ]);
 
-  const fdData = fdRes.ok ? await fdRes.json() : {};
+  const fdData = fdRes?.ok ? await fdRes.json() : {};
 
   // Extract scorer/assist contributions from last 5 matches
   const goalsByPlayer = new Map<string, number>();
