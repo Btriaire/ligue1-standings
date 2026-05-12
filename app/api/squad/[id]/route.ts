@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import * as XLSX from "xlsx";
 import { TEAM_TM_MAP, UNDERSTAT_TEAM_MAP } from "@/app/lib/teamMapping";
 
 const API_KEY = process.env.FOOTBALL_DATA_API_KEY;
@@ -20,7 +21,7 @@ interface TmPlayer {
   marketValue: number;
   status?: string;
   imageUrl?: string;
-  // Understat stats
+  // Understat season totals
   xG?: number;
   xA?: number;
   usGoals?: number;
@@ -28,6 +29,27 @@ interface TmPlayer {
   shots?: number;
   minutes?: number;
   games?: number;
+  // Datamb per-90 stats
+  dm_goals90?: number;
+  dm_assists90?: number;
+  dm_xg90?: number;
+  dm_xa90?: number;
+  dm_shots90?: number;
+  dm_keyPasses90?: number;
+  dm_dribbles90?: number;
+  dm_dribblePct?: number;
+  dm_defDuels90?: number;
+  dm_defDuelPct?: number;
+  dm_interceptions90?: number;
+  dm_aerialPct?: number;
+  dm_passPct?: number;
+  dm_progressive90?: number;
+  dm_savePct?: number;   // GK
+  dm_gcPer90?: number;   // GK
+  dm_cleanSheets?: number; // GK
+  dm_xgxa90?: number;
+  dm_minPerMatch?: number;
+  dm_team?: string;
 }
 
 interface UnderstatPlayer {
@@ -68,6 +90,71 @@ async function fetchUnderstatPlayers(teamName: string): Promise<UnderstatPlayer[
   } catch {
     return [];
   }
+}
+
+// Datamb position file codes per our position names
+const DATAMB_POS_FILES: Record<string, string[]> = {
+  Goalkeeper:       ["GK"],
+  Defender:         ["CB", "FB"],
+  Midfielder:       ["MF"],
+  Winger:           ["WG"],
+  "Centre-Forward": ["ST"],
+};
+
+// Dynamically compute season string e.g. "TOP72526" for 2025/26
+function datambVersionStr(): string {
+  const now = new Date();
+  const start = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+  const end = String((start + 1) % 100).padStart(2, "0");
+  return `TOP7${start}${end}`;
+}
+
+type DatambRow = Record<string, string | number | null>;
+
+async function fetchDatambFile(posCode: string): Promise<DatambRow[]> {
+  const ver = datambVersionStr();
+  const url = `https://datamb.football/database/CURRENT/${ver}/${posCode}/${posCode}.xlsx`;
+  try {
+    const buf = await fetch(url, {
+      signal: AbortSignal.timeout(10000),
+      next: { revalidate: 3600 },
+    } as RequestInit).then(r => r.ok ? r.arrayBuffer() : null);
+    if (!buf) return [];
+    const wb = XLSX.read(buf, { type: "array" });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    return XLSX.utils.sheet_to_json<DatambRow>(ws, { defval: 0 });
+  } catch {
+    return [];
+  }
+}
+
+function n(v: DatambRow[string]): number {
+  return typeof v === "number" ? v : parseFloat(String(v ?? "0")) || 0;
+}
+
+function extractDatambStats(row: DatambRow): Partial<TmPlayer> {
+  return {
+    dm_goals90:        n(row["Goals per 90"]),
+    dm_assists90:      n(row["Assists per 90"]),
+    dm_xg90:           n(row["xG per 90"]),
+    dm_xa90:           n(row["xA per 90"]),
+    dm_shots90:        n(row["Shots per 90"]),
+    dm_keyPasses90:    n(row["Key passes per 90"]),
+    dm_dribbles90:     n(row["Dribbles attempted per 90"]),
+    dm_dribblePct:     n(row["Dribble success rate %"]),
+    dm_defDuels90:     n(row["Defensive duels per 90"]),
+    dm_defDuelPct:     n(row["Defensive duels won %"]),
+    dm_interceptions90:n(row["Interceptions per 90"]),
+    dm_aerialPct:      n(row["Aerial duels won %"]),
+    dm_passPct:        n(row["Pass completion %"]),
+    dm_progressive90:  n(row["Progressive carries per 90"]),
+    dm_savePct:        n(row["Save percentage %"]),
+    dm_gcPer90:        n(row["Goals conceded per 90"]),
+    dm_cleanSheets:    n(row["Clean sheets"]),
+    dm_xgxa90:         n(row["xG+xA per 90"]),
+    dm_minPerMatch:    n(row["Minutes per match"]),
+    dm_team:           String(row["Team within selected timeframe"] ?? ""),
+  };
 }
 
 interface FdGoal {
@@ -236,6 +323,18 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     }
   }
 
+  // Fetch Datamb per-90 stats for positions present in this squad
+  const uniquePositions = [...new Set(players.map(p => p.position))];
+  const posFiles = [...new Set(uniquePositions.flatMap(pos => DATAMB_POS_FILES[pos] ?? []))];
+  const datambRows = (await Promise.all(posFiles.map(fetchDatambFile))).flat();
+  if (datambRows.length > 0) {
+    players = players.map(p => {
+      const row = datambRows.find(r => playerNamesMatch(String(r["Player"] ?? ""), p.name));
+      if (!row) return p;
+      return { ...p, ...extractDatambStats(row) };
+    });
+  }
+
   const totalValue = players.reduce((sum, p) => sum + (p.marketValue ?? 0), 0);
   const avgValue = players.length > 0 ? totalValue / players.length : 0;
   const injured = players.filter((p) => p.status && p.status.toLowerCase().includes("injury"));
@@ -257,16 +356,18 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       if (playerNamesMatch(assistName, p.name)) { recentAssists += assists; break; }
     }
 
-    // Form badge: prefer Understat xG+assists per 90 over raw goal counts
-    const xG90 = p.minutes && p.minutes > 0 ? ((p.xG ?? 0) + (p.xA ?? 0)) / (p.minutes / 90) : 0;
+    // Form badge: prefer datamb xG/90 (per-90 rate) as primary signal
+    const dmXg90 = p.dm_xg90 ?? 0;
+    const dmXa90 = p.dm_xa90 ?? 0;
+    const combined90 = dmXg90 + dmXa90;
     const usCombined = (p.usGoals ?? 0) + (p.usAssists ?? 0);
 
     let formBadge: "hot" | "good" | "neutral" | "cold";
     if (isInjured) {
       formBadge = "cold";
-    } else if (xG90 >= 0.5 || usCombined >= 8 || recentGoals >= 2 || recentAssists >= 2) {
+    } else if (combined90 >= 0.6 || usCombined >= 8 || recentGoals >= 2) {
       formBadge = "hot";
-    } else if (xG90 >= 0.2 || usCombined >= 3 || recentGoals >= 1 || recentAssists >= 1) {
+    } else if (combined90 >= 0.25 || usCombined >= 3 || recentGoals >= 1) {
       formBadge = "good";
     } else {
       formBadge = "neutral";
