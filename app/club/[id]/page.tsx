@@ -591,18 +591,9 @@ export default function ClubPage() {
       </main>
     );
   }
-  if (!squad) {
-    return (
-      <main className="min-h-screen flex items-center justify-center" style={{ background: "#080c14" }}>
-        <div className="text-center">
-          <p className="text-red-400 mb-3 font-semibold">Données indisponibles.</p>
-          <Link href="/" style={{ color: "#00d4ff" }} className="text-sm hover:opacity-70">← Retour</Link>
-        </div>
-      </main>
-    );
-  }
+  const team = squad?.team ?? { id: teamId, name: null as string | null, shortName: null, crest: null as string | null, venue: null as string | null, founded: null as number | null, coach: null as string | null };
+  const squadStats = squad?.stats ?? { totalValue: 0, avgValue: 0, playerCount: 0, injuredCount: 0, injuryRate: 0, injured: [] as { name: string; status?: string }[], recentMatchCount: 0, teamWins: 0, teamDraws: 0, teamLosses: 0 };
 
-  const team = squad.team;
   const admin = CLUB_ADMIN[teamId];
   const stadImg = stadiumErr ? "" : stadiumUrl(teamId);
 
@@ -617,7 +608,7 @@ export default function ClubPage() {
     .filter((r): r is "W" | "D" | "L" => r !== null) ?? [];
 
   const byPos = POS_ORDER.reduce<Record<string, SquadPlayer[]>>((acc, p) => {
-    const pl = squad.squad.filter(x => x.position === p);
+    const pl = (squad?.squad ?? []).filter(x => x.position === p);
     if (pl.length) acc[p] = pl;
     return acc;
   }, {});
@@ -640,7 +631,7 @@ export default function ClubPage() {
             <ArrowLeft size={14} /> Retour
           </Link>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={team.crest} alt="" className="w-7 h-7 object-contain flex-shrink-0" />
+          {team.crest && <img src={team.crest} alt="" className="w-7 h-7 object-contain flex-shrink-0" />}
           <span className="font-black text-sm truncate" style={{ color: "#e8edf5" }}>{team.name}</span>
           {thisTeamStanding && (
             <span className="text-xs ml-auto flex-shrink-0" style={{ color: "#6b7c96" }}>
@@ -674,7 +665,7 @@ export default function ClubPage() {
                   </p>
                   <div className="flex items-center gap-2 mt-0.5">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={team.crest} alt="" className="w-8 h-8 object-contain flex-shrink-0" />
+                    {team.crest && <img src={team.crest} alt="" className="w-8 h-8 object-contain flex-shrink-0" />}
                     <h1 className="text-xl font-black" style={{ color: "#e8edf5" }}>{team.name}</h1>
                   </div>
                 </div>
@@ -687,7 +678,7 @@ export default function ClubPage() {
             <div className="px-4 pt-4 pb-3 flex items-center gap-3"
               style={{ background: "linear-gradient(135deg, rgba(0,212,255,0.04), rgba(124,58,237,0.04))" }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={team.crest} alt="" className="w-14 h-14 object-contain flex-shrink-0" />
+              {team.crest && <img src={team.crest} alt="" className="w-14 h-14 object-contain flex-shrink-0" />}
               <div className="flex-1 min-w-0">
                 <h1 className="text-xl font-black truncate" style={{ color: "#e8edf5" }}>{team.name}</h1>
                 <div className="flex gap-1 mt-1">{recentForm.map((r, i) => <FormDot key={i} result={r} />)}</div>
@@ -701,9 +692,9 @@ export default function ClubPage() {
               {team.venue    && <div><p style={{ color: "#6b7c96" }}>Stade</p><p className="font-semibold mt-0.5 truncate" style={{ color: "#e8edf5" }}>{team.venue}</p></div>}
               {team.founded  && <div><p style={{ color: "#6b7c96" }}>Fondation</p><p className="font-semibold mt-0.5" style={{ color: "#e8edf5" }}>{team.founded}</p></div>}
               {team.coach    && <div><p style={{ color: "#6b7c96" }}>Entraîneur</p><p className="font-semibold mt-0.5 truncate" style={{ color: "#e8edf5" }}>{team.coach}</p></div>}
-              {squad.stats.totalValue > 0 && (
+              {squadStats.totalValue > 0 && (
                 <div><p style={{ color: "#6b7c96" }}>Valeur effectif</p>
-                  <p className="font-black mt-0.5" style={{ color: "#00d4ff" }}>{fv(squad.stats.totalValue)}</p></div>
+                  <p className="font-black mt-0.5" style={{ color: "#00d4ff" }}>{fv(squadStats.totalValue)}</p></div>
               )}
             </div>
 
@@ -1016,22 +1007,22 @@ export default function ClubPage() {
             style={{ borderBottom: squadOpen ? "1px solid #1e2d42" : "none" }}>
             <Users size={13} style={{ color: "#00d4ff" }} />
             <span className="font-bold text-sm flex-1 text-left" style={{ color: "#e8edf5" }}>
-              Effectif — {squad.stats.playerCount} joueurs
+              Effectif — {squadStats.playerCount} joueurs
             </span>
-            {squad.stats.injuredCount > 0 && (
+            {squadStats.injuredCount > 0 && (
               <span className="flex items-center gap-1 text-xs mr-2" style={{ color: "#f97316" }}>
-                <AlertTriangle size={11} />{squad.stats.injuredCount} blessé{squad.stats.injuredCount > 1 ? "s" : ""}
+                <AlertTriangle size={11} />{squadStats.injuredCount} blessé{squadStats.injuredCount > 1 ? "s" : ""}
               </span>
             )}
-            {squad.stats.totalValue > 0 && (
-              <span className="text-xs mr-2 font-bold" style={{ color: "#00d4ff" }}>{fv(squad.stats.totalValue)}</span>
+            {squadStats.totalValue > 0 && (
+              <span className="text-xs mr-2 font-bold" style={{ color: "#00d4ff" }}>{fv(squadStats.totalValue)}</span>
             )}
             <ChevronDown size={14} style={{ color: "#6b7c96" }} className={`flex-shrink-0 transition-transform ${squadOpen ? "rotate-180" : ""}`} />
           </button>
 
           {squadOpen && (
             <div className="px-3 py-2 space-y-3">
-              {squad.stats.playerCount === 0 && (
+              {squadStats.playerCount === 0 && (
                 <div className="py-4 text-center">
                   <p className="text-xs" style={{ color: "#6b7c96" }}>Données Transfermarkt indisponibles (API temporairement limitée).</p>
                   <a href={`https://www.transfermarkt.fr/`} target="_blank" rel="noopener noreferrer"
@@ -1040,9 +1031,9 @@ export default function ClubPage() {
                   </a>
                 </div>
               )}
-              {squad.stats.injuredCount > 0 && (
+              {squadStats.injuredCount > 0 && (
                 <div className="flex flex-wrap gap-1.5 pb-2" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                  {squad.stats.injured.map(p => (
+                  {squadStats.injured.map(p => (
                     <span key={p.name} className="text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1"
                       style={{ background: "rgba(249,115,22,0.1)", color: "#f97316", border: "1px solid rgba(249,115,22,0.2)" }}>
                       <AlertTriangle size={9} />{p.name}
