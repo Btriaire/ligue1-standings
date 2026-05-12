@@ -61,7 +61,10 @@ async function safeFetch(url: string, opts?: RequestInit): Promise<string> {
   } catch { return ""; }
 }
 
-// ─── Reddit Fan Feed ──────────────────────────────────────────────────────────
+// ─── Fan Sentiment Proxy ──────────────────────────────────────────────────────
+// Reddit blocks server-side fetches (403 from Vercel IPs).
+// Use a proxy score derived from league position + recent form.
+// The Reddit feed is loaded client-side via direct browser fetch in EmotionalScoreTab.
 
 export interface RedditPost {
   title: string;
@@ -73,65 +76,37 @@ export interface RedditPost {
   sentiment: "positive" | "negative" | "neutral";
 }
 
-async function fetchRedditFanSentiment(teamId: number, clubName: string): Promise<{
+function fanSentimentProxy(position: number, form: string): {
   score: number;
   posts: RedditPost[];
   positive: number;
   negative: number;
   total: number;
   subreddit: string;
-}> {
-  const subreddit = CLUB_SUBREDDITS[teamId];
-  let url: string;
-  let subLabel: string;
+} {
+  const results = form.split(",").filter(Boolean).slice(-5);
+  const pts = results.reduce((a, r) => a + (r === "W" ? 3 : r === "D" ? 1 : 0), 0);
+  const maxPts = results.length * 3;
 
-  if (subreddit) {
-    url = `https://www.reddit.com/r/${subreddit}/new.json?limit=20`;
-    subLabel = `r/${subreddit}`;
-  } else {
-    const query = encodeURIComponent(clubName.split(" ")[0]);
-    url = `https://www.reddit.com/r/ligue1/search.json?q=${query}&sort=new&limit=15&restrict_sr=1`;
-    subLabel = "r/ligue1";
-  }
+  // Position: top clubs → higher score (0–50)
+  const posBase = ((18 - position) / 17) * 50;
+  // Form: recent results (0–40)
+  const formBase = maxPts > 0 ? (pts / maxPts) * 40 : 20;
+  // Trend bonus: last 3 matches
+  const recent3 = results.slice(-3);
+  const recentPts = recent3.reduce((a, r) => a + (r === "W" ? 3 : r === "D" ? 1 : 0), 0);
+  const trendBonus = recentPts >= 9 ? 5 : recentPts === 0 && recent3.length > 0 ? -5 : 0;
 
-  try {
-    const json = await safeFetch(url, { headers: { "User-Agent": "FootPredictom/1.0" } });
-    if (!json) return { score: 50, posts: [], positive: 0, negative: 0, total: 0, subreddit: subLabel };
+  const score = Math.max(5, Math.min(95, Math.round(10 + posBase + formBase + trendBonus)));
 
-    const data = JSON.parse(json);
-    const children = data?.data?.children ?? [];
-    let positive = 0, negative = 0;
-    const posts: RedditPost[] = [];
-
-    for (const child of children.slice(0, 15)) {
-      const p = child.data;
-      const text = `${p.title ?? ""} ${p.selftext ?? ""}`;
-      const { pos, neg } = scoreText(text, "both");
-      // Weight by upvote score (more upvotes = more community agreement)
-      const weight = Math.log2(Math.max(p.score ?? 1, 1));
-      positive += pos * weight;
-      negative += neg * weight;
-
-      posts.push({
-        title: (p.title ?? "").slice(0, 120),
-        score: p.score ?? 0,
-        upvoteRatio: p.upvote_ratio ?? 0.5,
-        url: p.permalink ? `https://reddit.com${p.permalink}` : "",
-        subreddit: p.subreddit_name_prefixed ?? subLabel,
-        created: p.created_utc ?? 0,
-        sentiment: toSentiment(pos, neg),
-      });
-    }
-
-    const total = positive + negative;
-    const score = total < 1 ? 50 : Math.max(0, Math.min(100,
-      Math.round(50 + ((positive - negative) / (total + 2)) * 50)
-    ));
-
-    return { score, posts: posts.slice(0, 8), positive: Math.round(positive), negative: Math.round(negative), total: Math.round(total), subreddit: subLabel };
-  } catch {
-    return { score: 50, posts: [], positive: 0, negative: 0, total: 0, subreddit: subLabel };
-  }
+  return {
+    score,
+    posts: [], // client-side loads these via direct Reddit fetch
+    positive: Math.round(posBase + formBase),
+    negative: Math.round(100 - score),
+    total: 0,
+    subreddit: "proxy", // indicates proxy mode; client knows to show "Charger" button
+  };
 }
 
 // ─── Media RSS ───────────────────────────────────────────────────────────────
@@ -268,12 +243,16 @@ export async function GET() {
     const teamInfo: Record<number, StandingEntry["team"] & { position: number }> = {};
     for (const e of table) teamInfo[e.team.id] = { ...e.team, position: e.position };
 
-    const [humanResults, mediaResults, redditResults, oddsMap] = await Promise.all([
+    const [humanResults, mediaResults, oddsMap] = await Promise.all([
       Promise.all(teamIds.map(fetchHumanScore)),
       Promise.all(teamIds.map(fetchMediaScore)),
-      Promise.all(teamIds.map((id) => fetchRedditFanSentiment(id, teamInfo[id]?.name ?? ""))),
       fetchOddsMarketScore(),
     ]);
+
+    // Fan sentiment: use proxy (position + form) since Reddit blocks server IPs
+    const redditResults = table.map((entry: StandingEntry) =>
+      fanSentimentProxy(entry.position, entry.form ?? "")
+    );
 
     const totalValues = humanResults.map((h) => h.totalValue);
     const avgValues = humanResults.map((h) => h.avgValue);
@@ -349,7 +328,7 @@ export async function GET() {
 }
 
 interface TmPlayer { marketValue?: number; status?: string; name: string }
-interface StandingEntry { position: number; team: { id: number; name: string; shortName: string; tla: string; crest: string } }
+interface StandingEntry { position: number; form?: string; team: { id: number; name: string; shortName: string; tla: string; crest: string } }
 interface ArticleItem { title: string; pubDate: string; source: string; sentiment: "positive" | "negative" | "neutral" }
 interface SourceBreakdown { source: string; articleCount: number; positive: number; negative: number; score: number }
 interface RSSItem { title: string; pubDate: string; source: string }

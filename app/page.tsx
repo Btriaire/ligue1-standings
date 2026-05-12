@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { RefreshCw, TrendingUp, TrendingDown, Minus, Trophy, Wifi, WifiOff, Clock, Zap, BarChart2, Heart } from "lucide-react";
+import { RefreshCw, TrendingUp, TrendingDown, Minus, Trophy, Wifi, WifiOff, Clock, Zap, BarChart2, Heart, Globe, Settings, Target } from "lucide-react";
 import TeamModal from "./components/TeamModal";
 import PredictionsTab from "./components/PredictionsTab";
 import EmotionalScoreTab from "./components/EmotionalScoreTab";
+import ResultsTab from "./components/ResultsTab";
+import WorldCupTab from "./components/WorldCupTab";
+import ConfigTab from "./components/ConfigTab";
 
 interface Team {
   id: number;
@@ -33,6 +36,8 @@ interface StandingsData {
   season: number | null;
   updatedAt: string;
 }
+
+type TabId = "standings" | "predictions" | "results" | "emotional" | "worldcup" | "config";
 
 const ZONE_CONFIG = [
   { label: "Champion", positions: [1], color: "#00d4ff", bg: "rgba(0,212,255,0.06)" },
@@ -79,14 +84,12 @@ function PositionBadge({ position }: { position: number }) {
   }
   const zone = getZone(position);
   return (
-    <div
-      className="flex items-center justify-center w-8 h-8 rounded-lg text-sm font-bold"
+    <div className="flex items-center justify-center w-8 h-8 rounded-lg text-sm font-bold"
       style={{
         background: zone ? zone.bg : "rgba(255,255,255,0.03)",
         color: zone ? zone.color : "rgba(255,255,255,0.5)",
         border: zone ? `1px solid ${zone.color}30` : "1px solid rgba(255,255,255,0.08)",
-      }}
-    >
+      }}>
       {position}
     </div>
   );
@@ -112,106 +115,87 @@ function StandingsTable({ standings }: { standings: Standing[] }) {
 
   return (
     <>
-    {selected && <TeamModal standing={selected} onClose={() => setSelected(null)} />}
-    <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42" }}>
-      <div
-        className="grid items-center px-4 py-3 text-xs font-semibold uppercase tracking-widest"
-        style={{
-          background: "#0d1421",
-          color: "#6b7c96",
-          gridTemplateColumns: "44px 1fr 40px 90px 40px 40px 48px 56px 100px 40px",
-          borderBottom: "1px solid #1e2d42",
-        }}
-      >
-        <span className="text-center">#</span>
-        <span>Équipe</span>
-        <span className="text-center">J</span>
-        <span className="text-center hidden sm:block">V · N · D</span>
-        <span className="text-center hidden md:block">BP</span>
-        <span className="text-center hidden md:block">BC</span>
-        <span className="text-center">DB</span>
-        <span className="text-center font-bold" style={{ color: "#e8edf5" }}>Pts</span>
-        <span className="text-center hidden sm:block">Forme</span>
-        <span className="hidden lg:block" />
-      </div>
+      {selected && <TeamModal standing={selected} onClose={() => setSelected(null)} />}
+      <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42" }}>
+        <div className="grid items-center px-4 py-3 text-xs font-semibold uppercase tracking-widest"
+          style={{
+            background: "#0d1421",
+            color: "#6b7c96",
+            gridTemplateColumns: "44px 1fr 40px 90px 40px 40px 48px 56px 100px 40px",
+            borderBottom: "1px solid #1e2d42",
+          }}>
+          <span className="text-center">#</span>
+          <span>Équipe</span>
+          <span className="text-center">J</span>
+          <span className="text-center hidden sm:block">V · N · D</span>
+          <span className="text-center hidden md:block">BP</span>
+          <span className="text-center hidden md:block">BC</span>
+          <span className="text-center">DB</span>
+          <span className="text-center font-bold" style={{ color: "#e8edf5" }}>Pts</span>
+          <span className="text-center hidden sm:block">Forme</span>
+          <span className="hidden lg:block" />
+        </div>
 
-      {standings.map((s, idx) => {
-        const zone = getZone(s.position);
-        return (
-          <div
-            key={s.team.id}
-            onClick={() => setSelected(s)}
-            className="group grid items-center px-4 py-3 transition-all duration-200 hover:brightness-125 animate-fade-in-up cursor-pointer"
-            style={{
-              gridTemplateColumns: "44px 1fr 40px 90px 40px 40px 48px 56px 100px 40px",
-              background: zone ? zone.bg : idx % 2 === 0 ? "rgba(13,20,33,0.6)" : "transparent",
-              borderBottom: "1px solid rgba(30,45,66,0.4)",
-              borderLeft: zone ? `3px solid ${zone.color}` : "3px solid transparent",
-              animationDelay: `${idx * 30}ms`,
-            }}
-          >
-            <div className="flex justify-center">
-              <PositionBadge position={s.position} />
-            </div>
+        {standings.map((s, idx) => {
+          const zone = getZone(s.position);
+          return (
+            <div key={s.team.id} onClick={() => setSelected(s)}
+              className="group grid items-center px-4 py-3 transition-all duration-200 hover:brightness-125 animate-fade-in-up cursor-pointer"
+              style={{
+                gridTemplateColumns: "44px 1fr 40px 90px 40px 40px 48px 56px 100px 40px",
+                background: zone ? zone.bg : idx % 2 === 0 ? "rgba(13,20,33,0.6)" : "transparent",
+                borderBottom: "1px solid rgba(30,45,66,0.4)",
+                borderLeft: zone ? `3px solid ${zone.color}` : "3px solid transparent",
+                animationDelay: `${idx * 30}ms`,
+              }}>
+              <div className="flex justify-center"><PositionBadge position={s.position} /></div>
 
-            <div className="flex items-center gap-3 min-w-0">
-              {s.team.crest ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={s.team.crest} alt={s.team.shortName} className="w-8 h-8 object-contain flex-shrink-0" loading="lazy" />
-              ) : (
-                <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center text-xs font-bold text-white/40 flex-shrink-0">
-                  {s.team.tla?.slice(0, 2)}
+              <div className="flex items-center gap-3 min-w-0">
+                {s.team.crest
+                  // eslint-disable-next-line @next/next/no-img-element
+                  ? <img src={s.team.crest} alt={s.team.shortName} className="w-8 h-8 object-contain flex-shrink-0" loading="lazy" />
+                  : <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center text-xs font-bold text-white/40 flex-shrink-0">{s.team.tla?.slice(0, 2)}</div>
+                }
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm truncate" style={{ color: "#e8edf5" }}>
+                    <span className="hidden md:inline">{s.team.name}</span>
+                    <span className="md:hidden">{s.team.shortName || s.team.tla}</span>
+                  </p>
                 </div>
-              )}
-              <div className="min-w-0">
-                <p className="font-semibold text-sm truncate" style={{ color: "#e8edf5" }}>
-                  <span className="hidden md:inline">{s.team.name}</span>
-                  <span className="md:hidden">{s.team.shortName || s.team.tla}</span>
-                </p>
               </div>
+
+              <span className="text-center text-sm font-mono" style={{ color: "#94a3b8" }}>{s.playedGames}</span>
+
+              <div className="hidden sm:flex justify-center gap-1.5 text-xs font-mono">
+                <span style={{ color: "#22c55e" }}>{s.won}</span>
+                <span style={{ color: "#6b7c96" }}>·</span>
+                <span style={{ color: "#f59e0b" }}>{s.draw}</span>
+                <span style={{ color: "#6b7c96" }}>·</span>
+                <span style={{ color: "#ef4444" }}>{s.lost}</span>
+              </div>
+
+              <span className="hidden md:block text-center text-sm font-mono" style={{ color: "#94a3b8" }}>{s.goalsFor}</span>
+              <span className="hidden md:block text-center text-sm font-mono" style={{ color: "#94a3b8" }}>{s.goalsAgainst}</span>
+
+              <div className="flex justify-center text-sm"><GDIndicator gd={s.goalDifference} /></div>
+
+              <div className="flex justify-center">
+                <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl text-base font-black"
+                  style={{
+                    background: zone ? `${zone.color}15` : "rgba(255,255,255,0.04)",
+                    color: zone ? zone.color : "#e8edf5",
+                    border: zone ? `1px solid ${zone.color}25` : "1px solid rgba(255,255,255,0.06)",
+                  }}>
+                  {s.points}
+                </span>
+              </div>
+
+              <div className="hidden sm:flex justify-center"><FormStreak form={s.form} /></div>
+              <div className="hidden lg:flex justify-center"><Trend form={s.form} /></div>
             </div>
-
-            <span className="text-center text-sm font-mono" style={{ color: "#94a3b8" }}>{s.playedGames}</span>
-
-            <div className="hidden sm:flex justify-center gap-1.5 text-xs font-mono">
-              <span style={{ color: "#22c55e" }}>{s.won}</span>
-              <span style={{ color: "#6b7c96" }}>·</span>
-              <span style={{ color: "#f59e0b" }}>{s.draw}</span>
-              <span style={{ color: "#6b7c96" }}>·</span>
-              <span style={{ color: "#ef4444" }}>{s.lost}</span>
-            </div>
-
-            <span className="hidden md:block text-center text-sm font-mono" style={{ color: "#94a3b8" }}>{s.goalsFor}</span>
-            <span className="hidden md:block text-center text-sm font-mono" style={{ color: "#94a3b8" }}>{s.goalsAgainst}</span>
-
-            <div className="flex justify-center text-sm">
-              <GDIndicator gd={s.goalDifference} />
-            </div>
-
-            <div className="flex justify-center">
-              <span
-                className="inline-flex items-center justify-center w-10 h-10 rounded-xl text-base font-black"
-                style={{
-                  background: zone ? `${zone.color}15` : "rgba(255,255,255,0.04)",
-                  color: zone ? zone.color : "#e8edf5",
-                  border: zone ? `1px solid ${zone.color}25` : "1px solid rgba(255,255,255,0.06)",
-                }}
-              >
-                {s.points}
-              </span>
-            </div>
-
-            <div className="hidden sm:flex justify-center">
-              <FormStreak form={s.form} />
-            </div>
-
-            <div className="hidden lg:flex justify-center">
-              <Trend form={s.form} />
-            </div>
-          </div>
-        );
-      })}
-    </div>
+          );
+        })}
+      </div>
     </>
   );
 }
@@ -220,11 +204,8 @@ function LoadingSkeleton() {
   return (
     <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42" }}>
       {Array.from({ length: 18 }).map((_, i) => (
-        <div
-          key={i}
-          className="flex items-center gap-4 px-4 py-3"
-          style={{ borderBottom: "1px solid rgba(30,45,66,0.4)", background: i % 2 === 0 ? "rgba(13,20,33,0.6)" : "transparent" }}
-        >
+        <div key={i} className="flex items-center gap-4 px-4 py-3"
+          style={{ borderBottom: "1px solid rgba(30,45,66,0.4)", background: i % 2 === 0 ? "rgba(13,20,33,0.6)" : "transparent" }}>
           <div className="w-8 h-8 rounded-lg animate-pulse" style={{ background: "#1e2d42" }} />
           <div className="w-8 h-8 rounded-full animate-pulse" style={{ background: "#1e2d42" }} />
           <div className="flex-1 h-4 rounded animate-pulse" style={{ background: "#1e2d42", maxWidth: "180px" }} />
@@ -245,11 +226,8 @@ function ErrorState({ error, onRetry }: { error: string; onRetry: () => void }) 
       <WifiOff size={40} className="text-red-400 mx-auto mb-4 opacity-60" />
       <h2 className="text-lg font-bold mb-2" style={{ color: "#e8edf5" }}>Impossible de charger les données</h2>
       <p className="text-sm mb-6" style={{ color: "#6b7c96" }}>{error}</p>
-      <button
-        onClick={onRetry}
-        className="px-6 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-80"
-        style={{ background: "rgba(0,212,255,0.1)", border: "1px solid rgba(0,212,255,0.3)", color: "#00d4ff" }}
-      >
+      <button onClick={onRetry} className="px-6 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-80"
+        style={{ background: "rgba(0,212,255,0.1)", border: "1px solid rgba(0,212,255,0.3)", color: "#00d4ff" }}>
         Réessayer
       </button>
       <p className="mt-4 text-xs" style={{ color: "#6b7c96" }}>
@@ -259,8 +237,74 @@ function ErrorState({ error, onRetry }: { error: string; onRetry: () => void }) 
   );
 }
 
+// ── Logo SVG ───────────────────────────────────────────────────────────────────
+function FootPredictomLogo() {
+  return (
+    <div className="flex items-center gap-3">
+      {/* Ball icon */}
+      <div className="relative w-10 h-10 flex-shrink-0">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="ball-grad" cx="40%" cy="35%" r="60%">
+              <stop offset="0%" stopColor="#00d4ff" stopOpacity="0.9" />
+              <stop offset="100%" stopColor="#7c3aed" stopOpacity="0.9" />
+            </radialGradient>
+            <radialGradient id="glow-grad" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#00d4ff" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#7c3aed" stopOpacity="0" />
+            </radialGradient>
+          </defs>
+          {/* Glow */}
+          <circle cx="20" cy="20" r="19" fill="url(#glow-grad)" />
+          {/* Ball body */}
+          <circle cx="20" cy="20" r="16" fill="url(#ball-grad)" opacity="0.15" />
+          <circle cx="20" cy="20" r="16" stroke="url(#ball-grad)" strokeWidth="1.5" fill="none" />
+          {/* Pentagon pattern */}
+          <path d="M20 6 L25 14 L20 18 L15 14 Z" fill="#00d4ff" opacity="0.7" />
+          <path d="M28 13 L34 16 L32 22 L26 20 L25 14 Z" fill="#7c3aed" opacity="0.5" />
+          <path d="M12 13 L15 14 L14 20 L8 22 L6 16 Z" fill="#7c3aed" opacity="0.5" />
+          <path d="M26 20 L32 22 L30 28 L24 27 L20 22 Z" fill="#00d4ff" opacity="0.4" />
+          <path d="M14 20 L20 22 L16 27 L10 28 L8 22 Z" fill="#00d4ff" opacity="0.4" />
+          <path d="M20 22 L24 27 L20 32 L16 27 Z" fill="#7c3aed" opacity="0.6" />
+          {/* Shine */}
+          <ellipse cx="15" cy="13" rx="4" ry="2.5" fill="white" opacity="0.15" transform="rotate(-20 15 13)" />
+          {/* AI badge */}
+          <circle cx="30" cy="10" r="7" fill="#080c14" />
+          <circle cx="30" cy="10" r="6.5" stroke="#00d4ff" strokeWidth="1" fill="rgba(0,212,255,0.1)" />
+          <text x="30" y="13.5" textAnchor="middle" fontSize="7" fontWeight="900" fill="#00d4ff">AI</text>
+        </svg>
+      </div>
+      {/* Text */}
+      <div>
+        <div className="flex items-baseline gap-1">
+          <span className="text-lg font-black tracking-tight leading-none"
+            style={{ color: "#e8edf5", letterSpacing: "-0.02em" }}>
+            Foot
+          </span>
+          <span className="text-lg font-black tracking-tight leading-none"
+            style={{ background: "linear-gradient(135deg, #00d4ff, #7c3aed)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+            Predictom
+          </span>
+        </div>
+        <p className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: "#6b7c96", marginTop: 1 }}>
+          Ligue 1 · IA Prédictive
+        </p>
+      </div>
+    </div>
+  );
+}
+
+const TABS: { id: TabId; label: string; icon: React.ReactNode; shortLabel?: string }[] = [
+  { id: "standings",   label: "Classement",       icon: <BarChart2 size={14} />,   shortLabel: "Classmt." },
+  { id: "predictions", label: "Prédictions IA",   icon: <Zap size={14} />,         shortLabel: "Préd. IA" },
+  { id: "results",     label: "Résultats",         icon: <Target size={14} /> },
+  { id: "emotional",   label: "Score Émotionnel",  icon: <Heart size={14} />,       shortLabel: "Émotionnel" },
+  { id: "worldcup",    label: "Coupe du Monde",    icon: <Globe size={14} />,       shortLabel: "WC 2026" },
+  { id: "config",      label: "Configuration",     icon: <Settings size={14} />,    shortLabel: "Config" },
+];
+
 export default function Home() {
-  const [tab, setTab] = useState<"standings" | "predictions" | "emotional">("standings");
+  const [tab, setTab] = useState<TabId>("standings");
   const [data, setData] = useState<StandingsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -304,37 +348,20 @@ export default function Home() {
   return (
     <main className="min-h-screen" style={{ background: "#080c14" }}>
       {/* Header */}
-      <header
-        className="sticky top-0 z-50 backdrop-blur-xl border-b"
-        style={{ borderColor: "#1e2d42", background: "rgba(8,12,20,0.92)" }}
-      >
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div
-              className="flex items-center justify-center w-10 h-10 rounded-xl"
-              style={{
-                background: "linear-gradient(135deg, rgba(0,212,255,0.15), rgba(124,58,237,0.15))",
-                border: "1px solid rgba(0,212,255,0.25)",
-              }}
-            >
-              <span className="text-base font-black" style={{ color: "#00d4ff" }}>L1</span>
-            </div>
-            <div>
-              <h1 className="text-lg font-bold tracking-tight" style={{ color: "#e8edf5" }}>Ligue 1</h1>
-              <p className="text-xs" style={{ color: "#6b7c96" }}>Classement 2024–25</p>
-            </div>
-          </div>
+      <header className="sticky top-0 z-50 backdrop-blur-xl border-b"
+        style={{ borderColor: "#1e2d42", background: "rgba(8,12,20,0.92)" }}>
+        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+          <FootPredictomLogo />
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-2">
-              {error ? (
-                <WifiOff size={14} className="text-red-400" />
-              ) : (
-                <>
-                  <span className="w-2 h-2 rounded-full live-pulse" style={{ background: "#22c55e", boxShadow: "0 0 6px #22c55e" }} />
-                  <span className="text-xs font-medium tracking-widest" style={{ color: "#22c55e" }}>EN DIRECT</span>
-                </>
-              )}
+              {error
+                ? <WifiOff size={14} className="text-red-400" />
+                : <>
+                    <span className="w-2 h-2 rounded-full live-pulse" style={{ background: "#22c55e", boxShadow: "0 0 6px #22c55e" }} />
+                    <span className="text-xs font-medium tracking-widest" style={{ color: "#22c55e" }}>EN DIRECT</span>
+                  </>
+              }
             </div>
 
             {lastUpdated && (
@@ -345,16 +372,9 @@ export default function Home() {
               </div>
             )}
 
-            <button
-              onClick={() => fetchStandings(true)}
-              disabled={refreshing}
+            <button onClick={() => fetchStandings(true)} disabled={refreshing}
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 active:scale-95"
-              style={{
-                background: "rgba(0,212,255,0.08)",
-                border: "1px solid rgba(0,212,255,0.2)",
-                color: "#00d4ff",
-              }}
-            >
+              style={{ background: "rgba(0,212,255,0.08)", border: "1px solid rgba(0,212,255,0.2)", color: "#00d4ff" }}>
               <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
               <span className="hidden sm:inline">Actualiser</span>
             </button>
@@ -364,31 +384,31 @@ export default function Home() {
 
       <div className="max-w-5xl mx-auto px-4 py-6">
         {/* Tab switcher */}
-        <div className="flex gap-2 mb-6 p-1 rounded-xl w-fit" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
-          {[
-            { id: "standings", label: "Classement", icon: <BarChart2 size={14} /> },
-            { id: "predictions", label: "Prédictions IA", icon: <Zap size={14} /> },
-            { id: "emotional", label: "Score Émotionnel", icon: <Heart size={14} /> },
-          ].map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id as "standings" | "predictions")}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+        <div className="flex gap-1 mb-6 p-1 rounded-xl overflow-x-auto" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
+          {TABS.map((t) => (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap flex-shrink-0"
               style={{
-                background: tab === t.id ? (t.id === "predictions" ? "linear-gradient(135deg, rgba(0,212,255,0.15), rgba(124,58,237,0.15))" : "rgba(255,255,255,0.06)") : "transparent",
+                background: tab === t.id
+                  ? t.id === "predictions" ? "linear-gradient(135deg, rgba(0,212,255,0.15), rgba(124,58,237,0.15))"
+                  : t.id === "worldcup" ? "linear-gradient(135deg, rgba(34,197,94,0.12), rgba(0,212,255,0.12))"
+                  : "rgba(255,255,255,0.06)"
+                  : "transparent",
                 color: tab === t.id ? "#e8edf5" : "#6b7c96",
                 border: tab === t.id ? "1px solid rgba(255,255,255,0.1)" : "1px solid transparent",
-              }}
-            >
-              <span style={{ color: tab === t.id && t.id === "predictions" ? "#00d4ff" : "inherit" }}>{t.icon}</span>
-              {t.label}
+              }}>
+              <span style={{ color: tab === t.id ? (t.id === "predictions" ? "#00d4ff" : t.id === "emotional" ? "#f472b6" : t.id === "worldcup" ? "#22c55e" : "inherit") : "inherit" }}>
+                {t.icon}
+              </span>
+              <span className="hidden sm:inline">{t.label}</span>
+              <span className="sm:hidden">{t.shortLabel ?? t.label}</span>
             </button>
           ))}
         </div>
 
+        {/* Standings tab */}
         {tab === "standings" && (
           <>
-            {/* Legend */}
             <div className="flex flex-wrap gap-x-5 gap-y-2 mb-6">
               {ZONE_CONFIG.map((z) => (
                 <div key={z.label} className="flex items-center gap-2 text-xs" style={{ color: "#6b7c96" }}>
@@ -408,18 +428,20 @@ export default function Home() {
         )}
 
         {tab === "predictions" && <PredictionsTab />}
+        {tab === "results" && <ResultsTab />}
         {tab === "emotional" && <EmotionalScoreTab />}
+        {tab === "worldcup" && <WorldCupTab />}
+        {tab === "config" && <ConfigTab />}
 
         {/* Footer */}
-        <div className="mt-6 flex items-center justify-between text-xs" style={{ color: "#6b7c96" }}>
+        <div className="mt-8 flex items-center justify-between text-xs" style={{ color: "#6b7c96" }}>
           <div className="flex items-center gap-1.5">
-            {error ? (
-              <><WifiOff size={11} className="text-red-400" /><span className="text-red-400 ml-1">Hors ligne</span></>
-            ) : (
-              <><Wifi size={11} /><span className="ml-1">Source: football-data.org</span></>
-            )}
+            {error
+              ? <><WifiOff size={11} className="text-red-400" /><span className="text-red-400 ml-1">Hors ligne</span></>
+              : <><Wifi size={11} /><span className="ml-1">Source : football-data.org · Transfermarkt · The Odds API</span></>
+            }
           </div>
-          {data?.season && <span>Journée {data.season}</span>}
+          {data?.season && <span>Saison {data.season}</span>}
         </div>
       </div>
     </main>
