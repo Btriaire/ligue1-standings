@@ -115,20 +115,36 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     }
   }
 
-  // Get market values from Transfermarkt
+  // Get squad from Transfermarkt (with short timeout since API can be unreliable)
   let players: TmPlayer[] = [];
   if (tmId) {
     try {
       const tmRes = await fetch(`https://transfermarkt-api.fly.dev/clubs/${tmId}/players`, {
+        signal: AbortSignal.timeout(5000),
         next: { revalidate: 3600 },
-      });
+      } as RequestInit);
       if (tmRes.ok) {
         const tmData = await tmRes.json();
         players = tmData.players ?? [];
       }
     } catch {
-      // fallback to empty
+      // TM API unavailable — fall back to football-data.org squad below
     }
+  }
+
+  // Fallback: use football-data.org squad when TM is unavailable
+  if (players.length === 0 && Array.isArray(fdData.squad) && fdData.squad.length > 0) {
+    interface FdPlayer { id: number; name: string; position: string; dateOfBirth: string; nationality: string }
+    const FD_POS: Record<string, string> = { Goalkeeper: "Goalkeeper", Defender: "Defender", Midfielder: "Midfielder", Attacker: "Centre-Forward", Winger: "Winger", "Centre-Forward": "Centre-Forward" };
+    players = (fdData.squad as FdPlayer[]).map(p => ({
+      id: String(p.id),
+      name: p.name,
+      position: FD_POS[p.position] ?? p.position,
+      dateOfBirth: p.dateOfBirth?.slice(0, 10) ?? "",
+      age: p.dateOfBirth ? Math.floor((Date.now() - new Date(p.dateOfBirth).getTime()) / (365.25 * 24 * 3600 * 1000)) : 0,
+      nationality: p.nationality ? [p.nationality] : [],
+      height: 0, foot: "", joinedOn: "", signedFrom: "", contract: "", marketValue: 0,
+    }));
   }
 
   // Build team form from recent matches (derive from win/draw/loss if available)
