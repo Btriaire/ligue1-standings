@@ -3,6 +3,13 @@
 import { useEffect, useState } from "react";
 import { RefreshCw, ExternalLink, TrendingUp, TrendingDown, Newspaper } from "lucide-react";
 import type { ClubTransfers, TransferItem } from "@/app/api/transfers/route";
+import { useConfig } from "@/app/lib/config";
+
+function isWithinDays(pubDate: string, maxDays: number): boolean {
+  if (maxDays === 0 || !pubDate) return true;
+  const cutoff = Date.now() - maxDays * 24 * 60 * 60 * 1000;
+  return new Date(pubDate).getTime() >= cutoff;
+}
 
 // ── Type badges ────────────────────────────────────────────────────────────────
 
@@ -210,6 +217,7 @@ export default function TransfersTab() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [refreshing, setRefreshing] = useState(false);
+  const [config] = useConfig();
 
   const load = async (manual = false) => {
     if (manual) setRefreshing(true);
@@ -229,11 +237,19 @@ export default function TransfersTab() {
 
   useEffect(() => { load(); }, []);
 
-  // Filter clubs based on selected type
+  // Filter clubs: age filter first, then type filter
   const filteredClubs = data?.clubs.map((club) => {
-    if (filter === "all") return club;
-    const items = club.items.filter((i) => i.type === filter || (filter !== "arrival" && filter !== "departure" && filter !== "rumor"));
-    const filtered = club.items.filter((i) => i.type === filter);
+    const ageFiltered = club.items.filter((i) => isWithinDays(i.pubDate, config.transfersMaxAgeDays));
+    if (filter === "all") {
+      return {
+        ...club,
+        items: ageFiltered,
+        arrivals: ageFiltered.filter((i) => i.type === "arrival").length,
+        departures: ageFiltered.filter((i) => i.type === "departure").length,
+        rumors: ageFiltered.filter((i) => i.type === "rumor").length,
+      };
+    }
+    const filtered = ageFiltered.filter((i) => i.type === filter);
     return {
       ...club,
       items: filtered,
@@ -241,8 +257,7 @@ export default function TransfersTab() {
       departures: filtered.filter((i) => i.type === "departure").length,
       rumors: filtered.filter((i) => i.type === "rumor").length,
     };
-    void items;
-  }).filter((c) => filter === "all" || c.items.length > 0) ?? [];
+  }).filter((c) => c.items.length > 0 || filter === "all") ?? [];
 
   const formatUpdated = (iso: string) => {
     try {
@@ -310,6 +325,7 @@ export default function TransfersTab() {
 
       <p className="mt-6 text-center text-[10px]" style={{ color: "#6b7c96" }}>
         Données agrégées depuis Google News, RMC Sport et Footmercato. Rafraîchissement toutes les 30 min.
+        {config.transfersMaxAgeDays > 0 && <> · Articles des {config.transfersMaxAgeDays} derniers jours</>}
       </p>
     </div>
   );

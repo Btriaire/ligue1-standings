@@ -4,14 +4,12 @@ import { useEffect, useState, useMemo } from "react";
 import {
   Heart, TrendingUp, TrendingDown, Minus, Users, Newspaper,
   Building2, ChevronDown, AlertTriangle, Star, Zap,
-  Info, BarChart2, Radio, Globe, MessageCircle, ThumbsUp, RefreshCw,
+  Info, BarChart2, Radio, Globe, MessageCircle, RefreshCw,
   Sliders,
 } from "lucide-react";
 
 interface Article { title: string; pubDate: string; source: string; sentiment: "positive" | "negative" | "neutral" }
 interface SourceBreakdown { source: string; articleCount: number; positive: number; negative: number; score: number }
-interface RedditPost { title: string; score: number; upvoteRatio: number; url: string; subreddit: string; created: number; sentiment: "positive" | "negative" | "neutral" }
-
 interface ClubScore {
   teamId: number;
   team: { id: number; name: string; shortName: string; tla: string; crest: string; position: number };
@@ -21,7 +19,7 @@ interface ClubScore {
     economic: { score: number; label: string; revenue: string; owner: string; weight: number };
     media: { score: number; positive: number; negative: number; total: number; articles: Article[]; sourceBreakdown: SourceBreakdown[]; weight: number };
     human: { score: number; totalValue: number; avgValue: number; injuryRate: number; topPlayer: string | null; playerCount: number; injuredPlayers: string[]; weight: number };
-    fan: { score: number; posts: RedditPost[]; positive: number; negative: number; total: number; subreddit: string; weight: number } | undefined;
+    fan: { score: number; positive: number; negative: number; total: number; subreddit: string; weight: number } | undefined;
     market: { score: number; weight: number; source: string } | null;
   };
 }
@@ -203,7 +201,7 @@ function Methodology({ sources }: { sources: EmotionalData["sources"] }) {
         <div className="flex-1 text-left">
           <p className="text-sm font-bold" style={{ color: "#e8edf5" }}>Comment est calculé le Score Émotionnel ?</p>
           <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>
-            {sources.media.join(" · ")} · Reddit · Transfermarkt · Données économiques publiques
+            {sources.media.join(" · ")} · Buzz Supporters · Transfermarkt · Données économiques publiques
           </p>
         </div>
         <ChevronDown size={15} style={{ color: "#6b7c96" }} className={`flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
@@ -220,7 +218,7 @@ function Methodology({ sources }: { sources: EmotionalData["sources"] }) {
               { icon: <Building2 size={16} />, color: "#f59e0b", weight: "28%", title: "Économique", desc: "Propriétaire, revenus annuels, solidité financière.", source: sources.economic },
               { icon: <Newspaper size={16} />, color: "#00d4ff", weight: "28%", title: "Médias & Sentiment", desc: "Analyse des 15 derniers articles par club (positifs vs négatifs).", source: sources.media.join(", ") },
               { icon: <Users size={16} />, color: "#22c55e", weight: "30%", title: "Humain & Mercato", desc: "Valeur totale de l'effectif et taux de blessures.", source: sources.mercato },
-              { icon: <MessageCircle size={16} />, color: "#f472b6", weight: "14%", title: "Supporters (Reddit)", desc: "Sentiment des posts Reddit, pondérés par upvotes.", source: sources.fan ?? "Reddit r/[club]" },
+              { icon: <MessageCircle size={16} />, color: "#f472b6", weight: "14%", title: "Buzz Supporters", desc: "Analyse des articles Google News et L'Équipe, mots-clés supporters.", source: "Google News · L'Équipe" },
             ].map((c) => (
               <div key={c.title} className="rounded-xl p-3" style={{ background: `${c.color}08`, border: `1px solid ${c.color}20` }}>
                 <div className="flex items-center justify-between mb-1.5">
@@ -312,29 +310,6 @@ function ArticleRow({ article }: { article: Article }) {
   );
 }
 
-function RedditPostRow({ post }: { post: RedditPost }) {
-  const cfg: Record<string, { color: string; icon: React.ReactNode }> = {
-    positive: { color: "#22c55e", icon: <TrendingUp size={9} /> },
-    negative: { color: "#ef4444", icon: <TrendingDown size={9} /> },
-    neutral:  { color: "#94a3b8", icon: <Minus size={9} /> },
-  };
-  const { color, icon } = cfg[post.sentiment];
-  const ago = post.created ? Math.round((Date.now() / 1000 - post.created) / 3600) : null;
-  return (
-    <div className="flex items-start gap-2 py-1.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
-      <span className="px-1.5 py-0.5 rounded text-xs font-black flex-shrink-0 mt-0.5" style={{ background: `${color}15`, color }}>{icon}</span>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs leading-snug" style={{ color: "#94a3b8" }}>{post.title}</p>
-        <div className="flex items-center gap-2 mt-0.5">
-          <span className="flex items-center gap-0.5 text-xs" style={{ color: "#6b7c96" }}>
-            <ThumbsUp size={9} /> {post.score}
-          </span>
-          {ago !== null && <span className="text-xs" style={{ color: "#6b7c96" }}>il y a {ago}h</span>}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function PlayerRow({ player }: { player: PlayerSquad }) {
   const isInjured = player.status?.toLowerCase().includes("injury");
@@ -364,66 +339,26 @@ function PlayerRow({ player }: { player: PlayerSquad }) {
   );
 }
 
-// Client-side sentiment keywords (replicate server logic for browser fetch)
-const POS_WORDS = [
-  "victoire","gagne","champion","titre","qualification","brillant","excellent","remporte",
-  "espoir","confiant","solide","impressionnant","succès","invaincu","leader","exploit",
-  "win","won","victory","brilliant","great","amazing","love","proud","incredible","legend",
-];
-const NEG_WORDS = [
-  "défaite","blessure","blessé","absent","crise","scandale","licencié","viré","démission",
-  "humiliation","doute","tension","erreur","déroute","naufrage","catastrophe","colère",
-  "loss","lose","lost","terrible","awful","crisis","injury","injured","poor","worst","disaster",
-];
-function clientSentiment(text: string): "positive" | "negative" | "neutral" {
-  const lower = text.toLowerCase();
-  const pos = POS_WORDS.filter((w) => lower.includes(w)).length;
-  const neg = NEG_WORDS.filter((w) => lower.includes(w)).length;
-  return pos > neg ? "positive" : neg > pos ? "negative" : "neutral";
-}
+// ── Fan Buzz Section (replaces Reddit) ───────────────────────────────────────
 
-function RedditSection({ teamId, fanData, subredditLabel, clubName }: {
-  teamId: number;
-  fanData: ClubScore["components"]["fan"];
-  subredditLabel: string;
-  clubName: string;
-}) {
-  const [posts, setPosts] = useState<RedditPost[]>([]);
+interface BuzzItem { title: string; pubDate: string; source: string; url: string; sentiment: "positive" | "negative" | "neutral" }
+
+function FanBuzzSection({ teamId }: { teamId: number }) {
+  const [items, setItems] = useState<BuzzItem[]>([]);
+  const [stats, setStats] = useState<{ positive: number; negative: number; total: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetched, setFetched] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchPosts = async () => {
+  const load = async () => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch directly from browser — Reddit allows CORS from real browsers
-      const isProxy = subredditLabel === "proxy" || !subredditLabel.startsWith("r/");
-      const sub = isProxy ? null : subredditLabel.replace("r/", "");
-      const url = sub
-        ? `https://www.reddit.com/r/${sub}/new.json?limit=20`
-        : `https://www.reddit.com/r/ligue1/search.json?q=${encodeURIComponent(clubName.split(" ")[0])}&sort=new&limit=15&restrict_sr=1`;
-
-      const res = await fetch(url, { headers: { "Accept": "application/json" } });
-      if (!res.ok) throw new Error(`Reddit ${res.status}`);
-      const json = await res.json();
-      const children = json?.data?.children ?? [];
-
-      const processed: RedditPost[] = children.slice(0, 15).map((child: { data: Record<string, unknown> }) => {
-        const p = child.data;
-        const title = ((p.title as string) ?? "").slice(0, 120);
-        return {
-          title,
-          score: (p.score as number) ?? 0,
-          upvoteRatio: (p.upvote_ratio as number) ?? 0.5,
-          url: p.permalink ? `https://reddit.com${p.permalink}` : "",
-          subreddit: (p.subreddit_name_prefixed as string) ?? subredditLabel,
-          created: (p.created_utc as number) ?? 0,
-          sentiment: clientSentiment(`${title} ${(p.selftext as string) ?? ""}`),
-        };
-      });
-
-      setPosts(processed);
+      const res = await fetch(`/api/fan-buzz?teamId=${teamId}`);
+      if (!res.ok) throw new Error(`Erreur ${res.status}`);
+      const data = await res.json();
+      setItems(data.items ?? []);
+      setStats({ positive: data.positive, negative: data.negative, total: data.total });
       setFetched(true);
     } catch (e) {
       setError(String(e instanceof Error ? e.message : e));
@@ -432,26 +367,29 @@ function RedditSection({ teamId, fanData, subredditLabel, clubName }: {
     }
   };
 
-  const isProxy = subredditLabel === "proxy" || !subredditLabel.startsWith("r/");
-  const displayLabel = isProxy ? "r/ligue1" : subredditLabel;
+  const sentCfg: Record<string, { color: string; icon: React.ReactNode }> = {
+    positive: { color: "#22c55e", icon: <TrendingUp size={9} /> },
+    negative: { color: "#ef4444", icon: <TrendingDown size={9} /> },
+    neutral:  { color: "#94a3b8", icon: <Minus size={9} /> },
+  };
 
   return (
     <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
       <div className="flex items-center justify-between mb-2">
         <div>
-          <p className="text-xs font-semibold" style={{ color: "#6b7c96" }}>SUPPORTERS REDDIT</p>
-          {isProxy && (
-            <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>
-              Score estimé via position + forme · Cliquez "Charger" pour posts live
-            </p>
-          )}
+          <p className="text-xs font-semibold" style={{ color: "#6b7c96" }}>BUZZ SUPPORTERS</p>
+          <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>Google News · L&apos;Équipe · analyse de sentiment</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(244,114,182,0.1)", color: "#f472b6" }}>
-            {displayLabel}
-          </span>
+          {stats && (
+            <div className="flex gap-1.5 text-xs">
+              <span style={{ color: "#22c55e" }}>+{stats.positive}</span>
+              <span style={{ color: "#6b7c96" }}>/</span>
+              <span style={{ color: "#ef4444" }}>-{stats.negative}</span>
+            </div>
+          )}
           <button
-            onClick={fetchPosts}
+            onClick={load}
             disabled={loading}
             className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-lg transition-all hover:opacity-70 disabled:opacity-40"
             style={{ background: "rgba(244,114,182,0.1)", color: "#f472b6", border: "1px solid rgba(244,114,182,0.2)" }}>
@@ -461,21 +399,28 @@ function RedditSection({ teamId, fanData, subredditLabel, clubName }: {
         </div>
       </div>
 
-      {error && (
-        <p className="text-xs" style={{ color: "#ef4444" }}>
-          {error.includes("403") ? "Reddit inaccessible (VPN ou adblock détecté). Essayez sans extension." : `Erreur : ${error}`}
-        </p>
+      {error && <p className="text-xs" style={{ color: "#ef4444" }}>Erreur : {error}</p>}
+
+      {fetched && items.length === 0 && !error && (
+        <p className="text-xs" style={{ color: "#6b7c96" }}>Aucun article trouvé.</p>
       )}
 
-      {fetched && posts.length === 0 && !error && (
-        <p className="text-xs" style={{ color: "#6b7c96" }}>Aucun post récent trouvé sur {displayLabel}</p>
-      )}
-
-      {posts.map((p, i) => <RedditPostRow key={i} post={p} />)}
+      {items.map((item, i) => {
+        const cfg = sentCfg[item.sentiment];
+        return (
+          <div key={i} className="flex items-start gap-2 py-1.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
+            <span className="px-1.5 py-0.5 rounded text-xs font-black flex-shrink-0 mt-0.5" style={{ background: `${cfg.color}15`, color: cfg.color }}>{cfg.icon}</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs leading-snug" style={{ color: "#94a3b8" }}>{item.title}</p>
+              <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>{item.source}</p>
+            </div>
+          </div>
+        );
+      })}
 
       {!fetched && !loading && !error && (
         <p className="text-xs" style={{ color: "#6b7c96" }}>
-          Cliquez sur &ldquo;Charger&rdquo; pour récupérer les derniers posts Reddit
+          Cliquez sur &ldquo;Charger&rdquo; pour analyser le buzz supporters
         </p>
       )}
     </div>
@@ -569,13 +514,8 @@ function ClubDetail({ club, weights }: { club: ClubScore; weights: Weights }) {
         </div>
       )}
 
-      {/* Reddit fan feed */}
-      <RedditSection
-        teamId={club.teamId}
-        fanData={c.fan}
-        subredditLabel={c.fan?.subreddit ?? "r/ligue1"}
-        clubName={club.team.name}
-      />
+      {/* Fan Buzz */}
+      <FanBuzzSection teamId={club.teamId} />
 
       {/* Squad */}
       <button onClick={loadSquad}
@@ -707,7 +647,7 @@ export default function EmotionalScoreTab() {
         <div className="text-center py-6">
           <Heart size={24} className="text-pink-400 mx-auto mb-3 animate-pulse" />
           <p className="text-sm font-medium" style={{ color: "#e8edf5" }}>Analyse en cours…</p>
-          <p className="text-xs mt-1" style={{ color: "#6b7c96" }}>Collecte : RMC, Figaro, Google News, Reddit, Transfermarkt</p>
+          <p className="text-xs mt-1" style={{ color: "#6b7c96" }}>Collecte : RMC, Figaro, Google News, Transfermarkt</p>
         </div>
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="h-20 rounded-2xl animate-pulse" style={{ background: "#0d1421", border: "1px solid #1e2d42" }} />
@@ -727,7 +667,7 @@ export default function EmotionalScoreTab() {
           <h2 className="text-base font-bold flex items-center gap-2" style={{ color: "#e8edf5" }}>
             <Heart size={17} className="text-pink-400" /> Score Émotionnel — {sorted.length} clubs
           </h2>
-          <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>Cliquez un club pour le détail · Reddit chargeable par club</p>
+          <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>Cliquez un club pour le détail · Buzz supporters chargeable par club</p>
         </div>
         <div className="flex gap-1 p-1 rounded-lg" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
           {[{ id: "score", label: "Par score" }, { id: "rank", label: "Par classement" }].map((opt) => (
