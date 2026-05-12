@@ -5,8 +5,9 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft, Users, AlertTriangle, Trophy, TrendingUp,
-  ArrowLeftRight, Star, Building2, Calendar, Heart,
-  Info, ChevronDown, ExternalLink, Briefcase,
+  ArrowLeftRight, Star, Calendar, Heart,
+  Info, ChevronDown, ExternalLink, Briefcase, DollarSign,
+  TrendingDown, X,
 } from "lucide-react";
 
 // ── Static data ────────────────────────────────────────────────────────────────
@@ -46,27 +47,67 @@ interface AdminEntry {
   ca: string;
   employes: string;
   legalNote?: string;
+  dette?: string;
+  billetterie?: string;
+  droitsTv?: string;
+  sources?: { label: string; url: string }[];
 }
 
 const CLUB_ADMIN: Record<number, AdminEntry> = {
-  524:  { siren: "317 506 329", forme: "SAS",        siege: "24 r. du Commandant-Guilbaud, 75016 Paris",  president: "Nasser Al-Khelaïfi",   ca: "~800 M€",  employes: "~400" },
-  548:  { forme: "SAM",         siege: "7 av. des Castelans, Monaco",                                       president: "Dmitry Rybolovlev",    ca: "~200 M€",  employes: "~150", legalNote: "Entité de droit monégasque" },
-  516:  { siren: "786 164 659", forme: "SA",          siege: "145 traverse Charles Susini, 13008 Marseille", president: "Pablo Longoria",       ca: "~170 M€",  employes: "~200" },
-  521:  { siren: "783 897 830", forme: "SA",          siege: "261 bd de Tournai, 59650 Villeneuve-d'Ascq",  president: "Olivier Létang",       ca: "~110 M€",  employes: "~180" },
-  529:  { siren: "303 623 965", forme: "SAS",         siege: "111 route de Lorient, 35000 Rennes",           president: "Baptiste Cueff",       ca: "~130 M€",  employes: "~160" },
-  522:  { siren: "776 416 358", forme: "SA",          siege: "Av. Simone Veil, 06200 Nice",                  president: "Jean-Pierre Rivère",   ca: "~150 M€",  employes: "~180" },
-  546:  { siren: "497 854 280", forme: "SA",          siege: "Rue de Lens, 62300 Lens",                      president: "Joseph Oughourlian",   ca: "~90 M€",   employes: "~120" },
-  523:  { siren: "320 835 374", forme: "SA",          siege: "350 av. Jean Jaurès, 69007 Lyon",              president: "John Textor",          ca: "~180 M€",  employes: "~250" },
-  576:  { siren: "422 952 942", forme: "SA",          siege: "11 rue du Stade, 67100 Strasbourg",            president: "Marc Keller",          ca: "~120 M€",  employes: "~150" },
-  511:  { siren: "408 476 801", forme: "SA",          siege: "Stadium Municipal, 31400 Toulouse",            president: "Damien Comolli",       ca: "~75 M€",   employes: "~100" },
-  512:  { siren: "390 260 337", forme: "SASP",        siege: "Rue de Pontaniou, 29200 Brest",                president: "Denis Le Saint",       ca: "~55 M€",   employes: "~90" },
-  532:  { siren: "775 577 063", forme: "SA",          siege: "Stade Raymond-Kopa, 49000 Angers",             president: "Saïd Chabane",         ca: "~45 M€",   employes: "~80" },
-  533:  { siren: "431 026 609", forme: "SA",          siege: "Stade Océane, 76600 Le Havre",                 president: "Vincent Volpe",        ca: "~40 M€",   employes: "~75" },
-  519:  { siren: "302 697 937", forme: "SA",          siege: "Stade de l'Abbé-Deschamps, 89000 Auxerre",    president: "Yan Gaborit",          ca: "~40 M€",   employes: "~70" },
-  543:  { siren: "302 505 072", forme: "SA",          siege: "Stade de la Beaujoire, 44300 Nantes",          president: "Waldemar Kita",        ca: "~70 M€",   employes: "~110" },
-  545:  { siren: "384 233 417", forme: "SASP",        siege: "Stade Saint-Symphorien, 57050 Metz",           president: "Bernard Serin",        ca: "~35 M€",   employes: "~65" },
-  525:  { siren: "304 890 016", forme: "SA",          siege: "Stade du Moustoir, 56100 Lorient",             president: "Loïc Féry",            ca: "~50 M€",   employes: "~85" },
-  1045: { siren: "814 988 091", forme: "SA",          siege: "Stade Charléty, 75013 Paris",                  president: "Pierre-Dreyfus",       ca: "~60 M€",   employes: "~90" },
+  524:  { siren: "317 506 329", forme: "SAS",  siege: "24 r. du Commandant-Guilbaud, 75016 Paris",  president: "Nasser Al-Khelaïfi",  ca: "~800 M€",  employes: "~400",
+          dette: "~200 M€", billetterie: "~70 M€", droitsTv: "~80 M€",
+          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }, { label: "Deloitte Football Money League", url: "https://www2.deloitte.com/uk/en/pages/sports-business-group/articles/football-money-league.html" }] },
+  548:  { forme: "SAM", siege: "7 av. des Castelans, Monaco", president: "Dmitry Rybolovlev", ca: "~200 M€", employes: "~150",
+          legalNote: "Entité de droit monégasque", dette: "~30 M€", billetterie: "~20 M€", droitsTv: "~55 M€",
+          sources: [{ label: "UEFA Club Licensing", url: "https://www.uefa.com/insideuefa/football-development/club-licensing/" }] },
+  516:  { siren: "786 164 659", forme: "SA",   siege: "145 traverse Charles Susini, 13008 Marseille", president: "Pablo Longoria",    ca: "~170 M€",  employes: "~200",
+          dette: "~80 M€", billetterie: "~25 M€", droitsTv: "~55 M€",
+          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }, { label: "KPMG Football Benchmark", url: "https://footballbenchmark.com" }] },
+  521:  { siren: "783 897 830", forme: "SA",   siege: "261 bd de Tournai, 59650 Villeneuve-d'Ascq",  president: "Olivier Létang",    ca: "~110 M€",  employes: "~180",
+          dette: "~20 M€", billetterie: "~15 M€", droitsTv: "~45 M€",
+          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
+  529:  { siren: "303 623 965", forme: "SAS",  siege: "111 route de Lorient, 35000 Rennes",          president: "Baptiste Cueff",    ca: "~130 M€",  employes: "~160",
+          dette: "~15 M€", billetterie: "~18 M€", droitsTv: "~40 M€",
+          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
+  522:  { siren: "776 416 358", forme: "SA",   siege: "Av. Simone Veil, 06200 Nice",                  president: "Jean-Pierre Rivère", ca: "~150 M€",  employes: "~180",
+          dette: "~25 M€", billetterie: "~20 M€", droitsTv: "~45 M€",
+          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
+  546:  { siren: "497 854 280", forme: "SA",   siege: "Rue de Lens, 62300 Lens",                      president: "Joseph Oughourlian", ca: "~90 M€",   employes: "~120",
+          dette: "~10 M€", billetterie: "~12 M€", droitsTv: "~38 M€",
+          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
+  523:  { siren: "320 835 374", forme: "SA",   siege: "350 av. Jean Jaurès, 69007 Lyon",              president: "John Textor",       ca: "~180 M€",  employes: "~250",
+          dette: "~120 M€", billetterie: "~22 M€", droitsTv: "~50 M€",
+          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }, { label: "KPMG Football Benchmark", url: "https://footballbenchmark.com" }] },
+  576:  { siren: "422 952 942", forme: "SA",   siege: "11 rue du Stade, 67100 Strasbourg",            president: "Marc Keller",       ca: "~120 M€",  employes: "~150",
+          dette: "~40 M€", billetterie: "~14 M€", droitsTv: "~38 M€",
+          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
+  511:  { siren: "408 476 801", forme: "SA",   siege: "Stadium Municipal, 31400 Toulouse",            president: "Damien Comolli",    ca: "~75 M€",   employes: "~100",
+          dette: "~8 M€", billetterie: "~10 M€", droitsTv: "~32 M€",
+          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
+  512:  { siren: "390 260 337", forme: "SASP", siege: "Rue de Pontaniou, 29200 Brest",                president: "Denis Le Saint",    ca: "~55 M€",   employes: "~90",
+          dette: "~5 M€", billetterie: "~8 M€", droitsTv: "~28 M€",
+          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
+  532:  { siren: "775 577 063", forme: "SA",   siege: "Stade Raymond-Kopa, 49000 Angers",             president: "Saïd Chabane",      ca: "~45 M€",   employes: "~80",
+          dette: "~12 M€", billetterie: "~7 M€", droitsTv: "~26 M€",
+          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
+  533:  { siren: "431 026 609", forme: "SA",   siege: "Stade Océane, 76600 Le Havre",                 president: "Vincent Volpe",     ca: "~40 M€",   employes: "~75",
+          dette: "~6 M€", billetterie: "~6 M€", droitsTv: "~25 M€",
+          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
+  519:  { siren: "302 697 937", forme: "SA",   siege: "Stade de l'Abbé-Deschamps, 89000 Auxerre",    president: "Yan Gaborit",       ca: "~40 M€",   employes: "~70",
+          dette: "~8 M€", billetterie: "~5 M€", droitsTv: "~24 M€",
+          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
+  543:  { siren: "302 505 072", forme: "SA",   siege: "Stade de la Beaujoire, 44300 Nantes",          president: "Waldemar Kita",     ca: "~70 M€",   employes: "~110",
+          dette: "~15 M€", billetterie: "~9 M€", droitsTv: "~30 M€",
+          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
+  545:  { siren: "384 233 417", forme: "SASP", siege: "Stade Saint-Symphorien, 57050 Metz",           president: "Bernard Serin",     ca: "~35 M€",   employes: "~65",
+          dette: "~5 M€", billetterie: "~4 M€", droitsTv: "~22 M€",
+          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
+  525:  { siren: "304 890 016", forme: "SA",   siege: "Stade du Moustoir, 56100 Lorient",             president: "Loïc Féry",         ca: "~50 M€",   employes: "~85",
+          dette: "~7 M€", billetterie: "~7 M€", droitsTv: "~26 M€",
+          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
+  1045: { siren: "814 988 091", forme: "SA",   siege: "Stade Charléty, 75013 Paris",                  president: "Pierre-Dreyfus",    ca: "~60 M€",   employes: "~90",
+          dette: "~10 M€", billetterie: "~8 M€", droitsTv: "~25 M€",
+          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
 };
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -76,12 +117,19 @@ interface SquadPlayer {
   name: string;
   position: string;
   age: number;
+  dateOfBirth?: string;
   nationality: string[];
+  height?: number;
+  foot?: string;
+  joinedOn?: string;
+  signedFrom?: string;
+  contract?: string;
   marketValue: number;
   status?: string;
   formBadge?: "hot" | "good" | "neutral" | "cold";
   recentGoals?: number;
   recentAssists?: number;
+  imageUrl?: string;
 }
 
 interface SquadData {
@@ -90,11 +138,27 @@ interface SquadData {
   stats: { totalValue: number; avgValue: number; playerCount: number; injuredCount: number; injuryRate: number; injured: { name: string; status?: string }[] };
 }
 
+interface GoalEvent {
+  minute: number;
+  scorer: string | null;
+  type: string;
+  teamId: number | null;
+}
+
+interface BookingEvent {
+  minute: number;
+  player: string;
+  card: string;
+  teamId: number;
+}
+
 interface MatchInfo {
   id: number; date: string; matchday: number; status: string;
   homeTeam: { id: number; name: string; crest: string };
   awayTeam: { id: number; name: string; crest: string };
   score: { home: number | null; away: number | null };
+  goals?: GoalEvent[];
+  bookings?: BookingEvent[];
 }
 
 interface TeamMatches { recent: MatchInfo[]; upcoming: MatchInfo[] }
@@ -107,7 +171,10 @@ interface TransferItem {
 interface BuzzItem {
   title: string; pubDate: string; source: string; url: string;
   sentiment: "positive" | "negative" | "neutral";
-  matchedPos?: string[]; matchedNeg?: string[];
+  matchedPos: string[]; matchedNeg: string[];
+  impact: "high" | "medium" | "low" | "none";
+  impactPoints: number;
+  impactReason: string;
 }
 
 interface BuzzData {
@@ -116,8 +183,24 @@ interface BuzzData {
   positive: number;
   negative: number;
   total: number;
+  synthesis?: string;
   topPositiveKeywords: string[];
   topNegativeKeywords: string[];
+  maxAgeDays: number;
+}
+
+interface StandingEntry {
+  position: number;
+  team: { id: number; name: string; shortName: string; crest: string };
+  playedGames: number;
+  won: number;
+  draw: number;
+  lost: number;
+  points: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDifference: number;
+  form: string;
 }
 
 interface EmotionalEntry {
@@ -155,6 +238,31 @@ function buzzLabel(score: number) {
   if (score >= 44) return "Neutre";
   if (score >= 32) return "Négatif";
   return "Très négatif";
+}
+
+// Simplified prediction logic (mirrors /api/predictions)
+function formScore(form: string): number {
+  if (!form) return 0.4;
+  const r = form.split(",").filter(Boolean).slice(-5);
+  const pts = r.reduce((a, x) => a + (x === "W" ? 3 : x === "D" ? 1 : 0), 0);
+  return pts / (r.length * 3);
+}
+function teamStrength(s: StandingEntry): number {
+  const ppg = s.playedGames > 0 ? s.points / s.playedGames : 0;
+  const gdpg = s.playedGames > 0 ? s.goalDifference / s.playedGames : 0;
+  return 0.35 * (ppg / 3) + 0.25 * ((gdpg + 3) / 6) + 0.25 * formScore(s.form) + 0.15 * ((19 - s.position) / 17);
+}
+function computeMatchPrediction(homeS: StandingEntry, awayS: StandingEntry) {
+  const hs = Math.min(1, Math.max(0, teamStrength(homeS) + 0.08));
+  const as_ = Math.min(1, Math.max(0, teamStrength(awayS)));
+  const total = hs + as_ + 0.001;
+  const rh = hs / total, ra = as_ / total;
+  const df = Math.max(0.12, 0.32 - Math.abs(rh - ra) * 0.6);
+  let hP = rh * (1 - df), aP = ra * (1 - df), dP = df;
+  const sum = hP + aP + dP;
+  hP = Math.round(hP / sum * 100); aP = Math.round(aP / sum * 100); dP = 100 - hP - aP;
+  const winner = hP > aP && hP > dP ? "home" : aP > hP && aP > dP ? "away" : "draw";
+  return { homeProb: hP, drawProb: dP, awayProb: aP, winner };
 }
 
 const POS_ORDER = ["Goalkeeper", "Defender", "Midfielder", "Winger", "Centre-Forward"];
@@ -202,27 +310,158 @@ function ScoreBar({ label, score, color, weight }: { label: string; score: numbe
   );
 }
 
-function MatchRow({ match, teamId }: { match: MatchInfo; teamId: number }) {
+function MatchRow({ match, teamId, standings }: { match: MatchInfo; teamId: number; standings: StandingEntry[] }) {
   const isHome = match.homeTeam.id === teamId;
   const ts = isHome ? match.score.home : match.score.away;
   const os = isHome ? match.score.away : match.score.home;
   const opp = isHome ? match.awayTeam : match.homeTeam;
   const done = ts !== null && os !== null;
   const rc = done ? (ts! > os! ? "#22c55e" : ts! < os! ? "#ef4444" : "#f59e0b") : "#6b7c96";
+
+  // Scorers for our team
+  const teamGoals = (match.goals ?? []).filter(g => g.teamId === teamId && g.scorer);
+  const teamReds = (match.bookings ?? []).filter(b => b.teamId === teamId && (b.card === "RED" || b.card === "YELLOW_RED"));
+
+  // Compute prediction
+  const homeS = standings.find(s => s.team.id === match.homeTeam.id);
+  const awayS = standings.find(s => s.team.id === match.awayTeam.id);
+  const pred = homeS && awayS ? computeMatchPrediction(homeS, awayS) : null;
+  const predWinner = pred?.winner;
+  const actualResult = done ? (ts! > os! ? "win" : ts! < os! ? "loss" : "draw") : null;
+  const predForTeam = predWinner === "draw" ? "draw" : (isHome ? (predWinner === "home" ? "win" : "loss") : (predWinner === "away" ? "win" : "loss"));
+  const predCorrect = actualResult && (predForTeam === actualResult);
+
   return (
-    <div className="flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-white/[0.02] transition-colors">
-      <span className="text-[10px] font-mono w-6 flex-shrink-0" style={{ color: "#6b7c96" }}>J{match.matchday}</span>
-      <span className="text-[10px] px-1 rounded flex-shrink-0"
-        style={{ background: isHome ? "rgba(0,212,255,0.08)" : "rgba(255,255,255,0.04)", color: isHome ? "#00d4ff" : "#6b7c96" }}>
-        {isHome ? "⌂" : "✈"}
-      </span>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={opp.crest} alt="" className="w-4 h-4 object-contain flex-shrink-0" loading="lazy" />
-      <span className="flex-1 text-xs truncate" style={{ color: "#e8edf5" }}>{opp.name}</span>
-      {done
-        ? <span className="text-xs font-black flex-shrink-0" style={{ color: rc }}>{ts}–{os}</span>
-        : <span className="text-xs flex-shrink-0" style={{ color: "#6b7c96" }}>{fd(match.date)}</span>
-      }
+    <div className="py-1.5 px-2 rounded-lg hover:bg-white/[0.02] transition-colors">
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] font-mono w-6 flex-shrink-0" style={{ color: "#6b7c96" }}>J{match.matchday}</span>
+        <span className="text-[10px] px-1 rounded flex-shrink-0"
+          style={{ background: isHome ? "rgba(0,212,255,0.08)" : "rgba(255,255,255,0.04)", color: isHome ? "#00d4ff" : "#6b7c96" }}>
+          {isHome ? "⌂" : "✈"}
+        </span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={opp.crest} alt="" className="w-4 h-4 object-contain flex-shrink-0" loading="lazy" />
+        <span className="flex-1 text-xs truncate" style={{ color: "#e8edf5" }}>{opp.name}</span>
+        {done && pred && (
+          <span className="text-[9px] px-1 rounded flex-shrink-0"
+            style={{ background: predCorrect ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", color: predCorrect ? "#22c55e" : "#ef4444" }}>
+            Préd.{predForTeam === "win" ? "V" : predForTeam === "draw" ? "N" : "D"}
+          </span>
+        )}
+        {teamReds.map((b, i) => (
+          <span key={i} className="text-[10px] flex-shrink-0">🟥</span>
+        ))}
+        {done
+          ? <span className="text-xs font-black flex-shrink-0" style={{ color: rc }}>{ts}–{os}</span>
+          : <span className="text-xs flex-shrink-0" style={{ color: "#6b7c96" }}>{fd(match.date)}</span>
+        }
+      </div>
+      {/* Scorers row */}
+      {teamGoals.length > 0 && (
+        <div className="flex flex-wrap gap-x-2 mt-0.5 ml-14">
+          {teamGoals.map((g, i) => (
+            <span key={i} className="text-[9px]" style={{ color: "#f59e0b" }}>
+              ⚽{g.scorer}{g.type === "OWN_GOAL" ? " (csc)" : g.type === "PENALTY" ? " (pen)" : ""} {g.minute}&apos;
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PlayerModal({ player, onClose }: { player: SquadPlayer; onClose: () => void }) {
+  const isInj = player.status?.toLowerCase().includes("injury");
+  const posColor = POS_COL[player.position] ?? "#6b7c96";
+  const tmId = player.id;
+  const tmUrl = `https://www.transfermarkt.fr/profil/spieler/${tmId}`;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.8)" }}
+      onClick={onClose}>
+      <div className="rounded-2xl max-w-sm w-full overflow-hidden"
+        style={{ background: "#0d1421", border: "1px solid #1e2d42" }}
+        onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: "1px solid #1e2d42", background: "rgba(255,255,255,0.02)" }}>
+          {/* Photo */}
+          {player.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={player.imageUrl} alt={player.name}
+              className="w-14 h-14 rounded-xl object-cover flex-shrink-0"
+              style={{ border: `2px solid ${posColor}40` }}
+              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+            />
+          ) : (
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: `${posColor}15`, border: `2px solid ${posColor}30` }}>
+              <Users size={22} style={{ color: posColor }} />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="font-black text-sm truncate" style={{ color: isInj ? "#f97316" : "#e8edf5" }}>
+              {isInj && <AlertTriangle size={11} className="inline mr-1 text-orange-400" />}
+              {player.name}
+            </p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <Chip color={posColor}>{POS_FR[player.position] ?? player.position}</Chip>
+              {player.nationality?.[0] && <span className="text-xs" style={{ color: "#6b7c96" }}>{player.nationality[0]}</span>}
+            </div>
+          </div>
+          <button onClick={onClose} className="flex-shrink-0 p-1 rounded-lg hover:bg-white/[0.06]">
+            <X size={14} style={{ color: "#6b7c96" }} />
+          </button>
+        </div>
+
+        {/* Details grid */}
+        <div className="px-4 py-3 grid grid-cols-2 gap-x-4 gap-y-2.5 text-xs">
+          {player.dateOfBirth && (
+            <div><p style={{ color: "#6b7c96" }}>Date de naissance</p>
+              <p className="font-semibold mt-0.5" style={{ color: "#e8edf5" }}>
+                {new Date(player.dateOfBirth).toLocaleDateString("fr-FR")} ({player.age} ans)
+              </p></div>
+          )}
+          {player.height ? (
+            <div><p style={{ color: "#6b7c96" }}>Taille / Pied</p>
+              <p className="font-semibold mt-0.5" style={{ color: "#e8edf5" }}>{player.height} cm · {player.foot ?? "—"}</p></div>
+          ) : null}
+          {player.joinedOn && (
+            <div><p style={{ color: "#6b7c96" }}>Arrivé le</p>
+              <p className="font-semibold mt-0.5" style={{ color: "#e8edf5" }}>
+                {new Date(player.joinedOn).toLocaleDateString("fr-FR", { month: "short", year: "numeric" })}
+              </p></div>
+          )}
+          {player.signedFrom && (
+            <div><p style={{ color: "#6b7c96" }}>Provenance</p>
+              <p className="font-semibold mt-0.5 truncate" style={{ color: "#e8edf5" }}>{player.signedFrom}</p></div>
+          )}
+          {player.contract && (
+            <div><p style={{ color: "#6b7c96" }}>Fin de contrat</p>
+              <p className="font-semibold mt-0.5" style={{ color: "#e8edf5" }}>{player.contract}</p></div>
+          )}
+          <div><p style={{ color: "#6b7c96" }}>Valeur marchande</p>
+            <p className="font-black mt-0.5" style={{ color: player.marketValue > 20_000_000 ? "#00d4ff" : "#e8edf5" }}>
+              {player.marketValue > 0 ? fv(player.marketValue) : "—"}
+            </p></div>
+          {((player.recentGoals ?? 0) > 0 || (player.recentAssists ?? 0) > 0) && (
+            <div className="col-span-2"><p style={{ color: "#6b7c96" }}>Forme récente (5 derniers matchs)</p>
+              <div className="flex gap-3 mt-0.5">
+                {(player.recentGoals ?? 0) > 0 && <span className="font-semibold" style={{ color: "#f59e0b" }}>⚽ {player.recentGoals} but{player.recentGoals! > 1 ? "s" : ""}</span>}
+                {(player.recentAssists ?? 0) > 0 && <span className="font-semibold" style={{ color: "#00d4ff" }}>🅰 {player.recentAssists} passe{player.recentAssists! > 1 ? "s" : ""} D.</span>}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-4 pb-3">
+          <a href={tmUrl} target="_blank" rel="noopener noreferrer"
+            className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold hover:opacity-80 transition-all"
+            style={{ background: "rgba(0,212,255,0.07)", border: "1px solid rgba(0,212,255,0.18)", color: "#00d4ff" }}>
+            <ExternalLink size={12} /> Voir sur Transfermarkt
+          </a>
+        </div>
+      </div>
     </div>
   );
 }
@@ -235,56 +474,52 @@ function BuzzMethodology({ buzz }: { buzz: BuzzData }) {
       <button onClick={() => setOpen(o => !o)}
         className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-white/[0.02] transition-colors">
         <Info size={11} style={{ color: "#6b7c96", flexShrink: 0 }} />
-        <span className="text-xs flex-1" style={{ color: "#6b7c96" }}>
-          Comment ce score est-il calculé ?
-        </span>
+        <span className="text-xs flex-1" style={{ color: "#6b7c96" }}>Comment ce score est-il calculé ?</span>
         <ChevronDown size={11} style={{ color: "#6b7c96" }} className={`flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
         <div className="px-3 pb-3 space-y-3" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
           <p className="text-xs mt-2 leading-relaxed" style={{ color: "#94a3b8" }}>
-            Analyse de sentiment NLP sur <strong style={{ color: "#e8edf5" }}>{buzz.total} articles</strong> issus de
-            Google News et L&apos;Équipe, filtrés par mots-clés liés au club et à ses supporters.
+            Analyse NLP sur <strong style={{ color: "#e8edf5" }}>{buzz.total} articles</strong> de
+            Google News / L&apos;Équipe des <strong style={{ color: "#e8edf5" }}>{buzz.maxAgeDays ?? 30} derniers jours</strong>.
+            Les négations (&ldquo;pas de victoire&rdquo;, &ldquo;sans titre&rdquo;…) sont détectées et inversent le sentiment.
           </p>
-          <div className="rounded-lg p-2.5 text-xs font-mono" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.06)" }}>
-            <span style={{ color: "#6b7c96" }}>Score = 50 </span>
-            <span style={{ color: "#22c55e" }}>+ ({buzz.positive} × 3)</span>
-            <span style={{ color: "#ef4444" }}> − ({buzz.negative} × 3)</span>
-            <span style={{ color: "#6b7c96" }}> = </span>
-            <span style={{ color }}>{buzz.score}</span>
-            <span style={{ color: "#6b7c96" }}> / 100</span>
+          <div className="rounded-lg p-2.5 text-xs space-y-1.5" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.06)" }}>
+            <p className="font-mono">
+              <span style={{ color: "#6b7c96" }}>1 mot-clé = </span><span style={{ color: "#94a3b8" }}>faible (±1)</span>
+              <span style={{ color: "#6b7c96" }}>  2 = </span><span style={{ color: "#e8edf5" }}>moyen (±2)</span>
+              <span style={{ color: "#6b7c96" }}>  3+ = </span><span style={{ color }}>fort (±3)</span>
+            </p>
+            <p className="font-mono" style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "6px" }}>
+              <span style={{ color: "#6b7c96" }}>Score = 50 + Σ(impacts) × 2 = </span>
+              <span style={{ color }}>{buzz.score}</span>
+              <span style={{ color: "#6b7c96" }}> / 100</span>
+            </p>
           </div>
           <div className="grid grid-cols-2 gap-2">
             {buzz.topPositiveKeywords.length > 0 && (
               <div>
-                <p className="text-[10px] font-semibold mb-1.5" style={{ color: "#22c55e" }}>MOTS POSITIFS DÉTECTÉS</p>
+                <p className="text-[10px] font-semibold mb-1.5" style={{ color: "#22c55e" }}>MOTS POSITIFS</p>
                 <div className="flex flex-wrap gap-1">
                   {buzz.topPositiveKeywords.map(k => (
                     <span key={k} className="text-[10px] px-1.5 py-0.5 rounded-full"
-                      style={{ background: "rgba(34,197,94,0.12)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.25)" }}>
-                      {k}
-                    </span>
+                      style={{ background: "rgba(34,197,94,0.12)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.25)" }}>{k}</span>
                   ))}
                 </div>
               </div>
             )}
             {buzz.topNegativeKeywords.length > 0 && (
               <div>
-                <p className="text-[10px] font-semibold mb-1.5" style={{ color: "#ef4444" }}>MOTS NÉGATIFS DÉTECTÉS</p>
+                <p className="text-[10px] font-semibold mb-1.5" style={{ color: "#ef4444" }}>MOTS NÉGATIFS</p>
                 <div className="flex flex-wrap gap-1">
                   {buzz.topNegativeKeywords.map(k => (
                     <span key={k} className="text-[10px] px-1.5 py-0.5 rounded-full"
-                      style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.25)" }}>
-                      {k}
-                    </span>
+                      style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.25)" }}>{k}</span>
                   ))}
                 </div>
               </div>
             )}
           </div>
-          {buzz.total === 0 && (
-            <p className="text-xs" style={{ color: "#6b7c96" }}>Aucun article trouvé — score neutre par défaut (50).</p>
-          )}
         </div>
       )}
     </div>
@@ -302,19 +537,32 @@ export default function ClubPage() {
   const [transfers, setTransfers] = useState<TransferItem[]>([]);
   const [buzz, setBuzz] = useState<BuzzData | null>(null);
   const [emotional, setEmotional] = useState<EmotionalEntry | null>(null);
+  const [standings, setStandings] = useState<StandingEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingBuzz, setLoadingBuzz] = useState(false);
   const [stadiumErr, setStadiumErr] = useState(false);
   const [squadOpen, setSquadOpen] = useState(false);
+  const [expandedPlayer, setExpandedPlayer] = useState<SquadPlayer | null>(null);
+  const [econOpen, setEconOpen] = useState(false);
 
   useEffect(() => {
     if (!teamId) return;
+
+    // Auto-load buzz in parallel with other data
+    setLoadingBuzz(true);
+    fetch(`/api/fan-buzz?teamId=${teamId}`)
+      .then(r => r.json())
+      .then(setBuzz)
+      .catch(() => null)
+      .finally(() => setLoadingBuzz(false));
+
     Promise.all([
       fetch(`/api/squad/${teamId}`).then(r => r.json()).catch(() => null),
       fetch(`/api/team/${teamId}`).then(r => r.json()).catch(() => null),
       fetch("/api/transfers").then(r => r.json()).catch(() => null),
       fetch("/api/emotional-score").then(r => r.json()).catch(() => null),
-    ]).then(([sq, mt, tr, em]) => {
+      fetch("/api/standings").then(r => r.json()).catch(() => null),
+    ]).then(([sq, mt, tr, em, st]) => {
       setSquad(sq?.team ? sq : null);
       setMatches(mt?.recent ? mt : null);
       if (tr?.clubs) {
@@ -324,17 +572,11 @@ export default function ClubPage() {
       if (em?.scores) {
         setEmotional(em.scores.find((s: EmotionalEntry) => s.teamId === teamId) ?? null);
       }
+      if (st?.standings) {
+        setStandings(st.standings);
+      }
     }).finally(() => setLoading(false));
   }, [teamId]);
-
-  const loadBuzz = () => {
-    setLoadingBuzz(true);
-    fetch(`/api/fan-buzz?teamId=${teamId}`)
-      .then(r => r.json())
-      .then(setBuzz)
-      .catch(() => null)
-      .finally(() => setLoadingBuzz(false));
-  };
 
   if (loading) {
     return (
@@ -379,12 +621,16 @@ export default function ClubPage() {
   }, {});
 
   const buzzColor = buzz ? ec(buzz.score) : "#6b7c96";
-  const buzzText = buzz ? buzzLabel(buzz.score) : "Non chargé";
+  const buzzText = buzz ? buzzLabel(buzz.score) : loadingBuzz ? "Chargement…" : "Non chargé";
+
+  const thisTeamStanding = standings.find(s => s.team.id === teamId);
 
   return (
     <main className="min-h-screen" style={{ background: "#080c14" }}>
+      {expandedPlayer && <PlayerModal player={expandedPlayer} onClose={() => setExpandedPlayer(null)} />}
+
       {/* ── Sticky header ── */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl border-b"
+      <header className="sticky top-0 z-40 backdrop-blur-xl border-b"
         style={{ borderColor: "#1e2d42", background: "rgba(8,12,20,0.93)" }}>
         <div className="max-w-3xl mx-auto px-4 py-2.5 flex items-center gap-3">
           <Link href="/" className="flex items-center gap-1.5 text-xs transition-all hover:opacity-70 flex-shrink-0"
@@ -394,8 +640,13 @@ export default function ClubPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={team.crest} alt="" className="w-7 h-7 object-contain flex-shrink-0" />
           <span className="font-black text-sm truncate" style={{ color: "#e8edf5" }}>{team.name}</span>
+          {thisTeamStanding && (
+            <span className="text-xs ml-auto flex-shrink-0" style={{ color: "#6b7c96" }}>
+              #{thisTeamStanding.position} · {thisTeamStanding.points} pts
+            </span>
+          )}
           {recentForm.length > 0 && (
-            <div className="hidden sm:flex gap-1 ml-auto">
+            <div className="hidden sm:flex gap-1">
               {recentForm.map((r, i) => <FormDot key={i} result={r} />)}
             </div>
           )}
@@ -404,9 +655,8 @@ export default function ClubPage() {
 
       <div className="max-w-3xl mx-auto px-4 py-4 space-y-3">
 
-        {/* ── HERO: stadium photo + club identity + admin ── */}
+        {/* ── HERO: stadium photo + club identity ── */}
         <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42" }}>
-          {/* Stadium photo */}
           {stadImg ? (
             <div className="relative h-44 overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -426,7 +676,6 @@ export default function ClubPage() {
                     <h1 className="text-xl font-black" style={{ color: "#e8edf5" }}>{team.name}</h1>
                   </div>
                 </div>
-                {/* Mini form */}
                 <div className="flex gap-1">
                   {recentForm.map((r, i) => <FormDot key={i} result={r} />)}
                 </div>
@@ -456,42 +705,78 @@ export default function ClubPage() {
               )}
             </div>
 
-            {/* Admin data */}
+            {/* Admin data (collapsible économique) */}
             {admin && (
-              <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Briefcase size={11} style={{ color: "#f59e0b" }} />
-                  <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#6b7c96" }}>Données administratives & commerciales</p>
+              <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.06)" }}>
+                <button onClick={() => setEconOpen(o => !o)}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-white/[0.02] transition-colors">
+                  <DollarSign size={11} style={{ color: "#f59e0b", flexShrink: 0 }} />
+                  <p className="text-[10px] font-bold uppercase tracking-widest flex-1" style={{ color: "#6b7c96" }}>Économie du club</p>
                   {admin.legalNote && <Chip color="#f59e0b">{admin.legalNote}</Chip>}
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5 text-xs">
-                  {admin.siren && (
-                    <div className="flex items-center gap-1.5">
-                      <span style={{ color: "#6b7c96" }}>SIREN</span>
-                      <span className="font-mono font-bold" style={{ color: "#e8edf5" }}>{admin.siren}</span>
+                  <ChevronDown size={11} style={{ color: "#6b7c96" }} className={`flex-shrink-0 transition-transform ${econOpen ? "rotate-180" : ""}`} />
+                </button>
+                {econOpen && (
+                  <div className="px-3 pb-3" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-xs mt-2">
+                      {admin.siren && (
+                        <div className="flex items-center gap-1.5">
+                          <span style={{ color: "#6b7c96" }}>SIREN</span>
+                          <span className="font-mono font-bold" style={{ color: "#e8edf5" }}>{admin.siren}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1.5">
+                        <span style={{ color: "#6b7c96" }}>Forme</span>
+                        <Chip color="#a78bfa">{admin.forme}</Chip>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span style={{ color: "#6b7c96" }}>Président</span>
+                        <span className="font-semibold truncate" style={{ color: "#e8edf5" }}>{admin.president}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span style={{ color: "#6b7c96" }}>CA estimé</span>
+                        <span className="font-bold" style={{ color: "#22c55e" }}>{admin.ca}</span>
+                      </div>
+                      {admin.billetterie && (
+                        <div className="flex items-center gap-1.5">
+                          <span style={{ color: "#6b7c96" }}>Billetterie</span>
+                          <span className="font-bold" style={{ color: "#00d4ff" }}>{admin.billetterie}</span>
+                        </div>
+                      )}
+                      {admin.droitsTv && (
+                        <div className="flex items-center gap-1.5">
+                          <span style={{ color: "#6b7c96" }}>Droits TV</span>
+                          <span className="font-bold" style={{ color: "#a78bfa" }}>{admin.droitsTv}</span>
+                        </div>
+                      )}
+                      {admin.dette && (
+                        <div className="flex items-center gap-1.5">
+                          <span style={{ color: "#6b7c96" }}>Dette nette</span>
+                          <span className="font-bold" style={{ color: "#f97316" }}>{admin.dette}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1.5">
+                        <span style={{ color: "#6b7c96" }}>Salariés</span>
+                        <span className="font-semibold" style={{ color: "#e8edf5" }}>~{admin.employes}</span>
+                      </div>
+                      <div className="flex items-start gap-1.5 col-span-2 sm:col-span-3">
+                        <span className="flex-shrink-0" style={{ color: "#6b7c96" }}>Siège</span>
+                        <span className="text-[11px] leading-tight" style={{ color: "#94a3b8" }}>{admin.siege}</span>
+                      </div>
                     </div>
-                  )}
-                  <div className="flex items-center gap-1.5">
-                    <span style={{ color: "#6b7c96" }}>Forme</span>
-                    <Chip color="#a78bfa">{admin.forme}</Chip>
+                    {admin.sources && admin.sources.length > 0 && (
+                      <div className="mt-2 pt-2 flex flex-wrap gap-2" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                        <span className="text-[10px]" style={{ color: "#6b7c96" }}>Sources :</span>
+                        {admin.sources.map(s => (
+                          <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer"
+                            className="text-[10px] flex items-center gap-0.5 hover:opacity-70 transition-opacity"
+                            style={{ color: "#00d4ff" }}>
+                            {s.label} <ExternalLink size={9} />
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span style={{ color: "#6b7c96" }}>CA estimé</span>
-                    <span className="font-bold" style={{ color: "#22c55e" }}>{admin.ca}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 col-span-2 sm:col-span-1">
-                    <span style={{ color: "#6b7c96" }}>Président</span>
-                    <span className="font-semibold truncate" style={{ color: "#e8edf5" }}>{admin.president}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span style={{ color: "#6b7c96" }}>Salariés</span>
-                    <span className="font-semibold" style={{ color: "#e8edf5" }}>~{admin.employes}</span>
-                  </div>
-                  <div className="flex items-start gap-1.5 col-span-2 sm:col-span-3">
-                    <span className="flex-shrink-0" style={{ color: "#6b7c96" }}>Siège</span>
-                    <span className="text-[11px] leading-tight" style={{ color: "#94a3b8" }}>{admin.siege}</span>
-                  </div>
-                </div>
+                )}
               </div>
             )}
           </div>
@@ -542,55 +827,69 @@ export default function ClubPage() {
                 <span className="text-xs" style={{ color: "#ef4444" }}>-{buzz.negative}</span>
               </div>
             )}
+            {loadingBuzz && !buzz && (
+              <div className="ml-auto flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-full border border-pink-400 border-t-transparent animate-spin" />
+                <span className="text-xs" style={{ color: "#6b7c96" }}>Analyse…</span>
+              </div>
+            )}
           </div>
           <div className="px-3 py-2.5">
-            {!buzz && !loadingBuzz && (
-              <div className="flex items-center justify-between">
-                <p className="text-xs" style={{ color: "#6b7c96" }}>
-                  Analyse Google News · L&apos;Équipe — sentiment supporters
-                </p>
-                <button onClick={loadBuzz}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-80 transition-all flex-shrink-0"
-                  style={{ background: "rgba(244,114,182,0.1)", border: "1px solid rgba(244,114,182,0.2)", color: "#f472b6" }}>
-                  Analyser
-                </button>
+            {/* Synthesis */}
+            {buzz?.synthesis && (
+              <div className="flex items-start gap-2 mb-2.5 px-2 py-2 rounded-xl"
+                style={{ background: `${buzzColor}08`, border: `1px solid ${buzzColor}18` }}>
+                {buzz.score >= 55
+                  ? <TrendingUp size={13} style={{ color: buzzColor, flexShrink: 0, marginTop: 1 }} />
+                  : buzz.score <= 44
+                  ? <TrendingDown size={13} style={{ color: buzzColor, flexShrink: 0, marginTop: 1 }} />
+                  : <Info size={13} style={{ color: buzzColor, flexShrink: 0, marginTop: 1 }} />
+                }
+                <p className="text-xs leading-relaxed" style={{ color: "#cbd5e1" }}>{buzz.synthesis}</p>
               </div>
             )}
-            {loadingBuzz && (
-              <div className="flex items-center gap-2 py-1">
-                <div className="w-4 h-4 rounded-full border-2 border-pink-400 border-t-transparent animate-spin flex-shrink-0" />
-                <p className="text-xs" style={{ color: "#6b7c96" }}>Analyse en cours…</p>
-              </div>
-            )}
-            {buzz && (
+
+            {buzz && buzz.items.length > 0 && (
               <>
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   {buzz.items.slice(0, 8).map((item, i) => {
                     const sc = item.sentiment === "positive" ? "#22c55e" : item.sentiment === "negative" ? "#ef4444" : "#6b7c96";
-                    const keywords = [...(item.matchedPos ?? []), ...(item.matchedNeg ?? [])];
+                    const impactCfg = {
+                      high:   { label: "Fort" },
+                      medium: { label: "Moyen" },
+                      low:    { label: "Faible" },
+                      none:   { label: "Neutre" },
+                    }[item.impact];
+                    const pts = item.impactPoints;
                     return (
-                      <div key={i} className="flex items-start gap-2 py-1 px-1">
-                        <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: sc }} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs leading-snug" style={{ color: "#94a3b8" }}>{item.title}</p>
-                          {keywords.length > 0 && (
-                            <div className="flex gap-1 mt-0.5 flex-wrap">
-                              {(item.matchedPos ?? []).map(k => (
-                                <span key={k} className="text-[9px] px-1 rounded" style={{ background: "rgba(34,197,94,0.1)", color: "#22c55e" }}>{k}</span>
-                              ))}
-                              {(item.matchedNeg ?? []).map(k => (
-                                <span key={k} className="text-[9px] px-1 rounded" style={{ background: "rgba(239,68,68,0.1)", color: "#ef4444" }}>{k}</span>
-                              ))}
-                            </div>
-                          )}
+                      <div key={i} className="rounded-lg px-2.5 py-2"
+                        style={{ background: item.impact !== "none" ? `${sc}06` : "transparent", border: `1px solid ${item.impact !== "none" ? `${sc}18` : "rgba(255,255,255,0.04)"}` }}>
+                        <div className="flex items-start gap-2">
+                          <div className="flex gap-0.5 mt-1 flex-shrink-0">
+                            {[0, 1, 2].map(n => (
+                              <span key={n} className="w-1.5 h-3.5 rounded-sm"
+                                style={{ background: n < Math.abs(pts) ? sc : "rgba(255,255,255,0.08)" }} />
+                            ))}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs leading-snug" style={{ color: "#cbd5e1" }}>{item.title}</p>
+                            <p className="text-[10px] mt-0.5 flex items-center gap-1" style={{ color: item.impact !== "none" ? sc : "#6b7c96" }}>
+                              <span className="font-semibold">{pts > 0 ? `+${pts}` : pts < 0 ? `${pts}` : "±0"} impact {impactCfg.label.toLowerCase()}</span>
+                              <span style={{ color: "#6b7c96" }}>·</span>
+                              <span style={{ color: "#6b7c96" }}>{item.impactReason}</span>
+                            </p>
+                          </div>
+                          <span className="text-[9px] flex-shrink-0 mt-0.5" style={{ color: "#6b7c96" }}>{item.source}</span>
                         </div>
-                        <span className="text-[9px] flex-shrink-0 mt-0.5" style={{ color: "#6b7c96" }}>{item.source}</span>
                       </div>
                     );
                   })}
                 </div>
                 <BuzzMethodology buzz={buzz} />
               </>
+            )}
+            {buzz && buzz.items.length === 0 && (
+              <p className="text-xs" style={{ color: "#6b7c96" }}>Aucun article récent trouvé.</p>
             )}
           </div>
         </div>
@@ -603,9 +902,14 @@ export default function ClubPage() {
                 <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: "1px solid #1e2d42" }}>
                   <Trophy size={13} style={{ color: "#f59e0b" }} />
                   <span className="font-bold text-sm" style={{ color: "#e8edf5" }}>Derniers résultats</span>
+                  {standings.length > 0 && (
+                    <span className="text-[9px] ml-auto px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.06)", color: "#6b7c96" }}>
+                      Préd. = prédiction
+                    </span>
+                  )}
                 </div>
                 <div className="px-2 py-1">
-                  {matches.recent.map(m => <MatchRow key={m.id} match={m} teamId={teamId} />)}
+                  {matches.recent.map(m => <MatchRow key={m.id} match={m} teamId={teamId} standings={standings} />)}
                 </div>
               </div>
             )}
@@ -616,7 +920,7 @@ export default function ClubPage() {
                   <span className="font-bold text-sm" style={{ color: "#e8edf5" }}>Prochains matchs</span>
                 </div>
                 <div className="px-2 py-1">
-                  {matches.upcoming.map(m => <MatchRow key={m.id} match={m} teamId={teamId} />)}
+                  {matches.upcoming.map(m => <MatchRow key={m.id} match={m} teamId={teamId} standings={standings} />)}
                 </div>
               </div>
             )}
@@ -686,6 +990,7 @@ export default function ClubPage() {
                   ))}
                 </div>
               )}
+              <p className="text-[10px]" style={{ color: "#6b7c96" }}>Cliquez sur un joueur pour les détails</p>
               {Object.entries(byPos).map(([pos, players]) => (
                 <div key={pos}>
                   <p className="text-[10px] font-bold uppercase tracking-widest mb-1"
@@ -695,15 +1000,30 @@ export default function ClubPage() {
                     const fb = p.formBadge;
                     const fbc: Record<string, string> = { hot: "#ef4444", good: "#22c55e", neutral: "", cold: "#94a3b8" };
                     const fbe: Record<string, string> = { hot: "🔥", good: "⚡", neutral: "", cold: "❄️" };
+                    // Form score (0–100) based on formBadge + goals/assists
+                    const formScore = inj ? 20 : fb === "hot" ? 90 : fb === "good" ? 70 : fb === "cold" ? 30 : 50;
+                    const formColor = ec(formScore);
                     return (
-                      <div key={p.id} className="flex items-center gap-1.5 py-1 px-1 rounded hover:bg-white/[0.02]"
+                      <button key={p.id}
+                        onClick={() => setExpandedPlayer(p)}
+                        className="w-full flex items-center gap-1.5 py-1 px-1 rounded hover:bg-white/[0.04] text-left transition-colors"
                         style={{ background: inj ? "rgba(249,115,22,0.03)" : "transparent" }}>
-                        <span className="text-[9px] font-bold w-5 text-center rounded"
-                          style={{ background: `${POS_COL[pos] ?? "#6b7c96"}15`, color: POS_COL[pos] ?? "#6b7c96", padding: "1px 0" }}>
-                          {POS_SHORT[pos] ?? "?"}
-                        </span>
+                        {/* Photo thumbnail */}
+                        {p.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={p.imageUrl} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0"
+                            style={{ border: `1px solid ${POS_COL[pos] ?? "#6b7c96"}30` }}
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                        ) : (
+                          <span className="text-[9px] font-bold w-5 h-5 text-center rounded flex-shrink-0 flex items-center justify-center"
+                            style={{ background: `${POS_COL[pos] ?? "#6b7c96"}15`, color: POS_COL[pos] ?? "#6b7c96", padding: "1px 0" }}>
+                            {POS_SHORT[pos] ?? "?"}
+                          </span>
+                        )}
                         {inj && <AlertTriangle size={9} className="text-orange-400 flex-shrink-0" />}
                         <span className="flex-1 text-xs truncate" style={{ color: inj ? "#f97316" : "#e8edf5" }}>{p.name}</span>
+                        {/* Form score */}
+                        <span className="text-[9px] font-bold w-5 text-center flex-shrink-0" style={{ color: formColor }}>{formScore}</span>
                         <span className="text-[10px] hidden sm:block" style={{ color: "#6b7c96" }}>{p.age}a</span>
                         {fb && fb !== "neutral" && fbe[fb] && (
                           <span style={{ color: fbc[fb], fontSize: 11 }}>{fbe[fb]}</span>
@@ -718,7 +1038,7 @@ export default function ClubPage() {
                           style={{ color: p.marketValue > 20_000_000 ? "#00d4ff" : p.marketValue > 5_000_000 ? "#e8edf5" : "#6b7c96" }}>
                           {p.marketValue > 0 ? fv(p.marketValue) : "—"}
                         </span>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
