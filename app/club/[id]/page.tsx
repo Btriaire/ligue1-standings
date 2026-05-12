@@ -130,6 +130,14 @@ interface SquadPlayer {
   recentGoals?: number;
   recentAssists?: number;
   imageUrl?: string;
+  // Understat season stats
+  xG?: number;
+  xA?: number;
+  usGoals?: number;
+  usAssists?: number;
+  shots?: number;
+  minutes?: number;
+  games?: number;
 }
 
 interface SquadData {
@@ -415,7 +423,34 @@ function PlayerModal({ player, onClose }: { player: SquadPlayer; onClose: () => 
           </button>
         </div>
 
-        {/* Details grid */}
+        {/* Understat season stats */}
+        {(player.games ?? 0) > 0 && (
+          <div className="px-4 py-3" style={{ borderBottom: "1px solid #1e2d42" }}>
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "#6b7c96" }}>
+              Saison — {player.games} matchs · {player.minutes} min
+            </p>
+            <div className="grid grid-cols-4 gap-2 text-center">
+              {[
+                { label: "Buts", value: player.usGoals ?? 0, color: "#f59e0b" },
+                { label: "Passes D.", value: player.usAssists ?? 0, color: "#00d4ff" },
+                { label: "xG", value: (player.xG ?? 0).toFixed(1), color: "#22c55e" },
+                { label: "xA", value: (player.xA ?? 0).toFixed(1), color: "#a78bfa" },
+              ].map(s => (
+                <div key={s.label} className="rounded-lg py-1.5" style={{ background: "rgba(255,255,255,0.04)" }}>
+                  <p className="text-sm font-black" style={{ color: s.color }}>{s.value}</p>
+                  <p className="text-[9px] mt-0.5" style={{ color: "#6b7c96" }}>{s.label}</p>
+                </div>
+              ))}
+            </div>
+            {(player.shots ?? 0) > 0 && (
+              <p className="text-[10px] mt-2 text-center" style={{ color: "#6b7c96" }}>
+                {player.shots} tirs · xG/tir {player.shots! > 0 ? ((player.xG ?? 0) / player.shots!).toFixed(2) : "—"}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Bio grid */}
         <div className="px-4 py-3 grid grid-cols-2 gap-x-4 gap-y-2.5 text-xs">
           {player.dateOfBirth && (
             <div><p style={{ color: "#6b7c96" }}>Date de naissance</p>
@@ -423,10 +458,10 @@ function PlayerModal({ player, onClose }: { player: SquadPlayer; onClose: () => 
                 {new Date(player.dateOfBirth).toLocaleDateString("fr-FR")} ({player.age} ans)
               </p></div>
           )}
-          {player.height ? (
+          {(player.height ?? 0) > 0 && (
             <div><p style={{ color: "#6b7c96" }}>Taille / Pied</p>
-              <p className="font-semibold mt-0.5" style={{ color: "#e8edf5" }}>{player.height} cm · {player.foot ?? "—"}</p></div>
-          ) : null}
+              <p className="font-semibold mt-0.5" style={{ color: "#e8edf5" }}>{player.height} cm · {player.foot || "—"}</p></div>
+          )}
           {player.joinedOn && (
             <div><p style={{ color: "#6b7c96" }}>Arrivé le</p>
               <p className="font-semibold mt-0.5" style={{ color: "#e8edf5" }}>
@@ -441,17 +476,9 @@ function PlayerModal({ player, onClose }: { player: SquadPlayer; onClose: () => 
             <div><p style={{ color: "#6b7c96" }}>Fin de contrat</p>
               <p className="font-semibold mt-0.5" style={{ color: "#e8edf5" }}>{player.contract}</p></div>
           )}
-          <div><p style={{ color: "#6b7c96" }}>Valeur marchande</p>
-            <p className="font-black mt-0.5" style={{ color: player.marketValue > 20_000_000 ? "#00d4ff" : "#e8edf5" }}>
-              {player.marketValue > 0 ? fv(player.marketValue) : "—"}
-            </p></div>
-          {((player.recentGoals ?? 0) > 0 || (player.recentAssists ?? 0) > 0) && (
-            <div className="col-span-2"><p style={{ color: "#6b7c96" }}>Forme récente (5 derniers matchs)</p>
-              <div className="flex gap-3 mt-0.5">
-                {(player.recentGoals ?? 0) > 0 && <span className="font-semibold" style={{ color: "#f59e0b" }}>⚽ {player.recentGoals} but{player.recentGoals! > 1 ? "s" : ""}</span>}
-                {(player.recentAssists ?? 0) > 0 && <span className="font-semibold" style={{ color: "#00d4ff" }}>🅰 {player.recentAssists} passe{player.recentAssists! > 1 ? "s" : ""} D.</span>}
-              </div>
-            </div>
+          {(player.marketValue ?? 0) > 0 && (
+            <div><p style={{ color: "#6b7c96" }}>Valeur marchande</p>
+              <p className="font-black mt-0.5" style={{ color: "#00d4ff" }}>{fv(player.marketValue)}</p></div>
           )}
         </div>
 
@@ -1088,11 +1115,11 @@ export default function ClubPage() {
                           </div>
                         </div>
                         <span className="text-[10px] hidden sm:block w-6 text-right flex-shrink-0" style={{ color: "#6b7c96" }}>{p.age}</span>
-                        {(p.recentGoals ?? 0) > 0 && (
-                          <span className="text-[10px]" style={{ color: "#f59e0b" }}>⚽{p.recentGoals}</span>
+                        {(p.usGoals ?? p.recentGoals ?? 0) > 0 && (
+                          <span className="text-[10px]" style={{ color: "#f59e0b" }}>⚽{p.usGoals ?? p.recentGoals}</span>
                         )}
-                        {(p.recentAssists ?? 0) > 0 && (
-                          <span className="text-[10px]" style={{ color: "#00d4ff" }}>🅰{p.recentAssists}</span>
+                        {(p.xG ?? 0) > 0 && (
+                          <span className="text-[10px]" style={{ color: "#22c55e" }}>xG{(p.xG!).toFixed(1)}</span>
                         )}
                         <span className="text-xs font-mono font-bold w-12 text-right flex-shrink-0"
                           style={{ color: p.marketValue > 20_000_000 ? "#00d4ff" : p.marketValue > 5_000_000 ? "#e8edf5" : "#6b7c96" }}>
