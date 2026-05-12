@@ -364,45 +364,92 @@ function PlayerRow({ player }: { player: PlayerSquad }) {
   );
 }
 
-function RedditSection({ teamId, fanData, subredditLabel }: {
+// Client-side sentiment keywords (replicate server logic for browser fetch)
+const POS_WORDS = [
+  "victoire","gagne","champion","titre","qualification","brillant","excellent","remporte",
+  "espoir","confiant","solide","impressionnant","succès","invaincu","leader","exploit",
+  "win","won","victory","brilliant","great","amazing","love","proud","incredible","legend",
+];
+const NEG_WORDS = [
+  "défaite","blessure","blessé","absent","crise","scandale","licencié","viré","démission",
+  "humiliation","doute","tension","erreur","déroute","naufrage","catastrophe","colère",
+  "loss","lose","lost","terrible","awful","crisis","injury","injured","poor","worst","disaster",
+];
+function clientSentiment(text: string): "positive" | "negative" | "neutral" {
+  const lower = text.toLowerCase();
+  const pos = POS_WORDS.filter((w) => lower.includes(w)).length;
+  const neg = NEG_WORDS.filter((w) => lower.includes(w)).length;
+  return pos > neg ? "positive" : neg > pos ? "negative" : "neutral";
+}
+
+function RedditSection({ teamId, fanData, subredditLabel, clubName }: {
   teamId: number;
   fanData: ClubScore["components"]["fan"];
   subredditLabel: string;
+  clubName: string;
 }) {
-  const [posts, setPosts] = useState<RedditPost[]>(fanData?.posts ?? []);
+  const [posts, setPosts] = useState<RedditPost[]>([]);
   const [loading, setLoading] = useState(false);
-  const [fetched, setFetched] = useState((fanData?.posts?.length ?? 0) > 0);
+  const [fetched, setFetched] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchPosts = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/reddit-feed?teamId=${teamId}`);
-      const data = await res.json();
-      if (data.error && !data.posts?.length) throw new Error(data.error);
-      setPosts(data.posts ?? []);
+      // Fetch directly from browser — Reddit allows CORS from real browsers
+      const isProxy = subredditLabel === "proxy" || !subredditLabel.startsWith("r/");
+      const sub = isProxy ? null : subredditLabel.replace("r/", "");
+      const url = sub
+        ? `https://www.reddit.com/r/${sub}/new.json?limit=20`
+        : `https://www.reddit.com/r/ligue1/search.json?q=${encodeURIComponent(clubName.split(" ")[0])}&sort=new&limit=15&restrict_sr=1`;
+
+      const res = await fetch(url, { headers: { "Accept": "application/json" } });
+      if (!res.ok) throw new Error(`Reddit ${res.status}`);
+      const json = await res.json();
+      const children = json?.data?.children ?? [];
+
+      const processed: RedditPost[] = children.slice(0, 15).map((child: { data: Record<string, unknown> }) => {
+        const p = child.data;
+        const title = ((p.title as string) ?? "").slice(0, 120);
+        return {
+          title,
+          score: (p.score as number) ?? 0,
+          upvoteRatio: (p.upvote_ratio as number) ?? 0.5,
+          url: p.permalink ? `https://reddit.com${p.permalink}` : "",
+          subreddit: (p.subreddit_name_prefixed as string) ?? subredditLabel,
+          created: (p.created_utc as number) ?? 0,
+          sentiment: clientSentiment(`${title} ${(p.selftext as string) ?? ""}`),
+        };
+      });
+
+      setPosts(processed);
       setFetched(true);
     } catch (e) {
-      setError(String(e));
+      setError(String(e instanceof Error ? e.message : e));
     } finally {
       setLoading(false);
     }
   };
 
+  const isProxy = subredditLabel === "proxy" || !subredditLabel.startsWith("r/");
+  const displayLabel = isProxy ? "r/ligue1" : subredditLabel;
+
   return (
     <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
       <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-semibold" style={{ color: "#6b7c96" }}>SUPPORTERS REDDIT</p>
+        <div>
+          <p className="text-xs font-semibold" style={{ color: "#6b7c96" }}>SUPPORTERS REDDIT</p>
+          {isProxy && (
+            <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>
+              Score estimé via position + forme · Cliquez "Charger" pour posts live
+            </p>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(244,114,182,0.1)", color: "#f472b6" }}>
-            {subredditLabel}
+            {displayLabel}
           </span>
-          {fanData && fanData.total > 0 && (
-            <span className="text-xs" style={{ color: "#6b7c96" }}>
-              <span style={{ color: "#22c55e" }}>+{fanData.positive}</span> / <span style={{ color: "#ef4444" }}>-{fanData.negative}</span>
-            </span>
-          )}
           <button
             onClick={fetchPosts}
             disabled={loading}
@@ -414,17 +461,21 @@ function RedditSection({ teamId, fanData, subredditLabel }: {
         </div>
       </div>
 
-      {error && <p className="text-xs" style={{ color: "#ef4444" }}>Erreur : {error}</p>}
+      {error && (
+        <p className="text-xs" style={{ color: "#ef4444" }}>
+          {error.includes("403") ? "Reddit inaccessible (VPN ou adblock détecté). Essayez sans extension." : `Erreur : ${error}`}
+        </p>
+      )}
 
       {fetched && posts.length === 0 && !error && (
-        <p className="text-xs" style={{ color: "#6b7c96" }}>Aucun post récent trouvé sur {subredditLabel}</p>
+        <p className="text-xs" style={{ color: "#6b7c96" }}>Aucun post récent trouvé sur {displayLabel}</p>
       )}
 
       {posts.map((p, i) => <RedditPostRow key={i} post={p} />)}
 
-      {!fetched && !loading && (
+      {!fetched && !loading && !error && (
         <p className="text-xs" style={{ color: "#6b7c96" }}>
-          Cliquez sur "Charger" pour récupérer les derniers posts Reddit
+          Cliquez sur &ldquo;Charger&rdquo; pour récupérer les derniers posts Reddit
         </p>
       )}
     </div>
@@ -523,6 +574,7 @@ function ClubDetail({ club, weights }: { club: ClubScore; weights: Weights }) {
         teamId={club.teamId}
         fanData={c.fan}
         subredditLabel={c.fan?.subreddit ?? "r/ligue1"}
+        clubName={club.team.name}
       />
 
       {/* Squad */}
