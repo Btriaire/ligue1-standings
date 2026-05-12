@@ -5,6 +5,7 @@ const API_KEY = process.env.FOOTBALL_DATA_API_KEY;
 const ODDS_API_KEY = process.env.THE_ODDS_API_KEY;
 
 export const revalidate = 1800;
+export const dynamic = "force-dynamic";
 
 const POSITIVE_FR = [
   "victoire","gagne","champion","titre","qualification","transfert","recrutement",
