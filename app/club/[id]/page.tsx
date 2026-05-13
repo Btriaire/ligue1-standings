@@ -635,6 +635,7 @@ export default function ClubPage() {
   const [transfers, setTransfers] = useState<TransferItem[]>([]);
   const [buzz, setBuzz] = useState<BuzzData | null>(null);
   const [emotional, setEmotional] = useState<EmotionalEntry | null>(null);
+  const [clubAnalysis, setClubAnalysis] = useState<{ analysis: string; tag: string } | null>(null);
   const [standings, setStandings] = useState<StandingEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingBuzz, setLoadingBuzz] = useState(false);
@@ -668,6 +669,32 @@ export default function ClubPage() {
       }
       if (st?.standings) {
         setStandings(st.standings);
+        // Fetch Claude analysis once we have standings + squad context
+        const standing = st.standings.find((s: { team: { id: number } }) => s.team.id === teamId);
+        const recentResults = mt?.recent?.slice(0, 5).map((m: { homeTeam: { id: number; name: string }; awayTeam: { id: number; name: string }; score: { home: number | null; away: number | null } }) => {
+          const ih = m.homeTeam.id === teamId;
+          const ts = ih ? m.score.home : m.score.away;
+          const os = ih ? m.score.away : m.score.home;
+          const opp = ih ? m.awayTeam.name : m.homeTeam.name;
+          return ts !== null && os !== null ? `${opp.split(" ")[0]}${ts}-${os}` : null;
+        }).filter(Boolean).join(",") ?? "";
+
+        const params = new URLSearchParams({
+          club: sq?.team?.name ?? String(teamId),
+          pos: String(standing?.position ?? ""),
+          pts: String(standing?.points ?? ""),
+          form: (sq?.stats?.recentMatchCount ? `${sq.stats.teamWins}V${sq.stats.teamDraws}N${sq.stats.teamLosses}D` : ""),
+          gf: String(standing?.goalsFor ?? ""),
+          ga: String(standing?.goalsAgainst ?? ""),
+          coach: sq?.team?.coach ?? "",
+          injured: String(sq?.stats?.injuredCount ?? 0),
+          value: sq?.stats?.totalValue ? String(Math.round(sq.stats.totalValue)) : "",
+          recent: recentResults,
+        });
+        fetch(`/api/club-analysis?${params}`)
+          .then(r => r.json())
+          .then(setClubAnalysis)
+          .catch(() => null);
       }
     }).finally(() => setLoading(false));
 
@@ -744,6 +771,34 @@ export default function ClubPage() {
       </header>
 
       <div className="max-w-3xl mx-auto px-4 py-4 space-y-3">
+
+        {/* ── AI Analysis banner ── */}
+        {clubAnalysis && (
+          <div className="rounded-xl px-4 py-3 flex items-start gap-3"
+            style={{ background: "#0d1421", border: "1px solid #1a2235" }}>
+            <div className="flex-shrink-0 mt-0.5">
+              <span className="text-xs font-bold px-2 py-0.5 rounded-md"
+                style={{
+                  background: clubAnalysis.tag === "excellent" ? "rgba(52,211,153,0.12)" :
+                    clubAnalysis.tag === "good" ? "rgba(96,165,250,0.12)" :
+                    clubAnalysis.tag === "difficult" ? "rgba(251,191,36,0.12)" :
+                    clubAnalysis.tag === "crisis" ? "rgba(248,113,113,0.12)" :
+                    "rgba(255,255,255,0.06)",
+                  color: clubAnalysis.tag === "excellent" ? "#34d399" :
+                    clubAnalysis.tag === "good" ? "#60a5fa" :
+                    clubAnalysis.tag === "difficult" ? "#fbbf24" :
+                    clubAnalysis.tag === "crisis" ? "#f87171" :
+                    "#94a3b8",
+                  border: "1px solid currentColor",
+                }}>
+                IA
+              </span>
+            </div>
+            <p className="text-sm leading-relaxed" style={{ color: "#cbd5e1" }}>
+              {clubAnalysis.analysis}
+            </p>
+          </div>
+        )}
 
         {/* ── HERO: stadium photo + club identity ── */}
         <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42" }}>
@@ -992,43 +1047,21 @@ export default function ClubPage() {
             )}
 
             {buzz && buzz.items.length > 0 && (
-              <>
-                <div className="space-y-1.5">
-                  {buzz.items.slice(0, 8).map((item, i) => {
-                    const sc = item.sentiment === "positive" ? "#22c55e" : item.sentiment === "negative" ? "#ef4444" : "#6b7c96";
-                    const impactCfg = {
-                      high:   { label: "Fort" },
-                      medium: { label: "Moyen" },
-                      low:    { label: "Faible" },
-                      none:   { label: "Neutre" },
-                    }[item.impact];
-                    const pts = item.impactPoints;
-                    return (
-                      <div key={i} className="rounded-lg px-2.5 py-2"
-                        style={{ background: item.impact !== "none" ? `${sc}06` : "transparent", border: `1px solid ${item.impact !== "none" ? `${sc}18` : "rgba(255,255,255,0.04)"}` }}>
-                        <div className="flex items-start gap-2">
-                          <div className="flex gap-0.5 mt-1 flex-shrink-0">
-                            {[0, 1, 2].map(n => (
-                              <span key={n} className="w-1.5 h-3.5 rounded-sm"
-                                style={{ background: n < Math.abs(pts) ? sc : "rgba(255,255,255,0.08)" }} />
-                            ))}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs leading-snug" style={{ color: "#cbd5e1" }}>{item.title}</p>
-                            <p className="text-[10px] mt-0.5 flex items-center gap-1" style={{ color: item.impact !== "none" ? sc : "#6b7c96" }}>
-                              <span className="font-semibold">{pts > 0 ? `+${pts}` : pts < 0 ? `${pts}` : "±0"} impact {impactCfg.label.toLowerCase()}</span>
-                              <span style={{ color: "#6b7c96" }}>·</span>
-                              <span style={{ color: "#6b7c96" }}>{item.impactReason}</span>
-                            </p>
-                          </div>
-                          <span className="text-[9px] flex-shrink-0 mt-0.5" style={{ color: "#6b7c96" }}>{item.source}</span>
-                        </div>
+              <div className="space-y-1.5">
+                {buzz.items.slice(0, 8).map((item, i) => {
+                  const sc = item.sentiment === "positive" ? "#34d399" : item.sentiment === "negative" ? "#f87171" : "#64748b";
+                  return (
+                    <div key={i} className="rounded-lg px-3 py-2 flex items-start gap-2.5"
+                      style={{ background: "rgba(255,255,255,0.03)", border: "1px solid #1a2235" }}>
+                      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5" style={{ background: sc }} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs leading-snug" style={{ color: "#cbd5e1" }}>{item.title}</p>
                       </div>
-                    );
-                  })}
-                </div>
-                <BuzzMethodology buzz={buzz} />
-              </>
+                      <span className="text-[9px] flex-shrink-0 mt-0.5" style={{ color: "#475569" }}>{item.source}</span>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>
