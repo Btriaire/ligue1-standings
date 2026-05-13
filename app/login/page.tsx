@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -44,7 +44,7 @@ function Field({ label, name, type = "text", placeholder, value, onChange }: {
   );
 }
 
-export default function LoginPage() {
+function LoginForm() {
   const params = useSearchParams();
   const from = params.get("from") ?? "/";
   const router = useRouter();
@@ -206,5 +206,13 @@ export default function LoginPage() {
         ))}
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }
