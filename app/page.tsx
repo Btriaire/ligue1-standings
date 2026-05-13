@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { RefreshCw, TrendingUp, TrendingDown, Minus, Trophy, Wifi, WifiOff, Clock, Zap, BarChart2, Heart, Globe, Settings, Target, ArrowLeftRight, ChevronRight, Users } from "lucide-react";
+import { RefreshCw, TrendingUp, TrendingDown, Minus, Trophy, Wifi, WifiOff, Clock, Zap, BarChart2, Heart, Globe, Settings, Target, ArrowLeftRight, ChevronRight, Users, Lock, LogIn, LogOut } from "lucide-react";
 import TeamModal from "./components/TeamModal";
 import PredictionsTab from "./components/PredictionsTab";
 import EmotionalScoreTab from "./components/EmotionalScoreTab";
@@ -376,6 +376,40 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode; shortLabel?: stri
   { id: "config",      label: "Configuration",     icon: <Settings size={14} />,         shortLabel: "Config" },
 ];
 
+interface AuthUser { id: number; email: string; name: string }
+
+function AuthGate({ label, icon }: { label: string; icon: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl flex flex-col items-center justify-center py-20 gap-5"
+      style={{ border: "1px solid #1e2d42", background: "rgba(13,20,33,0.6)" }}>
+      <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
+        style={{ background: "rgba(0,212,255,0.08)", border: "1px solid rgba(0,212,255,0.2)" }}>
+        <Lock size={22} style={{ color: "#00d4ff" }} />
+      </div>
+      <div className="text-center">
+        <p className="font-black text-base mb-1" style={{ color: "#e8edf5" }}>
+          {icon} <span className="ml-1">{label}</span> réservé aux membres
+        </p>
+        <p className="text-sm" style={{ color: "#6b7c96" }}>
+          Créez un compte gratuit pour accéder à cette section.
+        </p>
+      </div>
+      <div className="flex gap-3">
+        <Link href="/login"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black hover:opacity-90 transition-all"
+          style={{ background: "linear-gradient(135deg, #00d4ff, #a78bfa)", color: "#080c14" }}>
+          <LogIn size={14} /> Se connecter
+        </Link>
+        <Link href="/login?tab=register"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold hover:opacity-80 transition-all"
+          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid #1e2d42", color: "#94a3b8" }}>
+          S&apos;inscrire
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [tab, setTab] = useState<TabId>("standings");
   const [data, setData] = useState<StandingsData | null>(null);
@@ -384,6 +418,7 @@ export default function Home() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [countdown, setCountdown] = useState(60);
+  const [user, setUser] = useState<AuthUser | null | undefined>(undefined); // undefined = loading
 
   const fetchStandings = useCallback(async (manual = false) => {
     if (manual) setRefreshing(true);
@@ -409,6 +444,10 @@ export default function Home() {
     const interval = setInterval(() => fetchStandings(), 60_000);
     return () => clearInterval(interval);
   }, [fetchStandings]);
+
+  useEffect(() => {
+    fetch("/api/auth/me").then(r => r.json()).then(d => setUser(d.user ?? null)).catch(() => setUser(null));
+  }, []);
 
   useEffect(() => {
     const tick = setInterval(() => setCountdown((c) => (c <= 1 ? 60 : c - 1)), 1000);
@@ -451,6 +490,28 @@ export default function Home() {
               <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
               <span className="hidden sm:inline">Actualiser</span>
             </button>
+
+            {user === undefined ? null : user ? (
+              <div className="flex items-center gap-2">
+                <span className="hidden sm:inline text-xs font-semibold px-2 py-1 rounded-lg"
+                  style={{ background: "rgba(167,139,250,0.1)", border: "1px solid rgba(167,139,250,0.2)", color: "#a78bfa" }}>
+                  {user.name}
+                </span>
+                <form action="/api/auth/logout" method="POST">
+                  <button type="submit" title="Déconnexion"
+                    className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs hover:opacity-80 transition-all"
+                    style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#ef4444" }}>
+                    <LogOut size={12} />
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <Link href="/login"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-80 transition-all"
+                style={{ background: "linear-gradient(135deg, rgba(0,212,255,0.12), rgba(167,139,250,0.12))", border: "1px solid rgba(0,212,255,0.25)", color: "#00d4ff" }}>
+                <LogIn size={12} /> <span className="hidden sm:inline">Connexion</span>
+              </Link>
+            )}
           </div>
         </div>
       </header>
@@ -460,32 +521,37 @@ export default function Home() {
         <div className="min-w-0">
         {/* Tab switcher */}
         <div className="flex gap-1 mb-6 p-1 rounded-xl overflow-x-auto" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
-          {TABS.map((t) => (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap flex-shrink-0"
-              style={{
-                background: tab === t.id
-                  ? t.id === "predictions" ? "linear-gradient(135deg, rgba(0,212,255,0.15), rgba(124,58,237,0.15))"
-                  : t.id === "worldcup" ? "linear-gradient(135deg, rgba(34,197,94,0.12), rgba(0,212,255,0.12))"
-                  : t.id === "transfers" ? "linear-gradient(135deg, rgba(245,158,11,0.12), rgba(239,68,68,0.10))"
-                  : "rgba(255,255,255,0.06)"
-                  : "transparent",
-                color: tab === t.id ? "#e8edf5" : "#6b7c96",
-                border: tab === t.id ? "1px solid rgba(255,255,255,0.1)" : "1px solid transparent",
-              }}>
-              <span style={{ color: tab === t.id ? (t.id === "predictions" ? "#00d4ff" : t.id === "emotional" ? "#f472b6" : t.id === "worldcup" ? "#22c55e" : t.id === "transfers" ? "#f59e0b" : "inherit") : "inherit" }}>
-                {t.icon}
-              </span>
-              <span className="hidden sm:inline">{t.label}</span>
-              <span className="sm:hidden">{t.shortLabel ?? t.label}</span>
-            </button>
-          ))}
+          {TABS.map((t) => {
+            const isProtected = (t.id === "predictions" || t.id === "emotional") && !user;
+            return (
+              <button key={t.id} onClick={() => setTab(t.id)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap flex-shrink-0"
+                style={{
+                  background: tab === t.id
+                    ? t.id === "predictions" ? "linear-gradient(135deg, rgba(0,212,255,0.15), rgba(124,58,237,0.15))"
+                    : t.id === "worldcup" ? "linear-gradient(135deg, rgba(34,197,94,0.12), rgba(0,212,255,0.12))"
+                    : t.id === "transfers" ? "linear-gradient(135deg, rgba(245,158,11,0.12), rgba(239,68,68,0.10))"
+                    : "rgba(255,255,255,0.06)"
+                    : "transparent",
+                  color: tab === t.id ? "#e8edf5" : "#6b7c96",
+                  border: tab === t.id ? "1px solid rgba(255,255,255,0.1)" : "1px solid transparent",
+                }}>
+                <span style={{ color: tab === t.id ? (t.id === "predictions" ? "#00d4ff" : t.id === "emotional" ? "#f472b6" : t.id === "worldcup" ? "#22c55e" : t.id === "transfers" ? "#f59e0b" : "inherit") : "inherit" }}>
+                  {t.icon}
+                </span>
+                <span className="hidden sm:inline">{t.label}</span>
+                <span className="sm:hidden">{t.shortLabel ?? t.label}</span>
+                {isProtected && <Lock size={9} style={{ color: "#6b7c96", marginLeft: 1 }} />}
+              </button>
+            );
+          })}
           <Link href="/players"
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap flex-shrink-0 hover:opacity-80"
             style={{ background: "linear-gradient(135deg, rgba(167,139,250,0.12), rgba(239,68,68,0.10))", color: "#a78bfa", border: "1px solid rgba(167,139,250,0.2)" }}>
             <Users size={14} />
             <span className="hidden sm:inline">Joueurs</span>
             <span className="sm:hidden">Joueurs</span>
+            {!user && <Lock size={9} style={{ color: "#6b7c96" }} />}
           </Link>
         </div>
 
@@ -510,9 +576,9 @@ export default function Home() {
           </>
         )}
 
-        {tab === "predictions" && <PredictionsTab />}
+        {tab === "predictions" && (user ? <PredictionsTab /> : <AuthGate label="Prédictions IA" icon={<Zap size={16} className="inline" style={{ color: "#00d4ff" }} />} />)}
         {tab === "results" && <ResultsTab />}
-        {tab === "emotional" && <EmotionalScoreTab />}
+        {tab === "emotional" && (user ? <EmotionalScoreTab /> : <AuthGate label="Score Émotionnel" icon={<Heart size={16} className="inline" style={{ color: "#f472b6" }} />} />)}
         {tab === "worldcup" && <WorldCupTab />}
         {tab === "transfers" && <TransfersTab />}
         {tab === "config" && <ConfigTab />}
