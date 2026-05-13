@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminAuth } from "@/app/lib/firebase-admin";
+import { getAdminAuth } from "@/app/lib/firebase-admin";
 
 const PROTECTED = ["/players"];
 
@@ -10,6 +10,7 @@ export async function proxy(req: NextRequest) {
   const cookie = req.cookies.get("session")?.value;
   if (cookie) {
     try {
+      const adminAuth = getAdminAuth();
       await adminAuth.verifySessionCookie(cookie, true);
       return NextResponse.next();
     } catch { /* expired / invalid */ }
