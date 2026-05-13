@@ -12,6 +12,27 @@ interface StandingEntry {
   won: number; draw: number; lost: number; playedGames: number;
 }
 
+// Results come from ESPN, standings from football-data.org → different team IDs.
+// Match by normalised name instead.
+function normTeam(s: string) {
+  return s.toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/\b(fc|sc|rc|as|og?c|olympique|stade|sporting|athletic|club|de|le|la|les|du|st)\b/g, "")
+    .replace(/[^a-z ]/g, "").replace(/\s+/g, " ").trim();
+}
+
+function findStanding(name: string, shortName: string, standings: StandingEntry[]): StandingEntry | undefined {
+  const n  = normTeam(name);
+  const sn = normTeam(shortName);
+  return standings.find(s => {
+    const tn  = normTeam(s.team.name);
+    const tsn = normTeam(s.team.shortName);
+    return tn === n || tn === sn || tsn === n || tsn === sn ||
+           tn.includes(n) || n.includes(tn) ||
+           tsn.includes(sn) || sn.includes(tsn);
+  });
+}
+
 function teamStrength(s: StandingEntry): number {
   const gd  = (s.goalsFor - s.goalsAgainst) / Math.max(1, s.playedGames);
   const ppg  = s.points / Math.max(1, s.playedGames);
@@ -435,8 +456,8 @@ export default function ResultsTab() {
       <div className="grid sm:grid-cols-2 gap-4">
         {filteredMatches.map((match, i) => {
           const saved = savedPreds.find((p) => p.matchId === match.id) ?? null;
-          const homeS = standings.find(s => s.team.id === match.homeTeam.id);
-          const awayS = standings.find(s => s.team.id === match.awayTeam.id);
+          const homeS = findStanding(match.homeTeam.name, match.homeTeam.shortName, standings);
+          const awayS = findStanding(match.awayTeam.name, match.awayTeam.shortName, standings);
           const algoPred = homeS && awayS ? computePrediction(homeS, awayS) : null;
           return (
             <div key={match.id} className="animate-fade-in-up" style={{ animationDelay: `${i * 40}ms` }}>
