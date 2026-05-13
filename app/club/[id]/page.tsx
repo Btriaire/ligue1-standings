@@ -373,9 +373,9 @@ function MatchRow({ match, teamId, standings }: { match: MatchInfo; teamId: numb
         <img src={opp.crest} alt="" className="w-4 h-4 object-contain flex-shrink-0" loading="lazy" />
         <span className="flex-1 text-xs truncate" style={{ color: "#e8edf5" }}>{opp.name}</span>
         {done && pred && (
-          <span className="text-[9px] px-1 rounded flex-shrink-0"
-            style={{ background: predCorrect ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", color: predCorrect ? "#22c55e" : "#ef4444" }}>
-            Préd.{predForTeam === "win" ? "V" : predForTeam === "draw" ? "N" : "D"}
+          <span className="text-[9px] px-1.5 py-0.5 rounded flex-shrink-0 font-semibold"
+            style={{ background: "rgba(249,115,22,0.12)", color: "#f97316", border: "1px solid rgba(249,115,22,0.2)" }}>
+            {predCorrect ? "✓" : "✗"} Préd.{predForTeam === "win" ? "V" : predForTeam === "draw" ? "N" : "D"}
           </span>
         )}
         {teamYellows.length > 0 && <span className="text-[10px] flex-shrink-0">🟨×{teamYellows.length}</span>}
