@@ -1,31 +1,23 @@
-import { SignJWT, jwtVerify } from "jose";
+import { adminAuth } from "./firebase-admin";
 import { cookies } from "next/headers";
 
-const SECRET = new TextEncoder().encode(
-  process.env.SESSION_SECRET ?? "change-me-in-production-32-chars!!"
-);
 const COOKIE = "session";
-const TTL = 7 * 24 * 60 * 60; // 7 days in seconds
+const TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export interface SessionPayload {
-  userId: number;
+  userId: string;
   email: string;
   name: string;
 }
 
-export async function createSession(payload: SessionPayload) {
-  const token = await new SignJWT(payload as unknown as Record<string, unknown>)
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime(`${TTL}s`)
-    .sign(SECRET);
-
+export async function createSession(idToken: string) {
+  const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn: TTL_MS });
   const store = await cookies();
-  store.set(COOKIE, token, {
+  store.set(COOKIE, sessionCookie, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: TTL,
+    maxAge: TTL_MS / 1000,
     path: "/",
   });
 }
@@ -33,10 +25,10 @@ export async function createSession(payload: SessionPayload) {
 export async function getSession(): Promise<SessionPayload | null> {
   try {
     const store = await cookies();
-    const token = store.get(COOKIE)?.value;
-    if (!token) return null;
-    const { payload } = await jwtVerify(token, SECRET);
-    return payload as unknown as SessionPayload;
+    const cookie = store.get(COOKIE)?.value;
+    if (!cookie) return null;
+    const decoded = await adminAuth.verifySessionCookie(cookie, true);
+    return { userId: decoded.uid, email: decoded.email ?? "", name: (decoded.name as string) ?? "" };
   } catch {
     return null;
   }
@@ -44,5 +36,12 @@ export async function getSession(): Promise<SessionPayload | null> {
 
 export async function deleteSession() {
   const store = await cookies();
+  try {
+    const cookie = store.get(COOKIE)?.value;
+    if (cookie) {
+      const decoded = await adminAuth.verifySessionCookie(cookie);
+      await adminAuth.revokeRefreshTokens(decoded.sub);
+    }
+  } catch { /* ignore */ }
   store.delete(COOKIE);
 }
