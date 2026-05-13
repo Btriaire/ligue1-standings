@@ -8,7 +8,7 @@ import {
   createUserWithEmailAndPassword,
   updateProfile,
 } from "firebase/auth";
-import { clientAuth } from "@/app/lib/firebase-client";
+import { getClientAuth } from "@/app/lib/firebase-client";
 import { ArrowLeft, LogIn, UserPlus, Eye, EyeOff } from "lucide-react";
 
 function Field({ label, name, type = "text", placeholder, value, onChange }: {
@@ -73,6 +73,7 @@ function LoginForm() {
     e.preventDefault();
     setError(""); setPending(true);
     try {
+      const clientAuth = getClientAuth();
       const cred = await signInWithEmailAndPassword(clientAuth, loginEmail, loginPass);
       await exchangeToken(await cred.user.getIdToken());
       router.push(from);
@@ -94,6 +95,7 @@ function LoginForm() {
     if (!regName || regName.length < 2) { setError("Le nom doit faire au moins 2 caractères."); setPending(false); return; }
     if (regPass.length < 6) { setError("Mot de passe : 6 caractères minimum."); setPending(false); return; }
     try {
+      const clientAuth = getClientAuth();
       const cred = await createUserWithEmailAndPassword(clientAuth, regEmail, regPass);
       await updateProfile(cred.user, { displayName: regName });
       await exchangeToken(await cred.user.getIdToken(true));

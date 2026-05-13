@@ -9,5 +9,11 @@ const firebaseConfig = {
   projectId:  process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
 };
 
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-export const clientAuth = getAuth(app);
+export function getClientAuth() {
+  if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.projectId) {
+    throw new Error("Missing Firebase client environment variables");
+  }
+
+  const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+  return getAuth(app);
+}
