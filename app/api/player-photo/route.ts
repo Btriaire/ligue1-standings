@@ -31,6 +31,12 @@ function commonsFilePath(url: string): string {
     : url.replace(/^http:/, "https:");
 }
 
+function heightToCm(value: string | undefined): number | null {
+  const parsed = parseFloat(value ?? "");
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return Math.round(parsed > 3 ? parsed : parsed * 100);
+}
+
 async function queryWikidata(search: string): Promise<WikidataBinding[]> {
   const query = `
 SELECT ?item ?itemLabel ?image ?dateOfBirth ?height WHERE {
@@ -95,7 +101,7 @@ export async function GET(req: Request) {
           wikidataUrl: best.item?.value ?? null,
           label: best.itemLabel?.value ?? name,
           dateOfBirth: best.dateOfBirth?.value?.slice(0, 10) ?? null,
-          height: best.height?.value ? Math.round(parseFloat(best.height.value) * 100) : null,
+          height: heightToCm(best.height?.value),
         });
       }
     } catch {
