@@ -102,25 +102,34 @@ export async function GET(req: Request) {
   if (!abbr) return NextResponse.json({ players: [] });
 
   // Fetch in parallel:
-  //  - indice-1vs1 pages 1-4  (top 80 rated players — covers every club)
-  //  - buts pages 1-2          (top 40 scorers)
-  //  - passes-décisives p1-2   (top 40 assisters)
-  const [r1, r2, r3, r4, g1, g2, a1, a2] = await Promise.all([
+  //  - indice-1vs1 pages 1-10  (top 200 rated players — covers all positions / all clubs)
+  //  - buts pages 1-3          (top 60 scorers)
+  //  - passes-décisives p1-3   (top 60 assisters)
+  const [r1, r2, r3, r4, r5, r6, r7, r8, r9, r10,
+         g1, g2, g3, a1, a2, a3] = await Promise.all([
     fetchPage("indice-1vs1", 1),
     fetchPage("indice-1vs1", 2),
     fetchPage("indice-1vs1", 3),
     fetchPage("indice-1vs1", 4),
+    fetchPage("indice-1vs1", 5),
+    fetchPage("indice-1vs1", 6),
+    fetchPage("indice-1vs1", 7),
+    fetchPage("indice-1vs1", 8),
+    fetchPage("indice-1vs1", 9),
+    fetchPage("indice-1vs1", 10),
     fetchPage("buts", 1),
     fetchPage("buts", 2),
+    fetchPage("buts", 3),
     fetchPage("passes-d%C3%A9cisives", 1),
     fetchPage("passes-d%C3%A9cisives", 2),
+    fetchPage("passes-d%C3%A9cisives", 3),
   ]);
 
   const map = new Map<string, PlayerStat>();
 
-  upsert(map, parseRows(r1 + r2 + r3 + r4), abbr, "rating");
-  upsert(map, parseRows(g1 + g2),            abbr, "goals");
-  upsert(map, parseRows(a1 + a2),            abbr, "assists");
+  upsert(map, parseRows(r1 + r2 + r3 + r4 + r5 + r6 + r7 + r8 + r9 + r10), abbr, "rating");
+  upsert(map, parseRows(g1 + g2 + g3),   abbr, "goals");
+  upsert(map, parseRows(a1 + a2 + a3),   abbr, "assists");
 
   // Sort: rating first (desc), then goals+assists as tiebreaker
   const players = Array.from(map.values())
@@ -128,7 +137,7 @@ export async function GET(req: Request) {
       const rDiff = b.rating - a.rating;
       return rDiff !== 0 ? rDiff : (b.goals + b.assists) - (a.goals + a.assists);
     })
-    .slice(0, 8);
+    .slice(0, 11);
 
   return NextResponse.json({ players });
 }
