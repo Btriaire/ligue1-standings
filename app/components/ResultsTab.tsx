@@ -4,6 +4,34 @@ import { useEffect, useState } from "react";
 import { CheckCircle, XCircle, Minus, Clock, Target, Download, Trophy } from "lucide-react";
 import { loadPredictions, downloadCSV, SavedPrediction } from "@/app/lib/predictions-store";
 
+// ── Standings + prediction logic (mirrored from club page) ────────────────────
+interface StandingEntry {
+  position: number;
+  team: { id: number; name: string; shortName: string; tla: string; crest: string };
+  points: number; goalsFor: number; goalsAgainst: number;
+  won: number; draw: number; lost: number; playedGames: number;
+}
+
+function teamStrength(s: StandingEntry): number {
+  const gd  = (s.goalsFor - s.goalsAgainst) / Math.max(1, s.playedGames);
+  const ppg  = s.points / Math.max(1, s.playedGames);
+  const posF = (18 - s.position) / 17;
+  return ppg * 0.5 + gd * 0.3 + posF * 0.2;
+}
+
+function computePrediction(homeS: StandingEntry, awayS: StandingEntry) {
+  const hs = Math.min(1, Math.max(0, teamStrength(homeS) + 0.08));
+  const as_ = Math.min(1, Math.max(0, teamStrength(awayS)));
+  const total = hs + as_ + 0.001;
+  const rh = hs / total, ra = as_ / total;
+  const df = Math.max(0.12, 0.32 - Math.abs(rh - ra) * 0.6);
+  let hP = rh * (1 - df), aP = ra * (1 - df), dP = df;
+  const sum = hP + aP + dP;
+  hP = Math.round(hP / sum * 100); aP = Math.round(aP / sum * 100); dP = 100 - hP - aP;
+  const winner: "home" | "away" | "draw" = hP > aP && hP > dP ? "home" : aP > hP && aP > dP ? "away" : "draw";
+  return { homeProb: hP, drawProb: dP, awayProb: aP, winner };
+}
+
 interface GoalEntry {
   minute: number | null;
   scorer: string | null;
@@ -121,7 +149,13 @@ function PredictionBadge({ saved, actualResult }: { saved: SavedPrediction | nul
   );
 }
 
-function MatchResultCard({ match, savedPrediction }: { match: ResultMatch; savedPrediction: SavedPrediction | null }) {
+interface AlgoPred { winner: "home" | "away" | "draw"; homeProb: number; drawProb: number; awayProb: number }
+
+function MatchResultCard({ match, savedPrediction, algoPred }: {
+  match: ResultMatch;
+  savedPrediction: SavedPrediction | null;
+  algoPred: AlgoPred | null;
+}) {
   const { day, time } = formatDate(match.date);
 
   const homeWon = match.result === "home";
@@ -191,6 +225,22 @@ function MatchResultCard({ match, savedPrediction }: { match: ResultMatch; saved
               }}>
               {isDraw ? "Nul" : `Vic. ${homeWon ? (match.homeTeam.shortName || match.homeTeam.tla) : (match.awayTeam.shortName || match.awayTeam.tla)}`}
             </span>
+
+            {/* Algorithmic prediction — always shown in orange */}
+            {algoPred && (() => {
+              const predLabel = algoPred.winner === "home"
+                ? `Prédit : ${match.homeTeam.shortName || match.homeTeam.tla} (${algoPred.homeProb}%)`
+                : algoPred.winner === "away"
+                ? `Prédit : ${match.awayTeam.shortName || match.awayTeam.tla} (${algoPred.awayProb}%)`
+                : `Prédit : Nul (${algoPred.drawProb}%)`;
+              const predCorrect = algoPred.winner === match.result;
+              return (
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"
+                  style={{ background: "rgba(249,115,22,0.12)", color: "#f97316", border: "1px solid rgba(249,115,22,0.25)" }}>
+                  {predCorrect ? "✓" : "✗"} {predLabel}
+                </span>
+              );
+            })()}
           </div>
 
           {/* Away team */}
@@ -242,6 +292,7 @@ function MatchResultCard({ match, savedPrediction }: { match: ResultMatch; saved
 
 export default function ResultsTab() {
   const [data, setData] = useState<ResultsData | null>(null);
+  const [standings, setStandings] = useState<StandingEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savedPreds, setSavedPreds] = useState<SavedPrediction[]>([]);
@@ -249,10 +300,14 @@ export default function ResultsTab() {
 
   useEffect(() => {
     setSavedPreds(loadPredictions());
-    fetch("/api/results?limit=50")
-      .then((r) => r.json())
-      .then((d) => { if (d.error) throw new Error(d.error); setData(d); })
-      .catch((e) => setError(e.message))
+    Promise.all([
+      fetch("/api/results?limit=50").then(r => r.json()),
+      fetch("/api/standings").then(r => r.json()).catch(() => ({ standings: [] })),
+    ]).then(([results, st]) => {
+      if (results.error) throw new Error(results.error);
+      setData(results);
+      setStandings(st?.standings ?? []);
+    }).catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
 
@@ -375,9 +430,12 @@ export default function ResultsTab() {
       <div className="grid sm:grid-cols-2 gap-4">
         {filteredMatches.map((match, i) => {
           const saved = savedPreds.find((p) => p.matchId === match.id) ?? null;
+          const homeS = standings.find(s => s.team.id === match.homeTeam.id);
+          const awayS = standings.find(s => s.team.id === match.awayTeam.id);
+          const algoPred = homeS && awayS ? computePrediction(homeS, awayS) : null;
           return (
             <div key={match.id} className="animate-fade-in-up" style={{ animationDelay: `${i * 40}ms` }}>
-              <MatchResultCard match={match} savedPrediction={saved} />
+              <MatchResultCard match={match} savedPrediction={saved} algoPred={algoPred} />
             </div>
           );
         })}
