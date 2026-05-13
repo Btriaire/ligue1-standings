@@ -6,44 +6,45 @@ export const revalidate = 3600; // 1h cache — limit Claude calls
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-// Club name → Reddit search term
-const REDDIT_TERMS: Record<number, string> = {
-  524: "PSG Paris Saint-Germain",
-  548: "Monaco ASM",
-  516: "Marseille OM",
-  521: "Lille LOSC",
-  529: "Rennes SRFC",
-  522: "Nice OGC",
-  546: "Lens RCL",
-  523: "Lyon OL",
-  576: "Strasbourg RCSA",
-  511: "Toulouse TFC",
-  512: "Brest SB29",
-  532: "Angers SCO",
-  533: "Le Havre HAC",
-  519: "Auxerre AJA",
-  543: "Nantes FCN",
-  545: "Metz FC",
-  525: "Lorient FCL",
-  1045: "Paris FC",
+// Club name → Google News search query (French)
+const GOOGLE_TERMS: Record<number, string> = {
+  524: "PSG Paris Saint-Germain Ligue 1",
+  548: "AS Monaco Ligue 1",
+  516: "Marseille OM Ligue 1",
+  521: "Lille LOSC Ligue 1",
+  529: "Stade Rennais Ligue 1",
+  522: "OGC Nice Ligue 1",
+  546: "RC Lens Ligue 1",
+  523: "Lyon OL Ligue 1",
+  576: "Strasbourg RCSA Ligue 1",
+  511: "Toulouse FC Ligue 1",
+  512: "Stade Brestois Ligue 1",
+  532: "Angers SCO Ligue 1",
+  533: "Le Havre HAC Ligue 1",
+  519: "AJ Auxerre Ligue 1",
+  543: "FC Nantes Ligue 1",
+  545: "FC Metz Ligue 1",
+  525: "FC Lorient Ligue 1",
+  1045: "Paris FC Ligue 1",
 };
 
-async function fetchRedditPosts(clubName: string): Promise<string[]> {
+async function fetchGoogleSportsNews(query: string): Promise<string[]> {
   try {
-    const q = encodeURIComponent(clubName);
-    const res = await fetch(
-      `https://www.reddit.com/r/ligue1/search.json?q=${q}&sort=new&limit=15&t=month`,
-      {
-        headers: { "User-Agent": "FootPredictom/1.0" },
-        signal: AbortSignal.timeout(5000),
-      }
-    );
+    const q = encodeURIComponent(query);
+    const url = `https://news.google.com/rss/search?q=${q}&hl=fr&gl=FR&ceid=FR:fr`;
+    const res = await fetch(url, {
+      headers: { "User-Agent": "FootPredictom/1.0" },
+      signal: AbortSignal.timeout(6000),
+    });
     if (!res.ok) return [];
-    const data = await res.json();
-    return (data?.data?.children ?? [])
-      .map((c: { data: { title: string } }) => c.data.title)
-      .filter((t: string) => t.length > 5)
-      .slice(0, 12);
+    const xml = await res.text();
+    const titles: string[] = [];
+    for (const m of xml.matchAll(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/g)) {
+      const t = m[1].replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").trim();
+      // Skip the feed title itself and very short strings
+      if (t.length > 10 && !t.toLowerCase().includes("google")) titles.push(t);
+    }
+    return titles.slice(0, 12);
   } catch { return []; }
 }
 
@@ -69,7 +70,6 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const teamId = parseInt(url.searchParams.get("teamId") ?? "0");
   const terms = CLUB_SEARCH_TERMS[teamId];
-  const redditTerm = REDDIT_TERMS[teamId] ?? terms?.split("+")[0] ?? "";
 
   if (!terms) {
     return NextResponse.json({ items: [], score: 50, positive: 0, negative: 0, total: 0,
@@ -77,13 +77,14 @@ export async function GET(req: Request) {
   }
 
   const clubKeywords = terms.split("+").filter(t => t.length > 2).map(t => t.toLowerCase());
+  const googleQuery = GOOGLE_TERMS[teamId] ?? `${terms.split("+")[0]} Ligue 1`;
 
-  const [redditTitles, lequipeTitles] = await Promise.all([
-    fetchRedditPosts(redditTerm),
+  const [googleTitles, lequipeTitles] = await Promise.all([
+    fetchGoogleSportsNews(googleQuery),
     fetchLequipeTitles(clubKeywords),
   ]);
 
-  const allTitles = [...new Set([...redditTitles, ...lequipeTitles])].slice(0, 18);
+  const allTitles = [...new Set([...googleTitles, ...lequipeTitles])].slice(0, 18);
 
   if (allTitles.length === 0) {
     return NextResponse.json({ items: [], score: 50, positive: 0, negative: 0, total: 0,
@@ -102,7 +103,7 @@ export async function GET(req: Request) {
       system: 'Analyse sentiment foot. JSON uniquement: {"score":0-100,"sentiment":"positive|negative|neutral","summary":"1 phrase"}',
       messages: [{
         role: "user",
-        content: `Club:${redditTerm}\n${allTitles.map((t, i) => `${i + 1}.${t}`).join("\n")}`,
+        content: `Club:${googleQuery}\n${allTitles.map((t, i) => `${i + 1}.${t}`).join("\n")}`,
       }],
     });
 
@@ -125,7 +126,7 @@ export async function GET(req: Request) {
 
   const items = allTitles.map(title => ({
     title,
-    source: redditTitles.includes(title) ? "Reddit r/ligue1" : "L'Équipe",
+    source: googleTitles.includes(title) ? "Google Sports" : "L'Équipe",
     sentiment,
     pubDate: new Date().toISOString(),
   }));
