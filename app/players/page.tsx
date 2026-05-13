@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import {
   Search, X, ChevronDown, ChevronUp, ArrowLeft, Users,
-  AlertTriangle, ExternalLink, Filter, TrendingUp,
+  AlertTriangle, ExternalLink, Filter, TrendingUp, Camera,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -34,6 +34,8 @@ interface PlayerEntry {
   recentGoals?: number;
   recentAssists?: number;
   imageUrl?: string;
+  photoSource?: "transfermarkt" | "wikidata" | "fallback";
+  photoConfidence?: "high" | "medium" | "low";
   // Understat
   xG?: number; xA?: number; usGoals?: number; usAssists?: number;
   shots?: number; minutes?: number; games?: number;
@@ -156,8 +158,71 @@ function formScore(p: PlayerEntry): number {
   return p.formBadge === "hot" ? 85 : p.formBadge === "good" ? 65 : p.formBadge === "cold" ? 25 : 45;
 }
 
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "?";
+}
+
 function normalize(s: string): string {
   return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+// ── PlayerPhoto ───────────────────────────────────────────────────────────────
+
+function PlayerPhoto({ p, size = "sm", eager = false }: { p: PlayerEntry; size?: "sm" | "lg"; eager?: boolean }) {
+  const [src, setSrc] = useState(p.imageUrl ?? "");
+  const [source, setSource] = useState<PlayerEntry["photoSource"]>(p.imageUrl ? "transfermarkt" : undefined);
+  const [failed, setFailed] = useState(false);
+  const posColor = POS_COL[p.position] ?? "#6b7c96";
+  const dim = size === "lg" ? "w-24 h-24" : "w-9 h-9";
+  const text = size === "lg" ? "text-xl" : "text-[11px]";
+
+  useEffect(() => {
+    if (!eager || p.imageUrl || src) return;
+    const ctrl = new AbortController();
+    const qs = new URLSearchParams({
+      name: p.name,
+      club: p.club?.name ?? p.club?.shortName ?? CLUB_SHORT[p.clubId] ?? "",
+    });
+    fetch(`/api/player-photo?${qs.toString()}`, { signal: ctrl.signal })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.imageUrl) {
+          setSrc(data.imageUrl);
+          setSource(data.source ?? "wikidata");
+        }
+      })
+      .catch(() => null);
+    return () => ctrl.abort();
+  }, [eager, p.club?.name, p.club?.shortName, p.clubId, p.imageUrl, p.name, src]);
+
+  if (src && !failed) {
+    return (
+      <div className={`${dim} rounded-xl overflow-hidden flex-shrink-0 relative`}
+        title={source === "wikidata" ? "Photo Wikimedia/Wikidata" : "Photo joueur"}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt={p.name} className="w-full h-full object-cover" onError={() => setFailed(true)} />
+        {size === "lg" && (
+          <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase"
+            style={{ background: "rgba(0,0,0,0.65)", color: "#e8edf5" }}>
+            {source === "wikidata" ? "Commons" : "Photo"}
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`${dim} rounded-xl flex items-center justify-center flex-shrink-0 font-black ${text}`}
+      title="Photo non disponible"
+      style={{ background: `${posColor}16`, color: posColor, border: `1px solid ${posColor}30` }}>
+      {size === "lg" ? <Camera size={22} /> : initials(p.name)}
+    </div>
+  );
 }
 
 // ── StatBox ───────────────────────────────────────────────────────────────────
@@ -203,6 +268,27 @@ function PlayerDetail({ p }: { p: PlayerEntry }) {
       <div className="px-4 py-3 space-y-3">
 
         {/* Bio */}
+        <div className="flex gap-3">
+          <PlayerPhoto p={p} size="lg" eager />
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <span className="text-[10px] font-bold px-2 py-1 rounded-lg uppercase"
+                style={{ background: `${posColor}15`, color: posColor, border: `1px solid ${posColor}25` }}>
+                {POS_FR[p.position] ?? p.position}
+              </span>
+              {p.club.crest && <img src={p.club.crest} alt="" className="w-4 h-4 object-contain" />} {/* eslint-disable-line @next/next/no-img-element */}
+              <span className="text-xs font-semibold" style={{ color: "#e8edf5" }}>{p.club.shortName ?? p.club.name ?? CLUB_SHORT[p.clubId]}</span>
+              {isInj && <span className="flex items-center gap-1 text-[10px] font-bold" style={{ color: "#f97316" }}><AlertTriangle size={10} /> Blessé</span>}
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5">
+              <StatBox label="Forme" value={formScore(p)} color={ec(formScore(p))} sub="/100" />
+              <StatBox label="Valeur" value={(p.marketValue ?? 0) > 0 ? fv(p.marketValue) : "—"} color="#00d4ff" />
+              <StatBox label="Minutes" value={p.dm_minutes ?? p.minutes ?? "—"} color="#94a3b8" />
+              <StatBox label="Poste" value={POS_SHORT[p.position] ?? "?"} color={posColor} />
+            </div>
+          </div>
+        </div>
+
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
           {p.dateOfBirth && (
             <span style={{ color: "#94a3b8" }}>
@@ -214,7 +300,7 @@ function PlayerDetail({ p }: { p: PlayerEntry }) {
           {(p.height ?? 0) > 0 && <span style={{ color: "#94a3b8" }}><span style={{ color: "#6b7c96" }}>Taille </span>{p.height} cm</span>}
           {p.foot && p.foot !== "" && <span style={{ color: "#94a3b8" }}><span style={{ color: "#6b7c96" }}>Pied </span>{p.foot}</span>}
           {p.nationality?.[0] && <span style={{ color: "#94a3b8" }}><span style={{ color: "#6b7c96" }}>Nat. </span>{p.nationality[0]}</span>}
-          {p.signedFrom && <span style={{ color: "#94a3b8" }}><span style={{ color: "#6b7c96" }}>De </span>{p.signedFrom}</span>}
+          {p.signedFrom && <span style={{ color: "#94a3b8" }}><span style={{ color: "#6b7c96" }}>Provenance </span>{p.signedFrom}</span>}
           {p.joinedOn && (
             <span style={{ color: "#94a3b8" }}>
               <span style={{ color: "#6b7c96" }}>Arrivé </span>
@@ -222,8 +308,6 @@ function PlayerDetail({ p }: { p: PlayerEntry }) {
             </span>
           )}
           {p.contract && <span style={{ color: "#94a3b8" }}><span style={{ color: "#6b7c96" }}>Contrat → </span>{p.contract}</span>}
-          {(p.marketValue ?? 0) > 0 && <span style={{ color: "#00d4ff" }}><span style={{ color: "#6b7c96" }}>Valeur </span><strong>{fv(p.marketValue)}</strong></span>}
-          {isInj && <span className="flex items-center gap-1" style={{ color: "#f97316" }}><AlertTriangle size={10} /> Blessé</span>}
         </div>
 
         {/* Understat saison */}
@@ -386,6 +470,12 @@ function PlayerDetail({ p }: { p: PlayerEntry }) {
             style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#6b7c96" }}>
             Understat <ExternalLink size={8} />
           </a>
+          <a href={`https://www.wikidata.org/w/index.php?search=${encodeURIComponent(`${p.name} ${p.club.shortName ?? p.club.name ?? ""} footballer`)}`}
+            target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-1 text-[10px] px-2.5 py-1.5 rounded-lg hover:opacity-80 transition-all"
+            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#6b7c96" }}>
+            Photo/Wikidata <ExternalLink size={8} />
+          </a>
         </div>
       </div>
     </div>
@@ -409,6 +499,7 @@ function PlayerRow({ p, expanded, onToggle, rank }: {
         {rank != null && (
           <span className="text-[10px] font-mono w-5 flex-shrink-0 text-right" style={{ color: "#6b7c96" }}>{rank}</span>
         )}
+        <PlayerPhoto p={p} eager={expanded} />
         <span className="text-[8px] font-bold px-1 py-0.5 rounded flex-shrink-0"
           style={{ background: `${posColor}15`, color: posColor, border: `1px solid ${posColor}25` }}>
           {POS_SHORT[p.position] ?? "?"}
@@ -747,6 +838,7 @@ export default function PlayersPage() {
             <span>Sources : <span style={{ color: "#6b7c96" }}>Datamb.football</span> (per 90 · +140 stats)</span>
             <span>· <span style={{ color: "#6b7c96" }}>Understat</span> (totaux saison)</span>
             <span>· <span style={{ color: "#6b7c96" }}>Football-Data.org</span> (effectif)</span>
+            <span>· <span style={{ color: "#6b7c96" }}>Wikidata/Commons</span> (photos publiques)</span>
             <span className="ml-auto">{loadedCount}/{TEAM_IDS.length} clubs</span>
           </div>
         )}
