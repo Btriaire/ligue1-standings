@@ -64,6 +64,61 @@ interface TmPlayer {
   dm_yellowCards90?: number;
   dm_saves90?: number;
   dm_exits90?: number;
+  // Full datamb — volume & context
+  dm_minutes?: number;
+  dm_matches?: number;
+  dm_touches90?: number;
+  dm_ga90?: number;
+  dm_npga90?: number;
+  dm_npGoals90?: number;
+  dm_headedGoals90?: number;
+  dm_xgShot?: number;
+  dm_npxgShot?: number;
+  dm_npxgXa90?: number;
+  dm_goalsMinusXg90?: number;
+  dm_possLost90?: number;
+  dm_possBalance?: number;
+  dm_progressiveActions90?: number;
+  // Datamb — dribbles & duels offensifs
+  dm_successfulDribbles90?: number;
+  dm_offDuels90?: number;
+  dm_offDuelPct?: number;
+  dm_offDuelWon90?: number;
+  dm_accelerations90?: number;
+  dm_duels90?: number;
+  // Datamb — passes détaillées
+  dm_passes90?: number;
+  dm_fwdPasses90?: number;
+  dm_fwdPassPct?: number;
+  dm_longPasses90?: number;
+  dm_longPassAcc?: number;
+  dm_avgPassLength?: number;
+  dm_passesRec90?: number;
+  dm_foulsSuffered90?: number;
+  dm_shotAssists90?: number;
+  dm_preAssists90?: number;
+  dm_passesToFinal90?: number;
+  dm_passFinalPct?: number;
+  dm_passesToBox90?: number;
+  dm_throughPasses90?: number;
+  dm_throughPassPct?: number;
+  dm_progressivePasses90?: number;
+  dm_progressivePassAcc?: number;
+  dm_deepCompletions90?: number;
+  dm_xaPer100?: number;
+  dm_chanceCreation?: number;
+  dm_inaccuratePct?: number;
+  // Datamb — défense
+  dm_aerialDuels90?: number;
+  dm_aerialWon90?: number;
+  dm_shotsBlocked90?: number;
+  dm_redCards90?: number;
+  // Datamb — GK extra
+  dm_gcTotal?: number;
+  dm_xgConceded90?: number;
+  dm_preventedGoals90?: number;
+  dm_backPassesGK90?: number;
+  dm_shotsConceded90?: number;
 }
 
 interface UnderstatPlayer {
@@ -180,6 +235,61 @@ function extractDatambStats(row: DatambRow): Partial<TmPlayer> {
     dm_yellowCards90:  n(row["Yellow cards per 90"]),
     dm_saves90:        n(row["Saves per 90"]),
     dm_exits90:        n(row["Exits per 90"]),
+    // Volume & context
+    dm_minutes:              n(row["Minutes played"]),
+    dm_matches:              n(row["Matches played"]),
+    dm_touches90:            n(row["Touches per 90"]),
+    dm_ga90:                 n(row["Goals + Assists per 90"]),
+    dm_npga90:               n(row["NPG+A per 90"]),
+    dm_npGoals90:            n(row["Non-penalty goals per 90"]),
+    dm_headedGoals90:        n(row["Headed goals per 90"]),
+    dm_xgShot:               n(row["xG/Shot"]),
+    dm_npxgShot:             n(row["npxG/Shot"]),
+    dm_npxgXa90:             n(row["npxG+xA per 90"]),
+    dm_goalsMinusXg90:       n(row["Goals - xG per 90"]),
+    dm_possLost90:           n(row["Possessions lost per 90"]),
+    dm_possBalance:          n(row["Possession +/-"]),
+    dm_progressiveActions90: n(row["Progressive actions per 90"]),
+    // Dribbles & duels offensifs
+    dm_successfulDribbles90: n(row["Successful dribbles per 90"]),
+    dm_offDuels90:           n(row["Offensive duels per 90"]),
+    dm_offDuelPct:           n(row["Offensive duels won %"]),
+    dm_offDuelWon90:         n(row["Offensive duels won per 90"]),
+    dm_accelerations90:      n(row["Accelerations per 90"]),
+    dm_duels90:              n(row["Duels per 90"]),
+    // Passes détaillées
+    dm_passes90:             n(row["Passes per 90"]),
+    dm_fwdPasses90:          n(row["Forward passes per 90"]),
+    dm_fwdPassPct:           n(row["Forward pass completion %"]),
+    dm_longPasses90:         n(row["Long passes per 90"]),
+    dm_longPassAcc:          n(row["Long pass accuracy %"]),
+    dm_avgPassLength:        n(row["Average pass length (m)"]),
+    dm_passesRec90:          n(row["Passes received per 90"]),
+    dm_foulsSuffered90:      n(row["Fouls suffered per 90"]),
+    dm_shotAssists90:        n(row["Shot assists per 90"]),
+    dm_preAssists90:         n(row["Pre-assists per 90"]),
+    dm_passesToFinal90:      n(row["Passes to final third per 90"]),
+    dm_passFinalPct:         n(row["Pass completion (to final third) %"]),
+    dm_passesToBox90:        n(row["Passes to penalty box per 90"]),
+    dm_throughPasses90:      n(row["Through passes per 90"]),
+    dm_throughPassPct:       n(row["Through pass completion %"]),
+    dm_progressivePasses90:  n(row["Progressive passes per 90"]),
+    dm_progressivePassAcc:   n(row["Progressive pass accuracy %"]),
+    dm_deepCompletions90:    n(row["Deep completions per 90"]),
+    dm_xaPer100:             n(row["xA per 100 passes"]),
+    dm_chanceCreation:       n(row["Chance creation ratio"]),
+    dm_inaccuratePct:        n(row["Inaccurate passes, %"]),
+    // Défense
+    dm_aerialDuels90:        n(row["Aerial duels per 90"]),
+    dm_aerialWon90:          n(row["Aerial duels won per 90"]),
+    dm_shotsBlocked90:       n(row["Shots blocked per 90"]),
+    dm_redCards90:           n(row["Red cards per 90"]),
+    // GK extra
+    dm_gcTotal:              n(row["Goals conceded"]),
+    dm_xgConceded90:         n(row["xG conceded per 90"]),
+    dm_preventedGoals90:     n(row["Prevented goals per 90"]),
+    dm_backPassesGK90:       n(row["Back passes received as GK per 90"]),
+    dm_shotsConceded90:      n(row["Shots conceded per 90"]),
   };
 }
 
