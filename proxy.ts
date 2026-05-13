@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { jwtVerify } from "jose";
-
-const SECRET = new TextEncoder().encode(
-  process.env.SESSION_SECRET ?? "change-me-in-production-32-chars!!"
-);
+import { adminAuth } from "@/app/lib/firebase-admin";
 
 const PROTECTED = ["/players"];
 
@@ -11,10 +7,10 @@ export async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname;
   if (!PROTECTED.some((p) => path.startsWith(p))) return NextResponse.next();
 
-  const token = req.cookies.get("session")?.value;
-  if (token) {
+  const cookie = req.cookies.get("session")?.value;
+  if (cookie) {
     try {
-      await jwtVerify(token, SECRET);
+      await adminAuth.verifySessionCookie(cookie, true);
       return NextResponse.next();
     } catch { /* expired / invalid */ }
   }

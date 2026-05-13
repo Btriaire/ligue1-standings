@@ -376,7 +376,7 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode; shortLabel?: stri
   { id: "config",      label: "Configuration",     icon: <Settings size={14} />,         shortLabel: "Config" },
 ];
 
-interface AuthUser { id: number; email: string; name: string }
+interface AuthUser { id: string; email: string; name: string }
 
 function AuthGate({ label, icon }: { label: string; icon: React.ReactNode }) {
   return (
