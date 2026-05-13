@@ -636,6 +636,7 @@ export default function ClubPage() {
   const [buzz, setBuzz] = useState<BuzzData | null>(null);
   const [emotional, setEmotional] = useState<EmotionalEntry | null>(null);
   const [clubAnalysis, setClubAnalysis] = useState<{ analysis: string; tag: string } | null>(null);
+  const [topPlayers, setTopPlayers] = useState<{ name: string; url: string; imageUrl: string; goals: number; assists: number }[]>([]);
   const [standings, setStandings] = useState<StandingEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingBuzz, setLoadingBuzz] = useState(false);
@@ -647,13 +648,18 @@ export default function ClubPage() {
   useEffect(() => {
     if (!teamId) return;
 
-    // Auto-load buzz in parallel with other data
+    // Auto-load buzz + players in parallel with other data
     setLoadingBuzz(true);
     fetch(`/api/fan-buzz?teamId=${teamId}`)
       .then(r => r.json())
       .then(setBuzz)
       .catch(() => null)
       .finally(() => setLoadingBuzz(false));
+
+    fetch(`/api/players?teamId=${teamId}`)
+      .then(r => r.json())
+      .then(d => setTopPlayers(d.players ?? []))
+      .catch(() => null);
 
     Promise.all([
       fetch(`/api/squad/${teamId}`).then(r => r.json()).catch(() => null),
@@ -995,6 +1001,57 @@ export default function ClubPage() {
             </div>
           );
         })()}
+
+        {/* ── TOP JOUEURS (one-versus-one.com) ── */}
+        {topPlayers.length > 0 && (
+          <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42", background: "#0d1421" }}>
+            <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: "1px solid #1e2d42" }}>
+              <Star size={13} style={{ color: "#fbbf24" }} />
+              <span className="font-bold text-sm" style={{ color: "#e8edf5" }}>Top Joueurs</span>
+              <a href="https://one-versus-one.com/fr/joueurs" target="_blank" rel="noopener noreferrer"
+                className="ml-auto flex items-center gap-1 text-[10px] hover:opacity-70 transition-opacity"
+                style={{ color: "#6b7c96" }}>
+                one-versus-one.com <ExternalLink size={9} />
+              </a>
+            </div>
+            <div className="p-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {topPlayers.map(p => (
+                <a key={p.url} href={p.url} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-2 py-2 rounded-xl hover:bg-white/[0.04] transition-colors"
+                  style={{ border: "1px solid rgba(255,255,255,0.06)" }}>
+                  {/* Avatar */}
+                  {p.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={p.imageUrl} alt={p.name}
+                      className="w-9 h-9 rounded-full object-cover flex-shrink-0"
+                      style={{ background: "#1e2d42" }}
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center"
+                      style={{ background: "#1e2d42" }}>
+                      <Users size={14} style={{ color: "#6b7c96" }} />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold truncate leading-tight" style={{ color: "#e8edf5" }}>{p.name}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {p.goals > 0 && (
+                        <span className="text-[10px] font-bold" style={{ color: "#34d399" }}>
+                          ⚽ {p.goals}
+                        </span>
+                      )}
+                      {p.assists > 0 && (
+                        <span className="text-[10px] font-bold" style={{ color: "#60a5fa" }}>
+                          🅰 {p.assists}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ── BUZZ SUPPORTERS ── */}
         <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42", background: "#0d1421" }}>
