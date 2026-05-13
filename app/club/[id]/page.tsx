@@ -636,7 +636,7 @@ export default function ClubPage() {
   const [buzz, setBuzz] = useState<BuzzData | null>(null);
   const [emotional, setEmotional] = useState<EmotionalEntry | null>(null);
   const [clubAnalysis, setClubAnalysis] = useState<{ analysis: string; tag: string } | null>(null);
-  const [topPlayers, setTopPlayers] = useState<{ name: string; url: string; imageUrl: string; goals: number; assists: number }[]>([]);
+  const [topPlayers, setTopPlayers] = useState<{ name: string; url: string; imageUrl: string; rating: number; goals: number; assists: number }[]>([]);
   const [standings, setStandings] = useState<StandingEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingBuzz, setLoadingBuzz] = useState(false);
@@ -1008,47 +1008,72 @@ export default function ClubPage() {
             <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: "1px solid #1e2d42" }}>
               <Star size={13} style={{ color: "#fbbf24" }} />
               <span className="font-bold text-sm" style={{ color: "#e8edf5" }}>Top Joueurs</span>
-              <a href="https://one-versus-one.com/fr/joueurs" target="_blank" rel="noopener noreferrer"
+              <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold" style={{ background: "rgba(251,191,36,0.12)", color: "#fbbf24" }}>Indice 1vs1</span>
+              <a href="https://one-versus-one.com/fr/classements/ligue-1/joueurs/indice-1vs1"
+                target="_blank" rel="noopener noreferrer"
                 className="ml-auto flex items-center gap-1 text-[10px] hover:opacity-70 transition-opacity"
                 style={{ color: "#6b7c96" }}>
                 one-versus-one.com <ExternalLink size={9} />
               </a>
             </div>
             <div className="p-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {topPlayers.map(p => (
-                <a key={p.url} href={p.url} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-2 py-2 rounded-xl hover:bg-white/[0.04] transition-colors"
-                  style={{ border: "1px solid rgba(255,255,255,0.06)" }}>
-                  {/* Avatar */}
-                  {p.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.imageUrl} alt={p.name}
-                      className="w-9 h-9 rounded-full object-cover flex-shrink-0"
-                      style={{ background: "#1e2d42" }}
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                  ) : (
-                    <div className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center"
-                      style={{ background: "#1e2d42" }}>
-                      <Users size={14} style={{ color: "#6b7c96" }} />
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold truncate leading-tight" style={{ color: "#e8edf5" }}>{p.name}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      {p.goals > 0 && (
-                        <span className="text-[10px] font-bold" style={{ color: "#34d399" }}>
-                          ⚽ {p.goals}
+              {topPlayers.map(p => {
+                const ratingColor =
+                  p.rating >= 80 ? "#34d399" :
+                  p.rating >= 70 ? "#60a5fa" :
+                  p.rating >= 60 ? "#fbbf24" :
+                  p.rating >  0  ? "#94a3b8" : "#4b5563";
+                const ratingBg =
+                  p.rating >= 80 ? "rgba(52,211,153,0.12)" :
+                  p.rating >= 70 ? "rgba(96,165,250,0.12)" :
+                  p.rating >= 60 ? "rgba(251,191,36,0.12)" :
+                  p.rating >  0  ? "rgba(148,163,184,0.10)" : "rgba(75,85,99,0.10)";
+                return (
+                  <a key={p.url} href={p.url} target="_blank" rel="noopener noreferrer"
+                    className="flex flex-col rounded-xl hover:bg-white/[0.04] transition-colors overflow-hidden"
+                    style={{ border: "1px solid rgba(255,255,255,0.06)" }}>
+                    {/* Avatar + rating badge */}
+                    <div className="relative">
+                      {p.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={p.imageUrl} alt={p.name}
+                          className="w-full h-24 object-cover object-top"
+                          style={{ background: "#1e2d42" }}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "";
+                            (e.target as HTMLImageElement).style.display = "none";
+                          }} />
+                      ) : (
+                        <div className="w-full h-24 flex items-center justify-center" style={{ background: "#1a2535" }}>
+                          <Users size={28} style={{ color: "#374151" }} />
+                        </div>
+                      )}
+                      {/* Rating badge */}
+                      {p.rating > 0 && (
+                        <span className="absolute top-1.5 right-1.5 text-[11px] font-black px-1.5 py-0.5 rounded-md leading-none"
+                          style={{ background: ratingBg, color: ratingColor, border: `1px solid ${ratingColor}40` }}>
+                          {p.rating}
                         </span>
                       )}
-                      {p.assists > 0 && (
-                        <span className="text-[10px] font-bold" style={{ color: "#60a5fa" }}>
-                          🅰 {p.assists}
-                        </span>
-                      )}
                     </div>
-                  </div>
-                </a>
-              ))}
+                    {/* Name + stats */}
+                    <div className="px-2 py-1.5">
+                      <p className="text-[11px] font-semibold truncate leading-tight" style={{ color: "#e8edf5" }}>{p.name}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {p.goals > 0 && (
+                          <span className="text-[10px] font-bold" style={{ color: "#34d399" }}>⚽ {p.goals}</span>
+                        )}
+                        {p.assists > 0 && (
+                          <span className="text-[10px] font-bold" style={{ color: "#60a5fa" }}>🅰 {p.assists}</span>
+                        )}
+                        {p.goals === 0 && p.assists === 0 && (
+                          <span className="text-[10px]" style={{ color: "#4b5563" }}>—</span>
+                        )}
+                      </div>
+                    </div>
+                  </a>
+                );
+              })}
             </div>
           </div>
         )}
