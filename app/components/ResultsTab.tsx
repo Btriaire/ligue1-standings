@@ -226,21 +226,6 @@ function MatchResultCard({ match, savedPrediction, algoPred }: {
               {isDraw ? "Nul" : `Vic. ${homeWon ? (match.homeTeam.shortName || match.homeTeam.tla) : (match.awayTeam.shortName || match.awayTeam.tla)}`}
             </span>
 
-            {/* Algorithmic prediction — always shown in orange */}
-            {algoPred && (() => {
-              const predLabel = algoPred.winner === "home"
-                ? `Prédit : ${match.homeTeam.shortName || match.homeTeam.tla} (${algoPred.homeProb}%)`
-                : algoPred.winner === "away"
-                ? `Prédit : ${match.awayTeam.shortName || match.awayTeam.tla} (${algoPred.awayProb}%)`
-                : `Prédit : Nul (${algoPred.drawProb}%)`;
-              const predCorrect = algoPred.winner === match.result;
-              return (
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"
-                  style={{ background: "rgba(249,115,22,0.12)", color: "#f97316", border: "1px solid rgba(249,115,22,0.25)" }}>
-                  {predCorrect ? "✓" : "✗"} {predLabel}
-                </span>
-              );
-            })()}
           </div>
 
           {/* Away team */}
@@ -256,6 +241,26 @@ function MatchResultCard({ match, savedPrediction, algoPred }: {
             {awayWon && <Trophy size={12} style={{ color: "#f59e0b" }} />}
           </div>
         </div>
+
+        {/* Algorithmic prediction — full-width row */}
+        {algoPred && (() => {
+          const predLabel = algoPred.winner === "home"
+            ? `${match.homeTeam.shortName || match.homeTeam.tla} (${algoPred.homeProb}%)`
+            : algoPred.winner === "away"
+            ? `${match.awayTeam.shortName || match.awayTeam.tla} (${algoPred.awayProb}%)`
+            : `Match nul (${algoPred.drawProb}%)`;
+          const predCorrect = algoPred.winner === match.result;
+          return (
+            <div className="flex items-center justify-center gap-2 mt-3 px-3 py-2 rounded-xl"
+              style={{ background: "rgba(249,115,22,0.10)", border: "1px solid rgba(249,115,22,0.30)" }}>
+              <span className="text-sm font-bold" style={{ color: "#f97316" }}>
+                {predCorrect ? "✓" : "✗"}
+              </span>
+              <span className="text-xs" style={{ color: "#94a3b8" }}>Prédiction algo :</span>
+              <span className="text-xs font-bold" style={{ color: "#f97316" }}>{predLabel}</span>
+            </div>
+          );
+        })()}
 
         {/* Goal + card details */}
         {hasGoalDetails && (
