@@ -61,7 +61,7 @@ async function fetchTavilyNews(query: string): Promise<{ titles: string[]; sourc
         max_results: 10,
         search_depth: "basic",
         include_domains: FR_SPORTS_DOMAINS,
-        days: 14,  // last 2 weeks
+        days: 14,
       }),
       signal: AbortSignal.timeout(8000),
     });
