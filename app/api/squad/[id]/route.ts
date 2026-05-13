@@ -44,12 +44,26 @@ interface TmPlayer {
   dm_aerialPct?: number;
   dm_passPct?: number;
   dm_progressive90?: number;
-  dm_savePct?: number;   // GK
-  dm_gcPer90?: number;   // GK
-  dm_cleanSheets?: number; // GK
+  dm_savePct?: number;
+  dm_gcPer90?: number;
+  dm_cleanSheets?: number;
   dm_xgxa90?: number;
   dm_minPerMatch?: number;
   dm_team?: string;
+  // Extra datamb stats
+  dm_shotsOnTarget?: number;
+  dm_goalConversion?: number;
+  dm_touchesBox90?: number;
+  dm_possWon90?: number;
+  dm_npxg90?: number;
+  dm_duelsWonPct?: number;
+  dm_crosses90?: number;
+  dm_crossAcc?: number;
+  dm_fouls90?: number;
+  dm_tackles90?: number;
+  dm_yellowCards90?: number;
+  dm_saves90?: number;
+  dm_exits90?: number;
 }
 
 interface UnderstatPlayer {
@@ -92,11 +106,12 @@ async function fetchUnderstatPlayers(teamName: string): Promise<UnderstatPlayer[
 }
 
 // Datamb position file codes per our position names
+// Available codes confirmed: GK, CB, FB, CM, FW, ST
 const DATAMB_POS_FILES: Record<string, string[]> = {
   Goalkeeper:       ["GK"],
   Defender:         ["CB", "FB"],
-  Midfielder:       ["MF"],
-  Winger:           ["WG"],
+  Midfielder:       ["CM"],
+  Winger:           ["FW"],
   "Centre-Forward": ["ST"],
 };
 
@@ -152,6 +167,19 @@ function extractDatambStats(row: DatambRow): Partial<TmPlayer> {
     dm_xgxa90:         n(row["xG+xA per 90"]),
     dm_minPerMatch:    n(row["Minutes per match"]),
     dm_team:           String(row["Team within selected timeframe"] ?? ""),
+    dm_shotsOnTarget:  n(row["Shots on target %"]),
+    dm_goalConversion: n(row["Goal conversion %"]),
+    dm_touchesBox90:   n(row["Touches in box per 90"]),
+    dm_possWon90:      n(row["Possessions won per 90"]),
+    dm_npxg90:         n(row["npxG per 90"]),
+    dm_duelsWonPct:    n(row["Duels won %"]),
+    dm_crosses90:      n(row["Crosses per 90"]),
+    dm_crossAcc:       n(row["Cross accuracy %"]),
+    dm_fouls90:        n(row["Fouls per 90"]),
+    dm_tackles90:      n(row["Sliding tackles per 90"]),
+    dm_yellowCards90:  n(row["Yellow cards per 90"]),
+    dm_saves90:        n(row["Saves per 90"]),
+    dm_exits90:        n(row["Exits per 90"]),
   };
 }
 
