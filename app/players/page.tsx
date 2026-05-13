@@ -49,6 +49,26 @@ interface PlayerEntry {
   dm_possWon90?: number; dm_npxg90?: number; dm_duelsWonPct?: number;
   dm_crosses90?: number; dm_crossAcc?: number; dm_fouls90?: number;
   dm_tackles90?: number; dm_yellowCards90?: number; dm_saves90?: number; dm_exits90?: number;
+  // Datamb full
+  dm_minutes?: number; dm_matches?: number; dm_touches90?: number;
+  dm_ga90?: number; dm_npga90?: number; dm_npGoals90?: number; dm_headedGoals90?: number;
+  dm_xgShot?: number; dm_npxgShot?: number; dm_npxgXa90?: number; dm_goalsMinusXg90?: number;
+  dm_possLost90?: number; dm_possBalance?: number; dm_progressiveActions90?: number;
+  dm_successfulDribbles90?: number; dm_offDuels90?: number; dm_offDuelPct?: number;
+  dm_offDuelWon90?: number; dm_accelerations90?: number; dm_duels90?: number;
+  dm_passes90?: number; dm_fwdPasses90?: number; dm_fwdPassPct?: number;
+  dm_longPasses90?: number; dm_longPassAcc?: number; dm_avgPassLength?: number;
+  dm_passesRec90?: number; dm_foulsSuffered90?: number;
+  dm_shotAssists90?: number; dm_preAssists90?: number;
+  dm_passesToFinal90?: number; dm_passFinalPct?: number;
+  dm_passesToBox90?: number; dm_throughPasses90?: number; dm_throughPassPct?: number;
+  dm_progressivePasses90?: number; dm_progressivePassAcc?: number;
+  dm_deepCompletions90?: number; dm_xaPer100?: number;
+  dm_chanceCreation?: number; dm_inaccuratePct?: number;
+  dm_aerialDuels90?: number; dm_aerialWon90?: number;
+  dm_shotsBlocked90?: number; dm_redCards90?: number;
+  dm_gcTotal?: number; dm_xgConceded90?: number; dm_preventedGoals90?: number;
+  dm_backPassesGK90?: number; dm_shotsConceded90?: number;
   // Club
   clubId: number;
   club: TeamInfo;
@@ -165,7 +185,7 @@ function StatSection({ title, children }: { title: string; children: React.React
 // ── PlayerDetail ──────────────────────────────────────────────────────────────
 
 function PlayerDetail({ p }: { p: PlayerEntry }) {
-  const isGk = p.position === "Goalkeeper";
+  const isGk  = p.position === "Goalkeeper";
   const isDef = p.position === "Defender";
   const isMid = p.position === "Midfielder";
   const isWing = p.position === "Winger";
@@ -173,7 +193,10 @@ function PlayerDetail({ p }: { p: PlayerEntry }) {
   const isInj = p.status?.toLowerCase().includes("injury");
   const posColor = POS_COL[p.position] ?? "#6b7c96";
   const hasUnderstat = (p.games ?? 0) > 0;
-  const hasDatamb = (p.dm_xg90 ?? 0) > 0 || (p.dm_savePct ?? 0) > 0 || (p.dm_defDuels90 ?? 0) > 0;
+  const hasDatamb = (p.dm_minutes ?? 0) > 0 || (p.dm_xg90 ?? 0) > 0 || (p.dm_savePct ?? 0) > 0 || (p.dm_defDuels90 ?? 0) > 0;
+  const dmCtx = hasDatamb
+    ? `${p.dm_matches ?? "?"} matchs · ${p.dm_minutes ?? p.minutes ?? "?"} min · ${Math.round(p.dm_minPerMatch ?? 0)} min/match`
+    : "";
 
   return (
     <div className="border-t" style={{ borderColor: "#1e2d42", background: "#060a12" }}>
@@ -203,72 +226,148 @@ function PlayerDetail({ p }: { p: PlayerEntry }) {
           {isInj && <span className="flex items-center gap-1" style={{ color: "#f97316" }}><AlertTriangle size={10} /> Blessé</span>}
         </div>
 
-        {/* Understat season */}
+        {/* Understat saison */}
         {hasUnderstat && (
-          <StatSection title={`Understat — Saison ${p.games} matchs · ${p.minutes} min`}>
-            <StatBox label="Buts"     value={p.usGoals ?? 0}           color="#f59e0b" />
-            <StatBox label="Passes D." value={p.usAssists ?? 0}        color="#00d4ff" />
-            <StatBox label="xG"       value={(p.xG ?? 0).toFixed(1)}   color="#22c55e" />
-            <StatBox label="xA"       value={(p.xA ?? 0).toFixed(1)}   color="#a78bfa" />
-            <StatBox label="Tirs"     value={p.shots ?? 0}             color="#94a3b8" />
-            {(p.shots ?? 0) > 0 && <StatBox label="xG/tir" value={((p.xG ?? 0) / p.shots!).toFixed(2)} color="#6b7c96" />}
+          <StatSection title={`Understat — Saison · ${p.games} matchs · ${p.minutes} min`}>
+            <StatBox label="Buts"      value={p.usGoals ?? 0}                           color="#f59e0b" />
+            <StatBox label="Passes D." value={p.usAssists ?? 0}                         color="#00d4ff" />
+            <StatBox label="xG"        value={(p.xG ?? 0).toFixed(1)}                   color="#22c55e" />
+            <StatBox label="xA"        value={(p.xA ?? 0).toFixed(1)}                   color="#a78bfa" />
+            <StatBox label="Tirs"      value={p.shots ?? 0}                             color="#94a3b8" />
+            {(p.shots ?? 0) > 0 && <StatBox label="xG/tir" value={((p.xG ?? 0) / p.shots!).toFixed(3)} color="#6b7c96" />}
           </StatSection>
         )}
 
-        {/* Datamb — GK */}
-        {hasDatamb && isGk && (
-          <StatSection title={`Datamb per 90${p.dm_minPerMatch ? ` · ${Math.round(p.dm_minPerMatch)} min/match` : ""}`}>
-            <StatBox label="Arrêts %"     value={pct(p.dm_savePct)}     color="#00d4ff" />
-            <StatBox label="Buts enc./90" value={fmt2(p.dm_gcPer90)}    color="#ef4444" />
-            <StatBox label="Clean sheets" value={p.dm_cleanSheets ?? 0} color="#22c55e" />
-            <StatBox label="Sorties/90"   value={fmt1(p.dm_exits90)}    color="#a78bfa" />
-            <StatBox label="Arrêts/90"    value={fmt1(p.dm_saves90)}    color="#00d4ff" />
-            <StatBox label="Aérien %"     value={pct(p.dm_aerialPct)}   color="#f59e0b" />
+        {/* ── GK ── */}
+        {hasDatamb && isGk && (<>
+          <StatSection title={`Gardien — ${dmCtx}`}>
+            <StatBox label="Arrêts %"       value={pct(p.dm_savePct)}          color="#00d4ff" />
+            <StatBox label="Arrêts/90"      value={fmt1(p.dm_saves90)}         color="#00d4ff" />
+            <StatBox label="Buts enc./90"   value={fmt2(p.dm_gcPer90)}         color="#ef4444" />
+            <StatBox label="Buts enc. tot." value={p.dm_gcTotal ?? 0}          color="#ef4444" />
+            <StatBox label="xG enc./90"     value={fmt2(p.dm_xgConceded90)}    color="#f97316" />
+            <StatBox label="Buts prévenus"  value={fmt2(p.dm_preventedGoals90)} color="#22c55e" />
+            <StatBox label="Clean sheets"   value={p.dm_cleanSheets ?? 0}      color="#22c55e" />
+            <StatBox label="Sorties/90"     value={fmt1(p.dm_exits90)}         color="#a78bfa" />
+            <StatBox label="Passes dos/90"  value={fmt1(p.dm_backPassesGK90)}  color="#94a3b8" />
+            <StatBox label="Tirs conc./90"  value={fmt1(p.dm_shotsConceded90)} color="#6b7c96" />
           </StatSection>
-        )}
+          <StatSection title="GK — Jeu au pied">
+            <StatBox label="Pass %"         value={pct(p.dm_passPct)}          color="#00d4ff" />
+            <StatBox label="Passes/90"      value={fmt1(p.dm_passes90)}        color="#94a3b8" />
+            <StatBox label="Longues/90"     value={fmt1(p.dm_longPasses90)}    color="#94a3b8" />
+            <StatBox label="Long. %"        value={pct(p.dm_longPassAcc)}      color="#94a3b8" />
+            <StatBox label="Long. moy. (m)" value={fmt1(p.dm_avgPassLength)}   color="#6b7c96" />
+          </StatSection>
+          <StatSection title="GK — Physique">
+            <StatBox label="Aérien/90"      value={fmt1(p.dm_aerialDuels90)}   color="#f59e0b" />
+            <StatBox label="Aérien %"       value={pct(p.dm_aerialPct)}        color="#f59e0b" />
+            <StatBox label="Poss. gagnées"  value={fmt1(p.dm_possWon90)}       color="#22c55e" />
+            <StatBox label="Touches/90"     value={fmt1(p.dm_touches90)}       color="#6b7c96" />
+          </StatSection>
+        </>)}
 
-        {/* Datamb — Outfield: offensive */}
-        {hasDatamb && !isGk && (
-          <StatSection title={`Datamb per 90${p.dm_minPerMatch ? ` · ${Math.round(p.dm_minPerMatch)} min/match` : ""}`}>
-            <StatBox label="xG/90"      value={fmt2(p.dm_xg90)}          color="#22c55e" />
-            <StatBox label="npxG/90"    value={fmt2(p.dm_npxg90)}        color="#22c55e" />
-            <StatBox label="xA/90"      value={fmt2(p.dm_xa90)}          color="#a78bfa" />
-            <StatBox label="Buts/90"    value={fmt2(p.dm_goals90)}       color="#f59e0b" />
-            <StatBox label="Passes D./90" value={fmt2(p.dm_assists90)}   color="#00d4ff" />
-            <StatBox label="Tirs/90"    value={fmt1(p.dm_shots90)}       color="#94a3b8" />
-            {(isFwd || isWing) && <StatBox label="Tirs c./90" value={pct(p.dm_shotsOnTarget)} color="#f59e0b" />}
-            {(isFwd || isWing) && <StatBox label="Conv. %"    value={pct(p.dm_goalConversion)} color="#ef4444" />}
-            {(isFwd || isWing || isMid) && <StatBox label="Touches zone" value={fmt1(p.dm_touchesBox90)} color="#f97316" />}
-          </StatSection>
-        )}
+        {/* ── Outfield ── */}
+        {hasDatamb && !isGk && (<>
 
-        {/* Datamb — passes & création */}
-        {hasDatamb && !isGk && (
-          <StatSection title="Passes &amp; Création">
-            <StatBox label="Pass %"      value={pct(p.dm_passPct)}       color="#00d4ff" />
-            <StatBox label="Kp/90"       value={fmt1(p.dm_keyPasses90)}  color="#a78bfa" />
-            <StatBox label="Prog./90"    value={fmt1(p.dm_progressive90)} color="#22c55e" />
-            {(isMid || isDef) && <StatBox label="Croisements/90" value={fmt1(p.dm_crosses90)} color="#f59e0b" />}
-            {(isMid || isDef) && <StatBox label="Précis. croix" value={pct(p.dm_crossAcc)} color="#f59e0b" />}
-            {(isWing || isFwd) && <StatBox label="Drib./90"   value={fmt1(p.dm_dribbles90)} color="#f59e0b" />}
-            {(isWing || isFwd) && <StatBox label="Drib. %"    value={pct(p.dm_dribblePct)}  color="#f59e0b" />}
+          {/* 1. Vue d'ensemble */}
+          <StatSection title={`Vue d'ensemble — ${dmCtx}`}>
+            <StatBox label="G+A/90"         value={fmt2(p.dm_ga90)}            color="#f59e0b" />
+            <StatBox label="npG+A/90"       value={fmt2(p.dm_npga90)}          color="#f59e0b" />
+            <StatBox label="xG+xA/90"       value={fmt2(p.dm_xgxa90)}          color="#22c55e" />
+            <StatBox label="npxG+xA/90"     value={fmt2(p.dm_npxgXa90)}        color="#22c55e" />
+            <StatBox label="Touches/90"     value={fmt1(p.dm_touches90)}       color="#6b7c96" />
+            <StatBox label="Act. prog./90"  value={fmt1(p.dm_progressiveActions90)} color="#a78bfa" />
+            <StatBox label="Poss. +/-"      value={fmt1(p.dm_possBalance)}     color={(p.dm_possBalance ?? 0) >= 0 ? "#22c55e" : "#ef4444"} />
           </StatSection>
-        )}
 
-        {/* Datamb — défense & physique */}
-        {hasDatamb && !isGk && (
-          <StatSection title="Défense &amp; Physique">
-            <StatBox label="Duel déf./90" value={fmt1(p.dm_defDuels90)}  color="#a78bfa" />
-            <StatBox label="Duel déf. %"  value={pct(p.dm_defDuelPct)}   color="#a78bfa" />
-            <StatBox label="Int./90"       value={fmt2(p.dm_interceptions90)} color="#ef4444" />
-            <StatBox label="Tacles/90"     value={fmt1(p.dm_tackles90)}   color="#ef4444" />
-            <StatBox label="Poss. gagnées" value={fmt1(p.dm_possWon90)}   color="#22c55e" />
-            <StatBox label="Duels gagnés %" value={pct(p.dm_duelsWonPct)} color="#94a3b8" />
-            <StatBox label="Aérien %"      value={pct(p.dm_aerialPct)}    color="#94a3b8" />
-            <StatBox label="Fautes/90"     value={fmt1(p.dm_fouls90)}     color="#f97316" />
-            {(p.dm_yellowCards90 ?? 0) > 0 && <StatBox label="🟨/90" value={fmt2(p.dm_yellowCards90)} color="#f59e0b" />}
+          {/* 2. Attaque */}
+          <StatSection title="Attaque">
+            <StatBox label="Buts/90"        value={fmt2(p.dm_goals90)}         color="#f59e0b" />
+            <StatBox label="np Buts/90"     value={fmt2(p.dm_npGoals90)}       color="#f59e0b" />
+            <StatBox label="xG/90"          value={fmt2(p.dm_xg90)}            color="#22c55e" />
+            <StatBox label="npxG/90"        value={fmt2(p.dm_npxg90)}          color="#22c55e" />
+            <StatBox label="xG - Buts/90"   value={fmt2(p.dm_goalsMinusXg90)}  color={(p.dm_goalsMinusXg90 ?? 0) >= 0 ? "#22c55e" : "#ef4444"} />
+            <StatBox label="Tirs/90"        value={fmt1(p.dm_shots90)}         color="#94a3b8" />
+            <StatBox label="Cadrés %"       value={pct(p.dm_shotsOnTarget)}    color="#f59e0b" />
+            <StatBox label="Conv. %"        value={pct(p.dm_goalConversion)}   color="#ef4444" />
+            <StatBox label="xG/tir"         value={fmt2(p.dm_xgShot)}          color="#6b7c96" />
+            <StatBox label="npxG/tir"       value={fmt2(p.dm_npxgShot)}        color="#6b7c96" />
+            {!isDef && <StatBox label="Touches zone" value={fmt1(p.dm_touchesBox90)} color="#f97316" />}
+            {(isFwd || isWing) && <StatBox label="Buts tête/90" value={fmt2(p.dm_headedGoals90)} color="#94a3b8" />}
           </StatSection>
-        )}
+
+          {/* 3. Création */}
+          <StatSection title="Création">
+            <StatBox label="xA/90"          value={fmt2(p.dm_xa90)}            color="#a78bfa" />
+            <StatBox label="Passes D./90"   value={fmt2(p.dm_assists90)}       color="#00d4ff" />
+            <StatBox label="Shot assists/90" value={fmt1(p.dm_shotAssists90)}  color="#a78bfa" />
+            <StatBox label="Pré-passes D./90" value={fmt1(p.dm_preAssists90)}  color="#a78bfa" />
+            <StatBox label="Passes clés/90" value={fmt1(p.dm_keyPasses90)}     color="#a78bfa" />
+            <StatBox label="xA/100 passes"  value={fmt2(p.dm_xaPer100)}        color="#a78bfa" />
+            <StatBox label="Ratio création" value={fmt2(p.dm_chanceCreation)}  color="#a78bfa" />
+            <StatBox label="Passes prof./90" value={fmt1(p.dm_deepCompletions90)} color="#22c55e" />
+            <StatBox label="Crosses/90"     value={fmt1(p.dm_crosses90)}       color="#f59e0b" />
+            <StatBox label="Cross. prec. %" value={pct(p.dm_crossAcc)}         color="#f59e0b" />
+          </StatSection>
+
+          {/* 4. Dribbles & duels offensifs */}
+          <StatSection title="Dribbles &amp; Duels offensifs">
+            <StatBox label="Drib. tentés/90"  value={fmt1(p.dm_dribbles90)}       color="#f59e0b" />
+            <StatBox label="Drib. réussis/90" value={fmt1(p.dm_successfulDribbles90)} color="#f59e0b" />
+            <StatBox label="Drib. %"          value={pct(p.dm_dribblePct)}        color="#f59e0b" />
+            <StatBox label="Duels off./90"    value={fmt1(p.dm_offDuels90)}       color="#f97316" />
+            <StatBox label="Duels off. %"     value={pct(p.dm_offDuelPct)}        color="#f97316" />
+            <StatBox label="Duels off. gagnés" value={fmt1(p.dm_offDuelWon90)}    color="#f97316" />
+            <StatBox label="Accélérations/90" value={fmt1(p.dm_accelerations90)}  color="#94a3b8" />
+            <StatBox label="Portés prog./90"  value={fmt1(p.dm_progressive90)}    color="#22c55e" />
+          </StatSection>
+
+          {/* 5. Passes */}
+          <StatSection title="Passes">
+            <StatBox label="Passes/90"      value={fmt1(p.dm_passes90)}        color="#00d4ff" />
+            <StatBox label="Pass %"         value={pct(p.dm_passPct)}          color="#00d4ff" />
+            <StatBox label="Imprécis %"     value={pct(p.dm_inaccuratePct)}    color="#ef4444" />
+            <StatBox label="Avant/90"       value={fmt1(p.dm_fwdPasses90)}     color="#22c55e" />
+            <StatBox label="Avant %"        value={pct(p.dm_fwdPassPct)}       color="#22c55e" />
+            <StatBox label="Longues/90"     value={fmt1(p.dm_longPasses90)}    color="#94a3b8" />
+            <StatBox label="Longues %"      value={pct(p.dm_longPassAcc)}      color="#94a3b8" />
+            <StatBox label="Long. moy. (m)" value={fmt1(p.dm_avgPassLength)}   color="#6b7c96" />
+            <StatBox label="Prog./90"       value={fmt1(p.dm_progressivePasses90)} color="#a78bfa" />
+            <StatBox label="Prog. %"        value={pct(p.dm_progressivePassAcc)} color="#a78bfa" />
+            <StatBox label="Tiers final/90" value={fmt1(p.dm_passesToFinal90)} color="#22c55e" />
+            <StatBox label="T. final %"     value={pct(p.dm_passFinalPct)}     color="#22c55e" />
+            <StatBox label="Vers box/90"    value={fmt1(p.dm_passesToBox90)}   color="#f59e0b" />
+            <StatBox label="Déchirantes/90" value={fmt1(p.dm_throughPasses90)} color="#f59e0b" />
+            <StatBox label="Déch. %"        value={pct(p.dm_throughPassPct)}   color="#f59e0b" />
+            <StatBox label="Reçues/90"      value={fmt1(p.dm_passesRec90)}     color="#6b7c96" />
+          </StatSection>
+
+          {/* 6. Défense */}
+          <StatSection title="Défense">
+            <StatBox label="Duels déf./90"  value={fmt1(p.dm_defDuels90)}      color="#a78bfa" />
+            <StatBox label="Duels déf. %"   value={pct(p.dm_defDuelPct)}       color="#a78bfa" />
+            <StatBox label="Duels tot./90"  value={fmt1(p.dm_duels90)}         color="#94a3b8" />
+            <StatBox label="Duels gagnés %" value={pct(p.dm_duelsWonPct)}      color="#94a3b8" />
+            <StatBox label="Int./90"        value={fmt2(p.dm_interceptions90)} color="#ef4444" />
+            <StatBox label="Tacles/90"      value={fmt1(p.dm_tackles90)}       color="#ef4444" />
+            {isDef && <StatBox label="Tirs bloqués/90" value={fmt1(p.dm_shotsBlocked90)} color="#ef4444" />}
+            <StatBox label="Aérien/90"      value={fmt1(p.dm_aerialDuels90)}   color="#f59e0b" />
+            <StatBox label="Aérien gagné/90" value={fmt1(p.dm_aerialWon90)}    color="#f59e0b" />
+            <StatBox label="Aérien %"       value={pct(p.dm_aerialPct)}        color="#f59e0b" />
+            <StatBox label="Poss. gagnées"  value={fmt1(p.dm_possWon90)}       color="#22c55e" />
+            <StatBox label="Poss. perdues"  value={fmt1(p.dm_possLost90)}      color="#ef4444" />
+          </StatSection>
+
+          {/* 7. Discipline */}
+          <StatSection title="Discipline">
+            <StatBox label="Fautes/90"      value={fmt1(p.dm_fouls90)}         color="#f97316" />
+            <StatBox label="Fautes subies"  value={fmt1(p.dm_foulsSuffered90)} color="#94a3b8" />
+            <StatBox label="Jaunes/90"      value={fmt2(p.dm_yellowCards90)}   color="#f59e0b" />
+            {(p.dm_redCards90 ?? 0) > 0 && <StatBox label="Rouges/90" value={fmt2(p.dm_redCards90)} color="#ef4444" />}
+          </StatSection>
+
+        </>)}
 
         {!hasUnderstat && !hasDatamb && (
           <p className="text-xs" style={{ color: "#6b7c96" }}>Données statistiques non disponibles cette saison.</p>
