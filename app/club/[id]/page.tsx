@@ -624,6 +624,31 @@ function BuzzMethodology({ buzz }: { buzz: BuzzData }) {
   );
 }
 
+// ── Name-matching helpers (cross-reference 1vs1 names ↔ squad names) ──────────
+
+function normName(s: string) {
+  return s.toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z ]/g, "").trim();
+}
+
+function findSquadMatch(name: string, squad: SquadPlayer[]): SquadPlayer | undefined {
+  const norm = normName(name);
+  // 1. Exact normalised match
+  let m = squad.find(p => normName(p.name) === norm);
+  if (m) return m;
+  // 2. Last-name match (longest word)
+  const parts = norm.split(" ").filter(w => w.length >= 3);
+  const lastName = parts[parts.length - 1];
+  if (lastName) {
+    m = squad.find(p => {
+      const pn = normName(p.name);
+      return pn.split(" ").includes(lastName) || pn.endsWith(lastName);
+    });
+  }
+  return m;
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function ClubPage() {
@@ -1028,6 +1053,15 @@ export default function ClubPage() {
                   p.rating >= 70 ? "rgba(96,165,250,0.12)" :
                   p.rating >= 60 ? "rgba(251,191,36,0.12)" :
                   p.rating >  0  ? "rgba(148,163,184,0.10)" : "rgba(75,85,99,0.10)";
+
+                // Cross-reference with squad for form data
+                const squadMatch = findSquadMatch(p.name, squad?.squad ?? []);
+                const isInjured = squadMatch?.status?.toLowerCase().includes("injury");
+                const fb = squadMatch?.formBadge;
+                const formScore = isInjured ? 20 : fb === "hot" ? 90 : fb === "good" ? 70 : fb === "cold" ? 30 : fb === "neutral" ? 50 : null;
+                const formColor = formScore != null ? ec(formScore) : "#6b7c96";
+                const formEmoji: Record<string, string> = { hot: "🔥", good: "⚡", cold: "❄️" };
+
                 return (
                   <a key={p.url} href={p.url} target="_blank" rel="noopener noreferrer"
                     className="flex flex-col rounded-xl hover:bg-white/[0.04] transition-colors overflow-hidden"
@@ -1055,11 +1089,18 @@ export default function ClubPage() {
                           {p.rating}
                         </span>
                       )}
+                      {/* Injury overlay */}
+                      {isInjured && (
+                        <span className="absolute top-1.5 left-1.5 text-[10px] px-1.5 py-0.5 rounded-md font-bold leading-none"
+                          style={{ background: "rgba(249,115,22,0.85)", color: "#fff" }}>
+                          🏥
+                        </span>
+                      )}
                     </div>
                     {/* Name + stats */}
                     <div className="px-2 py-1.5">
                       <p className="text-[11px] font-semibold truncate leading-tight" style={{ color: "#e8edf5" }}>{p.name}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         {p.goals > 0 && (
                           <span className="text-[10px] font-bold" style={{ color: "#34d399" }}>⚽ {p.goals}</span>
                         )}
@@ -1070,6 +1111,18 @@ export default function ClubPage() {
                           <span className="text-[10px]" style={{ color: "#4b5563" }}>—</span>
                         )}
                       </div>
+                      {/* Form score row — same as Effectif */}
+                      {formScore != null && (
+                        <div className="flex items-center gap-1 mt-1">
+                          {fb && fb !== "neutral" && formEmoji[fb] && (
+                            <span style={{ fontSize: 10 }}>{formEmoji[fb]}</span>
+                          )}
+                          <span className="text-[10px] font-black" style={{ color: formColor }}>{formScore}</span>
+                          <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
+                            <div className="h-full rounded-full" style={{ width: `${formScore}%`, background: formColor }} />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </a>
                 );
