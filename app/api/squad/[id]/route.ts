@@ -80,7 +80,6 @@ async function fetchUnderstatPlayers(teamName: string): Promise<UnderstatPlayer[
       {
         signal: AbortSignal.timeout(8000),
         headers: { "User-Agent": "Mozilla/5.0 (compatible; FootPredictom/1.0)" },
-        next: { revalidate: 3600 },
       } as RequestInit
     ).then(r => r.ok ? r.text() : "");
     const m = html.match(/var playersData\s*=\s*JSON\.parse\('([^']+)'\)/);
@@ -117,7 +116,6 @@ async function fetchDatambFile(posCode: string): Promise<DatambRow[]> {
   try {
     const buf = await fetch(url, {
       signal: AbortSignal.timeout(10000),
-      next: { revalidate: 3600 },
     } as RequestInit).then(r => r.ok ? r.arrayBuffer() : null);
     if (!buf) return [];
     const wb = XLSX.read(buf, { type: "array" });
@@ -256,7 +254,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     try {
       const tmRes = await fetch(`https://transfermarkt-api.fly.dev/clubs/${tmId}/players`, {
         signal: AbortSignal.timeout(5000),
-        next: { revalidate: 3600 },
       } as RequestInit);
       if (tmRes.ok) {
         const tmData = await tmRes.json();

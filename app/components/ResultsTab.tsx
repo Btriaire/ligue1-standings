@@ -11,6 +11,12 @@ interface GoalEntry {
   type: string;
 }
 
+interface CardEntry {
+  minute: number | null;
+  player: string | null;
+  card: "YELLOW_CARD" | "RED_CARD";
+}
+
 interface ResultMatch {
   id: number;
   date: string;
@@ -21,6 +27,8 @@ interface ResultMatch {
   result: "home" | "away" | "draw";
   homeGoals: GoalEntry[];
   awayGoals: GoalEntry[];
+  homeCards?: CardEntry[];
+  awayCards?: CardEntry[];
 }
 
 interface ResultsData { matches: ResultMatch[]; count: number }
@@ -33,24 +41,41 @@ function formatDate(dateStr: string) {
   };
 }
 
-function GoalList({ goals, teamName }: { goals: GoalEntry[]; teamName: string }) {
+function GoalList({ goals }: { goals: GoalEntry[] }) {
   if (goals.length === 0) return null;
   return (
     <div className="space-y-0.5">
       {goals.map((g, i) => (
         <div key={i} className="flex items-center gap-1.5 text-xs" style={{ color: "#94a3b8" }}>
-          <span className="w-6 text-right flex-shrink-0 font-mono"
-            style={{ color: "#6b7c96" }}>{g.minute ? `${g.minute}'` : "—"}</span>
-          <span className="w-3.5 h-3.5 flex-shrink-0">
-            {g.type === "OWN_GOAL" ? "🥅" : g.type === "PENALTY" ? "⚠" : "⚽"}
+          <span className="w-7 text-right flex-shrink-0 font-mono text-[10px]"
+            style={{ color: "#6b7c96" }}>{g.minute != null ? `${g.minute}'` : "—"}</span>
+          <span className="flex-shrink-0">
+            {g.type === "OWN_GOAL" ? "🥅" : g.type === "PENALTY" ? "⚽ (P)" : "⚽"}
           </span>
           <span className="truncate" style={{ color: "#e8edf5" }}>{g.scorer ?? "?"}</span>
           {g.assist && (
-            <span className="text-xs flex-shrink-0" style={{ color: "#6b7c96" }}>({g.assist})</span>
+            <span className="text-[10px] flex-shrink-0" style={{ color: "#6b7c96" }}>({g.assist})</span>
           )}
           {g.type === "OWN_GOAL" && (
-            <span className="text-xs flex-shrink-0" style={{ color: "#f97316" }}>c.s.c.</span>
+            <span className="text-[10px] flex-shrink-0" style={{ color: "#f97316" }}>c.s.c.</span>
           )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CardList({ cards }: { cards: CardEntry[] }) {
+  if (cards.length === 0) return null;
+  return (
+    <div className="space-y-0.5 mt-1.5">
+      {cards.map((c, i) => (
+        <div key={i} className="flex items-center gap-1.5 text-xs" style={{ color: "#94a3b8" }}>
+          <span className="w-7 text-right flex-shrink-0 font-mono text-[10px]"
+            style={{ color: "#6b7c96" }}>{c.minute != null ? `${c.minute}'` : "—"}</span>
+          <span className="w-3 h-4 rounded-sm flex-shrink-0 inline-block"
+            style={{ background: c.card === "RED_CARD" ? "#ef4444" : "#f59e0b" }} />
+          <span className="truncate" style={{ color: "#94a3b8" }}>{c.player ?? "?"}</span>
         </div>
       ))}
     </div>
@@ -103,7 +128,7 @@ function MatchResultCard({ match, savedPrediction }: { match: ResultMatch; saved
   const awayWon = match.result === "away";
   const isDraw = match.result === "draw";
 
-  const hasGoalDetails = match.homeGoals.length > 0 || match.awayGoals.length > 0;
+  const hasGoalDetails = match.homeGoals.length > 0 || match.awayGoals.length > 0 || (match.homeCards?.length ?? 0) > 0 || (match.awayCards?.length ?? 0) > 0;
   const hasPrediction = savedPrediction !== null;
   const predCorrect = hasPrediction && savedPrediction!.prediction.winner === match.result;
 
@@ -182,26 +207,24 @@ function MatchResultCard({ match, savedPrediction }: { match: ResultMatch; saved
           </div>
         </div>
 
-        {/* Goal details — always visible */}
+        {/* Goal + card details */}
         {hasGoalDetails && (
           <div className="mt-4 pt-3 grid grid-cols-2 gap-4" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
             <div>
-              <p className="text-xs font-semibold mb-2 uppercase tracking-widest" style={{ color: "#6b7c96" }}>
+              <p className="text-xs font-semibold mb-1.5 uppercase tracking-widest" style={{ color: "#6b7c96" }}>
                 {match.homeTeam.shortName || match.homeTeam.tla}
               </p>
-              <GoalList goals={match.homeGoals} teamName={match.homeTeam.name} />
-              {match.homeGoals.length === 0 && (
-                <p className="text-xs" style={{ color: "#6b7c96" }}>–</p>
-              )}
+              <GoalList goals={match.homeGoals} />
+              {match.homeGoals.length === 0 && <p className="text-xs" style={{ color: "#6b7c96" }}>–</p>}
+              <CardList cards={match.homeCards ?? []} />
             </div>
             <div>
-              <p className="text-xs font-semibold mb-2 uppercase tracking-widest" style={{ color: "#6b7c96" }}>
+              <p className="text-xs font-semibold mb-1.5 uppercase tracking-widest" style={{ color: "#6b7c96" }}>
                 {match.awayTeam.shortName || match.awayTeam.tla}
               </p>
-              <GoalList goals={match.awayGoals} teamName={match.awayTeam.name} />
-              {match.awayGoals.length === 0 && (
-                <p className="text-xs" style={{ color: "#6b7c96" }}>–</p>
-              )}
+              <GoalList goals={match.awayGoals} />
+              {match.awayGoals.length === 0 && <p className="text-xs" style={{ color: "#6b7c96" }}>–</p>}
+              <CardList cards={match.awayCards ?? []} />
             </div>
           </div>
         )}

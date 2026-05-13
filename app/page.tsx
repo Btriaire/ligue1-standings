@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { RefreshCw, TrendingUp, TrendingDown, Minus, Trophy, Wifi, WifiOff, Clock, Zap, BarChart2, Heart, Globe, Settings, Target, ArrowLeftRight, ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { RefreshCw, TrendingUp, TrendingDown, Minus, Trophy, Wifi, WifiOff, Clock, Zap, BarChart2, Heart, Globe, Settings, Target, ArrowLeftRight, ChevronRight, Users } from "lucide-react";
 import TeamModal from "./components/TeamModal";
 import PredictionsTab from "./components/PredictionsTab";
 import EmotionalScoreTab from "./components/EmotionalScoreTab";
@@ -479,6 +480,13 @@ export default function Home() {
               <span className="sm:hidden">{t.shortLabel ?? t.label}</span>
             </button>
           ))}
+          <Link href="/players"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap flex-shrink-0 hover:opacity-80"
+            style={{ background: "linear-gradient(135deg, rgba(167,139,250,0.12), rgba(239,68,68,0.10))", color: "#a78bfa", border: "1px solid rgba(167,139,250,0.2)" }}>
+            <Users size={14} />
+            <span className="hidden sm:inline">Joueurs</span>
+            <span className="sm:hidden">Joueurs</span>
+          </Link>
         </div>
 
         {/* Standings tab */}
