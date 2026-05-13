@@ -463,33 +463,27 @@ export default function PlayersPage() {
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
-    let resolved = 0;
-    Promise.allSettled(
-      TEAM_IDS.map(id =>
-        fetch(`/api/squad/${id}`)
-          .then(r => r.json())
-          .then(data => {
-            if (!data?.team) return [];
-            return (data.squad ?? []).map((p: Omit<PlayerEntry, "clubId" | "club">) => ({
-              ...p, clubId: id, club: data.team,
-            }));
-          })
-          .catch(() => [])
-      )
-    ).then(results => {
-      const merged: PlayerEntry[] = [];
-      for (const r of results) {
-        if (r.status === "fulfilled") { merged.push(...r.value); resolved++; }
-      }
-      setAllPlayers(merged);
-      setLoadedCount(resolved);
-      setLoading(false);
-    });
+    let done = 0;
+    const total = TEAM_IDS.length;
 
-    const interval = setInterval(() => {
-      setLoadedCount(c => Math.min(c + 1, TEAM_IDS.length));
-    }, 800);
-    return () => clearInterval(interval);
+    TEAM_IDS.forEach(id => {
+      fetch(`/api/squad/${id}`)
+        .then(r => r.json())
+        .then(data => {
+          const players: PlayerEntry[] = (data?.squad ?? []).map(
+            (p: Omit<PlayerEntry, "clubId" | "club">) => ({ ...p, clubId: id, club: data.team })
+          );
+          if (players.length > 0) {
+            setAllPlayers(prev => [...prev, ...players]);
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          done++;
+          setLoadedCount(done);
+          if (done === total) setLoading(false);
+        });
+    });
   }, []);
 
   const filtered = useMemo(() => {
