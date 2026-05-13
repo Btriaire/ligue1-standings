@@ -1,4 +1,4 @@
-import { adminAuth } from "./firebase-admin";
+import { getAdminAuth } from "./firebase-admin";
 import { cookies } from "next/headers";
 
 const COOKIE = "session";
@@ -11,6 +11,7 @@ export interface SessionPayload {
 }
 
 export async function createSession(idToken: string) {
+  const adminAuth = getAdminAuth();
   const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn: TTL_MS });
   const store = await cookies();
   store.set(COOKIE, sessionCookie, {
@@ -27,6 +28,7 @@ export async function getSession(): Promise<SessionPayload | null> {
     const store = await cookies();
     const cookie = store.get(COOKIE)?.value;
     if (!cookie) return null;
+    const adminAuth = getAdminAuth();
     const decoded = await adminAuth.verifySessionCookie(cookie, true);
     return { userId: decoded.uid, email: decoded.email ?? "", name: (decoded.name as string) ?? "" };
   } catch {
@@ -39,6 +41,7 @@ export async function deleteSession() {
   try {
     const cookie = store.get(COOKIE)?.value;
     if (cookie) {
+      const adminAuth = getAdminAuth();
       const decoded = await adminAuth.verifySessionCookie(cookie);
       await adminAuth.revokeRefreshTokens(decoded.sub);
     }
