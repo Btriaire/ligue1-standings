@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { RefreshCw, TrendingUp, TrendingDown, Minus, Trophy, Wifi, WifiOff, Clock, Zap, BarChart2, Heart, Globe, Settings, Target, ArrowLeftRight, ChevronRight, Users, Lock, LogIn, LogOut } from "lucide-react";
+import { RefreshCw, TrendingUp, TrendingDown, Minus, Trophy, Wifi, WifiOff, Clock, Zap, BarChart2, Heart, Globe, Settings, Target, ArrowLeftRight, ChevronRight, ChevronDown, Users, Lock, LogIn, LogOut } from "lucide-react";
 import TeamModal from "./components/TeamModal";
 import PredictionsTab from "./components/PredictionsTab";
 import EmotionalScoreTab from "./components/EmotionalScoreTab";
@@ -38,7 +38,7 @@ interface StandingsData {
   updatedAt: string;
 }
 
-type TabId = "standings" | "predictions" | "results" | "emotional" | "transfers" | "config";
+type TabId = "ligue1" | "predictions" | "results" | "emotional" | "config";
 
 const ZONE_CONFIG = [
   { label: "Champion",            positions: [1],          color: "#60a5fa", bg: "rgba(96,165,250,0.05)"  },
@@ -365,13 +365,33 @@ function ClubSidebar({ standings }: { standings?: Standing[] }) {
   );
 }
 
+function L1Section({ title, icon, color, defaultOpen = false, badge, children }: {
+  title: string; icon: React.ReactNode; color: string; defaultOpen?: boolean;
+  badge?: React.ReactNode; children: React.ReactNode;
+}) {
+  const [open, setOpen] = React.useState(defaultOpen);
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42", background: "#0d1421" }}>
+      <button onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-2.5 px-4 py-3 transition-colors hover:bg-white/[0.02] text-left"
+        style={{ borderBottom: open ? "1px solid #1e2d42" : "none" }}>
+        <span style={{ color }}>{icon}</span>
+        <span className="font-bold text-sm" style={{ color: "#e8edf5" }}>{title}</span>
+        {badge && <span className="ml-2">{badge}</span>}
+        <ChevronDown size={13} style={{ color: "#6b7c96", marginLeft: "auto" }}
+          className={`transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && <div>{children}</div>}
+    </div>
+  );
+}
+
 const TABS: { id: TabId; label: string; icon: React.ReactNode; shortLabel?: string }[] = [
-  { id: "standings",   label: "Classement",       icon: <BarChart2 size={14} />,   shortLabel: "Classmt." },
-  { id: "predictions", label: "AI FootPredictom",   icon: <Zap size={14} />,         shortLabel: "AI Foot" },
-  { id: "results",     label: "Résultats",         icon: <Target size={14} /> },
-  { id: "emotional",   label: "Facteur additionnel",  icon: <Heart size={14} />,       shortLabel: "Fact. add." },
-  { id: "transfers",   label: "Transferts",         icon: <ArrowLeftRight size={14} />,  shortLabel: "Mercato" },
-  { id: "config",      label: "Configuration",     icon: <Settings size={14} />,         shortLabel: "Config" },
+  { id: "ligue1",      label: "Ligue 1",            icon: <Trophy size={14} />,          shortLabel: "L1" },
+  { id: "predictions", label: "AI FootPredictom",   icon: <Zap size={14} />,             shortLabel: "AI Foot" },
+  { id: "results",     label: "Résultats",           icon: <Target size={14} /> },
+  { id: "emotional",   label: "Facteur additionnel", icon: <Heart size={14} />,           shortLabel: "Fact. add." },
+  { id: "config",      label: "Configuration",       icon: <Settings size={14} />,        shortLabel: "Config" },
 ];
 
 interface AuthUser { id: string; email: string; name: string }
@@ -409,7 +429,7 @@ function AuthGate({ label, icon }: { label: string; icon: React.ReactNode }) {
 }
 
 export default function Home() {
-  const [tab, setTab] = useState<TabId>("standings");
+  const [tab, setTab] = useState<TabId>("ligue1");
   const [data, setData] = useState<StandingsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -555,41 +575,64 @@ export default function Home() {
               </button>
             );
           })}
-          <Link href="/players"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 hover:bg-white/[0.04]"
-            style={{ color: "#64748b", border: "1px solid transparent" }}>
-            <Users size={14} />
-            <span className="hidden sm:inline">Joueurs</span>
-            <span className="sm:hidden">Joueurs</span>
-            {!user && <Lock size={9} style={{ color: "#475569" }} />}
-          </Link>
         </div>
 
-        {/* Standings tab */}
-        {tab === "standings" && (
-          <>
-            <div className="flex flex-wrap gap-x-5 gap-y-2 mb-6">
+        {/* Ligue 1 tab */}
+        {tab === "ligue1" && (
+          <div className="space-y-3">
+            {/* Zone legend */}
+            <div className="flex flex-wrap gap-x-5 gap-y-1.5 mb-1 px-1">
               {ZONE_CONFIG.map((z) => (
-                <div key={z.label} className="flex items-center gap-2 text-xs" style={{ color: "#6b7c96" }}>
-                  <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: z.color, opacity: 0.8 }} />
+                <div key={z.label} className="flex items-center gap-1.5 text-xs" style={{ color: "#6b7c96" }}>
+                  <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: z.color, opacity: 0.8 }} />
                   <span style={{ color: z.color }}>{z.label}</span>
                 </div>
               ))}
             </div>
-            {loading && !data ? (
-              <LoadingSkeleton />
-            ) : error && !data ? (
-              <ErrorState error={error} onRetry={() => fetchStandings(true)} />
-            ) : data ? (
-              <StandingsTable standings={data.standings} />
-            ) : null}
-          </>
+
+            {/* Classement */}
+            <L1Section title="Classement" icon={<BarChart2 size={13} />} color="#60a5fa" defaultOpen={true}>
+              <div className="p-0">
+                {loading && !data ? (
+                  <LoadingSkeleton />
+                ) : error && !data ? (
+                  <ErrorState error={error} onRetry={() => fetchStandings(true)} />
+                ) : data ? (
+                  <StandingsTable standings={data.standings} />
+                ) : null}
+              </div>
+            </L1Section>
+
+            {/* Mercato */}
+            <L1Section title="Mercato" icon={<ArrowLeftRight size={13} />} color="#f59e0b" defaultOpen={false}>
+              <div className="p-4">
+                <TransfersTab />
+              </div>
+            </L1Section>
+
+            {/* Joueurs */}
+            <L1Section title="Joueurs Ligue 1" icon={<Users size={13} />} color="#00d4ff" defaultOpen={false}>
+              <div className="p-4">
+                <Link href="/players"
+                  className="flex items-center justify-between px-4 py-3 rounded-xl hover:opacity-80 transition-opacity"
+                  style={{ background: "rgba(0,212,255,0.06)", border: "1px solid rgba(0,212,255,0.2)" }}>
+                  <div className="flex items-center gap-3">
+                    <Users size={16} style={{ color: "#00d4ff" }} />
+                    <div>
+                      <p className="text-sm font-bold" style={{ color: "#e8edf5" }}>Statistiques joueurs</p>
+                      <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>xG, xA, buts, passes déc. — tous les clubs</p>
+                    </div>
+                  </div>
+                  <ChevronRight size={16} style={{ color: "#00d4ff" }} />
+                </Link>
+              </div>
+            </L1Section>
+          </div>
         )}
 
         {tab === "predictions" && (user ? <PredictionsTab /> : <AuthGate label="AI FootPredictom" icon={<Zap size={16} className="inline" style={{ color: "#3b82f6" }} />} />)}
         {tab === "results" && <ResultsTab />}
         {tab === "emotional" && (user ? <EmotionalScoreTab /> : <AuthGate label="Facteur additionnel" icon={<Heart size={16} className="inline" style={{ color: "#a78bfa" }} />} />)}
-        {tab === "transfers" && <TransfersTab />}
         {tab === "config" && <ConfigTab />}
 
         {/* World Cup banner — standalone entry */}

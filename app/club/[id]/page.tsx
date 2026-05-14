@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -909,6 +909,31 @@ function find1vs1Player(name: string, players: Array<{name: string; rating: numb
   return m;
 }
 
+// ── Collapsible section wrapper ────────────────────────────────────────────────
+
+function ClubSection({
+  title, icon, iconColor, defaultOpen = true, badge, children
+}: {
+  title: string; icon: React.ReactNode; iconColor: string;
+  defaultOpen?: boolean; badge?: React.ReactNode; children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42", background: "#0d1421" }}>
+      <button onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-2 px-4 py-2.5 transition-colors hover:bg-white/[0.02] text-left"
+        style={{ borderBottom: open ? "1px solid #1e2d42" : "none" }}>
+        <span style={{ color: iconColor, flexShrink: 0 }}>{icon}</span>
+        <span className="font-bold text-sm" style={{ color: "#e8edf5" }}>{title}</span>
+        {badge && <span className="ml-1">{badge}</span>}
+        <ChevronDown size={12} style={{ color: "#6b7c96", marginLeft: "auto", flexShrink: 0 }}
+          className={`transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && <>{children}</>}
+    </div>
+  );
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function ClubPage() {
@@ -1260,16 +1285,14 @@ export default function ClubPage() {
           const departures = transfers.filter(t => t.type === "departure");
           const rumors = transfers.filter(t => t.type === "rumor");
           return (
-            <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42", background: "#0d1421" }}>
-              <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: "1px solid #1e2d42" }}>
-                <ArrowLeftRight size={13} style={{ color: "#f59e0b" }} />
-                <span className="font-bold text-sm" style={{ color: "#e8edf5" }}>Mercato</span>
-                <div className="ml-auto flex items-center gap-2 text-xs">
-                  {arrivals.length > 0 && <span style={{ color: "#22c55e" }}>🟢 {arrivals.length} arrivée{arrivals.length > 1 ? "s" : ""}</span>}
-                  {departures.length > 0 && <span style={{ color: "#ef4444" }}>🔴 {departures.length} départ{departures.length > 1 ? "s" : ""}</span>}
-                  {rumors.length > 0 && <span style={{ color: "#f59e0b" }}>🟡 {rumors.length} rumeur{rumors.length > 1 ? "s" : ""}</span>}
+            <ClubSection title="Mercato" icon={<ArrowLeftRight size={13} />} iconColor="#f59e0b" defaultOpen={false}
+              badge={
+                <div className="flex items-center gap-2 text-xs">
+                  {arrivals.length > 0 && <span style={{ color: "#22c55e" }}>🟢 {arrivals.length}</span>}
+                  {departures.length > 0 && <span style={{ color: "#ef4444" }}>🔴 {departures.length}</span>}
+                  {rumors.length > 0 && <span style={{ color: "#f59e0b" }}>🟡 {rumors.length}</span>}
                 </div>
-              </div>
+              }>
               {/* Summary grid */}
               {(arrivals.length > 0 || departures.length > 0) && (
                 <div className="grid grid-cols-2 gap-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
@@ -1319,32 +1342,13 @@ export default function ClubPage() {
                   );
                 })}
               </div>
-            </div>
+            </ClubSection>
           );
         })()}
 
         {/* ── BUZZ SUPPORTERS ── */}
-        <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42", background: "#0d1421" }}>
-          <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: "1px solid #1e2d42" }}>
-            <Heart size={13} style={{ color: "#f472b6" }} />
-            <span className="font-bold text-sm" style={{ color: "#e8edf5" }}>Buzz Supporters</span>
-            {buzz && (
-              <div className="ml-auto flex items-center gap-2">
-                <span className="text-xs font-black px-2 py-0.5 rounded-lg"
-                  style={{ color: buzzColor, background: `${buzzColor}15`, border: `1px solid ${buzzColor}25` }}>
-                  {buzz.score} — {buzzText}
-                </span>
-                <span className="text-xs" style={{ color: "#22c55e" }}>+{buzz.positive}</span>
-                <span className="text-xs" style={{ color: "#ef4444" }}>-{buzz.negative}</span>
-              </div>
-            )}
-            {loadingBuzz && !buzz && (
-              <div className="ml-auto flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-full border border-pink-400 border-t-transparent animate-spin" />
-                <span className="text-xs" style={{ color: "#6b7c96" }}>Analyse…</span>
-              </div>
-            )}
-          </div>
+        <ClubSection title="Buzz Supporters" icon={<Heart size={13} />} iconColor="#f472b6" defaultOpen={false}
+          badge={buzz ? <span className="text-xs font-black px-1.5 py-0.5 rounded" style={{ color: buzzColor, background: buzzColor + "15" }}>{buzz.score}</span> : undefined}>
           <div className="px-3 py-2.5">
             {/* Loading skeleton */}
             {loadingBuzz && !buzz && (
@@ -1391,51 +1395,47 @@ export default function ClubPage() {
               </div>
             )}
           </div>
-        </div>
+        </ClubSection>
 
         {/* ── RÉSULTATS + PROCHAINS ── */}
         {(matches?.recent?.length || matches?.upcoming?.length) ? (
-          <div className="grid sm:grid-cols-2 gap-3">
-            {matches?.recent && matches.recent.length > 0 && (
-              <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42", background: "#0d1421" }}>
-                <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: "1px solid #1e2d42" }}>
-                  <Trophy size={13} style={{ color: "#f59e0b" }} />
-                  <span className="font-bold text-sm" style={{ color: "#e8edf5" }}>Derniers résultats</span>
-                  {standings.length > 0 && (
-                    <span className="text-[9px] ml-auto px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.06)", color: "#6b7c96" }}>
-                      Préd. = prédiction
-                    </span>
-                  )}
+          <ClubSection title="Résultats & Matchs" icon={<Trophy size={13} />} iconColor="#f59e0b" defaultOpen={true}>
+            <div className="grid sm:grid-cols-2 gap-3 p-3">
+              {matches?.recent && matches.recent.length > 0 && (
+                <div className="rounded-xl overflow-hidden" style={{ border: "1px solid #1e2d42", background: "rgba(13,20,33,0.6)" }}>
+                  <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: "1px solid #1e2d42" }}>
+                    <Trophy size={11} style={{ color: "#f59e0b" }} />
+                    <span className="font-bold text-xs" style={{ color: "#e8edf5" }}>Derniers résultats</span>
+                    {standings.length > 0 && (
+                      <span className="text-[9px] ml-auto px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.06)", color: "#6b7c96" }}>
+                        Préd. = prédiction
+                      </span>
+                    )}
+                  </div>
+                  <div className="px-2 py-1">
+                    {matches.recent.map(m => <MatchRow key={m.id} match={m} teamId={teamId} standings={standings} />)}
+                  </div>
                 </div>
-                <div className="px-2 py-1">
-                  {matches.recent.map(m => <MatchRow key={m.id} match={m} teamId={teamId} standings={standings} />)}
+              )}
+              {matches?.upcoming && matches.upcoming.length > 0 && (
+                <div className="rounded-xl overflow-hidden" style={{ border: "1px solid #1e2d42", background: "rgba(13,20,33,0.6)" }}>
+                  <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: "1px solid #1e2d42" }}>
+                    <Calendar size={11} style={{ color: "#a78bfa" }} />
+                    <span className="font-bold text-xs" style={{ color: "#e8edf5" }}>Prochains matchs</span>
+                  </div>
+                  <div className="px-2 py-1">
+                    {matches.upcoming.map(m => <MatchRow key={m.id} match={m} teamId={teamId} standings={standings} />)}
+                  </div>
                 </div>
-              </div>
-            )}
-            {matches?.upcoming && matches.upcoming.length > 0 && (
-              <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42", background: "#0d1421" }}>
-                <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: "1px solid #1e2d42" }}>
-                  <Calendar size={13} style={{ color: "#a78bfa" }} />
-                  <span className="font-bold text-sm" style={{ color: "#e8edf5" }}>Prochains matchs</span>
-                </div>
-                <div className="px-2 py-1">
-                  {matches.upcoming.map(m => <MatchRow key={m.id} match={m} teamId={teamId} standings={standings} />)}
-                </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          </ClubSection>
         ) : null}
 
         {/* ── SCORE ÉMOTIONNEL ── */}
         {emotional && (
-          <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42", background: "#0d1421" }}>
-            <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: "1px solid #1e2d42" }}>
-              <Heart size={13} style={{ color: "#f472b6" }} />
-              <span className="font-bold text-sm" style={{ color: "#e8edf5" }}>Facteur additionnel</span>
-              <span className="ml-auto text-xl font-black" style={{ color: ec(emotional.emotionalScore) }}>
-                {emotional.emotionalScore}
-              </span>
-            </div>
+          <ClubSection title="Facteur additionnel" icon={<Heart size={13} />} iconColor="#f472b6" defaultOpen={false}
+            badge={<span className="text-lg font-black" style={{ color: ec(emotional.emotionalScore) }}>{emotional.emotionalScore}</span>}>
             <div className="px-4 py-3 space-y-2">
               <ScoreBar label="Économique" score={emotional.components.economic.score} color="#f59e0b" weight="28%" />
               <ScoreBar label="Médias" score={emotional.components.media.score} color="#00d4ff" weight="28%" />
@@ -1454,28 +1454,12 @@ export default function ClubPage() {
                 </div>
               </div>
             </div>
-          </div>
+          </ClubSection>
         )}
 
         {/* ── JOUEURS ── */}
-        <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42", background: "#0d1421" }}>
-          <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: "1px solid #1e2d42" }}>
-            <Users size={13} style={{ color: "#00d4ff" }} />
-            <span className="font-bold text-sm" style={{ color: "#e8edf5" }}>Joueurs</span>
-            {squad && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold" style={{ background: "rgba(0,212,255,0.12)", color: "#00d4ff" }}>
-                {squad.squad.length}
-              </span>
-            )}
-            {squadStats.injuredCount > 0 && (
-              <span className="flex items-center gap-1 text-xs" style={{ color: "#f97316" }}>
-                <AlertTriangle size={11} />{squadStats.injuredCount} blessé{squadStats.injuredCount > 1 ? "s" : ""}
-              </span>
-            )}
-            {squadStats.totalValue > 0 && (
-              <span className="text-xs font-bold ml-auto" style={{ color: "#00d4ff" }}>{fv(squadStats.totalValue)}</span>
-            )}
-          </div>
+        <ClubSection title="Joueurs" icon={<Users size={13} />} iconColor="#00d4ff" defaultOpen={true}
+          badge={squad ? <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold" style={{ background: "rgba(0,212,255,0.12)", color: "#00d4ff" }}>{squad.squad.length}</span> : undefined}>
 
           {/* Column headers */}
           <div className="grid px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest"
@@ -1634,7 +1618,7 @@ export default function ClubPage() {
               <span style={{ color: "#00d4ff" }}>Total : {fv(squadStats.totalValue)}</span>
             </div>
           )}
-        </div>
+        </ClubSection>
 
         {/* ── Footer ── */}
         <div className="flex items-center justify-between pb-6 pt-1">
