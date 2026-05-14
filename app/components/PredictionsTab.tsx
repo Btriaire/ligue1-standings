@@ -761,31 +761,277 @@ function MatchCard({
 
 // ── World Cup AI Predictions (static, AI-generated) ──────────────────────────
 
-const WC_PREDICTIONS = [
-  { group:"B", date:"11 juin", home:"🇲🇽 Mexique",          away:"🇪🇨 Équateur",       hP:52, dP:25, aP:23, winner:"home",  conf:"medium", note:"Match d'ouverture" },
-  { group:"C", date:"12 juin", home:"🇺🇸 USA",              away:"🇵🇦 Panama",          hP:62, dP:22, aP:16, winner:"home",  conf:"high",   note:"" },
-  { group:"A", date:"13 juin", home:"🇦🇷 Argentine",        away:"🇨🇱 Chili",           hP:65, dP:20, aP:15, winner:"home",  conf:"high",   note:"Tenant du titre" },
-  { group:"E", date:"14 juin", home:"🇪🇸 Espagne",          away:"🇲🇦 Maroc",           hP:55, dP:26, aP:19, winner:"home",  conf:"medium", note:"" },
-  { group:"F", date:"14 juin", home:"🇫🇷 France",           away:"🇸🇦 Arabie Saoudite", hP:72, dP:16, aP:12, winner:"home",  conf:"high",   note:"🇫🇷 Les Bleus favoris" },
-  { group:"D", date:"15 juin", home:"🇨🇦 Canada",           away:"🇭🇳 Honduras",        hP:58, dP:24, aP:18, winner:"home",  conf:"medium", note:"" },
-  { group:"I", date:"15 juin", home:"🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre",    away:"🇸🇳 Sénégal",         hP:55, dP:26, aP:19, winner:"home",  conf:"medium", note:"" },
-  { group:"G", date:"16 juin", home:"🇧🇷 Brésil",           away:"🇨🇴 Colombie",        hP:58, dP:23, aP:19, winner:"home",  conf:"medium", note:"" },
-  { group:"H", date:"16 juin", home:"🇩🇪 Allemagne",        away:"🇳🇱 Pays-Bas",        hP:42, dP:28, aP:30, winner:"draw",  conf:"low",    note:"Choc européen" },
-  { group:"J", date:"17 juin", home:"🇮🇹 Italie",           away:"🇭🇷 Croatie",         hP:48, dP:30, aP:22, winner:"home",  conf:"low",    note:"" },
-  { group:"F", date:"20 juin", home:"🇫🇷 France",           away:"🇨🇭 Suisse",          hP:65, dP:21, aP:14, winner:"home",  conf:"high",   note:"🇫🇷 Les Bleus" },
-  { group:"D", date:"20 juin", home:"🇺🇾 Uruguay",          away:"🇵🇹 Portugal",        hP:30, dP:25, aP:45, winner:"away",  conf:"medium", note:"" },
-  { group:"E", date:"21 juin", home:"🇧🇪 Belgique",         away:"🇯🇵 Japon",           hP:55, dP:24, aP:21, winner:"home",  conf:"medium", note:"" },
-  { group:"A", date:"22 juin", home:"🇦🇷 Argentine",        away:"🇦🇺 Australie",       hP:75, dP:15, aP:10, winner:"home",  conf:"high",   note:"" },
-  { group:"F", date:"25 juin", home:"🇫🇷 France",           away:"🇩🇿 Algérie",         hP:58, dP:24, aP:18, winner:"home",  conf:"medium", note:"🔥 Choc Franco-Algérien" },
-  { group:"G", date:"26 juin", home:"🇧🇷 Brésil",           away:"🇵🇾 Paraguay",        hP:68, dP:20, aP:12, winner:"home",  conf:"high",   note:"" },
-  { group:"H", date:"26 juin", home:"🇩🇪 Allemagne",        away:"🇵🇱 Pologne",         hP:60, dP:23, aP:17, winner:"home",  conf:"high",   note:"" },
-  { group:"I", date:"27 juin", home:"🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre",    away:"🇹🇳 Tunisie",         hP:68, dP:20, aP:12, winner:"home",  conf:"high",   note:"" },
+// WC-specific factor types
+type WCFactorType =
+  | "host"          // Home-country advantage
+  | "champion"      // Defending champion pressure/boost
+  | "revenge"       // Historical/political rivalry
+  | "derby"         // Continental derby
+  | "cohesion"      // High squad club cohesion
+  | "momentum"      // Outstanding qualifier form
+  | "underdog"      // Surprise factor / underdog energy
+  | "veterans"      // Experienced squad in final tournament
+  | "pressure"      // Must-win psychological pressure
+
+const WC_FACTOR_META: Record<WCFactorType, { label: string; color: string; icon: string; desc: string }> = {
+  host:      { label: "Avantage hôte",        color: "#00d4ff", icon: "🏟️", desc: "Soutien du public local · Acclimatation · Pression absente" },
+  champion:  { label: "Tenant du titre",      color: "#fbbf24", icon: "🏆", desc: "Expérience de champions · Mais pression de confirmer" },
+  revenge:   { label: "Revanche historique",  color: "#f97316", icon: "🔥", desc: "Contexte émotionnel fort · Motivation décuplée des deux côtés" },
+  derby:     { label: "Derby continental",    color: "#a78bfa", icon: "⚡", desc: "Rivalité de voisinage · Matchs toujours serrés" },
+  cohesion:  { label: "Cohésion de club",     color: "#22c55e", icon: "🤝", desc: "Joueurs évoluant ensemble en club · Automatismes rôdés" },
+  momentum:  { label: "Élan qualificatif",    color: "#34d399", icon: "📈", desc: "Série impressionnante en éliminatoires · Confiance maximale" },
+  underdog:  { label: "Effet surprise",       color: "#f472b6", icon: "💥", desc: "L'équipe n'a rien à perdre · Jeu libéré et dangereux" },
+  veterans:  { label: "Leadership vétérans",  color: "#94a3b8", icon: "🧠", desc: "Expérience décisive des matchs couperets · Gestion du stress" },
+  pressure:  { label: "Pression enjeu",       color: "#ef4444", icon: "😤", desc: "Match décisif pour la qualification · Nerfs à vif" },
+};
+
+interface WCMatch {
+  group: string; date: string; venue: string;
+  home: string; away: string;
+  hP: number; dP: number; aP: number;
+  winner: "home" | "away" | "draw";
+  conf: "high" | "medium" | "low";
+  note: string;
+  // Rich details
+  scorePredict: string;         // e.g. "2-1"
+  xgHome: number; xgAway: number;
+  overUnder: "O2.5" | "U2.5" | "O1.5";
+  btts: boolean;                // both teams to score
+  keyHome: string;              // star player home
+  keyAway: string;              // star player away
+  h2h: string;                  // historical H2H summary
+  h2hDetail: string;            // e.g. "8V 4N 5D (depuis 1966)"
+  wcFactor: WCFactorType;       // main WC-specific factor
+  wcFactorTeam: "home" | "away" | "both"; // which team it benefits
+  momentumHome: string;         // qualifier form e.g. "8V 2N 0D"
+  momentumAway: string;
+  tacticalNote: string;         // AI tactical insight
+}
+
+const WC_MATCHES_DATA: WCMatch[] = [
+  {
+    group:"B", date:"11 juin", venue:"Mexico City – Azteca",
+    home:"🇲🇽 Mexique", away:"🇪🇨 Équateur",
+    hP:54, dP:24, aP:22, winner:"home", conf:"medium", note:"Match d'ouverture 🚀",
+    scorePredict:"2-1", xgHome:1.9, xgAway:1.3,
+    overUnder:"O2.5", btts:true,
+    keyHome:"Hirving Lozano", keyAway:"Moisés Caicedo",
+    h2h:"Mexique mène 6-3-4", h2hDetail:"13 confrontations · Mexique avantagé",
+    wcFactor:"host", wcFactorTeam:"home",
+    momentumHome:"7V 3N 0D", momentumAway:"6V 2N 2D",
+    tacticalNote:"Ambiance Azteca unique au monde · Mexique très difficile à battre chez lui en match d'ouverture",
+  },
+  {
+    group:"C", date:"12 juin", venue:"Los Angeles – SoFi Stadium",
+    home:"🇺🇸 USA", away:"🇵🇦 Panama",
+    hP:64, dP:22, aP:14, winner:"home", conf:"high", note:"",
+    scorePredict:"2-0", xgHome:2.1, xgAway:0.8,
+    overUnder:"U2.5", btts:false,
+    keyHome:"Christian Pulisic", keyAway:"Rolando Blackburn",
+    h2h:"USA mène 11-4-3", h2hDetail:"18 confrontations · Domination US",
+    wcFactor:"host", wcFactorTeam:"home",
+    momentumHome:"8V 1N 1D", momentumAway:"5V 3N 2D",
+    tacticalNote:"Pulisic en forme record avec l'AC Milan · Panama qualifié de justesse",
+  },
+  {
+    group:"A", date:"13 juin", venue:"Dallas – AT&T Stadium",
+    home:"🇦🇷 Argentine", away:"🇨🇱 Chili",
+    hP:65, dP:21, aP:14, winner:"home", conf:"high", note:"🏆 Tenant du titre",
+    scorePredict:"2-0", xgHome:2.3, xgAway:0.9,
+    overUnder:"O2.5", btts:false,
+    keyHome:"Julián Álvarez", keyAway:"Alexis Sánchez",
+    h2h:"Argentine mène 46-19-15", h2hDetail:"80 confrontations · Classique CONMEBOL",
+    wcFactor:"champion", wcFactorTeam:"home",
+    momentumHome:"7V 3N 0D", momentumAway:"4V 3N 3D",
+    tacticalNote:"Messi incertain mais Álvarez et Lautaro suffisent · Chili en reconstruction post-génération dorée",
+  },
+  {
+    group:"E", date:"14 juin", venue:"Miami – Hard Rock Stadium",
+    home:"🇪🇸 Espagne", away:"🇲🇦 Maroc",
+    hP:54, dP:27, aP:19, winner:"home", conf:"medium", note:"⚠️ Piège potentiel",
+    scorePredict:"1-1", xgHome:1.6, xgAway:1.2,
+    overUnder:"U2.5", btts:true,
+    keyHome:"Lamine Yamal", keyAway:"Achraf Hakimi",
+    h2h:"Espagne mène 5-2-1", h2hDetail:"8 confrontations · Maroc surprenant en 2022",
+    wcFactor:"underdog", wcFactorTeam:"away",
+    momentumHome:"9V 1N 0D", momentumAway:"7V 2N 1D",
+    tacticalNote:"Maroc demi-finaliste 2022 · Hakimi très motivé face à l'Espagne · Match de référence du groupe",
+  },
+  {
+    group:"F", date:"14 juin", venue:"New York – MetLife Stadium",
+    home:"🇫🇷 France", away:"🇸🇦 Arabie Saoudite",
+    hP:74, dP:15, aP:11, winner:"home", conf:"high", note:"🇫🇷 Les Bleus",
+    scorePredict:"3-0", xgHome:2.8, xgAway:0.6,
+    overUnder:"O2.5", btts:false,
+    keyHome:"Kylian Mbappé", keyAway:"Salem Al-Dawsari",
+    h2h:"France mène 3-1-0", h2hDetail:"Peu de confrontations · France nettement supérieure",
+    wcFactor:"momentum", wcFactorTeam:"home",
+    momentumHome:"8V 2N 0D", momentumAway:"4V 2N 4D",
+    tacticalNote:"Mbappé veut effacer la défaite 2022 · Arabie Saoudite avait battu l'Argentine en 2022 mais niveau moindre ici",
+  },
+  {
+    group:"D", date:"15 juin", venue:"Vancouver – BC Place",
+    home:"🇨🇦 Canada", away:"🇭🇳 Honduras",
+    hP:60, dP:24, aP:16, winner:"home", conf:"medium", note:"🏟️ Pays hôte",
+    scorePredict:"2-0", xgHome:1.8, xgAway:0.7,
+    overUnder:"U2.5", btts:false,
+    keyHome:"Alphonso Davies", keyAway:"Alberth Elis",
+    h2h:"Canada mène 6-4-5", h2hDetail:"15 confrontations · Légère avance Canada",
+    wcFactor:"host", wcFactorTeam:"home",
+    momentumHome:"6V 3N 1D", momentumAway:"4V 3N 3D",
+    tacticalNote:"2e participation seulement au Canada · Davies en feu · Honduras solide en CONCACAF mais dépassé à ce niveau",
+  },
+  {
+    group:"I", date:"15 juin", venue:"Boston – Gillette Stadium",
+    home:"🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre", away:"🇸🇳 Sénégal",
+    hP:57, dP:25, aP:18, winner:"home", conf:"medium", note:"",
+    scorePredict:"2-1", xgHome:1.8, xgAway:1.1,
+    overUnder:"O2.5", btts:true,
+    keyHome:"Jude Bellingham", keyAway:"Sadio Mané",
+    h2h:"Angleterre mène 5-2-2", h2hDetail:"9 confrontations · Sénégal montant",
+    wcFactor:"veterans", wcFactorTeam:"home",
+    momentumHome:"7V 2N 1D", momentumAway:"8V 1N 1D",
+    tacticalNote:"Sénégal champion d'Afrique 2022 · Mané vétéran · Angleterre doit éviter le piège contre-attaquant",
+  },
+  {
+    group:"G", date:"16 juin", venue:"San Francisco – Levi's Stadium",
+    home:"🇧🇷 Brésil", away:"🇨🇴 Colombie",
+    hP:56, dP:24, aP:20, winner:"home", conf:"medium", note:"Derby CONMEBOL",
+    scorePredict:"2-1", xgHome:1.9, xgAway:1.3,
+    overUnder:"O2.5", btts:true,
+    keyHome:"Vinicius Jr", keyAway:"James Rodríguez",
+    h2h:"Brésil mène 31-10-11", h2hDetail:"52 confrontations · Classique Amérique du Sud",
+    wcFactor:"derby", wcFactorTeam:"both",
+    momentumHome:"6V 3N 1D", momentumAway:"8V 1N 1D",
+    tacticalNote:"Colombie invaincue en 2024 CONMEBOL qualifying (record) · Brésil en reconstruction mais talent intact",
+  },
+  {
+    group:"H", date:"16 juin", venue:"Philadelphia – Lincoln Financial",
+    home:"🇩🇪 Allemagne", away:"🇳🇱 Pays-Bas",
+    hP:40, dP:30, aP:30, winner:"draw", conf:"low", note:"⚡ Choc européen",
+    scorePredict:"1-1", xgHome:1.4, xgAway:1.4,
+    overUnder:"O2.5", btts:true,
+    keyHome:"Florian Wirtz", keyAway:"Virgil van Dijk",
+    h2h:"Allemagne mène 24-13-12", h2hDetail:"49 confrontations · Rivalité historique intense",
+    wcFactor:"derby", wcFactorTeam:"both",
+    momentumHome:"7V 2N 1D", momentumAway:"8V 1N 1D",
+    tacticalNote:"Wirtz meilleur joueur Bundesliga · Pays-Bas portés par une génération talentueuse · Aucun favori clair",
+  },
+  {
+    group:"J", date:"17 juin", venue:"Houston – NRG Stadium",
+    home:"🇮🇹 Italie", away:"🇭🇷 Croatie",
+    hP:46, dP:32, aP:22, winner:"home", conf:"low", note:"Revanche Euro 2021",
+    scorePredict:"1-0", xgHome:1.3, xgAway:0.9,
+    overUnder:"U2.5", btts:false,
+    keyHome:"Federico Chiesa", keyAway:"Luka Modrić",
+    h2h:"Italie mène 9-4-5", h2hDetail:"18 confrontations · Modrić grand facteur",
+    wcFactor:"veterans", wcFactorTeam:"away",
+    momentumHome:"5V 4N 1D", momentumAway:"5V 3N 2D",
+    tacticalNote:"Modrić possiblement son dernier grand tournoi · Italie solide défensivement mais créativité limitée",
+  },
+  {
+    group:"F", date:"20 juin", venue:"New York – MetLife Stadium",
+    home:"🇫🇷 France", away:"🇨🇭 Suisse",
+    hP:67, dP:20, aP:13, winner:"home", conf:"high", note:"🇫🇷 Les Bleus MD2",
+    scorePredict:"2-0", xgHome:2.2, xgAway:0.8,
+    overUnder:"O2.5", btts:false,
+    keyHome:"Antoine Griezmann", keyAway:"Granit Xhaka",
+    h2h:"France mène 17-11-9", h2hDetail:"37 confrontations · Suisse avait éliminé la France en 2021",
+    wcFactor:"revenge", wcFactorTeam:"home",
+    momentumHome:"8V 2N 0D", momentumAway:"6V 2N 2D",
+    tacticalNote:"La Suisse a éliminé la France à l'Euro 2020 (tirs au but) · Revanche en jeu · Xhaka leader mental clé",
+  },
+  {
+    group:"D", date:"20 juin", venue:"Kansas City – Arrowhead Stadium",
+    home:"🇺🇾 Uruguay", away:"🇵🇹 Portugal",
+    hP:28, dP:26, aP:46, winner:"away", conf:"medium", note:"",
+    scorePredict:"1-2", xgHome:1.0, xgAway:1.8,
+    overUnder:"O2.5", btts:true,
+    keyHome:"Darwin Núñez", keyAway:"Cristiano Ronaldo",
+    h2h:"Uruguay mène 4-2-5", h2hDetail:"11 confrontations · Portugal léger avantage récent",
+    wcFactor:"veterans", wcFactorTeam:"away",
+    momentumHome:"6V 2N 2D", momentumAway:"7V 2N 1D",
+    tacticalNote:"Ronaldo possiblement 5e et dernière CdM · Motivation extrême · Darwin Núñez seul atout offensif uruguayen",
+  },
+  {
+    group:"E", date:"21 juin", venue:"Los Angeles – SoFi Stadium",
+    home:"🇧🇪 Belgique", away:"🇯🇵 Japon",
+    hP:53, dP:25, aP:22, winner:"home", conf:"medium", note:"⚠️ Ne pas sous-estimer",
+    scorePredict:"2-1", xgHome:1.7, xgAway:1.2,
+    overUnder:"O2.5", btts:true,
+    keyHome:"Kevin De Bruyne", keyAway:"Takefusa Kubo",
+    h2h:"Belgique mène 3-1-1", h2hDetail:"5 confrontations · Japon montant",
+    wcFactor:"underdog", wcFactorTeam:"away",
+    momentumHome:"5V 3N 2D", momentumAway:"8V 1N 1D",
+    tacticalNote:"Japon invaincue sur 10 matchs qualifs · Kubo explosif · De Bruyne décisif mais Belgique en fin de cycle",
+  },
+  {
+    group:"A", date:"22 juin", venue:"Seattle – Lumen Field",
+    home:"🇦🇷 Argentine", away:"🇦🇺 Australie",
+    hP:76, dP:14, aP:10, winner:"home", conf:"high", note:"",
+    scorePredict:"3-0", xgHome:2.9, xgAway:0.6,
+    overUnder:"O2.5", btts:false,
+    keyHome:"Lionel Messi", keyAway:"Mat Ryan",
+    h2h:"Argentine mène 4-1-0", h2hDetail:"5 confrontations · Argentine très largement",
+    wcFactor:"champion", wcFactorTeam:"home",
+    momentumHome:"7V 3N 0D", momentumAway:"5V 2N 3D",
+    tacticalNote:"L'Australie avait éliminé la France en 2022… non, Danemark. Match de référence pour la qualification",
+  },
+  {
+    group:"F", date:"25 juin", venue:"New York – MetLife Stadium",
+    home:"🇫🇷 France", away:"🇩🇿 Algérie",
+    hP:56, dP:24, aP:20, winner:"home", conf:"medium", note:"🔥 Choc Historique",
+    scorePredict:"2-1", xgHome:2.0, xgAway:1.4,
+    overUnder:"O2.5", btts:true,
+    keyHome:"Kylian Mbappé", keyAway:"Riyad Mahrez",
+    h2h:"Jamais rencontré en CdM", h2hDetail:"1ère confrontation officielle en CdM · Amicaux: France 2-0",
+    wcFactor:"revenge", wcFactorTeam:"away",
+    momentumHome:"8V 2N 0D", momentumAway:"7V 2N 1D",
+    tacticalNote:"Match politique et émotionnel hors du commun · Nombreux joueurs franco-algériens · Mahrez et Benrahma sous pression identitaire",
+  },
+  {
+    group:"G", date:"26 juin", venue:"San Francisco – Levi's Stadium",
+    home:"🇧🇷 Brésil", away:"🇵🇾 Paraguay",
+    hP:69, dP:20, aP:11, winner:"home", conf:"high", note:"",
+    scorePredict:"2-0", xgHome:2.4, xgAway:0.7,
+    overUnder:"O2.5", btts:false,
+    keyHome:"Rodrygo", keyAway:"Miguel Almirón",
+    h2h:"Brésil mène 38-14-15", h2hDetail:"67 confrontations · Domination brésilienne",
+    wcFactor:"cohesion", wcFactorTeam:"home",
+    momentumHome:"6V 3N 1D", momentumAway:"5V 3N 2D",
+    tacticalNote:"Brésil avec 6 joueurs de Real Madrid et Barcelona · Paraguay résistant mais techniquement limité",
+  },
+  {
+    group:"H", date:"26 juin", venue:"Seattle – Lumen Field",
+    home:"🇩🇪 Allemagne", away:"🇵🇱 Pologne",
+    hP:62, dP:22, aP:16, winner:"home", conf:"high", note:"",
+    scorePredict:"2-0", xgHome:2.1, xgAway:0.9,
+    overUnder:"O2.5", btts:false,
+    keyHome:"Florian Wirtz", keyAway:"Robert Lewandowski",
+    h2h:"Allemagne mène 34-9-4", h2hDetail:"47 confrontations · Domination historique allemande",
+    wcFactor:"derby", wcFactorTeam:"home",
+    momentumHome:"7V 2N 1D", momentumAway:"5V 3N 2D",
+    tacticalNote:"Lewandowski à 38 ans mais toujours redoutable sur coup de pied arrêté · Allemagne doit sécuriser la 1re place",
+  },
+  {
+    group:"I", date:"27 juin", venue:"Boston – Gillette Stadium",
+    home:"🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre", away:"🇹🇳 Tunisie",
+    hP:70, dP:19, aP:11, winner:"home", conf:"high", note:"",
+    scorePredict:"2-0", xgHome:2.3, xgAway:0.7,
+    overUnder:"O2.5", btts:false,
+    keyHome:"Bukayo Saka", keyAway:"Wahbi Khazri",
+    h2h:"Angleterre mène 3-1-0", h2hDetail:"4 confrontations · Angleterre favorable",
+    wcFactor:"pressure", wcFactorTeam:"both",
+    momentumHome:"7V 2N 1D", momentumAway:"5V 2N 3D",
+    tacticalNote:"Angleterre a besoin d'une victoire convaincante · Tunisie en CdM pour la 6e fois · match sans surprise attendue",
+  },
 ];
 
 function WCPredictionsView() {
   const [groupFilter, setGroupFilter] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<number | null>(null);
   const groups = ["A","B","C","D","E","F","G","H","I","J"];
-  const filtered = groupFilter ? WC_PREDICTIONS.filter(m => m.group === groupFilter) : WC_PREDICTIONS;
+  const filtered = WC_MATCHES_DATA.filter(m => !groupFilter || m.group === groupFilter);
 
   return (
     <div>
@@ -794,14 +1040,17 @@ function WCPredictionsView() {
           <h2 className="text-base font-bold flex items-center gap-2" style={{ color: "#e8edf5" }}>
             <Zap size={16} style={{ color: "#eab308" }} /> Prédictions AI — Coupe du Monde 2026
           </h2>
-          <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>Modèle FootPredictom · Phase de groupes</p>
+          <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>
+            Modèle FootPredictom · xG · Score · Facteur CdM · H2H · Joueurs clés
+          </p>
         </div>
       </div>
 
+      {/* Group filter */}
       <div className="flex flex-wrap gap-1.5 mb-4">
         <button onClick={() => setGroupFilter(null)}
           className="px-2.5 py-1 rounded-lg text-xs font-semibold transition-all"
-          style={{ background: groupFilter === null ? "rgba(234,179,8,0.12)" : "rgba(255,255,255,0.04)", border: `1px solid ${groupFilter === null ? "rgba(234,179,8,0.3)" : "rgba(255,255,255,0.08)"}`, color: groupFilter === null ? "#eab308" : "#6b7c96" }}>
+          style={{ background: !groupFilter ? "rgba(234,179,8,0.12)" : "rgba(255,255,255,0.04)", border: `1px solid ${!groupFilter ? "rgba(234,179,8,0.3)" : "rgba(255,255,255,0.08)"}`, color: !groupFilter ? "#eab308" : "#6b7c96" }}>
           Tous
         </button>
         {groups.map(g => (
@@ -818,44 +1067,135 @@ function WCPredictionsView() {
           const winColor = m.winner === "home" ? "#22c55e" : m.winner === "away" ? "#ef4444" : "#f59e0b";
           const confColor = m.conf === "high" ? "#22c55e" : m.conf === "medium" ? "#f59e0b" : "#94a3b8";
           const confLabel = m.conf === "high" ? "Haute" : m.conf === "medium" ? "Moyenne" : "Faible";
+          const factor = WC_FACTOR_META[m.wcFactor];
+          const isOpen = expanded === i;
+          const highlight = !!m.note;
+
           return (
-            <div key={i} className="rounded-2xl p-3"
-              style={{ background: m.note ? "rgba(234,179,8,0.04)" : "#0d1421", border: `1px solid ${m.note ? "rgba(234,179,8,0.2)" : "#1e2d42"}` }}>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-bold px-1.5 py-0.5 rounded" style={{ background: "rgba(234,179,8,0.12)", color: "#eab308" }}>Gr.{m.group}</span>
-                <span className="text-xs" style={{ color: "#6b7c96" }}>{m.date}</span>
-                {m.note && <span className="text-xs font-semibold ml-auto" style={{ color: "#eab308" }}>{m.note}</span>}
-              </div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm font-bold flex-1" style={{ color: m.winner === "home" ? "#e8edf5" : "#94a3b8" }}>{m.home}</span>
-                <span className="text-xs font-bold px-2 py-1 rounded-lg" style={{ background: `${winColor}12`, border: `1px solid ${winColor}25`, color: winColor }}>
-                  {m.winner === "home" ? "DOM" : m.winner === "away" ? "EXT" : "NUL"}
-                </span>
-                <span className="text-sm font-bold flex-1 text-right" style={{ color: m.winner === "away" ? "#e8edf5" : "#94a3b8" }}>{m.away}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 flex gap-1 items-center">
-                  <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
-                    <div className="h-full rounded-full" style={{ width: `${m.hP}%`, background: "#22c55e" }} />
+            <div key={i} className="rounded-2xl overflow-hidden"
+              style={{ background: highlight ? "rgba(234,179,8,0.03)" : "#0d1421", border: `1px solid ${highlight ? "rgba(234,179,8,0.25)" : "#1e2d42"}` }}>
+
+              {/* Clickable header */}
+              <button className="w-full text-left px-3 pt-3 pb-2 hover:bg-white/[0.02] transition-colors"
+                onClick={() => setExpanded(isOpen ? null : i)}>
+
+                {/* Top meta row */}
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: "rgba(234,179,8,0.12)", color: "#eab308" }}>Gr.{m.group}</span>
+                  <span className="text-[10px]" style={{ color: "#6b7c96" }}>{m.date}</span>
+                  <span className="text-[10px]" style={{ color: "#475569" }}>📍 {m.venue}</span>
+                  {m.note && <span className="text-[10px] font-bold ml-auto" style={{ color: "#eab308" }}>{m.note}</span>}
+                </div>
+
+                {/* Teams + verdict */}
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-sm font-bold flex-1 truncate" style={{ color: m.winner === "home" ? "#e8edf5" : "#6b7c96" }}>{m.home}</span>
+                  <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
+                    <span className="text-xs font-black px-2.5 py-1 rounded-lg" style={{ background: `${winColor}15`, border: `1px solid ${winColor}30`, color: winColor }}>
+                      {m.winner === "home" ? "DOM" : m.winner === "away" ? "EXT" : "NUL"}
+                    </span>
+                    <span className="text-[10px] font-mono font-bold" style={{ color: winColor }}>{m.scorePredict}</span>
                   </div>
+                  <span className="text-sm font-bold flex-1 text-right truncate" style={{ color: m.winner === "away" ? "#e8edf5" : "#6b7c96" }}>{m.away}</span>
+                </div>
+
+                {/* Probability bar */}
+                <div className="flex items-center gap-1.5 mb-2">
                   <span className="text-[10px] font-mono w-7 text-right" style={{ color: "#22c55e" }}>{m.hP}%</span>
-                </div>
-                <span className="text-[10px] font-mono w-6 text-center" style={{ color: "#f59e0b" }}>{m.dP}%</span>
-                <div className="flex-1 flex gap-1 items-center">
+                  <div className="flex-1 h-2 rounded-full overflow-hidden flex" style={{ background: "rgba(255,255,255,0.04)" }}>
+                    <div style={{ width: `${m.hP}%`, background: "#22c55e" }} />
+                    <div style={{ width: `${m.dP}%`, background: "#f59e0b" }} />
+                    <div style={{ width: `${m.aP}%`, background: "#ef4444" }} />
+                  </div>
                   <span className="text-[10px] font-mono w-7" style={{ color: "#ef4444" }}>{m.aP}%</span>
-                  <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
-                    <div className="h-full rounded-full ml-auto" style={{ width: `${m.aP}%`, background: "#ef4444" }} />
+                </div>
+
+                {/* Quick stats row */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded font-mono"
+                    style={{ background: "rgba(0,212,255,0.08)", color: "#00d4ff" }}>
+                    xG {m.xgHome}–{m.xgAway}
+                  </span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded font-bold"
+                    style={{ background: m.overUnder === "O2.5" ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)", color: m.overUnder === "O2.5" ? "#22c55e" : "#ef4444" }}>
+                    {m.overUnder}
+                  </span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded"
+                    style={{ background: m.btts ? "rgba(34,197,94,0.08)" : "rgba(100,116,139,0.08)", color: m.btts ? "#22c55e" : "#64748b" }}>
+                    {m.btts ? "BTTS ✓" : "BTTS ✗"}
+                  </span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded font-bold ml-auto"
+                    style={{ background: `${factor.color}10`, color: factor.color }}>
+                    {factor.icon} {factor.label}
+                  </span>
+                  <ChevronDown size={12} style={{ color: "#6b7c96", flexShrink: 0 }}
+                    className={`transition-transform flex-shrink-0 ${isOpen ? "rotate-180" : ""}`} />
+                </div>
+              </button>
+
+              {/* Expanded details */}
+              {isOpen && (
+                <div className="px-3 pb-3 space-y-2.5" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+
+                  {/* WC Factor */}
+                  <div className="rounded-xl px-3 py-2.5 mt-2" style={{ background: `${factor.color}08`, border: `1px solid ${factor.color}20` }}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-base">{factor.icon}</span>
+                      <span className="text-xs font-bold" style={{ color: factor.color }}>{factor.label}</span>
+                      <span className="text-[10px] ml-auto px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}>
+                        Impact : {m.wcFactorTeam === "home" ? m.home.split(" ").slice(1).join(" ") : m.wcFactorTeam === "away" ? m.away.split(" ").slice(1).join(" ") : "les deux"}
+                      </span>
+                    </div>
+                    <p className="text-xs leading-relaxed" style={{ color: "#94a3b8" }}>{factor.desc}</p>
+                  </div>
+
+                  {/* Key players */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {[{ label: m.home, player: m.keyHome, side: "DOM" }, { label: m.away, player: m.keyAway, side: "EXT" }].map(p => (
+                      <div key={p.side} className="rounded-xl px-3 py-2" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                        <p className="text-[10px] uppercase font-bold mb-0.5" style={{ color: "#6b7c96" }}>Joueur clé {p.side}</p>
+                        <p className="text-xs font-bold" style={{ color: "#e8edf5" }}>⭐ {p.player}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* H2H + Momentum */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-xl px-3 py-2" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                      <p className="text-[10px] uppercase font-bold mb-0.5" style={{ color: "#6b7c96" }}>Historique H2H</p>
+                      <p className="text-xs font-bold" style={{ color: "#a78bfa" }}>{m.h2h}</p>
+                      <p className="text-[10px] mt-0.5" style={{ color: "#475569" }}>{m.h2hDetail}</p>
+                    </div>
+                    <div className="rounded-xl px-3 py-2" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                      <p className="text-[10px] uppercase font-bold mb-0.5" style={{ color: "#6b7c96" }}>Forme qualifs</p>
+                      <p className="text-[10px]" style={{ color: "#22c55e" }}>DOM {m.momentumHome}</p>
+                      <p className="text-[10px]" style={{ color: "#ef4444" }}>EXT {m.momentumAway}</p>
+                    </div>
+                  </div>
+
+                  {/* Tactical note */}
+                  <div className="rounded-xl px-3 py-2" style={{ background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.04)" }}>
+                    <p className="text-[10px] uppercase font-bold mb-1" style={{ color: "#6b7c96" }}>🧠 Analyse tactique</p>
+                    <p className="text-xs leading-relaxed" style={{ color: "#94a3b8" }}>{m.tacticalNote}</p>
+                  </div>
+
+                  {/* Confidence */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px]" style={{ color: "#6b7c96" }}>Confiance du modèle :</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                      style={{ background: `${confColor}12`, color: confColor }}>{confLabel}</span>
+                    <span className="text-[10px] ml-auto" style={{ color: "#475569" }}>
+                      Nul : {m.dP}%
+                    </span>
                   </div>
                 </div>
-                <span className="text-[10px] px-1.5 py-0.5 rounded font-bold ml-2 flex-shrink-0"
-                  style={{ background: `${confColor}12`, color: confColor }}>{confLabel}</span>
-              </div>
+              )}
             </div>
           );
         })}
       </div>
       <p className="mt-4 text-center text-xs" style={{ color: "#475569" }}>
-        Prédictions générées par FootPredictom AI · Non contractuelles
+        FootPredictom AI · xG · H2H · Facteurs CdM · Données non contractuelles
       </p>
     </div>
   );
