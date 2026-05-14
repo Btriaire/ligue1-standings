@@ -7,7 +7,6 @@ import TeamModal from "./components/TeamModal";
 import PredictionsTab from "./components/PredictionsTab";
 import EmotionalScoreTab from "./components/EmotionalScoreTab";
 import ResultsTab from "./components/ResultsTab";
-import WorldCupTab from "./components/WorldCupTab";
 import ConfigTab from "./components/ConfigTab";
 import TransfersTab from "./components/TransfersTab";
 
@@ -39,7 +38,7 @@ interface StandingsData {
   updatedAt: string;
 }
 
-type TabId = "standings" | "predictions" | "results" | "emotional" | "worldcup" | "transfers" | "config";
+type TabId = "standings" | "predictions" | "results" | "emotional" | "transfers" | "config";
 
 const ZONE_CONFIG = [
   { label: "Champion",            positions: [1],          color: "#60a5fa", bg: "rgba(96,165,250,0.05)"  },
@@ -371,7 +370,6 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode; shortLabel?: stri
   { id: "predictions", label: "AI FootPredictom",   icon: <Zap size={14} />,         shortLabel: "AI Foot" },
   { id: "results",     label: "Résultats",         icon: <Target size={14} /> },
   { id: "emotional",   label: "Facteur additionnel",  icon: <Heart size={14} />,       shortLabel: "Fact. add." },
-  { id: "worldcup",    label: "Coupe du Monde",    icon: <Globe size={14} />,            shortLabel: "WC 2026" },
   { id: "transfers",   label: "Transferts",         icon: <ArrowLeftRight size={14} />,  shortLabel: "Mercato" },
   { id: "config",      label: "Configuration",     icon: <Settings size={14} />,         shortLabel: "Config" },
 ];
@@ -591,12 +589,34 @@ export default function Home() {
         {tab === "predictions" && (user ? <PredictionsTab /> : <AuthGate label="AI FootPredictom" icon={<Zap size={16} className="inline" style={{ color: "#3b82f6" }} />} />)}
         {tab === "results" && <ResultsTab />}
         {tab === "emotional" && (user ? <EmotionalScoreTab /> : <AuthGate label="Facteur additionnel" icon={<Heart size={16} className="inline" style={{ color: "#a78bfa" }} />} />)}
-        {tab === "worldcup" && <WorldCupTab />}
         {tab === "transfers" && <TransfersTab />}
         {tab === "config" && <ConfigTab />}
 
+        {/* World Cup banner — standalone entry */}
+        <Link href="/worldcup"
+          className="mt-8 mb-2 flex items-center gap-4 px-5 py-4 rounded-2xl transition-all hover:opacity-90 group"
+          style={{
+            background: "linear-gradient(120deg, rgba(0,212,255,0.07), rgba(124,58,237,0.07), rgba(234,179,8,0.07))",
+            border: "1px solid rgba(234,179,8,0.25)",
+          }}>
+          <span className="text-3xl flex-shrink-0">🌍</span>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-black tracking-tight" style={{ color: "#e8edf5" }}>Coupe du Monde 2026</span>
+              <span className="text-xs px-2 py-0.5 rounded-full font-bold flex-shrink-0"
+                style={{ background: "rgba(234,179,8,0.15)", color: "#eab308", border: "1px solid rgba(234,179,8,0.25)" }}>
+                FIFA
+              </span>
+            </div>
+            <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>
+              USA · Canada · Mexique · 11 juin – 19 juillet 2026 · 48 équipes
+            </p>
+          </div>
+          <ChevronRight size={16} style={{ color: "#eab308", flexShrink: 0 }} className="group-hover:translate-x-0.5 transition-transform" />
+        </Link>
+
         {/* Footer */}
-        <div className="mt-8 flex items-center justify-between text-xs" style={{ color: "#6b7c96" }}>
+        <div className="mt-4 flex items-center justify-between text-xs" style={{ color: "#6b7c96" }}>
           <div className="flex items-center gap-1.5">
             {error
               ? <><WifiOff size={11} className="text-red-400" /><span className="text-red-400 ml-1">Hors ligne</span></>
@@ -608,7 +628,21 @@ export default function Home() {
         </div>{/* end main-content col */}
 
         {/* Club sidebar — always visible on lg+ */}
-        <div className="hidden lg:block" style={{ position: "sticky", top: "73px" }}>
+        <div className="hidden lg:block space-y-3" style={{ position: "sticky", top: "73px" }}>
+          {/* World Cup sidebar card */}
+          <Link href="/worldcup"
+            className="flex items-center gap-3 px-3 py-3 rounded-2xl transition-all hover:opacity-85 group"
+            style={{
+              background: "linear-gradient(120deg, rgba(0,212,255,0.07), rgba(234,179,8,0.09))",
+              border: "1px solid rgba(234,179,8,0.3)",
+            }}>
+            <span className="text-2xl flex-shrink-0">🌍</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-black" style={{ color: "#e8edf5" }}>Coupe du Monde</p>
+              <p className="text-[10px] mt-0.5" style={{ color: "#eab308" }}>2026 · FIFA</p>
+            </div>
+            <ChevronRight size={12} style={{ color: "#eab308" }} className="group-hover:translate-x-0.5 transition-transform" />
+          </Link>
           <ClubSidebar standings={data?.standings} />
         </div>
         </div>{/* end grid */}
