@@ -1027,6 +1027,67 @@ const WC_MATCHES_DATA: WCMatch[] = [
   },
 ];
 
+// ── Facteur Additionnel CdM (Médias · Humain · Supporters) ───────────────────
+// Mirrored from EmotionalScoreTab WC_TEAMS — 3 dimensions, no economic
+
+interface WCEmoEntry { score: number; media: number; human: number; fan: number; delta: number }
+function wcDelta(score: number): number {
+  if (score >= 72) return 7;
+  if (score >= 62) return 4;
+  if (score >= 52) return 1;
+  if (score <= 22) return -8;
+  if (score <= 32) return -5;
+  if (score <= 42) return -2;
+  return 0;
+}
+
+const WC_EMO: Record<string, WCEmoEntry> = {
+  "France":           { score:80, media:78, human:85, fan:76, delta: wcDelta(80) },
+  "Espagne":          { score:85, media:82, human:88, fan:85, delta: wcDelta(85) },
+  "Argentine":        { score:81, media:80, human:75, fan:88, delta: wcDelta(81) },
+  "Brésil":           { score:76, media:75, human:82, fan:70, delta: wcDelta(76) },
+  "Angleterre":       { score:72, media:70, human:82, fan:64, delta: wcDelta(72) },
+  "Allemagne":        { score:72, media:68, human:78, fan:70, delta: wcDelta(72) },
+  "Portugal":         { score:76, media:74, human:76, fan:78, delta: wcDelta(76) },
+  "Pays-Bas":         { score:68, media:65, human:74, fan:66, delta: wcDelta(68) },
+  "USA":              { score:78, media:80, human:72, fan:82, delta: wcDelta(78) },
+  "Mexique":          { score:80, media:82, human:68, fan:90, delta: wcDelta(80) },
+  "Canada":           { score:70, media:68, human:65, fan:78, delta: wcDelta(70) },
+  "Maroc":            { score:75, media:72, human:68, fan:85, delta: wcDelta(75) },
+  "Uruguay":          { score:67, media:62, human:66, fan:72, delta: wcDelta(67) },
+  "Colombie":         { score:69, media:64, human:68, fan:74, delta: wcDelta(69) },
+  "Japon":            { score:65, media:60, human:64, fan:72, delta: wcDelta(65) },
+  "Croatie":          { score:63, media:60, human:62, fan:68, delta: wcDelta(63) },
+  "Belgique":         { score:64, media:60, human:70, fan:62, delta: wcDelta(64) },
+  "Italie":           { score:66, media:64, human:68, fan:65, delta: wcDelta(66) },
+  "Algérie":          { score:71, media:70, human:60, fan:82, delta: wcDelta(71) },
+  "Suisse":           { score:59, media:55, human:62, fan:60, delta: wcDelta(59) },
+  "Arabie Saoudite":  { score:48, media:45, human:52, fan:55, delta: wcDelta(48) },
+  "Panama":           { score:58, media:52, human:58, fan:64, delta: wcDelta(58) },
+  "Chili":            { score:62, media:60, human:64, fan:68, delta: wcDelta(62) },
+  "Australie":        { score:60, media:58, human:60, fan:62, delta: wcDelta(60) },
+  "Honduras":         { score:55, media:50, human:55, fan:62, delta: wcDelta(55) },
+  "Sénégal":          { score:68, media:64, human:68, fan:72, delta: wcDelta(68) },
+  "Paraguay":         { score:60, media:56, human:60, fan:65, delta: wcDelta(60) },
+  "Pologne":          { score:62, media:60, human:66, fan:62, delta: wcDelta(62) },
+  "Serbie":           { score:60, media:58, human:62, fan:62, delta: wcDelta(60) },
+  "Tunisie":          { score:57, media:54, human:58, fan:62, delta: wcDelta(57) },
+  "Roumanie":         { score:56, media:54, human:56, fan:58, delta: wcDelta(56) },
+  "Angola":           { score:52, media:48, human:52, fan:58, delta: wcDelta(52) },
+};
+
+/** Extract team name without leading flag emoji */
+function teamKey(flagName: string): string {
+  return flagName.replace(/^[\p{Emoji}\s]+/u, "").trim();
+}
+
+function emoColor(score: number) {
+  if (score >= 70) return "#22c55e";
+  if (score >= 55) return "#00d4ff";
+  if (score >= 40) return "#f59e0b";
+  return "#ef4444";
+}
+
 // Parse "8V 2N 1D" → { v, n, d, played, pts, score 0-100, label, color }
 function parseQualif(str: string) {
   const m = str.match(/(\d+)V\s*(\d+)N\s*(\d+)D/);
@@ -1194,6 +1255,39 @@ function WCPredictionsView() {
                   );
                 })()}
 
+                {/* Facteur Additionnel — compact row */}
+                {(() => {
+                  const eh = WC_EMO[teamKey(m.home)];
+                  const ea = WC_EMO[teamKey(m.away)];
+                  if (!eh && !ea) return null;
+                  const hScore = eh?.score ?? 50;
+                  const aScore = ea?.score ?? 50;
+                  const hDelta = eh?.delta ?? 0;
+                  const aDelta = ea?.delta ?? 0;
+                  const hC = emoColor(hScore);
+                  const aC = emoColor(aScore);
+                  return (
+                    <div className="mb-2 px-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#475569" }}>Facteur Add.</span>
+                        <span className="text-[10px] font-bold ml-auto" style={{ color: hC }}>
+                          {hScore} {hDelta !== 0 && <span style={{ color: hDelta > 0 ? "#22c55e" : "#ef4444" }}>({hDelta > 0 ? "+" : ""}{hDelta}%)</span>}
+                        </span>
+                        <div className="w-20 h-1.5 rounded-full overflow-hidden flex" style={{ background: "rgba(255,255,255,0.04)" }}>
+                          <div style={{ width: `${hScore}%`, background: hC }} />
+                        </div>
+                        <span className="text-[10px]" style={{ color: "#475569" }}>vs</span>
+                        <div className="w-20 h-1.5 rounded-full overflow-hidden flex" style={{ background: "rgba(255,255,255,0.04)" }}>
+                          <div style={{ width: `${aScore}%`, background: aC, marginLeft: "auto" }} />
+                        </div>
+                        <span className="text-[10px] font-bold" style={{ color: aC }}>
+                          {aScore} {aDelta !== 0 && <span style={{ color: aDelta > 0 ? "#22c55e" : "#ef4444" }}>({aDelta > 0 ? "+" : ""}{aDelta}%)</span>}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* Quick stats row */}
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-[10px] px-1.5 py-0.5 rounded font-mono"
@@ -1279,6 +1373,65 @@ function WCPredictionsView() {
                       );
                     })()}
                   </div>
+
+                  {/* Facteur Additionnel — full breakdown */}
+                  {(() => {
+                    const eh = WC_EMO[teamKey(m.home)];
+                    const ea = WC_EMO[teamKey(m.away)];
+                    if (!eh && !ea) return null;
+                    const hScore = eh?.score ?? 50;
+                    const aScore = ea?.score ?? 50;
+                    const hDelta = eh?.delta ?? 0;
+                    const aDelta = ea?.delta ?? 0;
+                    const dims: { key: keyof WCEmoEntry; label: string; icon: string; color: string }[] = [
+                      { key: "media",  label: "Médias",     icon: "📰", color: "#00d4ff" },
+                      { key: "human",  label: "Humain",     icon: "👥", color: "#22c55e" },
+                      { key: "fan",    label: "Supporters", icon: "❤️", color: "#f472b6" },
+                    ];
+                    return (
+                      <div className="rounded-xl px-3 py-3" style={{ background: "rgba(244,114,182,0.04)", border: "1px solid rgba(244,114,182,0.15)" }}>
+                        <p className="text-[10px] uppercase font-bold mb-2.5" style={{ color: "#f472b6" }}>❤️ Facteur Additionnel</p>
+                        {/* Overall score comparison */}
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span className="text-base font-black" style={{ color: emoColor(hScore) }}>{hScore}</span>
+                            {hDelta !== 0 && <span className="text-[10px] font-bold" style={{ color: hDelta > 0 ? "#22c55e" : "#ef4444" }}>{hDelta > 0 ? "+" : ""}{hDelta}% pred</span>}
+                          </div>
+                          <div className="flex-1 h-2 rounded-full overflow-hidden flex" style={{ background: "rgba(255,255,255,0.06)" }}>
+                            <div style={{ width: `${hScore}%`, background: emoColor(hScore), transition: "width 0.6s" }} />
+                          </div>
+                          <span className="text-[10px] font-bold" style={{ color: "#6b7c96" }}>vs</span>
+                          <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                            <div style={{ width: `${aScore}%`, background: emoColor(aScore), marginLeft: "auto", transition: "width 0.6s" }} />
+                          </div>
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span className="text-base font-black" style={{ color: emoColor(aScore) }}>{aScore}</span>
+                            {aDelta !== 0 && <span className="text-[10px] font-bold" style={{ color: aDelta > 0 ? "#22c55e" : "#ef4444" }}>{aDelta > 0 ? "+" : ""}{aDelta}% pred</span>}
+                          </div>
+                        </div>
+                        {/* Dimension breakdown */}
+                        <div className="space-y-1.5">
+                          {dims.map(d => {
+                            const hv = (eh?.[d.key] as number) ?? 50;
+                            const av = (ea?.[d.key] as number) ?? 50;
+                            const best = hv > av ? "home" : hv < av ? "away" : "tie";
+                            return (
+                              <div key={d.key} className="flex items-center gap-2">
+                                <span className="text-[10px] w-4">{d.icon}</span>
+                                <span className="text-[10px] w-16" style={{ color: d.color }}>{d.label}</span>
+                                <span className="text-[10px] font-mono w-6 text-right" style={{ color: best === "home" ? "#e8edf5" : "#6b7c96" }}>{hv}</span>
+                                <div className="flex-1 h-1.5 rounded-full overflow-hidden flex gap-px" style={{ background: "rgba(255,255,255,0.04)" }}>
+                                  <div style={{ width: `${hv/(hv+av)*100}%`, background: d.color, opacity: best === "home" ? 1 : 0.4 }} />
+                                  <div style={{ flex: 1, background: d.color, opacity: best === "away" ? 1 : 0.4 }} />
+                                </div>
+                                <span className="text-[10px] font-mono w-6" style={{ color: best === "away" ? "#e8edf5" : "#6b7c96" }}>{av}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* Tactical note */}
                   <div className="rounded-xl px-3 py-2" style={{ background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.04)" }}>
