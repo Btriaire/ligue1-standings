@@ -600,13 +600,13 @@ function MatchCard({
             <div className="flex items-center gap-2 px-3 py-1.5" style={{ borderBottom: "1px solid rgba(234,179,8,0.12)" }}>
               <Star size={10} style={{ color: "#eab308" }} />
               <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#eab308" }}>
-                Cotes Betclic
+                {expertMatch?.source === "Betclic" ? "Cotes Betclic" : "Analyse experte"}
               </span>
               {hasBetclic && (
                 <span className="text-[9px] ml-auto" style={{ color: "#6b7c96" }}>
                   {useEmotional && betclicEmoShift !== 0
-                    ? `base Betclic · ajusté facteur additionnel ${betclicEmoShift > 0 ? "+" : ""}${betclicEmoShift}pp`
-                    : "base Betclic"}
+                    ? `${expertMatch?.source ?? "Expert"} · ajusté facteur additionnel ${betclicEmoShift > 0 ? "+" : ""}${betclicEmoShift}pp`
+                    : expertMatch?.source ?? "Expert"}
                 </span>
               )}
             </div>
@@ -638,7 +638,7 @@ function MatchCard({
               border: hasBetclic ? "1px solid rgba(234,179,8,0.2)" : "1px solid rgba(0,212,255,0.15)",
             }}>
             <p className="text-xs" style={{ color: "#6b7c96" }}>
-              {hasBetclic ? "Betclic" : "AI FootPredictom"}
+              {hasBetclic ? (expertMatch?.source ?? "Expert") : "AI FootPredictom"}
               {useEmotional && hasBetclic ? " + Facteur additionnel" : ""}
             </p>
             <p className="text-sm font-bold mt-0.5" style={{ color: hasBetclic ? "#eab308" : "#00d4ff" }}>
@@ -653,7 +653,7 @@ function MatchCard({
               border: hasBetclic ? "1px solid rgba(234,179,8,0.2)" : "1px solid rgba(148,163,184,0.15)",
             }}>
             <p className="text-xs" style={{ color: "#6b7c96" }}>
-              {hasBetclic ? "Betclic" : "AI FootPredictom"}
+              {hasBetclic ? (expertMatch?.source ?? "Expert") : "AI FootPredictom"}
               {useEmotional && hasBetclic ? " + Facteur additionnel" : ""}
             </p>
             <p className="text-sm font-bold mt-0.5" style={{ color: hasBetclic ? "#eab308" : "#94a3b8" }}>
