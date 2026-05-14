@@ -903,19 +903,24 @@ export default function ClubPage() {
           return ts !== null && os !== null ? `${opp.split(" ")[0]}${ts}-${os}` : null;
         }).filter(Boolean).join(",") ?? "";
 
-        const params = new URLSearchParams({
+        // Use standing data (football-data.org) for accurate season stats
+        const formStr = standing && standing.playedGames > 0
+          ? `${standing.won}V${standing.draw}N${standing.lost}D`
+          : "";
+        const analysisParams = new URLSearchParams({
           club: sq?.team?.name ?? String(teamId),
           pos: String(standing?.position ?? ""),
           pts: String(standing?.points ?? ""),
-          form: (sq?.stats?.recentMatchCount ? `${sq.stats.teamWins}V${sq.stats.teamDraws}N${sq.stats.teamLosses}D` : ""),
+          played: String(standing?.playedGames ?? ""),
+          form: formStr,
           gf: String(standing?.goalsFor ?? ""),
           ga: String(standing?.goalsAgainst ?? ""),
           coach: sq?.team?.coach ?? "",
           injured: String(sq?.stats?.injuredCount ?? 0),
-          value: sq?.stats?.totalValue ? String(Math.round(sq.stats.totalValue)) : "",
+          value: sq?.stats?.totalValue ? String(Math.round(sq.stats.totalValue / 1_000_000)) : "",
           recent: recentResults,
         });
-        fetch(`/api/club-analysis?${params}`)
+        fetch(`/api/club-analysis?${analysisParams}`)
           .then(r => r.json())
           .then(setClubAnalysis)
           .catch(() => null);

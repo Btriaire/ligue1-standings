@@ -112,12 +112,20 @@ export async function GET(req: Request) {
     posNum <= 15 ? "en zone de turbulences" :
                   "en zone de relégation (18 clubs au total, 3 relégués directs)";
 
+  const played = p.get("played") ?? "";
+  const wins   = form.match(/(\d+)V/)?.[1] ?? "";
+  const draws  = form.match(/(\d+)N/)?.[1] ?? "";
+  const losses = form.match(/(\d+)D/)?.[1] ?? "";
+  const formDetail = (wins || draws || losses)
+    ? `${wins}V ${draws}N ${losses}D sur ${played || "?"} matchs joués`
+    : "";
+
   const data = [
     `Club: ${club}`,
     `Position: ${pos}/18 (${leagueCtx})`,
-    `Points: ${pts}`,
-    form && `Forme (5 derniers matchs): ${form}`,
-    `Buts pour/contre: ${gf}/${ga} (diff: +${parseInt(gf as string) - parseInt(ga as string)})`,
+    `Points: ${pts}${played ? ` en ${played} matchs joués` : ""}`,
+    formDetail && `Bilan saison: ${formDetail}`,
+    `Buts pour/contre: ${gf}/${ga} (diff: ${parseInt(gf as string) - parseInt(ga as string) >= 0 ? "+" : ""}${parseInt(gf as string) - parseInt(ga as string)})`,
     coach && `Entraîneur: ${coach}`,
     parseInt(injured) > 0 && `Blessés: ${injured}`,
     value && `Valeur effectif: ${value}M€`,
