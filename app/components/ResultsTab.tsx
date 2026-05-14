@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle, XCircle, Minus, Clock, Target, Download, Trophy } from "lucide-react";
+import { CheckCircle, XCircle, Minus, Clock, Target, Download, Trophy, Globe, Calendar } from "lucide-react";
 import { loadPredictions, downloadCSV, SavedPrediction } from "@/app/lib/predictions-store";
 
 // ── Standings + prediction logic (mirrored from club page) ────────────────────
@@ -316,7 +316,123 @@ function MatchResultCard({ match, savedPrediction, algoPred }: {
   );
 }
 
+const WC_MATCHES = [
+  { group: "B", date: "11 juin", home: "🇲🇽 Mexique", away: "🇪🇨 Équateur", venue: "Mexico City", note: "Match d'ouverture" },
+  { group: "C", date: "12 juin", home: "🇺🇸 USA", away: "🇵🇦 Panama", venue: "Los Angeles" },
+  { group: "A", date: "13 juin", home: "🇦🇷 Argentine", away: "🇨🇱 Chili", venue: "Dallas" },
+  { group: "E", date: "14 juin", home: "🇪🇸 Espagne", away: "🇲🇦 Maroc", venue: "Miami" },
+  { group: "F", date: "14 juin", home: "🇫🇷 France", away: "🇸🇦 Arabie Saoudite", venue: "New York", note: "🇫🇷 Les Bleus" },
+  { group: "D", date: "15 juin", home: "🇨🇦 Canada", away: "🇭🇳 Honduras", venue: "Toronto" },
+  { group: "I", date: "15 juin", home: "🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre", away: "🇸🇳 Sénégal", venue: "Boston" },
+  { group: "G", date: "16 juin", home: "🇧🇷 Brésil", away: "🇨🇴 Colombie", venue: "San Francisco" },
+  { group: "H", date: "16 juin", home: "🇩🇪 Allemagne", away: "🇳🇱 Pays-Bas", venue: "Philadelphia" },
+  { group: "J", date: "17 juin", home: "🇮🇹 Italie", away: "🇭🇷 Croatie", venue: "Houston" },
+  { group: "B", date: "17 juin", home: "🇲🇽 Mexique", away: "🇻🇪 Venezuela", venue: "Guadalajara" },
+  { group: "C", date: "18 juin", home: "🇺🇸 USA", away: "🇨🇺 Cuba", venue: "Atlanta" },
+  { group: "A", date: "18 juin", home: "🇦🇷 Argentine", away: "🇦🇺 Australie", venue: "Seattle" },
+  { group: "D", date: "19 juin", home: "🇺🇾 Uruguay", away: "🇵🇹 Portugal", venue: "Kansas City" },
+  { group: "E", date: "20 juin", home: "🇧🇪 Belgique", away: "🇯🇵 Japon", venue: "Los Angeles" },
+  { group: "F", date: "20 juin", home: "🇫🇷 France", away: "🇨🇭 Suisse", venue: "New York", note: "🇫🇷 Les Bleus" },
+  { group: "G", date: "21 juin", home: "🇵🇾 Paraguay", away: "🇨🇲 Cameroun", venue: "San Francisco" },
+  { group: "H", date: "21 juin", home: "🇵🇱 Pologne", away: "🇷🇸 Serbie", venue: "Philadelphia" },
+  { group: "I", date: "22 juin", home: "🇹🇳 Tunisie", away: "🇨🇷 Costa Rica", venue: "Boston" },
+  { group: "J", date: "22 juin", home: "🇷🇴 Roumanie", away: "🇦🇴 Angola", venue: "Houston" },
+  { group: "A", date: "24 juin", home: "🇨🇱 Chili", away: "🇦🇺 Australie", venue: "Dallas" },
+  { group: "B", date: "24 juin", home: "🇯🇲 Jamaïque", away: "🇪🇨 Équateur", venue: "Monterrey" },
+  { group: "C", date: "25 juin", home: "🇵🇦 Panama", away: "🇳🇿 Nouvelle-Zélande", venue: "Atlanta" },
+  { group: "D", date: "25 juin", home: "🇨🇦 Canada", away: "🇺🇾 Uruguay", venue: "Vancouver" },
+  { group: "E", date: "25 juin", home: "🇪🇸 Espagne", away: "🇧🇪 Belgique", venue: "Miami" },
+  { group: "F", date: "25 juin", home: "🇫🇷 France", away: "🇩🇿 Algérie", venue: "New York", note: "🔥 Choc" },
+  { group: "G", date: "26 juin", home: "🇧🇷 Brésil", away: "🇵🇾 Paraguay", venue: "San Francisco" },
+  { group: "H", date: "26 juin", home: "🇩🇪 Allemagne", away: "🇵🇱 Pologne", venue: "Seattle" },
+  { group: "I", date: "27 juin", home: "🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre", away: "🇹🇳 Tunisie", venue: "Boston" },
+  { group: "J", date: "27 juin", home: "🇮🇹 Italie", away: "🇷🇴 Roumanie", venue: "Houston" },
+];
+
+const WC_PHASE_MATCHES = [
+  { phase: "Huitièmes de finale", dates: "4–7 juillet 2026", color: "#f59e0b" },
+  { phase: "Quarts de finale",    dates: "9–12 juillet 2026", color: "#f97316" },
+  { phase: "Demi-finales",        dates: "14–15 juillet 2026", color: "#ef4444" },
+  { phase: "3e place",            dates: "18 juillet 2026",    color: "#a78bfa" },
+  { phase: "FINALE",              dates: "19 juillet 2026",    color: "#fbbf24" },
+];
+
+function WCResultsView() {
+  const [groupFilter, setGroupFilter] = useState<string | null>(null);
+  const groups = ["A","B","C","D","E","F","G","H","I","J","K","L"];
+  const filtered = groupFilter ? WC_MATCHES.filter(m => m.group === groupFilter) : WC_MATCHES;
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div>
+          <h2 className="text-base font-bold flex items-center gap-2" style={{ color: "#e8edf5" }}>
+            <Globe size={16} style={{ color: "#eab308" }} /> Coupe du Monde 2026
+          </h2>
+          <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>11 juin – 19 juillet · USA · Canada · Mexique</p>
+        </div>
+        <span className="text-xs px-2 py-1 rounded-full font-bold"
+          style={{ background: "rgba(234,179,8,0.12)", border: "1px solid rgba(234,179,8,0.25)", color: "#eab308" }}>
+          À venir
+        </span>
+      </div>
+
+      {/* Group filter */}
+      <div className="flex flex-wrap gap-1.5 mb-4">
+        <button onClick={() => setGroupFilter(null)}
+          className="px-2.5 py-1 rounded-lg text-xs font-semibold transition-all"
+          style={{ background: groupFilter === null ? "rgba(0,212,255,0.12)" : "rgba(255,255,255,0.04)", border: `1px solid ${groupFilter === null ? "rgba(0,212,255,0.3)" : "rgba(255,255,255,0.08)"}`, color: groupFilter === null ? "#00d4ff" : "#6b7c96" }}>
+          Tous
+        </button>
+        {groups.map(g => (
+          <button key={g} onClick={() => setGroupFilter(g === groupFilter ? null : g)}
+            className="px-2.5 py-1 rounded-lg text-xs font-bold transition-all"
+            style={{ background: groupFilter === g ? "rgba(234,179,8,0.12)" : "rgba(255,255,255,0.04)", border: `1px solid ${groupFilter === g ? "rgba(234,179,8,0.3)" : "rgba(255,255,255,0.08)"}`, color: groupFilter === g ? "#eab308" : "#6b7c96" }}>
+            {g}
+          </button>
+        ))}
+      </div>
+
+      {/* Matches */}
+      <div className="space-y-1.5 mb-5">
+        {filtered.map((m, i) => (
+          <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
+            style={{ background: m.note ? "rgba(234,179,8,0.04)" : "rgba(255,255,255,0.02)", border: `1px solid ${m.note ? "rgba(234,179,8,0.2)" : "rgba(255,255,255,0.05)"}` }}>
+            <span className="text-xs font-bold w-5 flex-shrink-0" style={{ color: "#eab308" }}>{m.group}</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-semibold" style={{ color: "#e8edf5" }}>{m.home}</span>
+                <span className="text-[10px]" style={{ color: "#6b7c96" }}>vs</span>
+                <span className="text-xs font-semibold" style={{ color: "#e8edf5" }}>{m.away}</span>
+                {m.note && <span className="text-[10px] px-1.5 py-0.5 rounded font-bold" style={{ background: "rgba(234,179,8,0.15)", color: "#eab308" }}>{m.note}</span>}
+              </div>
+              <p className="text-[10px] mt-0.5" style={{ color: "#6b7c96" }}><Calendar size={9} className="inline mr-1" />{m.date} · {m.venue}</p>
+            </div>
+            <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold flex-shrink-0"
+              style={{ background: "rgba(100,116,139,0.1)", border: "1px solid rgba(100,116,139,0.2)", color: "#64748b" }}>
+              À venir
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Phase matches */}
+      <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: "#6b7c96" }}>Phase finale</p>
+      <div className="space-y-1.5">
+        {WC_PHASE_MATCHES.map(p => (
+          <div key={p.phase} className="flex items-center justify-between px-3 py-2 rounded-xl"
+            style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${p.color}20` }}>
+            <span className="text-xs font-bold" style={{ color: p.color }}>{p.phase}</span>
+            <span className="text-xs" style={{ color: "#6b7c96" }}>{p.dates}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function ResultsTab() {
+  const [subTab, setSubTab] = useState<"l1" | "cdm">("l1");
   const [data, setData] = useState<ResultsData | null>(null);
   const [standings, setStandings] = useState<StandingEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -355,20 +471,37 @@ export default function ResultsTab() {
     ? Math.round((correctPredictions.length / matchesWithPredictions.length) * 100)
     : null;
 
+  const SubTabs = () => (
+    <div className="flex gap-1 mb-5 p-1 rounded-xl" style={{ background: "#0a0f1c", border: "1px solid #1a2235", display: "inline-flex" }}>
+      {([["l1", "🏆 Ligue 1"], ["cdm", "🌍 Coupe du Monde"]] as const).map(([id, label]) => (
+        <button key={id} onClick={() => setSubTab(id)}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap"
+          style={{ background: subTab === id ? "rgba(255,255,255,0.08)" : "transparent", color: subTab === id ? "#e2e8f0" : "#64748b", border: subTab === id ? "1px solid rgba(255,255,255,0.1)" : "1px solid transparent" }}>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (subTab === "cdm") return <div><SubTabs /><WCResultsView /></div>;
+
   if (loading) {
     return (
+      <div><SubTabs />
       <div className="space-y-3">
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="h-28 rounded-2xl animate-pulse" style={{ background: "#0d1421", border: "1px solid #1e2d42" }} />
         ))}
       </div>
+      </div>
     );
   }
 
-  if (error) return <div className="text-center py-16 text-red-400 text-sm">{error}</div>;
+  if (error) return <div><SubTabs /><div className="text-center py-16 text-red-400 text-sm">{error}</div></div>;
 
   return (
     <div>
+      <SubTabs />
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
         <div>

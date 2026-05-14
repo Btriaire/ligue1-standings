@@ -759,9 +759,112 @@ function MatchCard({
   );
 }
 
+// ── World Cup AI Predictions (static, AI-generated) ──────────────────────────
+
+const WC_PREDICTIONS = [
+  { group:"B", date:"11 juin", home:"🇲🇽 Mexique",          away:"🇪🇨 Équateur",       hP:52, dP:25, aP:23, winner:"home",  conf:"medium", note:"Match d'ouverture" },
+  { group:"C", date:"12 juin", home:"🇺🇸 USA",              away:"🇵🇦 Panama",          hP:62, dP:22, aP:16, winner:"home",  conf:"high",   note:"" },
+  { group:"A", date:"13 juin", home:"🇦🇷 Argentine",        away:"🇨🇱 Chili",           hP:65, dP:20, aP:15, winner:"home",  conf:"high",   note:"Tenant du titre" },
+  { group:"E", date:"14 juin", home:"🇪🇸 Espagne",          away:"🇲🇦 Maroc",           hP:55, dP:26, aP:19, winner:"home",  conf:"medium", note:"" },
+  { group:"F", date:"14 juin", home:"🇫🇷 France",           away:"🇸🇦 Arabie Saoudite", hP:72, dP:16, aP:12, winner:"home",  conf:"high",   note:"🇫🇷 Les Bleus favoris" },
+  { group:"D", date:"15 juin", home:"🇨🇦 Canada",           away:"🇭🇳 Honduras",        hP:58, dP:24, aP:18, winner:"home",  conf:"medium", note:"" },
+  { group:"I", date:"15 juin", home:"🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre",    away:"🇸🇳 Sénégal",         hP:55, dP:26, aP:19, winner:"home",  conf:"medium", note:"" },
+  { group:"G", date:"16 juin", home:"🇧🇷 Brésil",           away:"🇨🇴 Colombie",        hP:58, dP:23, aP:19, winner:"home",  conf:"medium", note:"" },
+  { group:"H", date:"16 juin", home:"🇩🇪 Allemagne",        away:"🇳🇱 Pays-Bas",        hP:42, dP:28, aP:30, winner:"draw",  conf:"low",    note:"Choc européen" },
+  { group:"J", date:"17 juin", home:"🇮🇹 Italie",           away:"🇭🇷 Croatie",         hP:48, dP:30, aP:22, winner:"home",  conf:"low",    note:"" },
+  { group:"F", date:"20 juin", home:"🇫🇷 France",           away:"🇨🇭 Suisse",          hP:65, dP:21, aP:14, winner:"home",  conf:"high",   note:"🇫🇷 Les Bleus" },
+  { group:"D", date:"20 juin", home:"🇺🇾 Uruguay",          away:"🇵🇹 Portugal",        hP:30, dP:25, aP:45, winner:"away",  conf:"medium", note:"" },
+  { group:"E", date:"21 juin", home:"🇧🇪 Belgique",         away:"🇯🇵 Japon",           hP:55, dP:24, aP:21, winner:"home",  conf:"medium", note:"" },
+  { group:"A", date:"22 juin", home:"🇦🇷 Argentine",        away:"🇦🇺 Australie",       hP:75, dP:15, aP:10, winner:"home",  conf:"high",   note:"" },
+  { group:"F", date:"25 juin", home:"🇫🇷 France",           away:"🇩🇿 Algérie",         hP:58, dP:24, aP:18, winner:"home",  conf:"medium", note:"🔥 Choc Franco-Algérien" },
+  { group:"G", date:"26 juin", home:"🇧🇷 Brésil",           away:"🇵🇾 Paraguay",        hP:68, dP:20, aP:12, winner:"home",  conf:"high",   note:"" },
+  { group:"H", date:"26 juin", home:"🇩🇪 Allemagne",        away:"🇵🇱 Pologne",         hP:60, dP:23, aP:17, winner:"home",  conf:"high",   note:"" },
+  { group:"I", date:"27 juin", home:"🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre",    away:"🇹🇳 Tunisie",         hP:68, dP:20, aP:12, winner:"home",  conf:"high",   note:"" },
+];
+
+function WCPredictionsView() {
+  const [groupFilter, setGroupFilter] = useState<string | null>(null);
+  const groups = ["A","B","C","D","E","F","G","H","I","J"];
+  const filtered = groupFilter ? WC_PREDICTIONS.filter(m => m.group === groupFilter) : WC_PREDICTIONS;
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div>
+          <h2 className="text-base font-bold flex items-center gap-2" style={{ color: "#e8edf5" }}>
+            <Zap size={16} style={{ color: "#eab308" }} /> Prédictions AI — Coupe du Monde 2026
+          </h2>
+          <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>Modèle FootPredictom · Phase de groupes</p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-1.5 mb-4">
+        <button onClick={() => setGroupFilter(null)}
+          className="px-2.5 py-1 rounded-lg text-xs font-semibold transition-all"
+          style={{ background: groupFilter === null ? "rgba(234,179,8,0.12)" : "rgba(255,255,255,0.04)", border: `1px solid ${groupFilter === null ? "rgba(234,179,8,0.3)" : "rgba(255,255,255,0.08)"}`, color: groupFilter === null ? "#eab308" : "#6b7c96" }}>
+          Tous
+        </button>
+        {groups.map(g => (
+          <button key={g} onClick={() => setGroupFilter(g === groupFilter ? null : g)}
+            className="px-2.5 py-1 rounded-lg text-xs font-bold transition-all"
+            style={{ background: groupFilter === g ? "rgba(234,179,8,0.12)" : "rgba(255,255,255,0.04)", border: `1px solid ${groupFilter === g ? "rgba(234,179,8,0.3)" : "rgba(255,255,255,0.08)"}`, color: groupFilter === g ? "#eab308" : "#6b7c96" }}>
+            Gr.{g}
+          </button>
+        ))}
+      </div>
+
+      <div className="space-y-2">
+        {filtered.map((m, i) => {
+          const winColor = m.winner === "home" ? "#22c55e" : m.winner === "away" ? "#ef4444" : "#f59e0b";
+          const confColor = m.conf === "high" ? "#22c55e" : m.conf === "medium" ? "#f59e0b" : "#94a3b8";
+          const confLabel = m.conf === "high" ? "Haute" : m.conf === "medium" ? "Moyenne" : "Faible";
+          return (
+            <div key={i} className="rounded-2xl p-3"
+              style={{ background: m.note ? "rgba(234,179,8,0.04)" : "#0d1421", border: `1px solid ${m.note ? "rgba(234,179,8,0.2)" : "#1e2d42"}` }}>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-bold px-1.5 py-0.5 rounded" style={{ background: "rgba(234,179,8,0.12)", color: "#eab308" }}>Gr.{m.group}</span>
+                <span className="text-xs" style={{ color: "#6b7c96" }}>{m.date}</span>
+                {m.note && <span className="text-xs font-semibold ml-auto" style={{ color: "#eab308" }}>{m.note}</span>}
+              </div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-sm font-bold flex-1" style={{ color: m.winner === "home" ? "#e8edf5" : "#94a3b8" }}>{m.home}</span>
+                <span className="text-xs font-bold px-2 py-1 rounded-lg" style={{ background: `${winColor}12`, border: `1px solid ${winColor}25`, color: winColor }}>
+                  {m.winner === "home" ? "DOM" : m.winner === "away" ? "EXT" : "NUL"}
+                </span>
+                <span className="text-sm font-bold flex-1 text-right" style={{ color: m.winner === "away" ? "#e8edf5" : "#94a3b8" }}>{m.away}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 flex gap-1 items-center">
+                  <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                    <div className="h-full rounded-full" style={{ width: `${m.hP}%`, background: "#22c55e" }} />
+                  </div>
+                  <span className="text-[10px] font-mono w-7 text-right" style={{ color: "#22c55e" }}>{m.hP}%</span>
+                </div>
+                <span className="text-[10px] font-mono w-6 text-center" style={{ color: "#f59e0b" }}>{m.dP}%</span>
+                <div className="flex-1 flex gap-1 items-center">
+                  <span className="text-[10px] font-mono w-7" style={{ color: "#ef4444" }}>{m.aP}%</span>
+                  <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                    <div className="h-full rounded-full ml-auto" style={{ width: `${m.aP}%`, background: "#ef4444" }} />
+                  </div>
+                </div>
+                <span className="text-[10px] px-1.5 py-0.5 rounded font-bold ml-2 flex-shrink-0"
+                  style={{ background: `${confColor}12`, color: confColor }}>{confLabel}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-4 text-center text-xs" style={{ color: "#475569" }}>
+        Prédictions générées par FootPredictom AI · Non contractuelles
+      </p>
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function PredictionsTab() {
+  const [subTab, setSubTab] = useState<"l1" | "cdm">("l1");
   const [config] = useConfig();
   const [data, setData] = useState<PredData | null>(null);
   const [emoMap, setEmoMap] = useState<Map<number, EmoEntry>>(new Map());
@@ -877,21 +980,39 @@ export default function PredictionsTab() {
     ).length;
   }, [data, expertMatches]);
 
+  const SubTabs = () => (
+    <div className="flex gap-1 mb-5 p-1 rounded-xl" style={{ background: "#0a0f1c", border: "1px solid #1a2235", display: "inline-flex" }}>
+      {([["l1", "🏆 Ligue 1"], ["cdm", "🌍 Coupe du Monde"]] as const).map(([id, label]) => (
+        <button key={id} onClick={() => setSubTab(id)}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap"
+          style={{ background: subTab === id ? "rgba(255,255,255,0.08)" : "transparent", color: subTab === id ? "#e2e8f0" : "#64748b", border: subTab === id ? "1px solid rgba(255,255,255,0.1)" : "1px solid transparent" }}>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (subTab === "cdm") return <div><SubTabs /><WCPredictionsView /></div>;
+
   if (loading) {
     return (
-      <div className="grid sm:grid-cols-2 gap-4">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="h-72 rounded-2xl animate-pulse" style={{ background: "#0d1421", border: "1px solid #1e2d42" }} />
-        ))}
+      <div>
+        <SubTabs />
+        <div className="grid sm:grid-cols-2 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-72 rounded-2xl animate-pulse" style={{ background: "#0d1421", border: "1px solid #1e2d42" }} />
+          ))}
+        </div>
       </div>
     );
   }
 
-  if (error) return <div className="text-center py-16 text-red-400 text-sm">{error}</div>;
-  if (!data?.predictions.length) return <div className="text-center py-16" style={{ color: "#6b7c96" }}>Aucun match à venir disponible.</div>;
+  if (error) return <div><SubTabs /><div className="text-center py-16 text-red-400 text-sm">{error}</div></div>;
+  if (!data?.predictions.length) return <div><SubTabs /><div className="text-center py-16" style={{ color: "#6b7c96" }}>Aucun match à venir disponible.</div></div>;
 
   return (
     <div>
+      <SubTabs />
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
         <div>

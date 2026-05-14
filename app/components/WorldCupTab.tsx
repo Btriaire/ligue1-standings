@@ -1,25 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { Globe, MapPin, Calendar, Trophy, Users, Zap, ChevronDown, Flag } from "lucide-react";
+import { Calendar, Trophy, Users, MapPin, Globe } from "lucide-react";
 
-const HOST_CITIES = [
-  { city: "New York / New Jersey", country: "🇺🇸 USA", stadium: "MetLife Stadium", capacity: 82_500, note: "FINALE" },
-  { city: "Los Angeles", country: "🇺🇸 USA", stadium: "SoFi Stadium", capacity: 70_240 },
-  { city: "Dallas", country: "🇺🇸 USA", stadium: "AT&T Stadium", capacity: 80_000 },
-  { city: "San Francisco Bay Area", country: "🇺🇸 USA", stadium: "Levi's Stadium", capacity: 68_500 },
-  { city: "Miami", country: "🇺🇸 USA", stadium: "Hard Rock Stadium", capacity: 64_767 },
-  { city: "Seattle", country: "🇺🇸 USA", stadium: "Lumen Field", capacity: 68_740 },
-  { city: "Atlanta", country: "🇺🇸 USA", stadium: "Mercedes-Benz Stadium", capacity: 71_000 },
-  { city: "Boston", country: "🇺🇸 USA", stadium: "Gillette Stadium", capacity: 65_878 },
-  { city: "Houston", country: "🇺🇸 USA", stadium: "NRG Stadium", capacity: 72_220 },
-  { city: "Kansas City", country: "🇺🇸 USA", stadium: "Arrowhead Stadium", capacity: 76_416 },
-  { city: "Philadelphia", country: "🇺🇸 USA", stadium: "Lincoln Financial Field", capacity: 69_176 },
-  { city: "Mexico City", country: "🇲🇽 Mexique", stadium: "Estadio Azteca", capacity: 87_523, note: "MATCH D'OUVERTURE" },
-  { city: "Guadalajara", country: "🇲🇽 Mexique", stadium: "Estadio Akron", capacity: 49_850 },
-  { city: "Monterrey", country: "🇲🇽 Mexique", stadium: "Estadio BBVA", capacity: 51_350 },
-  { city: "Toronto", country: "🇨🇦 Canada", stadium: "BMO Field", capacity: 45_000 },
-  { city: "Vancouver", country: "🇨🇦 Canada", stadium: "BC Place", capacity: 54_500 },
+// ─── Data ──────────────────────────────────────────────────────────────────
+
+const GROUPS = [
+  { letter: "A", teams: ["🇦🇷 Argentine", "🇨🇱 Chili", "🇵🇪 Pérou", "🇦🇺 Australie"] },
+  { letter: "B", teams: ["🇲🇽 Mexique ★", "🇯🇲 Jamaïque", "🇻🇪 Venezuela", "🇪🇨 Équateur"] },
+  { letter: "C", teams: ["🇺🇸 USA ★", "🇵🇦 Panama", "🇨🇺 Cuba", "🇳🇿 Nouvelle-Zélande"] },
+  { letter: "D", teams: ["🇨🇦 Canada ★", "🇭🇳 Honduras", "🇺🇾 Uruguay", "🇵🇹 Portugal"] },
+  { letter: "E", teams: ["🇪🇸 Espagne", "🇲🇦 Maroc", "🇧🇪 Belgique", "🇯🇵 Japon"] },
+  { letter: "F", teams: ["🇫🇷 France", "🇸🇦 Arabie Saoudite", "🇨🇭 Suisse", "🇩🇿 Algérie"] },
+  { letter: "G", teams: ["🇧🇷 Brésil", "🇨🇴 Colombie", "🇵🇾 Paraguay", "🇨🇲 Cameroun"] },
+  { letter: "H", teams: ["🇩🇪 Allemagne", "🇳🇱 Pays-Bas", "🇵🇱 Pologne", "🇷🇸 Serbie"] },
+  { letter: "I", teams: ["🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre", "🇸🇳 Sénégal", "🇹🇳 Tunisie", "🇨🇷 Costa Rica"] },
+  { letter: "J", teams: ["🇮🇹 Italie", "🇭🇷 Croatie", "🇷🇴 Roumanie", "🇦🇴 Angola"] },
+  { letter: "K", teams: ["🇺🇦 Ukraine", "🇬🇭 Ghana", "🇿🇦 Afrique du Sud", "🇨🇩 RD Congo"] },
+  { letter: "L", teams: ["🇰🇷 Corée du Sud", "🇨🇮 Côte d'Ivoire", "🇿🇼 Zimbabwe", "🇰🇪 Kenya"] },
 ];
 
 const SCHEDULE = [
@@ -32,271 +30,339 @@ const SCHEDULE = [
   { phase: "FINALE", dates: "19 juillet 2026", icon: "🏆", color: "#fbbf24" },
 ];
 
-const FORMAT_STEPS = [
-  { step: 1, label: "48 équipes qualifiées", desc: "Record historique (vs 32 en 2022)", icon: <Users size={16} />, color: "#00d4ff" },
-  { step: 2, label: "12 groupes de 4", desc: "Top 2 de chaque groupe + 8 meilleurs 3es qualifiés = 32 équipes", icon: <Trophy size={16} />, color: "#22c55e" },
-  { step: 3, label: "Huitièmes de finale", desc: "32 équipes → 16 équipes (matchs à élimination directe)", icon: <Zap size={16} />, color: "#f59e0b" },
-  { step: 4, label: "Quarts, Demis, Finale", desc: "Format classique jusqu'à la grande finale à MetLife Stadium", icon: <Flag size={16} />, color: "#f97316" },
+const NOTABLE_MATCHES = [
+  { date: "11 juin", teams: "🇲🇽 Mexique vs 🇪🇨 Équateur", group: "Groupe B", venue: "Azteca, Mexico City", note: "MATCH D'OUVERTURE", highlight: "#fbbf24" },
+  { date: "12 juin", teams: "🇺🇸 USA vs 🇵🇦 Panama", group: "Groupe C", venue: "USA", note: null, highlight: null },
+  { date: "13 juin", teams: "🇦🇷 Argentine vs 🇨🇱 Chili", group: "Groupe A", venue: "USA", note: null, highlight: null },
+  { date: "14 juin", teams: "🇫🇷 France vs 🇸🇦 Arabie Saoudite", group: "Groupe F", venue: "USA", note: "J1 France", highlight: "#22c55e" },
+  { date: "15 juin", teams: "🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre vs 🇸🇳 Sénégal", group: "Groupe I", venue: "USA", note: null, highlight: null },
+  { date: "15 juin", teams: "🇪🇸 Espagne vs 🇲🇦 Maroc", group: "Groupe E", venue: "USA", note: null, highlight: null },
+  { date: "16 juin", teams: "🇧🇷 Brésil vs 🇨🇴 Colombie", group: "Groupe G", venue: "USA", note: null, highlight: null },
+  { date: "16 juin", teams: "🇩🇪 Allemagne vs 🇳🇱 Pays-Bas", group: "Groupe H", venue: "USA", note: null, highlight: null },
+  { date: "17 juin", teams: "🇨🇦 Canada vs 🇭🇳 Honduras", group: "Groupe D", venue: "Canada", note: null, highlight: null },
+  { date: "20 juin", teams: "🇫🇷 France vs 🇨🇭 Suisse", group: "Groupe F", venue: "USA", note: "J2 France", highlight: "#22c55e" },
+  { date: "25 juin", teams: "🇫🇷 France vs 🇩🇿 Algérie", group: "Groupe F", venue: "USA", note: "J3 France 🔥", highlight: "#ef4444" },
 ];
 
-const KEY_FACTS = [
-  { label: "Édition", value: "23e Coupe du Monde FIFA" },
-  { label: "Équipes", value: "48" },
-  { label: "Matchs", value: "104" },
-  { label: "Pays organisateurs", value: "USA · Canada · Mexique" },
-  { label: "Villes hôtes", value: "16" },
-  { label: "Durée", value: "39 jours" },
-  { label: "Finale", value: "MetLife Stadium, NJ" },
-  { label: "Tenant du titre", value: "🇦🇷 Argentine" },
+// ─── Sub-tabs ───────────────────────────────────────────────────────────────
+
+type SubTab = "groupes" | "calendrier" | "france" | "favoris";
+
+const SUB_TABS: { id: SubTab; label: string }[] = [
+  { id: "groupes", label: "Groupes" },
+  { id: "calendrier", label: "Calendrier" },
+  { id: "france", label: "🇫🇷 France" },
+  { id: "favoris", label: "Favoris" },
 ];
 
-function Accordion({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
-  const [open, setOpen] = useState(defaultOpen);
+// ─── Groupes tab ────────────────────────────────────────────────────────────
+
+function GroupesTab() {
   return (
-    <div className="rounded-2xl overflow-hidden mb-4" style={{ border: "1px solid #1e2d42" }}>
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-5 py-4 transition-colors hover:bg-white/[0.02]">
-        <p className="font-bold text-sm" style={{ color: "#e8edf5" }}>{title}</p>
-        <ChevronDown size={15} style={{ color: "#6b7c96" }} className={`transition-transform ${open ? "rotate-180" : ""}`} />
-      </button>
-      {open && (
-        <div className="px-5 pb-5" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-          {children}
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+      {GROUPS.map((g) => (
+        <div
+          key={g.letter}
+          className="rounded-xl px-3 py-2.5"
+          style={{ background: "#0d1421", border: "1px solid #1e2d42" }}
+        >
+          <p
+            className="text-xs font-black tracking-widest mb-1.5"
+            style={{ color: "#00d4ff" }}
+          >
+            GROUPE {g.letter}
+          </p>
+          <div className="space-y-1">
+            {g.teams.map((team) => (
+              <div
+                key={team}
+                className="text-xs py-0.5"
+                style={{ color: "#c8d4e3" }}
+              >
+                {team}
+              </div>
+            ))}
+          </div>
         </div>
-      )}
+      ))}
     </div>
   );
 }
 
+// ─── Calendrier tab ─────────────────────────────────────────────────────────
+
+function CalendrierTab() {
+  return (
+    <div className="space-y-4">
+      {/* Phases */}
+      <div>
+        <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: "#6b7c96" }}>
+          Phases du tournoi
+        </p>
+        <div className="space-y-1.5">
+          {SCHEDULE.map((s) => (
+            <div
+              key={s.phase}
+              className="flex items-center gap-3 px-3 py-2 rounded-xl"
+              style={{ background: "#0d1421", border: `1px solid ${s.color}20` }}
+            >
+              <span className="text-base flex-shrink-0">{s.icon}</span>
+              <div className="flex-1 min-w-0">
+                <span className="text-xs font-bold mr-2" style={{ color: s.color }}>
+                  {s.phase}
+                </span>
+              </div>
+              <span className="text-xs flex-shrink-0" style={{ color: "#6b7c96" }}>
+                {s.dates}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Notable matches */}
+      <div>
+        <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: "#6b7c96" }}>
+          Matchs à suivre
+        </p>
+        <div className="space-y-1.5">
+          {NOTABLE_MATCHES.map((m, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-3 px-3 py-2 rounded-xl"
+              style={{
+                background: "#0d1421",
+                border: `1px solid ${m.highlight ? m.highlight + "30" : "#1e2d42"}`,
+              }}
+            >
+              <span
+                className="text-xs font-mono flex-shrink-0 w-12"
+                style={{ color: "#6b7c96" }}
+              >
+                {m.date}
+              </span>
+              <span className="text-xs font-semibold flex-1 min-w-0 truncate" style={{ color: "#e8edf5" }}>
+                {m.teams}
+              </span>
+              <span className="text-xs flex-shrink-0" style={{ color: "#4b5d73" }}>
+                {m.group}
+              </span>
+              {m.note && (
+                <span
+                  className="text-xs font-bold flex-shrink-0 px-1.5 py-0.5 rounded"
+                  style={{
+                    background: (m.highlight ?? "#6b7c96") + "18",
+                    color: m.highlight ?? "#6b7c96",
+                  }}
+                >
+                  {m.note}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── France tab ─────────────────────────────────────────────────────────────
+
+function FranceTab() {
+  return (
+    <div className="space-y-3">
+      {/* Group F */}
+      <div className="px-3 py-2.5 rounded-xl" style={{ background: "#0d1421", border: "1px solid rgba(34,197,94,0.2)" }}>
+        <p className="text-xs font-bold mb-1.5" style={{ color: "#22c55e" }}>Groupe F</p>
+        <div className="space-y-1">
+          {GROUPS.find((g) => g.letter === "F")!.teams.map((t) => (
+            <div
+              key={t}
+              className="text-xs py-0.5"
+              style={{ color: t.startsWith("🇫🇷") ? "#e8edf5" : "#94a3b8", fontWeight: t.startsWith("🇫🇷") ? 700 : 400 }}
+            >
+              {t}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Palmarès */}
+      <div className="px-3 py-2.5 rounded-xl" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
+        <p className="text-xs font-bold mb-1.5" style={{ color: "#eab308" }}>Palmarès</p>
+        <div className="grid grid-cols-2 gap-1.5">
+          {[
+            { label: "Titres", value: "2 (1998, 2018)" },
+            { label: "Finales", value: "3 (+ 2006, 2022)" },
+            { label: "Participations", value: "16" },
+            { label: "Meilleur buteur", value: "T. Henry (6)" },
+          ].map((s) => (
+            <div key={s.label} className="rounded-lg px-2 py-1.5" style={{ background: "rgba(255,255,255,0.03)" }}>
+              <p className="text-xs" style={{ color: "#6b7c96" }}>{s.label}</p>
+              <p className="text-xs font-bold mt-0.5" style={{ color: "#e8edf5" }}>{s.value}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Joueurs clés */}
+      <div className="px-3 py-2.5 rounded-xl" style={{ background: "#0d1421", border: "1px solid rgba(234,179,8,0.15)" }}>
+        <p className="text-xs font-bold mb-1.5" style={{ color: "#eab308" }}>Joueurs clés</p>
+        <div className="space-y-1.5">
+          {[
+            { name: "Kylian Mbappé", role: "Attaquant – Capitaine, Real Madrid" },
+            { name: "Antoine Griezmann", role: "Milieu offensif – Record sélections" },
+            { name: "Aurélien Tchouaméni", role: "Milieu défensif – Real Madrid" },
+            { name: "William Saliba", role: "Défenseur central – Arsenal" },
+          ].map((p) => (
+            <div key={p.name} className="flex items-baseline gap-2">
+              <div className="w-1 h-1 rounded-full flex-shrink-0 mt-1.5" style={{ background: "#eab308" }} />
+              <span className="text-xs font-bold" style={{ color: "#e8edf5" }}>{p.name}</span>
+              <span className="text-xs" style={{ color: "#6b7c96" }}>{p.role}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Matchs France */}
+      <div className="px-3 py-2.5 rounded-xl" style={{ background: "#0d1421", border: "1px solid rgba(0,212,255,0.15)" }}>
+        <p className="text-xs font-bold mb-1.5" style={{ color: "#00d4ff" }}>Calendrier France</p>
+        <div className="space-y-1.5">
+          {NOTABLE_MATCHES.filter((m) => m.teams.includes("🇫🇷")).map((m, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span className="text-xs font-mono w-12 flex-shrink-0" style={{ color: "#6b7c96" }}>{m.date}</span>
+              <span className="text-xs font-semibold flex-1" style={{ color: "#e8edf5" }}>{m.teams}</span>
+              {m.note && (
+                <span
+                  className="text-xs font-bold px-1.5 py-0.5 rounded flex-shrink-0"
+                  style={{ background: (m.highlight ?? "#6b7c96") + "18", color: m.highlight ?? "#6b7c96" }}
+                >
+                  {m.note}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Favoris tab ────────────────────────────────────────────────────────────
+
+function FavorisTab() {
+  return (
+    <div className="grid sm:grid-cols-2 gap-2">
+      {[
+        { flag: "🇦🇷", name: "Argentine", desc: "Tenant du titre. Lautaro, Di María.", color: "#00d4ff" },
+        { flag: "🇫🇷", name: "France", desc: "Finaliste 2022. Mbappé, Griezmann.", color: "#22c55e" },
+        { flag: "🇧🇷", name: "Brésil", desc: "5× champion. Vinicius Jr, Endrick.", color: "#f59e0b" },
+        { flag: "🇪🇸", name: "Espagne", desc: "Champion d'Europe 2024. Yamal, Pedri.", color: "#f97316" },
+        { flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", name: "Angleterre", desc: "Bellingham, Saka, Kane.", color: "#a78bfa" },
+        { flag: "🇩🇪", name: "Allemagne", desc: "4× champion. Florian Wirtz, Müller.", color: "#ef4444" },
+        { flag: "🇵🇹", name: "Portugal", desc: "Ronaldo, Félix, Leão. Groupe D.", color: "#fbbf24" },
+        { flag: "🇲🇦", name: "Maroc", desc: "Demi-finaliste 2022. En Nesyri.", color: "#f472b6" },
+      ].map((t) => (
+        <div
+          key={t.name}
+          className="flex items-center gap-3 px-3 py-2 rounded-xl"
+          style={{ background: "#0d1421", border: `1px solid ${t.color}20` }}
+        >
+          <span className="text-xl flex-shrink-0">{t.flag}</span>
+          <div className="min-w-0">
+            <p className="text-xs font-bold" style={{ color: t.color }}>{t.name}</p>
+            <p className="text-xs mt-0.5 leading-snug" style={{ color: "#6b7c96" }}>{t.desc}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Main component ─────────────────────────────────────────────────────────
+
 export default function WorldCupTab() {
+  const [activeTab, setActiveTab] = useState<SubTab>("groupes");
+
   return (
     <div>
-      {/* Hero */}
-      <div className="rounded-2xl p-6 mb-6 text-center relative overflow-hidden"
-        style={{ background: "linear-gradient(135deg, rgba(0,212,255,0.08), rgba(124,58,237,0.08), rgba(234,179,8,0.08))", border: "1px solid rgba(0,212,255,0.2)" }}>
-        <div className="relative z-10">
-          <div className="flex items-center justify-center gap-3 mb-3">
-            <span className="text-5xl">🌍</span>
-            <div>
-              <h2 className="text-2xl font-black tracking-tight" style={{ color: "#e8edf5" }}>
-                COUPE DU MONDE 2026
-              </h2>
-              <p className="text-sm font-semibold mt-0.5" style={{ color: "#00d4ff" }}>
-                FIFA World Cup™ · USA · Canada · Mexique
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold"
-              style={{ background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.25)", color: "#22c55e" }}>
-              <Calendar size={11} /> 11 juin – 19 juillet 2026
-            </div>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold"
-              style={{ background: "rgba(0,212,255,0.12)", border: "1px solid rgba(0,212,255,0.25)", color: "#00d4ff" }}>
-              <Users size={11} /> 48 équipes
-            </div>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold"
-              style={{ background: "rgba(234,179,8,0.12)", border: "1px solid rgba(234,179,8,0.25)", color: "#eab308" }}>
-              <Trophy size={11} /> 104 matchs
-            </div>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold"
-              style={{ background: "rgba(124,58,237,0.12)", border: "1px solid rgba(124,58,237,0.25)", color: "#a78bfa" }}>
-              <MapPin size={11} /> 16 stades
-            </div>
-          </div>
+      {/* Slim header */}
+      <div
+        className="flex flex-wrap items-center gap-2 px-3 py-2 rounded-xl mb-3"
+        style={{ background: "#0d1421", border: "1px solid #1e2d42" }}
+      >
+        <span className="text-base">🌍</span>
+        <span className="text-sm font-black tracking-tight" style={{ color: "#e8edf5" }}>
+          Coupe du Monde 2026
+        </span>
+        <div className="flex flex-wrap gap-1.5 ml-auto">
+          <span
+            className="text-xs px-2 py-0.5 rounded-full font-semibold"
+            style={{ background: "rgba(34,197,94,0.12)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.2)" }}
+          >
+            <Calendar size={10} className="inline mr-1" />11 juin – 19 juil 2026
+          </span>
+          <span
+            className="text-xs px-2 py-0.5 rounded-full font-semibold"
+            style={{ background: "rgba(0,212,255,0.1)", color: "#00d4ff", border: "1px solid rgba(0,212,255,0.2)" }}
+          >
+            <Users size={10} className="inline mr-1" />48 équipes
+          </span>
+          <span
+            className="text-xs px-2 py-0.5 rounded-full font-semibold"
+            style={{ background: "rgba(234,179,8,0.1)", color: "#eab308", border: "1px solid rgba(234,179,8,0.2)" }}
+          >
+            <Trophy size={10} className="inline mr-1" />104 matchs
+          </span>
+          <span
+            className="text-xs px-2 py-0.5 rounded-full font-semibold"
+            style={{ background: "rgba(124,58,237,0.1)", color: "#a78bfa", border: "1px solid rgba(124,58,237,0.2)" }}
+          >
+            <MapPin size={10} className="inline mr-1" />16 stades
+          </span>
         </div>
       </div>
 
-      {/* Key facts grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        {KEY_FACTS.map((f) => (
-          <div key={f.label} className="rounded-2xl px-4 py-3 text-center"
-            style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
-            <p className="text-base font-black" style={{ color: "#e8edf5" }}>{f.value}</p>
-            <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>{f.label}</p>
-          </div>
-        ))}
+      {/* Sub-tab bar */}
+      <div className="flex gap-1.5 mb-3">
+        {SUB_TABS.map((tab) => {
+          const active = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
+              style={{
+                background: active ? "#00d4ff" : "#0d1421",
+                color: active ? "#080c14" : "#6b7c96",
+                border: `1px solid ${active ? "#00d4ff" : "#1e2d42"}`,
+              }}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Calendar */}
-      <Accordion title="📅 Calendrier officiel" defaultOpen={true}>
-        <div className="mt-4 space-y-2">
-          {SCHEDULE.map((s) => (
-            <div key={s.phase} className="flex items-center gap-4 px-4 py-3 rounded-xl"
-              style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${s.color}20` }}>
-              <span className="text-xl flex-shrink-0">{s.icon}</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold" style={{ color: s.color }}>{s.phase}</p>
-                <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: "#6b7c96" }}>
-                  <Calendar size={10} /> {s.dates}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Accordion>
-
-      {/* Format */}
-      <Accordion title="⚽ Format du tournoi" defaultOpen={true}>
-        <div className="mt-4 space-y-3">
-          {FORMAT_STEPS.map((s) => (
-            <div key={s.step} className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: `${s.color}12`, border: `1px solid ${s.color}25`, color: s.color }}>
-                {s.icon}
-              </div>
-              <div className="flex-1 pt-1">
-                <p className="text-sm font-bold" style={{ color: "#e8edf5" }}>{s.label}</p>
-                <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "#6b7c96" }}>{s.desc}</p>
-              </div>
-              <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ background: `${s.color}15`, color: s.color, fontSize: 13, fontWeight: 900 }}>
-                {s.step}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-5 px-4 py-3 rounded-xl text-xs leading-relaxed"
-          style={{ background: "rgba(0,212,255,0.04)", border: "1px solid rgba(0,212,255,0.12)", color: "#94a3b8" }}>
-          <p className="font-semibold mb-1" style={{ color: "#00d4ff" }}>Règle des 3es places</p>
-          <p>Dans les 12 groupes, les 8 meilleurs équipes classées 3es (sur 12) se qualifient pour les huitièmes de finale. Le classement se fait par points, puis différence de buts, puis buts marqués.</p>
-        </div>
-      </Accordion>
-
-      {/* Venues */}
-      <Accordion title="🏟️ Stades et villes hôtes">
-        <div className="mt-4 grid sm:grid-cols-2 gap-2">
-          {HOST_CITIES.map((c) => (
-            <div key={c.city} className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
-              style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${c.note ? "rgba(234,179,8,0.3)" : "rgba(255,255,255,0.06)"}` }}>
-              <div className="flex-shrink-0">
-                <MapPin size={14} style={{ color: c.note ? "#eab308" : "#6b7c96" }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-sm font-semibold truncate" style={{ color: "#e8edf5" }}>{c.city}</p>
-                  {c.note && (
-                    <span className="text-xs px-1.5 py-0.5 rounded font-bold flex-shrink-0"
-                      style={{ background: "rgba(234,179,8,0.15)", color: "#eab308" }}>
-                      {c.note}
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>
-                  {c.country} · {c.stadium}
-                </p>
-                <p className="text-xs font-mono" style={{ color: "#00d4ff" }}>
-                  {c.capacity.toLocaleString("fr-FR")} places
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-4 grid grid-cols-3 gap-3 text-center">
-          {[
-            { flag: "🇺🇸", country: "USA", count: 11 },
-            { flag: "🇲🇽", country: "Mexique", count: 3 },
-            { flag: "🇨🇦", country: "Canada", count: 2 },
-          ].map((h) => (
-            <div key={h.country} className="rounded-xl py-3"
-              style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-              <p className="text-2xl">{h.flag}</p>
-              <p className="text-sm font-bold mt-1" style={{ color: "#e8edf5" }}>{h.country}</p>
-              <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>{h.count} stade{h.count > 1 ? "s" : ""}</p>
-            </div>
-          ))}
-        </div>
-      </Accordion>
-
-      {/* France */}
-      <Accordion title="🇫🇷 Les Bleus à la Coupe du Monde">
-        <div className="mt-4 space-y-3">
-          <div className="px-4 py-3 rounded-xl" style={{ background: "rgba(0,212,255,0.04)", border: "1px solid rgba(0,212,255,0.12)" }}>
-            <p className="text-sm font-bold mb-1" style={{ color: "#00d4ff" }}>Qualifications</p>
-            <p className="text-xs leading-relaxed" style={{ color: "#94a3b8" }}>
-              La France s'est qualifiée via les éliminatoires UEFA. Championne du monde en 1998 et 2018,
-              finaliste en 2022 (défaite aux tirs au but contre l'Argentine), l'équipe de France fait partie
-              des grands favoris.
-            </p>
-          </div>
-
-          <div className="px-4 py-3 rounded-xl" style={{ background: "rgba(34,197,94,0.04)", border: "1px solid rgba(34,197,94,0.12)" }}>
-            <p className="text-sm font-bold mb-1" style={{ color: "#22c55e" }}>Palmarès</p>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              {[
-                { label: "Titres", value: "2 (1998, 2018)" },
-                { label: "Finales", value: "3 (+ 2006, 2022)" },
-                { label: "Participations", value: "16" },
-                { label: "Meilleur buteur", value: "Thierry Henry (6 buts)" },
-              ].map((s) => (
-                <div key={s.label} className="rounded-lg p-2" style={{ background: "rgba(255,255,255,0.03)" }}>
-                  <p style={{ color: "#6b7c96" }}>{s.label}</p>
-                  <p className="font-bold mt-0.5" style={{ color: "#e8edf5" }}>{s.value}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="px-4 py-3 rounded-xl" style={{ background: "rgba(234,179,8,0.04)", border: "1px solid rgba(234,179,8,0.12)" }}>
-            <p className="text-sm font-bold mb-2" style={{ color: "#eab308" }}>Joueurs clés à surveiller</p>
-            <div className="space-y-1.5">
-              {[
-                { name: "Kylian Mbappé", role: "Attaquant – Capitaine / Real Madrid" },
-                { name: "Antoine Griezmann", role: "Milieu offensif – Record de sélections" },
-                { name: "Aurélien Tchouaméni", role: "Milieu défensif – Real Madrid" },
-                { name: "William Saliba", role: "Défenseur central – Arsenal" },
-              ].map((p) => (
-                <div key={p.name} className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#eab308" }} />
-                  <span className="text-xs font-bold" style={{ color: "#e8edf5" }}>{p.name}</span>
-                  <span className="text-xs" style={{ color: "#6b7c96" }}>{p.role}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </Accordion>
-
-      {/* Big teams */}
-      <Accordion title="🌟 Principaux favoris">
-        <div className="mt-4 grid sm:grid-cols-2 gap-3">
-          {[
-            { flag: "🇦🇷", name: "Argentine", desc: "Tenant du titre. Messi (incertain), Lautaro, Di María.", color: "#00d4ff" },
-            { flag: "🇫🇷", name: "France", desc: "Finaliste 2022. Mbappé, Griezmann, Saliba.", color: "#22c55e" },
-            { flag: "🇧🇷", name: "Brésil", desc: "5 fois champion du monde. Vinicius Jr, Rodrygo, Endrick.", color: "#f59e0b" },
-            { flag: "🇪🇸", name: "Espagne", desc: "Champion d'Europe 2024. Yamal, Pedri, Morata.", color: "#f97316" },
-            { flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", name: "Angleterre", desc: "Jude Bellingham, Saka, Kane.", color: "#a78bfa" },
-            { flag: "🇩🇪", name: "Allemagne", desc: "4 fois champion. Florian Wirtz, Müller.", color: "#ef4444" },
-          ].map((t) => (
-            <div key={t.name} className="flex items-start gap-3 px-4 py-3 rounded-xl"
-              style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${t.color}20` }}>
-              <span className="text-2xl flex-shrink-0">{t.flag}</span>
-              <div>
-                <p className="text-sm font-bold" style={{ color: t.color }}>{t.name}</p>
-                <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "#94a3b8" }}>{t.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Accordion>
+      {/* Tab content */}
+      {activeTab === "groupes" && <GroupesTab />}
+      {activeTab === "calendrier" && <CalendrierTab />}
+      {activeTab === "france" && <FranceTab />}
+      {activeTab === "favoris" && <FavorisTab />}
 
       {/* Footer */}
-      <div className="mt-4 text-center">
-        <p className="text-xs" style={{ color: "#6b7c96" }}>
-          Source : FIFA · Informations susceptibles d'être mises à jour
-        </p>
-        <div className="flex items-center justify-center gap-2 mt-2">
-          <Globe size={11} style={{ color: "#6b7c96" }} />
-          <a href="https://www.fifa.com/fifaplus/fr/tournaments/mens/worldcup/canadamexicousa2026"
-            target="_blank" rel="noopener noreferrer"
-            className="text-xs hover:opacity-80 transition-opacity"
-            style={{ color: "#00d4ff" }}>
-            fifa.com/worldcup2026
-          </a>
-        </div>
+      <div className="mt-4 flex items-center justify-center gap-1.5">
+        <Globe size={11} style={{ color: "#6b7c96" }} />
+        <a
+          href="https://www.fifa.com/fifaplus/fr/tournaments/mens/worldcup/canadamexicousa2026"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs hover:opacity-80 transition-opacity"
+          style={{ color: "#00d4ff" }}
+        >
+          fifa.com/worldcup2026
+        </a>
+        <span className="text-xs" style={{ color: "#4b5d73" }}>· Source FIFA</span>
       </div>
     </div>
   );
