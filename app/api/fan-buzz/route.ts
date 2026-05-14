@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { CLUB_SEARCH_TERMS } from "@/app/lib/teamMapping";
 
 export const revalidate = 3600; // 1h cache
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY ?? "");
 
 // Google News RSS (confirmed working) + RMC Sport (only live secondary feed)
 const GOOGLE_QUERIES: Record<number, string> = {
@@ -114,22 +114,20 @@ export async function GET(req: Request) {
       synthesis: "Aucun article récent trouvé.", updatedAt: new Date().toISOString() });
   }
 
-  // Claude Haiku sentiment analysis
+  // Gemini sentiment analysis (free tier)
   let score = 50;
   let synthesis = "";
   let sentiment: "positive" | "negative" | "neutral" = "neutral";
 
   try {
-    const msg = await client.messages.create({
-      model: "claude-haiku-4-5",
-      max_tokens: 120,
-      system: 'Analyse sentiment foot. JSON uniquement: {"score":0-100,"sentiment":"positive|negative|neutral","summary":"1 phrase"}',
-      messages: [{
-        role: "user",
-        content: `Club:${googleQuery}\n${allTitles.map((t, i) => `${i + 1}.${t}`).join("\n")}`,
-      }],
+    const model = genai.getGenerativeModel({
+      model: "gemini-2.0-flash-lite",
+      systemInstruction: 'Analyse sentiment foot. JSON uniquement: {"score":0-100,"sentiment":"positive|negative|neutral","summary":"1 phrase en français"}',
     });
-    const text = (msg.content[0] as { text: string }).text;
+    const result = await model.generateContent(
+      `Club:${googleQuery}\n${allTitles.map((t, i) => `${i + 1}.${t}`).join("\n")}`
+    );
+    const text = result.response.text();
     const json = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] ?? "{}");
     score     = Math.max(10, Math.min(90, Number(json.score) || 50));
     synthesis = json.summary ?? "";
