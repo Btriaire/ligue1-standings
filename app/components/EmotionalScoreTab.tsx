@@ -30,15 +30,6 @@ interface EmotionalData {
   updatedAt: string;
 }
 
-interface PlayerSquad {
-  id: string; name: string; position: string; age: number;
-  nationality: string[]; marketValue: number; status?: string;
-}
-interface SquadData {
-  team: { name: string; crest: string; venue: string; coach: string };
-  squad: PlayerSquad[];
-  stats: { totalValue: number; avgValue: number; playerCount: number; injuredCount: number; injuryRate: number };
-}
 
 interface Weights { eco: number; media: number; human: number; fan: number }
 const DEFAULT_WEIGHTS: Weights = { eco: 28, media: 28, human: 30, fan: 14 };
@@ -311,34 +302,6 @@ function ArticleRow({ article }: { article: Article }) {
 }
 
 
-function PlayerRow({ player }: { player: PlayerSquad }) {
-  const isInjured = player.status?.toLowerCase().includes("injury");
-  const posColors: Record<string, string> = { Goalkeeper: "#f59e0b", Defender: "#3b82f6", Midfielder: "#22c55e", Winger: "#a78bfa", "Centre-Forward": "#ef4444" };
-  const posLabels: Record<string, string> = { Goalkeeper: "Gardien", Defender: "Défenseur", Midfielder: "Milieu", Winger: "Ailier", "Centre-Forward": "Attaquant" };
-  return (
-    <div className="grid items-center px-3 py-2 hover:bg-white/[0.02] rounded-lg transition-colors" style={{ gridTemplateColumns: "1fr 90px 55px 90px" }}>
-      <div className="flex items-center gap-2 min-w-0">
-        {isInjured && <AlertTriangle size={11} className="text-orange-400 flex-shrink-0" />}
-        <span className="text-sm truncate" style={{ color: isInjured ? "#f97316" : "#e8edf5" }}>{player.name}</span>
-        {player.nationality?.[0] && (
-          <span className="text-xs px-1 rounded flex-shrink-0 hidden sm:block" style={{ background: "rgba(255,255,255,0.06)", color: "#6b7c96" }}>
-            {player.nationality[0].slice(0, 3).toUpperCase()}
-          </span>
-        )}
-      </div>
-      <span className="text-xs text-center px-1.5 py-0.5 rounded-full w-fit mx-auto"
-        style={{ background: `${posColors[player.position] ?? "#6b7c96"}15`, color: posColors[player.position] ?? "#6b7c96", fontSize: "10px" }}>
-        {posLabels[player.position] ?? player.position}
-      </span>
-      <span className="text-xs text-center" style={{ color: "#6b7c96" }}>{player.age} ans</span>
-      <span className="text-sm text-right font-mono font-bold"
-        style={{ color: player.marketValue > 20_000_000 ? "#00d4ff" : player.marketValue > 5_000_000 ? "#e8edf5" : "#6b7c96" }}>
-        {player.marketValue > 0 ? formatValue(player.marketValue) : "—"}
-      </span>
-    </div>
-  );
-}
-
 // ── Fan Buzz Section (replaces Reddit) ───────────────────────────────────────
 
 interface BuzzItem {
@@ -452,19 +415,10 @@ function FanBuzzSection({ teamId }: { teamId: number }) {
 }
 
 function ClubDetail({ club, weights }: { club: ClubScore; weights: Weights }) {
-  const [squad, setSquad] = useState<SquadData | null>(null);
-  const [loadingSquad, setLoadingSquad] = useState(false);
-  const [showSquad, setShowSquad] = useState(false);
   const c = club.components;
 
   const total = weights.eco + weights.media + weights.human + weights.fan + (c.market ? 10 : 0);
   const effWeight = (w: number) => total > 0 ? Math.round(w / total * 100) : 0;
-
-  const loadSquad = () => {
-    if (squad) { setShowSquad(!showSquad); return; }
-    setLoadingSquad(true);
-    fetch(`/api/squad/${club.teamId}`).then((r) => r.json()).then(setSquad).finally(() => { setLoadingSquad(false); setShowSquad(true); });
-  };
 
   return (
     <div className="mt-4 space-y-4">
@@ -540,30 +494,6 @@ function ClubDetail({ club, weights }: { club: ClubScore; weights: Weights }) {
 
       {/* Fan Buzz */}
       <FanBuzzSection teamId={club.teamId} />
-
-      {/* Squad */}
-      <button onClick={loadSquad}
-        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-80"
-        style={{ background: "rgba(0,212,255,0.06)", border: "1px solid rgba(0,212,255,0.15)", color: "#00d4ff" }}>
-        <Users size={14} />
-        {loadingSquad ? "Chargement…" : showSquad ? "Masquer l'effectif" : "Effectif & cotes Transfermarkt"}
-        {!loadingSquad && <ChevronDown size={14} className={`transition-transform ${showSquad ? "rotate-180" : ""}`} />}
-      </button>
-
-      {showSquad && squad && (
-        <div className="rounded-xl overflow-hidden" style={{ border: "1px solid #1e2d42" }}>
-          <div className="grid px-3 py-2 text-xs font-semibold uppercase tracking-widest"
-            style={{ gridTemplateColumns: "1fr 90px 55px 90px", background: "#0d1421", color: "#6b7c96", borderBottom: "1px solid #1e2d42" }}>
-            <span>Joueur</span><span className="text-center">Poste</span><span className="text-center">Âge</span><span className="text-right">Valeur</span>
-          </div>
-          <div className="px-1 py-1">{squad.squad.map((p) => <PlayerRow key={p.id} player={p} />)}</div>
-          <div className="flex justify-between px-3 py-2 text-xs font-bold" style={{ borderTop: "1px solid #1e2d42", background: "#0d1421", color: "#6b7c96" }}>
-            <span>{squad.stats.playerCount} joueurs</span>
-            {squad.stats.injuredCount > 0 && <span className="text-orange-400">{squad.stats.injuredCount} blessé{squad.stats.injuredCount > 1 ? "s" : ""}</span>}
-            <span style={{ color: "#00d4ff" }}>Total : {formatValue(squad.stats.totalValue)}</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

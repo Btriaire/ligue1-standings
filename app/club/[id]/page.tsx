@@ -649,6 +649,21 @@ function findSquadMatch(name: string, squad: SquadPlayer[]): SquadPlayer | undef
   return m;
 }
 
+function find1vs1Player(name: string, players: Array<{name: string; rating: number; goals: number; assists: number; url: string; imageUrl: string}>): {name: string; rating: number; goals: number; assists: number; url: string; imageUrl: string} | undefined {
+  const norm = normName(name);
+  let m = players.find(p => normName(p.name) === norm);
+  if (m) return m;
+  const parts = norm.split(" ").filter((w: string) => w.length >= 3);
+  const lastName = parts[parts.length - 1];
+  if (lastName) {
+    m = players.find(p => {
+      const pn = normName(p.name);
+      return pn.split(" ").includes(lastName) || pn.endsWith(lastName) || norm.includes(pn) || pn.includes(norm);
+    });
+  }
+  return m;
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function ClubPage() {
@@ -666,7 +681,6 @@ export default function ClubPage() {
   const [loading, setLoading] = useState(true);
   const [loadingBuzz, setLoadingBuzz] = useState(false);
   const [stadiumErr, setStadiumErr] = useState(false);
-  const [squadOpen, setSquadOpen] = useState(false);
   const [expandedPlayer, setExpandedPlayer] = useState<SquadPlayer | null>(null);
   const [econOpen, setEconOpen] = useState(true);
 
@@ -1027,111 +1041,6 @@ export default function ClubPage() {
           );
         })()}
 
-        {/* ── TOP JOUEURS (one-versus-one.com) ── */}
-        {topPlayers.length > 0 && (
-          <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42", background: "#0d1421" }}>
-            <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: "1px solid #1e2d42" }}>
-              <Star size={13} style={{ color: "#fbbf24" }} />
-              <span className="font-bold text-sm" style={{ color: "#e8edf5" }}>Top Joueurs</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold" style={{ background: "rgba(251,191,36,0.12)", color: "#fbbf24" }}>Indice 1vs1</span>
-              <a href="https://one-versus-one.com/fr/classements/ligue-1/joueurs/indice-1vs1"
-                target="_blank" rel="noopener noreferrer"
-                className="ml-auto flex items-center gap-1 text-[10px] hover:opacity-70 transition-opacity"
-                style={{ color: "#6b7c96" }}>
-                one-versus-one.com <ExternalLink size={9} />
-              </a>
-            </div>
-            <div className="p-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {topPlayers.map(p => {
-                const ratingColor =
-                  p.rating >= 80 ? "#34d399" :
-                  p.rating >= 70 ? "#60a5fa" :
-                  p.rating >= 60 ? "#fbbf24" :
-                  p.rating >  0  ? "#94a3b8" : "#4b5563";
-                const ratingBg =
-                  p.rating >= 80 ? "rgba(52,211,153,0.12)" :
-                  p.rating >= 70 ? "rgba(96,165,250,0.12)" :
-                  p.rating >= 60 ? "rgba(251,191,36,0.12)" :
-                  p.rating >  0  ? "rgba(148,163,184,0.10)" : "rgba(75,85,99,0.10)";
-
-                // Cross-reference with squad for form data
-                const squadMatch = findSquadMatch(p.name, squad?.squad ?? []);
-                const isInjured = squadMatch?.status?.toLowerCase().includes("injury");
-                const fb = squadMatch?.formBadge;
-                // Use pFormScore to avoid shadowing the module-level formScore function
-                const pFormScore = isInjured ? 20 : fb === "hot" ? 90 : fb === "good" ? 70 : fb === "cold" ? 30 : fb === "neutral" ? 50 : null;
-                const pFormColor = pFormScore != null ? ec(pFormScore) : "#6b7c96";
-                const formEmoji: Record<string, string> = { hot: "🔥", good: "⚡", cold: "❄️" };
-
-                return (
-                  <a key={p.url} href={p.url} target="_blank" rel="noopener noreferrer"
-                    className="flex flex-col rounded-xl hover:bg-white/[0.04] transition-colors overflow-hidden"
-                    style={{ border: "1px solid rgba(255,255,255,0.06)" }}>
-                    {/* Avatar + rating badge */}
-                    <div className="relative">
-                      {p.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={p.imageUrl} alt={p.name}
-                          className="w-full h-24 object-cover object-top"
-                          style={{ background: "#1e2d42" }}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = "";
-                            (e.target as HTMLImageElement).style.display = "none";
-                          }} />
-                      ) : (
-                        <div className="w-full h-24 flex items-center justify-center" style={{ background: "#1a2535" }}>
-                          <Users size={28} style={{ color: "#374151" }} />
-                        </div>
-                      )}
-                      {/* Rating badge */}
-                      {p.rating > 0 && (
-                        <span className="absolute top-1.5 right-1.5 text-[11px] font-black px-1.5 py-0.5 rounded-md leading-none"
-                          style={{ background: ratingBg, color: ratingColor, border: `1px solid ${ratingColor}40` }}>
-                          {p.rating}
-                        </span>
-                      )}
-                      {/* Injury overlay */}
-                      {isInjured && (
-                        <span className="absolute top-1.5 left-1.5 text-[10px] px-1.5 py-0.5 rounded-md font-bold leading-none"
-                          style={{ background: "rgba(249,115,22,0.85)", color: "#fff" }}>
-                          🏥
-                        </span>
-                      )}
-                    </div>
-                    {/* Name + stats */}
-                    <div className="px-2 py-1.5">
-                      <p className="text-[11px] font-semibold truncate leading-tight" style={{ color: "#e8edf5" }}>{p.name}</p>
-                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                        {p.goals > 0 && (
-                          <span className="text-[10px] font-bold" style={{ color: "#34d399" }}>⚽ {p.goals}</span>
-                        )}
-                        {p.assists > 0 && (
-                          <span className="text-[10px] font-bold" style={{ color: "#60a5fa" }}>🅰 {p.assists}</span>
-                        )}
-                        {p.goals === 0 && p.assists === 0 && (
-                          <span className="text-[10px]" style={{ color: "#4b5563" }}>—</span>
-                        )}
-                      </div>
-                      {/* Form score row — same as Effectif */}
-                      {pFormScore != null && (
-                        <div className="flex items-center gap-1 mt-1">
-                          {fb && fb !== "neutral" && formEmoji[fb] && (
-                            <span style={{ fontSize: 10 }}>{formEmoji[fb]}</span>
-                          )}
-                          <span className="text-[10px] font-black" style={{ color: pFormColor }}>{pFormScore}</span>
-                          <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
-                            <div className="h-full rounded-full" style={{ width: `${pFormScore}%`, background: pFormColor }} />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </a>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         {/* ── BUZZ SUPPORTERS ── */}
         <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42", background: "#0d1421" }}>
           <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: "1px solid #1e2d42" }}>
@@ -1266,108 +1175,150 @@ export default function ClubPage() {
           </div>
         )}
 
-        {/* ── EFFECTIF (collapsible) ── */}
+        {/* ── JOUEURS ── */}
         <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42", background: "#0d1421" }}>
-          <button onClick={() => setSquadOpen(o => !o)}
-            className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-white/[0.02] transition-colors"
-            style={{ borderBottom: squadOpen ? "1px solid #1e2d42" : "none" }}>
+          <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: "1px solid #1e2d42" }}>
             <Users size={13} style={{ color: "#00d4ff" }} />
-            <span className="font-bold text-sm flex-1 text-left" style={{ color: "#e8edf5" }}>
-              Effectif — {squadStats.playerCount} joueurs
-            </span>
+            <span className="font-bold text-sm" style={{ color: "#e8edf5" }}>Joueurs</span>
+            {squad && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold" style={{ background: "rgba(0,212,255,0.12)", color: "#00d4ff" }}>
+                {squad.squad.length}
+              </span>
+            )}
             {squadStats.injuredCount > 0 && (
-              <span className="flex items-center gap-1 text-xs mr-2" style={{ color: "#f97316" }}>
+              <span className="flex items-center gap-1 text-xs" style={{ color: "#f97316" }}>
                 <AlertTriangle size={11} />{squadStats.injuredCount} blessé{squadStats.injuredCount > 1 ? "s" : ""}
               </span>
             )}
             {squadStats.totalValue > 0 && (
-              <span className="text-xs mr-2 font-bold" style={{ color: "#00d4ff" }}>{fv(squadStats.totalValue)}</span>
+              <span className="text-xs font-bold ml-auto" style={{ color: "#00d4ff" }}>{fv(squadStats.totalValue)}</span>
             )}
-            <ChevronDown size={14} style={{ color: "#6b7c96" }} className={`flex-shrink-0 transition-transform ${squadOpen ? "rotate-180" : ""}`} />
-          </button>
+          </div>
 
-          {squadOpen && (
-            <div className="px-3 py-2 space-y-3">
-              {squadStats.playerCount === 0 && (
-                <div className="py-4 text-center">
-                  <p className="text-xs" style={{ color: "#6b7c96" }}>Données Transfermarkt indisponibles (API temporairement limitée).</p>
-                  <a href={`https://www.transfermarkt.fr/`} target="_blank" rel="noopener noreferrer"
-                    className="text-xs mt-1 inline-flex items-center gap-1 hover:opacity-70" style={{ color: "#00d4ff" }}>
-                    Voir sur Transfermarkt <ExternalLink size={10} />
-                  </a>
-                </div>
-              )}
-              {squadStats.injuredCount > 0 && (
-                <div className="flex flex-wrap gap-1.5 pb-2" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                  {squadStats.injured.map(p => (
-                    <span key={p.name} className="text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1"
-                      style={{ background: "rgba(249,115,22,0.1)", color: "#f97316", border: "1px solid rgba(249,115,22,0.2)" }}>
-                      <AlertTriangle size={9} />{p.name}
-                    </span>
-                  ))}
-                </div>
-              )}
-              <div className="flex items-center gap-1.5 px-1 pb-1" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                <span className="flex-1 text-[10px] font-bold uppercase tracking-widest" style={{ color: "#6b7c96" }}>Joueur</span>
-                <span className="text-[10px] font-bold uppercase tracking-widest w-14 text-right" style={{ color: "#6b7c96" }}>Forme</span>
-                <span className="text-[10px] font-bold uppercase tracking-widest w-6 text-right hidden sm:block" style={{ color: "#6b7c96" }}>Âge</span>
-                <span className="text-[10px] font-bold uppercase tracking-widest w-12 text-right" style={{ color: "#6b7c96" }}>Cote</span>
-              </div>
+          {/* Column headers */}
+          <div className="grid px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest"
+            style={{ gridTemplateColumns: "1fr 56px 72px 44px 28px 28px 64px 32px", borderBottom: "1px solid rgba(255,255,255,0.04)", color: "#6b7c96" }}>
+            <span>Joueur</span>
+            <span className="text-center">Poste</span>
+            <span className="text-center" style={{ color: "#fbbf24" }}>Forme</span>
+            <span className="text-center" style={{ color: "#fbbf24" }}>1vs1</span>
+            <span className="text-center" style={{ color: "#34d399" }}>⚽</span>
+            <span className="text-center" style={{ color: "#60a5fa" }}>🅰</span>
+            <span className="text-right" style={{ color: "#00d4ff" }}>Cote</span>
+            <span className="text-right hidden sm:block">Âge</span>
+          </div>
+
+          {squadStats.playerCount === 0 ? (
+            <div className="py-6 text-center">
+              <p className="text-xs" style={{ color: "#6b7c96" }}>Données joueurs indisponibles.</p>
+              <a href="https://www.transfermarkt.fr/" target="_blank" rel="noopener noreferrer"
+                className="text-xs mt-1 inline-flex items-center gap-1 hover:opacity-70" style={{ color: "#00d4ff" }}>
+                Voir sur Transfermarkt <ExternalLink size={10} />
+              </a>
+            </div>
+          ) : (
+            <div>
               {Object.entries(byPos).map(([pos, players]) => (
                 <div key={pos}>
-                  <p className="text-[10px] font-bold uppercase tracking-widest mb-1"
-                    style={{ color: POS_COL[pos] ?? "#6b7c96" }}>{POS_FR[pos] ?? pos}</p>
+                  <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-widest"
+                    style={{ color: POS_COL[pos] ?? "#6b7c96", background: "rgba(255,255,255,0.01)", borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
+                    {POS_FR[pos] ?? pos} <span style={{ color: "#4b5563" }}>({players.length})</span>
+                  </p>
                   {players.map(p => {
                     const inj = p.status?.toLowerCase().includes("injury");
                     const fb = p.formBadge;
-                    const fbc: Record<string, string> = { hot: "#ef4444", good: "#22c55e", neutral: "", cold: "#94a3b8" };
-                    const fbe: Record<string, string> = { hot: "🔥", good: "⚡", neutral: "", cold: "❄️" };
-                    // Form score (0–100) based on formBadge + goals/assists
-                    const formScore = inj ? 20 : fb === "hot" ? 90 : fb === "good" ? 70 : fb === "cold" ? 30 : 50;
-                    const formColor = ec(formScore);
+                    // Use pFormScore/pFormColor to avoid shadowing module-level formScore function
+                    const pFormScore = inj ? 20 : fb === "hot" ? 90 : fb === "good" ? 70 : fb === "cold" ? 30 : 50;
+                    const pFormColor = ec(pFormScore);
+                    const pFormEmoji: Record<string, string> = { hot: "🔥", good: "⚡", cold: "❄️" };
+
+                    // Cross-reference with 1vs1 data
+                    const vs1 = find1vs1Player(p.name, topPlayers);
+                    const rating = vs1?.rating ?? 0;
+                    const goals = vs1?.goals ?? 0;
+                    const assists = vs1?.assists ?? 0;
+                    const ratingColor = rating >= 80 ? "#34d399" : rating >= 70 ? "#60a5fa" : rating >= 60 ? "#fbbf24" : "#94a3b8";
+
                     return (
-                      <button key={p.id}
-                        onClick={() => setExpandedPlayer(p)}
-                        className="w-full flex items-center gap-1.5 py-1 px-1 rounded hover:bg-white/[0.04] text-left transition-colors"
-                        style={{ background: inj ? "rgba(249,115,22,0.03)" : "transparent" }}>
-                        {/* Photo thumbnail */}
-                        {p.imageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={p.imageUrl} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0"
-                            style={{ border: `1px solid ${POS_COL[pos] ?? "#6b7c96"}30` }}
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                        ) : (
-                          <span className="text-[9px] font-bold w-5 h-5 text-center rounded flex-shrink-0 flex items-center justify-center"
-                            style={{ background: `${POS_COL[pos] ?? "#6b7c96"}15`, color: POS_COL[pos] ?? "#6b7c96", padding: "1px 0" }}>
-                            {POS_SHORT[pos] ?? "?"}
+                      <button key={p.id} onClick={() => setExpandedPlayer(p)}
+                        className="w-full grid px-3 py-1.5 hover:bg-white/[0.03] transition-colors items-center text-left"
+                        style={{ gridTemplateColumns: "1fr 56px 72px 44px 28px 28px 64px 32px", background: inj ? "rgba(249,115,22,0.02)" : "transparent", borderBottom: "1px solid rgba(255,255,255,0.02)" }}>
+
+                        {/* Joueur */}
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          {inj && <AlertTriangle size={9} style={{ color: "#f97316", flexShrink: 0 }} />}
+                          {p.imageUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={p.imageUrl} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0"
+                              style={{ border: `1px solid ${POS_COL[pos] ?? "#6b7c96"}30` }}
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                          ) : null}
+                          <span className="text-xs truncate font-medium" style={{ color: inj ? "#f97316" : "#e8edf5" }}>{p.name}</span>
+                        </div>
+
+                        {/* Poste */}
+                        <div className="flex justify-center">
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-full"
+                            style={{ background: `${POS_COL[pos] ?? "#6b7c96"}15`, color: POS_COL[pos] ?? "#6b7c96" }}>
+                            {POS_FR[pos]?.slice(0, 3) ?? pos.slice(0, 3)}
                           </span>
-                        )}
-                        {inj && <AlertTriangle size={9} className="text-orange-400 flex-shrink-0" />}
-                        <span className="flex-1 text-xs truncate" style={{ color: inj ? "#f97316" : "#e8edf5" }}>{p.name}</span>
-                        {/* Form column: emoji + score bar */}
-                        <div className="flex items-center gap-1 flex-shrink-0 w-14 justify-end">
-                          {fb && fb !== "neutral" && fbe[fb] && <span style={{ fontSize: 10 }}>{fbe[fb]}</span>}
-                          <span className="text-xs font-black" style={{ color: formColor }}>{formScore}</span>
-                          <div className="w-8 h-1 rounded-full overflow-hidden flex-shrink-0" style={{ background: "rgba(255,255,255,0.08)" }}>
-                            <div className="h-full rounded-full" style={{ width: `${formScore}%`, background: formColor }} />
+                        </div>
+
+                        {/* Forme */}
+                        <div className="flex items-center gap-1 justify-center">
+                          {fb && fb !== "neutral" && pFormEmoji[fb] && (
+                            <span style={{ fontSize: 9 }}>{pFormEmoji[fb]}</span>
+                          )}
+                          <span className="text-[10px] font-black" style={{ color: pFormColor }}>{pFormScore}</span>
+                          <div className="w-8 h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                            <div className="h-full rounded-full" style={{ width: `${pFormScore}%`, background: pFormColor }} />
                           </div>
                         </div>
-                        <span className="text-[10px] hidden sm:block w-6 text-right flex-shrink-0" style={{ color: "#6b7c96" }}>{p.age}</span>
-                        {(p.usGoals ?? p.recentGoals ?? 0) > 0 && (
-                          <span className="text-[10px]" style={{ color: "#f59e0b" }}>⚽{p.usGoals ?? p.recentGoals}</span>
-                        )}
-                        {(p.xG ?? 0) > 0 && (
-                          <span className="text-[10px]" style={{ color: "#22c55e" }}>xG{(p.xG!).toFixed(1)}</span>
-                        )}
-                        <span className="text-xs font-mono font-bold w-12 text-right flex-shrink-0"
+
+                        {/* 1vs1 rating */}
+                        <div className="flex justify-center">
+                          {rating > 0 ? (
+                            <span className="text-[10px] font-black px-1 py-0.5 rounded"
+                              style={{ background: `${ratingColor}18`, color: ratingColor }}>
+                              {rating}
+                            </span>
+                          ) : <span style={{ color: "#2d3748", fontSize: 10 }}>—</span>}
+                        </div>
+
+                        {/* Goals */}
+                        <span className="text-[10px] text-center font-bold"
+                          style={{ color: goals > 0 ? "#34d399" : "#2d3748" }}>
+                          {goals > 0 ? goals : "—"}
+                        </span>
+
+                        {/* Assists */}
+                        <span className="text-[10px] text-center font-bold"
+                          style={{ color: assists > 0 ? "#60a5fa" : "#2d3748" }}>
+                          {assists > 0 ? assists : "—"}
+                        </span>
+
+                        {/* Market value */}
+                        <span className="text-[10px] text-right font-mono font-bold"
                           style={{ color: p.marketValue > 20_000_000 ? "#00d4ff" : p.marketValue > 5_000_000 ? "#e8edf5" : "#6b7c96" }}>
                           {p.marketValue > 0 ? fv(p.marketValue) : "—"}
                         </span>
+
+                        {/* Age */}
+                        <span className="text-[10px] text-right hidden sm:block" style={{ color: "#6b7c96" }}>{p.age}</span>
                       </button>
                     );
                   })}
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Footer */}
+          {squadStats.totalValue > 0 && (
+            <div className="flex justify-between px-3 py-2 text-xs font-bold" style={{ borderTop: "1px solid #1e2d42", color: "#6b7c96" }}>
+              <span>{squadStats.playerCount} joueurs</span>
+              {squadStats.injuredCount > 0 && <span style={{ color: "#f97316" }}>{squadStats.injuredCount} blessé{squadStats.injuredCount > 1 ? "s" : ""}</span>}
+              <span style={{ color: "#00d4ff" }}>Total : {fv(squadStats.totalValue)}</span>
             </div>
           )}
         </div>

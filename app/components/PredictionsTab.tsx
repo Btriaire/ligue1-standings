@@ -258,6 +258,117 @@ function Toggle({ enabled, onToggle, label, color = "#f472b6" }: { enabled: bool
   );
 }
 
+// ── Buteurs potentiels ────────────────────────────────────────────────────────
+
+interface Player1v1 { name: string; rating: number; goals: number; assists: number; imageUrl: string }
+interface PlayersResponse { players: Player1v1[] }
+
+function scorerLikelihood(p: Player1v1, emoScore: number | null): number {
+  const base = p.goals * 3 + p.assists;
+  if (base === 0 && p.rating === 0) return 0;
+  const formBonus = emoScore !== null
+    ? (emoScore >= 70 ? 1.3 : emoScore >= 55 ? 1.1 : emoScore <= 30 ? 0.7 : 1.0)
+    : 1.0;
+  return (base * 2 + p.rating * 0.1) * formBonus;
+}
+
+function ButeursPotentiels({
+  homeTeamId, awayTeamId, homeTeamName, awayTeamName, homeEmoScore, awayEmoScore
+}: {
+  homeTeamId: number; awayTeamId: number;
+  homeTeamName: string; awayTeamName: string;
+  homeEmoScore: number | null; awayEmoScore: number | null;
+}) {
+  const [open, setOpen] = useState(false);
+  const [homePlayers, setHomePlayers] = useState<Player1v1[]>([]);
+  const [awayPlayers, setAwayPlayers] = useState<Player1v1[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  const load = async () => {
+    if (loaded) { setOpen(!open); return; }
+    setOpen(true);
+    setLoading(true);
+    try {
+      const [homeRes, awayRes] = await Promise.all([
+        fetch(`/api/players?teamId=${homeTeamId}`),
+        fetch(`/api/players?teamId=${awayTeamId}`),
+      ]);
+      const homeData: PlayersResponse = await homeRes.json();
+      const awayData: PlayersResponse = await awayRes.json();
+      setHomePlayers(homeData.players ?? []);
+      setAwayPlayers(awayData.players ?? []);
+      setLoaded(true);
+    } catch { /* silent */ }
+    finally { setLoading(false); }
+  };
+
+  const topHome = homePlayers
+    .filter(p => p.goals > 0 || p.rating > 0)
+    .sort((a, b) => scorerLikelihood(b, homeEmoScore) - scorerLikelihood(a, homeEmoScore))
+    .slice(0, 3);
+
+  const topAway = awayPlayers
+    .filter(p => p.goals > 0 || p.rating > 0)
+    .sort((a, b) => scorerLikelihood(b, awayEmoScore) - scorerLikelihood(a, awayEmoScore))
+    .slice(0, 3);
+
+  const allLikelihoods = [...topHome.map(p => scorerLikelihood(p, homeEmoScore)), ...topAway.map(p => scorerLikelihood(p, awayEmoScore))];
+  const maxL = Math.max(...allLikelihoods, 1);
+
+  return (
+    <div className="mt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+      <button onClick={load}
+        className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold transition-all mt-3 hover:opacity-80"
+        style={{ background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.2)", color: "#fbbf24" }}>
+        <Star size={11} />
+        {loading ? "Chargement…" : open ? "Masquer buteurs potentiels" : "Buteurs potentiels"}
+        {!loading && <ChevronDown size={11} className={`transition-transform ${open ? "rotate-180" : ""}`} />}
+      </button>
+
+      {open && !loading && loaded && (
+        <div className="grid grid-cols-2 gap-3 mt-3">
+          {[
+            { name: homeTeamName, players: topHome, emoScore: homeEmoScore, color: "#00d4ff" },
+            { name: awayTeamName, players: topAway, emoScore: awayEmoScore, color: "#a78bfa" },
+          ].map(({ name, players, emoScore, color }) => (
+            <div key={name}>
+              <p className="text-[10px] font-bold uppercase tracking-widest mb-2 truncate" style={{ color }}>{name}</p>
+              {players.length === 0 ? (
+                <p className="text-[10px]" style={{ color: "#4b5563" }}>Données indisponibles</p>
+              ) : players.map((p, i) => {
+                const score = scorerLikelihood(p, emoScore);
+                const pct = Math.round((score / maxL) * 100);
+                return (
+                  <div key={p.name} className="mb-2">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      {p.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={p.imageUrl} alt="" className="w-4 h-4 rounded object-cover flex-shrink-0"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                      ) : null}
+                      <span className="text-[10px] font-semibold truncate flex-1" style={{ color: i === 0 ? "#e8edf5" : "#94a3b8" }}>
+                        {p.name.split(" ").slice(-1)[0]}
+                      </span>
+                      <span className="text-[9px] font-black" style={{ color }}>
+                        {p.goals > 0 ? `⚽${p.goals}` : ""}{p.assists > 0 ? ` 🅰${p.assists}` : ""}
+                      </span>
+                    </div>
+                    <div className="h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                      <div className="h-full rounded-full transition-all"
+                        style={{ width: `${pct}%`, background: i === 0 ? color : `${color}70` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Match card ────────────────────────────────────────────────────────────────
 
 function MatchCard({
@@ -458,6 +569,16 @@ function MatchCard({
               : <span className="text-xs font-bold" style={{ color: "#f97316" }}>⚠ Diverge</span>}
           </div>
         )}
+
+        {/* Buteurs potentiels */}
+        <ButeursPotentiels
+          homeTeamId={match.homeTeam.id}
+          awayTeamId={match.awayTeam.id}
+          homeTeamName={match.homeTeam.shortName || match.homeTeam.tla}
+          awayTeamName={match.awayTeam.shortName || match.awayTeam.tla}
+          homeEmoScore={homeScore}
+          awayEmoScore={awayScore}
+        />
 
         {/* Detail toggle */}
         {showTechnicalDetails && (
