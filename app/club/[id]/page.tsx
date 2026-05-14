@@ -1511,7 +1511,29 @@ export default function ClubPage() {
                     const inj = p.status?.toLowerCase().includes("injury");
                     const fb = p.formBadge;
                     // Use pFormScore/pFormColor to avoid shadowing module-level formScore function
-                    const pFormScore = inj ? 20 : fb === "hot" ? 90 : fb === "good" ? 70 : fb === "cold" ? 30 : 50;
+                    // Position-aware form score using datamb metrics
+                    const pFormScore = (() => {
+                      if (inj) return 20;
+                      // GK: use save %
+                      if (pos === "Goalkeeper") {
+                        const sp = p.dm_savePct ?? 0;
+                        if (sp >= 78) return 88; if (sp >= 68) return 72; if (sp >= 55) return 55; if (sp > 0) return 40; return fb === "hot" ? 85 : fb === "good" ? 70 : fb === "cold" ? 30 : 50;
+                      }
+                      // DEF: defensive duel % + aerial % + interceptions
+                      if (pos === "Defender") {
+                        const defScore = (p.dm_defDuelPct ?? 0) * 0.45 + (p.dm_aerialPct ?? 0) * 0.3 + Math.min((p.dm_interceptions90 ?? 0) * 25, 25);
+                        if (defScore >= 65) return 90; if (defScore >= 48) return 75; if (defScore >= 30) return 58; if (defScore > 0) return 42; return fb === "hot" ? 85 : fb === "good" ? 70 : fb === "cold" ? 30 : 50;
+                      }
+                      // MID: xG+xA + pass % weighted
+                      if (pos === "Midfielder") {
+                        const xCombo = (p.dm_xg90 ?? 0) + (p.dm_xa90 ?? 0);
+                        const passBon = (p.dm_passPct ?? 0) >= 85 ? 8 : (p.dm_passPct ?? 0) >= 75 ? 4 : 0;
+                        if (xCombo >= 0.55) return Math.min(92, 82 + passBon); if (xCombo >= 0.30) return 68 + passBon; if (xCombo >= 0.10) return 52 + passBon; if (xCombo > 0) return 40; return fb === "hot" ? 85 : fb === "good" ? 70 : fb === "cold" ? 30 : 50;
+                      }
+                      // ATK / Winger / other offensive: xG+xA per 90
+                      const combined = (p.dm_xg90 ?? 0) + (p.dm_xa90 ?? 0);
+                      if (combined >= 0.7) return 92; if (combined >= 0.45) return 78; if (combined >= 0.20) return 62; if (combined >= 0.05) return 46; return fb === "hot" ? 85 : fb === "good" ? 70 : fb === "cold" ? 30 : 50;
+                    })();
                     const pFormColor = ec(pFormScore);
                     const pFormEmoji: Record<string, string> = { hot: "🔥", good: "⚡", cold: "❄️" };
 

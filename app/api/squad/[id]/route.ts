@@ -484,13 +484,51 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     }
   }
 
-  // Fetch Datamb per-90 stats for positions present in this squad
-  const uniquePositions = [...new Set(players.map(p => p.position))];
-  const posFiles = [...new Set(uniquePositions.flatMap(pos => DATAMB_POS_FILES[pos] ?? []))];
-  const datambRows = (await Promise.all(posFiles.map(fetchDatambFile))).flat();
+  // Fetch ALL Datamb position files (GK, CB, FB, CM, FW, ST) so every player gets
+  // a chance to match regardless of position string normalisation differences.
+  const ALL_DATAMB_FILES = ["GK", "CB", "FB", "CM", "FW", "ST"];
+  const datambRows = (await Promise.all(ALL_DATAMB_FILES.map(fetchDatambFile))).flat();
+
+  // Improved name matching: exact → last-name → any word overlap → partial substring
+  function matchDatambRow(playerName: string): DatambRow | undefined {
+    const norm = (s: string) => s.toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, " ").trim();
+
+    const pn = norm(playerName);
+    const pWords = pn.split(" ").filter(w => w.length > 2);
+    const pLast = pWords[pWords.length - 1] ?? "";
+
+    // 1. Exact
+    let row = datambRows.find(r => norm(String(r["Player"] ?? "")) === pn);
+    if (row) return row;
+    // 2. Last-name exact
+    if (pLast.length > 3) {
+      row = datambRows.find(r => {
+        const rn = norm(String(r["Player"] ?? ""));
+        const rWords = rn.split(" ");
+        return rWords[rWords.length - 1] === pLast;
+      });
+      if (row) return row;
+    }
+    // 3. Any significant word in common
+    row = datambRows.find(r => {
+      const rn = norm(String(r["Player"] ?? ""));
+      const rWords = rn.split(" ").filter(w => w.length > 3);
+      return pWords.some(pw => pw.length > 3 && rWords.some(rw => rw === pw));
+    });
+    if (row) return row;
+    // 4. Substring of full name (handles "J. Doe" vs "John Doe")
+    row = datambRows.find(r => {
+      const rn = norm(String(r["Player"] ?? ""));
+      return rn.includes(pLast) && pLast.length > 3;
+    });
+    return row;
+  }
+
   if (datambRows.length > 0) {
     players = players.map(p => {
-      const row = datambRows.find(r => playerNamesMatch(String(r["Player"] ?? ""), p.name));
+      const row = matchDatambRow(p.name);
       if (!row) return p;
       return { ...p, ...extractDatambStats(row) };
     });
