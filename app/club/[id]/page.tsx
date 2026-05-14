@@ -672,12 +672,12 @@ function BuzzMethodology({ buzz }: { buzz: BuzzData }) {
 // ── Club loading screen ───────────────────────────────────────────────────────
 
 const PARSING_STEPS = [
-  { label: "Connexion football-data.org", key: "standings", ms: 300 },
-  { label: "Chargement effectif Transfermarkt", key: "squad", ms: 700 },
-  { label: "Récupération des matchs", key: "matches", ms: 950 },
-  { label: "Parsing statistiques 1vs1", key: "players", ms: 1200 },
-  { label: "Analyse émotionnelle Gemini", key: "emotion", ms: 1600 },
-  { label: "Calcul score prédictif", key: "pred", ms: 1900 },
+  { label: "Récupération du classement",        key: "standings", ms: 300 },
+  { label: "Chargement de l'effectif",          key: "squad",     ms: 700 },
+  { label: "Analyse des matchs récents",        key: "matches",   ms: 950 },
+  { label: "Parsing des statistiques joueurs",  key: "players",   ms: 1200 },
+  { label: "Calcul du score émotionnel",        key: "emotion",   ms: 1600 },
+  { label: "Génération de l'analyse prédictive",key: "pred",      ms: 1900 },
 ];
 
 function ClubLoadingScreen({ teamId }: { teamId: number }) {
