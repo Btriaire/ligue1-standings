@@ -1027,6 +1027,46 @@ const WC_MATCHES_DATA: WCMatch[] = [
   },
 ];
 
+// Parse "8V 2N 1D" → { v, n, d, played, pts, score 0-100, label, color }
+function parseQualif(str: string) {
+  const m = str.match(/(\d+)V\s*(\d+)N\s*(\d+)D/);
+  if (!m) return { v: 0, n: 0, d: 0, played: 0, pts: 0, score: 50, label: "—", color: "#6b7c96" };
+  const v = parseInt(m[1]), n = parseInt(m[2]), d = parseInt(m[3]);
+  const played = v + n + d;
+  const pts = v * 3 + n;
+  const score = played > 0 ? Math.round((pts / (played * 3)) * 100) : 50;
+  const label = `${v}V ${n}N ${d}D`;
+  const color = score >= 78 ? "#22c55e" : score >= 60 ? "#00d4ff" : score >= 44 ? "#f59e0b" : "#ef4444";
+  return { v, n, d, played, pts, score, label, color };
+}
+
+function QualifBar({ raw, teamName, side }: { raw: string; teamName: string; side: "home" | "away" }) {
+  const q = parseQualif(raw);
+  const pct = q.played > 0 ? {
+    w: Math.round(q.v / q.played * 100),
+    d: Math.round(q.n / q.played * 100),
+    l: Math.round(q.d / q.played * 100),
+  } : { w: 0, d: 0, l: 0 };
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[10px] font-semibold truncate" style={{ color: "#94a3b8" }}>{teamName.split(" ").slice(1).join(" ")}</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] font-mono" style={{ color: "#22c55e" }}>{q.v}V</span>
+          <span className="text-[10px] font-mono" style={{ color: "#f59e0b" }}>{q.n}N</span>
+          <span className="text-[10px] font-mono" style={{ color: "#ef4444" }}>{q.d}D</span>
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: `${q.color}15`, color: q.color }}>{q.score}</span>
+        </div>
+      </div>
+      <div className="h-2 rounded-full overflow-hidden flex" style={{ background: "rgba(255,255,255,0.04)" }}>
+        <div style={{ width: `${pct.w}%`, background: "#22c55e", transition: "width 0.6s ease" }} />
+        <div style={{ width: `${pct.d}%`, background: "#f59e0b", transition: "width 0.6s ease" }} />
+        <div style={{ width: `${pct.l}%`, background: "#ef4444", transition: "width 0.6s ease" }} />
+      </div>
+    </div>
+  );
+}
+
 function WCPredictionsView() {
   const [groupFilter, setGroupFilter] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -1100,7 +1140,7 @@ function WCPredictionsView() {
                 </div>
 
                 {/* Probability bar */}
-                <div className="flex items-center gap-1.5 mb-2">
+                <div className="flex items-center gap-1.5 mb-1.5">
                   <span className="text-[10px] font-mono w-7 text-right" style={{ color: "#22c55e" }}>{m.hP}%</span>
                   <div className="flex-1 h-2 rounded-full overflow-hidden flex" style={{ background: "rgba(255,255,255,0.04)" }}>
                     <div style={{ width: `${m.hP}%`, background: "#22c55e" }} />
@@ -1109,6 +1149,50 @@ function WCPredictionsView() {
                   </div>
                   <span className="text-[10px] font-mono w-7" style={{ color: "#ef4444" }}>{m.aP}%</span>
                 </div>
+
+                {/* Qualif comparison bar (always visible) */}
+                {(() => {
+                  const qh = parseQualif(m.momentumHome);
+                  const qa = parseQualif(m.momentumAway);
+                  const diff = qh.score - qa.score;
+                  const diffColor = diff > 5 ? "#22c55e" : diff < -5 ? "#ef4444" : "#f59e0b";
+                  return (
+                    <div className="mb-2 px-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#475569" }}>Qualifs</span>
+                        <div className="flex items-center gap-1 ml-auto">
+                          <span className="text-[10px] font-mono" style={{ color: qh.color }}>{qh.label}</span>
+                          <span className="text-[10px]" style={{ color: "#475569" }}>vs</span>
+                          <span className="text-[10px] font-mono" style={{ color: qa.color }}>{qa.label}</span>
+                          {Math.abs(diff) > 3 && (
+                            <span className="text-[10px] font-bold px-1 rounded" style={{ background: `${diffColor}12`, color: diffColor }}>
+                              {diff > 0 ? "+" : ""}{diff}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-1 items-center">
+                        <div className="flex-1 h-1.5 rounded-full overflow-hidden flex" style={{ background: "rgba(255,255,255,0.04)" }}>
+                          {qh.played > 0 && <>
+                            <div style={{ width: `${qh.v/qh.played*100}%`, background: "#22c55e" }} />
+                            <div style={{ width: `${qh.n/qh.played*100}%`, background: "#f59e0b" }} />
+                            <div style={{ width: `${qh.d/qh.played*100}%`, background: "#ef4444" }} />
+                          </>}
+                        </div>
+                        <span className="text-[10px] font-bold" style={{ color: diffColor }}>
+                          {diff > 0 ? "↑" : diff < 0 ? "↓" : "="} {Math.abs(diff)}
+                        </span>
+                        <div className="flex-1 h-1.5 rounded-full overflow-hidden flex" style={{ background: "rgba(255,255,255,0.04)" }}>
+                          {qa.played > 0 && <>
+                            <div style={{ width: `${qa.v/qa.played*100}%`, background: "#22c55e" }} />
+                            <div style={{ width: `${qa.n/qa.played*100}%`, background: "#f59e0b" }} />
+                            <div style={{ width: `${qa.d/qa.played*100}%`, background: "#ef4444" }} />
+                          </>}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Quick stats row */}
                 <div className="flex items-center gap-2 flex-wrap">
@@ -1159,18 +1243,41 @@ function WCPredictionsView() {
                     ))}
                   </div>
 
-                  {/* H2H + Momentum */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="rounded-xl px-3 py-2" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                      <p className="text-[10px] uppercase font-bold mb-0.5" style={{ color: "#6b7c96" }}>Historique H2H</p>
-                      <p className="text-xs font-bold" style={{ color: "#a78bfa" }}>{m.h2h}</p>
-                      <p className="text-[10px] mt-0.5" style={{ color: "#475569" }}>{m.h2hDetail}</p>
+                  {/* H2H */}
+                  <div className="rounded-xl px-3 py-2" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                    <p className="text-[10px] uppercase font-bold mb-1" style={{ color: "#6b7c96" }}>Historique H2H</p>
+                    <p className="text-xs font-bold" style={{ color: "#a78bfa" }}>{m.h2h}</p>
+                    <p className="text-[10px] mt-0.5" style={{ color: "#475569" }}>{m.h2hDetail}</p>
+                  </div>
+
+                  {/* Qualifying results — full detail */}
+                  <div className="rounded-xl px-3 py-3" style={{ background: "rgba(52,211,153,0.04)", border: "1px solid rgba(52,211,153,0.15)" }}>
+                    <p className="text-[10px] uppercase font-bold mb-2.5" style={{ color: "#34d399" }}>📈 Résultats qualificatifs</p>
+                    <div className="space-y-2.5">
+                      <QualifBar raw={m.momentumHome} teamName={m.home} side="home" />
+                      <QualifBar raw={m.momentumAway} teamName={m.away} side="away" />
                     </div>
-                    <div className="rounded-xl px-3 py-2" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                      <p className="text-[10px] uppercase font-bold mb-0.5" style={{ color: "#6b7c96" }}>Forme qualifs</p>
-                      <p className="text-[10px]" style={{ color: "#22c55e" }}>DOM {m.momentumHome}</p>
-                      <p className="text-[10px]" style={{ color: "#ef4444" }}>EXT {m.momentumAway}</p>
-                    </div>
+                    {(() => {
+                      const qh = parseQualif(m.momentumHome);
+                      const qa = parseQualif(m.momentumAway);
+                      const diff = qh.score - qa.score;
+                      const impact = Math.abs(diff) >= 15 ? "Fort" : Math.abs(diff) >= 8 ? "Modéré" : "Faible";
+                      const favored = diff > 3 ? m.home.split(" ").slice(1).join(" ") : diff < -3 ? m.away.split(" ").slice(1).join(" ") : null;
+                      return (
+                        <div className="mt-2 pt-2 flex items-center gap-2 flex-wrap" style={{ borderTop: "1px solid rgba(52,211,153,0.1)" }}>
+                          <span className="text-[10px]" style={{ color: "#6b7c96" }}>
+                            Impact sur la prédiction :
+                          </span>
+                          <span className="text-[10px] font-bold" style={{ color: Math.abs(diff) >= 8 ? "#34d399" : "#6b7c96" }}>{impact}</span>
+                          {favored && (
+                            <span className="text-[10px] font-semibold ml-auto" style={{ color: "#34d399" }}>
+                              Avantage qualifs → {favored}
+                            </span>
+                          )}
+                          {!favored && <span className="text-[10px] ml-auto" style={{ color: "#6b7c96" }}>Équilibre qualificatif</span>}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Tactical note */}
