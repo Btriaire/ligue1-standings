@@ -368,9 +368,9 @@ function ClubSidebar({ standings }: { standings?: Standing[] }) {
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode; shortLabel?: string }[] = [
   { id: "standings",   label: "Classement",       icon: <BarChart2 size={14} />,   shortLabel: "Classmt." },
-  { id: "predictions", label: "Prédictions IA",   icon: <Zap size={14} />,         shortLabel: "Préd. IA" },
+  { id: "predictions", label: "AI FootPredictom",   icon: <Zap size={14} />,         shortLabel: "AI Foot" },
   { id: "results",     label: "Résultats",         icon: <Target size={14} /> },
-  { id: "emotional",   label: "Score Émotionnel",  icon: <Heart size={14} />,       shortLabel: "Émotionnel" },
+  { id: "emotional",   label: "Facteur additionnel",  icon: <Heart size={14} />,       shortLabel: "Fact. add." },
   { id: "worldcup",    label: "Coupe du Monde",    icon: <Globe size={14} />,            shortLabel: "WC 2026" },
   { id: "transfers",   label: "Transferts",         icon: <ArrowLeftRight size={14} />,  shortLabel: "Mercato" },
   { id: "config",      label: "Configuration",     icon: <Settings size={14} />,         shortLabel: "Config" },
@@ -560,8 +560,8 @@ export default function Home() {
           {/* Feature pills */}
           <div className="flex flex-wrap gap-2">
             {[
-              { icon: "⚡", label: "Prédictions IA", color: "#3b82f6" },
-              { icon: "❤", label: "Score Émotionnel", color: "#f472b6" },
+              { icon: "⚡", label: "AI FootPredictom", color: "#3b82f6" },
+              { icon: "❤", label: "Facteur additionnel", color: "#f472b6" },
               { icon: "⚽", label: "Buteurs potentiels", color: "#fbbf24" },
               { icon: "📊", label: "Stats joueurs 1vs1", color: "#34d399" },
               { icon: "📰", label: "Buzz supporters", color: "#a78bfa" },
@@ -635,9 +635,9 @@ export default function Home() {
           </>
         )}
 
-        {tab === "predictions" && (user ? <PredictionsTab /> : <AuthGate label="Prédictions IA" icon={<Zap size={16} className="inline" style={{ color: "#3b82f6" }} />} />)}
+        {tab === "predictions" && (user ? <PredictionsTab /> : <AuthGate label="AI FootPredictom" icon={<Zap size={16} className="inline" style={{ color: "#3b82f6" }} />} />)}
         {tab === "results" && <ResultsTab />}
-        {tab === "emotional" && (user ? <EmotionalScoreTab /> : <AuthGate label="Score Émotionnel" icon={<Heart size={16} className="inline" style={{ color: "#a78bfa" }} />} />)}
+        {tab === "emotional" && (user ? <EmotionalScoreTab /> : <AuthGate label="Facteur additionnel" icon={<Heart size={16} className="inline" style={{ color: "#a78bfa" }} />} />)}
         {tab === "worldcup" && <WorldCupTab />}
         {tab === "transfers" && <TransfersTab />}
         {tab === "config" && <ConfigTab />}

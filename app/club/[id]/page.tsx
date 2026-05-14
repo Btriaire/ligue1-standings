@@ -773,7 +773,7 @@ function ClubLoadingScreen({ teamId }: { teamId: number }) {
           {[
             { label: "Joueurs parsés", value: counter, suffix: "/34", color: "#00d4ff" },
             { label: "Sources actives", value: Math.min(step, 4), suffix: "/6", color: "#22c55e" },
-            { label: "Score émotionnel", value: step >= 4 ? "…" : "—", suffix: "", color: "#f472b6" },
+            { label: "Facteur additionnel", value: step >= 4 ? "…" : "—", suffix: "", color: "#f472b6" },
           ].map(stat => (
             <div key={stat.label} className="rounded-xl px-3 py-3 text-center"
               style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
@@ -1365,7 +1365,7 @@ export default function ClubPage() {
           <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42", background: "#0d1421" }}>
             <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: "1px solid #1e2d42" }}>
               <Heart size={13} style={{ color: "#f472b6" }} />
-              <span className="font-bold text-sm" style={{ color: "#e8edf5" }}>Score Émotionnel</span>
+              <span className="font-bold text-sm" style={{ color: "#e8edf5" }}>Facteur additionnel</span>
               <span className="ml-auto text-xl font-black" style={{ color: ec(emotional.emotionalScore) }}>
                 {emotional.emotionalScore}
               </span>

@@ -175,7 +175,7 @@ export default function ConfigTab() {
       <Card>
         <SectionTitle
           icon={<Heart size={16} style={{ color: "#f472b6" }} />}
-          title="Score Émotionnel"
+          title="Facteur additionnel"
           subtitle="Dimensions incluses dans l'analyse"
         />
 
@@ -363,7 +363,7 @@ export default function ConfigTab() {
           <ChevronRight size={13} style={{ color: "#00d4ff", marginTop: 1, flexShrink: 0 }} />
           <div>
             <p>Les paramètres sont sauvegardés automatiquement dans votre navigateur (localStorage).</p>
-            <p className="mt-1">Les prédictions sont auto-sauvegardées à chaque chargement de l'onglet Prédictions IA, avant chaque match.</p>
+            <p className="mt-1">Les prédictions sont auto-sauvegardées à chaque chargement de l'onglet AI FootPredictom, avant chaque match.</p>
           </div>
         </div>
       </div>

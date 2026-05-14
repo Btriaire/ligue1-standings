@@ -521,7 +521,7 @@ function MatchCard({
         {/* Prediction summary */}
         {winnerTeam && (
           <div className="mt-4 px-4 py-3 rounded-xl text-center" style={{ background: "rgba(0,212,255,0.05)", border: "1px solid rgba(0,212,255,0.15)" }}>
-            <p className="text-xs" style={{ color: "#6b7c96" }}>Prédiction IA</p>
+            <p className="text-xs" style={{ color: "#6b7c96" }}>AI FootPredictom</p>
             <p className="text-sm font-bold mt-0.5" style={{ color: "#00d4ff" }}>
               Victoire {winnerTeam.shortName || winnerTeam.tla} — {Math.max(pred.homeProb, pred.awayProb)}%
             </p>
@@ -529,7 +529,7 @@ function MatchCard({
         )}
         {pred.winner === "draw" && (
           <div className="mt-4 px-4 py-3 rounded-xl text-center" style={{ background: "rgba(148,163,184,0.05)", border: "1px solid rgba(148,163,184,0.15)" }}>
-            <p className="text-xs" style={{ color: "#6b7c96" }}>Prédiction IA</p>
+            <p className="text-xs" style={{ color: "#6b7c96" }}>AI FootPredictom</p>
             <p className="text-sm font-bold mt-0.5" style={{ color: "#94a3b8" }}>Match nul probable — {pred.drawProb}%</p>
           </div>
         )}
@@ -607,7 +607,7 @@ function MatchCard({
             )}
             {useEmotional && homeEmo && awayEmo && (
               <p style={{ color: "#f472b6" }}>
-                Score émotionnel : {match.homeTeam.shortName} {homeEmo.emotionalScore}/100 (Δ{homeDelta > 0 ? "+" : ""}{homeDelta}%)
+                Facteur additionnel : {match.homeTeam.shortName} {homeEmo.emotionalScore}/100 (Δ{homeDelta > 0 ? "+" : ""}{homeDelta}%)
                 · {match.awayTeam.shortName} {awayEmo.emotionalScore}/100 (Δ{awayDelta > 0 ? "+" : ""}{awayDelta}%)
               </p>
             )}
@@ -760,13 +760,13 @@ export default function PredictionsTab() {
           <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>
             Avantage dom. {config.homeAdvantage}%
             {config.formMomentumEnabled ? " · Élan de forme" : ""}
-            {useEmotional ? " · Score émotionnel" : ""}
+            {useEmotional ? " · Facteur additionnel" : ""}
             {useExpert && expertCount > 0 ? " · Experts" : ""}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Toggle enabled={useEmotional} onToggle={() => setUseEmotional(!useEmotional)}
-            label={emoLoading ? "Émotionnel…" : "Score émotionnel"} color="#f472b6" />
+            label={emoLoading ? "Facteur…" : "Facteur additionnel"} color="#f472b6" />
           <Toggle enabled={useExpert} onToggle={() => setUseExpert(!useExpert)}
             label={expertLoading ? "Experts…" : "Prédictions expertes"} color="#eab308" />
           {savedCount > 0 && (

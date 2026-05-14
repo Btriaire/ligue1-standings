@@ -470,7 +470,7 @@ export default function ResultsTab() {
       {savedPreds.length === 0 && (
         <div className="mt-6 px-4 py-3 rounded-xl text-xs text-center"
           style={{ background: "rgba(0,212,255,0.04)", border: "1px solid rgba(0,212,255,0.12)", color: "#6b7c96" }}>
-          Vos prédictions seront automatiquement sauvegardées lorsque vous visitez l'onglet <strong style={{ color: "#00d4ff" }}>Prédictions IA</strong>.
+          Vos prédictions seront automatiquement sauvegardées lorsque vous visitez l'onglet <strong style={{ color: "#00d4ff" }}>AI FootPredictom</strong>.
         </div>
       )}
     </div>

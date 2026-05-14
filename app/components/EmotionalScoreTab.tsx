@@ -190,7 +190,7 @@ function Methodology({ sources }: { sources: EmotionalData["sources"] }) {
           <Info size={15} className="text-pink-400" />
         </div>
         <div className="flex-1 text-left">
-          <p className="text-sm font-bold" style={{ color: "#e8edf5" }}>Comment est calculé le Score Émotionnel ?</p>
+          <p className="text-sm font-bold" style={{ color: "#e8edf5" }}>Comment est calculé le Facteur additionnel ?</p>
           <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>
             {sources.media.join(" · ")} · Buzz Supporters · Transfermarkt · Données économiques publiques
           </p>
@@ -201,7 +201,7 @@ function Methodology({ sources }: { sources: EmotionalData["sources"] }) {
       {open && (
         <div className="px-5 pb-5 space-y-4" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
           <p className="text-sm mt-4" style={{ color: "#94a3b8" }}>
-            Le Score Émotionnel (0–100) mesure la <strong style={{ color: "#e8edf5" }}>santé globale d'un club</strong> en 4 dimensions,
+            Le Facteur additionnel (0–100) mesure la <strong style={{ color: "#e8edf5" }}>santé globale d'un club</strong> en 4 dimensions,
             puis corrige automatiquement les <strong style={{ color: "#e8edf5" }}>prédictions IA</strong> (±2 à ±7%).
           </p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -619,7 +619,7 @@ export default function EmotionalScoreTab() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-base font-bold flex items-center gap-2" style={{ color: "#e8edf5" }}>
-            <Heart size={17} className="text-pink-400" /> Score Émotionnel — {sorted.length} clubs
+            <Heart size={17} className="text-pink-400" /> Facteur additionnel — {sorted.length} clubs
           </h2>
           <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>Cliquez un club pour le détail · Buzz supporters chargeable par club</p>
         </div>
