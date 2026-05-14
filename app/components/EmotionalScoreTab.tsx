@@ -564,9 +564,206 @@ function ClubCard({ club, customScore, weights }: { club: ClubScore; customScore
   );
 }
 
+// ── World Cup Emotional Scores (AI-generated, pre-computed) ──────────────────
+
+interface WCTeam {
+  flag: string; name: string; group: string;
+  score: number;
+  eco: number; media: number; human: number; fan: number;
+  note: string;
+  squadValue: string; injury: string; topPlayer: string;
+}
+
+const WC_TEAMS: WCTeam[] = [
+  { flag:"🇫🇷", name:"France",           group:"F", score:80, eco:82, media:78, human:85, fan:76, note:"Finaliste 2022 · Mbappé capitaine", squadValue:"~1.3 Md€", injury:"Faible", topPlayer:"Kylian Mbappé" },
+  { flag:"🇪🇸", name:"Espagne",           group:"E", score:84, eco:80, media:82, human:88, fan:85, note:"Champion d'Europe 2024 · Yamal 18 ans", squadValue:"~1.1 Md€", injury:"Faible", topPlayer:"Lamine Yamal" },
+  { flag:"🇦🇷", name:"Argentine",         group:"A", score:79, eco:74, media:80, human:75, fan:88, note:"Tenant du titre · Messi en fin de carrière", squadValue:"~850 M€", injury:"Modéré", topPlayer:"Lionel Messi" },
+  { flag:"🇧🇷", name:"Brésil",            group:"G", score:76, eco:78, media:75, human:82, fan:70, note:"Quart-finaliste 2022 · Reconstruction", squadValue:"~1.0 Md€", injury:"Modéré", topPlayer:"Vinicius Jr" },
+  { flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", name:"Angleterre",       group:"I", score:75, eco:85, media:70, human:82, fan:64, note:"Semi-finalistes 2022 · Hésitations médias", squadValue:"~1.2 Md€", injury:"Faible", topPlayer:"Jude Bellingham" },
+  { flag:"🇩🇪", name:"Allemagne",         group:"H", score:74, eco:82, media:68, human:78, fan:70, note:"Remontée post-2022 · Wirtz en forme", squadValue:"~900 M€", injury:"Faible", topPlayer:"Florian Wirtz" },
+  { flag:"🇵🇹", name:"Portugal",          group:"D", score:73, eco:70, media:74, human:76, fan:78, note:"Ronaldo facteur galvanisant", squadValue:"~780 M€", injury:"Modéré", topPlayer:"Cristiano Ronaldo" },
+  { flag:"🇳🇱", name:"Pays-Bas",          group:"H", score:70, eco:74, media:65, human:74, fan:66, note:"Groupe de mort avec Allemagne", squadValue:"~720 M€", injury:"Modéré", topPlayer:"Virgil van Dijk" },
+  { flag:"🇺🇸", name:"USA",              group:"C", score:78, eco:90, media:80, human:72, fan:82, note:"Pays hôte · Ferveur record attendue", squadValue:"~550 M€", injury:"Faible", topPlayer:"Christian Pulisic" },
+  { flag:"🇲🇽", name:"Mexique",           group:"B", score:77, eco:78, media:82, human:68, fan:90, note:"Pays hôte · Match d'ouverture Azteca", squadValue:"~420 M€", injury:"Faible", topPlayer:"Hirving Lozano" },
+  { flag:"🇨🇦", name:"Canada",            group:"D", score:72, eco:72, media:68, human:65, fan:78, note:"Pays hôte · 2e CM qualifié seulement", squadValue:"~380 M€", injury:"Faible", topPlayer:"Alphonso Davies" },
+  { flag:"🇲🇦", name:"Maroc",             group:"E", score:74, eco:60, media:72, human:68, fan:85, note:"Demi-finaliste 2022 · Énorme soutien", squadValue:"~400 M€", injury:"Modéré", topPlayer:"Achraf Hakimi" },
+  { flag:"🇺🇾", name:"Uruguay",           group:"D", score:68, eco:58, media:62, human:66, fan:72, note:"2 fois champion · Noyau expérimenté", squadValue:"~380 M€", injury:"Modéré", topPlayer:"Darwin Núñez" },
+  { flag:"🇨🇴", name:"Colombie",          group:"G", score:67, eco:60, media:64, human:68, fan:74, note:"Qualifs impressionnantes · James Rodriguez", squadValue:"~420 M€", injury:"Faible", topPlayer:"James Rodríguez" },
+  { flag:"🇯🇵", name:"Japon",             group:"E", score:66, eco:68, media:60, human:64, fan:72, note:"Huitièmes 2022 · Surprise potentielle", squadValue:"~350 M€", injury:"Faible", topPlayer:"Takefusa Kubo" },
+  { flag:"🇭🇷", name:"Croatie",           group:"J", score:65, eco:54, media:60, human:62, fan:68, note:"Finaliste 2018 · 3e 2022 · Vétérans", squadValue:"~320 M€", injury:"Modéré", topPlayer:"Luka Modrić" },
+  { flag:"🇧🇪", name:"Belgique",          group:"E", score:64, eco:70, media:60, human:70, fan:62, note:"Génération en déclin · transition", squadValue:"~580 M€", injury:"Élevé", topPlayer:"Kevin De Bruyne" },
+  { flag:"🇮🇹", name:"Italie",            group:"J", score:63, eco:74, media:64, human:68, fan:65, note:"Champion 2006 · Manque WC 2022", squadValue:"~620 M€", injury:"Modéré", topPlayer:"Federico Chiesa" },
+  { flag:"🇩🇿", name:"Algérie",           group:"F", score:68, eco:52, media:70, human:60, fan:82, note:"Choc contre la France · Motivation max", squadValue:"~200 M€", injury:"Faible", topPlayer:"Riyad Mahrez" },
+  { flag:"🇨🇭", name:"Suisse",            group:"F", score:62, eco:64, media:55, human:62, fan:60, note:"Régulière en CdM · peu de pression", squadValue:"~280 M€", injury:"Faible", topPlayer:"Granit Xhaka" },
+];
+
+function WCEmotionalView() {
+  const [sortBy, setSortBy] = useState<"score" | "group">("score");
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [groupFilter, setGroupFilter] = useState<string | null>(null);
+
+  const groups = [...new Set(WC_TEAMS.map(t => t.group))].sort();
+
+  const sorted = [...WC_TEAMS]
+    .filter(t => !groupFilter || t.group === groupFilter)
+    .sort((a, b) => sortBy === "score" ? b.score - a.score : a.group.localeCompare(b.group) || b.score - a.score);
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div>
+          <h2 className="text-base font-bold flex items-center gap-2" style={{ color: "#e8edf5" }}>
+            <Heart size={16} className="text-pink-400" /> Facteur additionnel — Coupe du Monde 2026
+          </h2>
+          <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>
+            Analyse IA · Économique · Médias · Effectif · Supporters
+          </p>
+        </div>
+        <div className="flex gap-1 p-1 rounded-lg" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
+          {([["score","Par score"],["group","Par groupe"]] as const).map(([id, label]) => (
+            <button key={id} onClick={() => setSortBy(id)}
+              className="px-3 py-1 rounded text-xs font-medium transition-all"
+              style={{ background: sortBy === id ? "rgba(255,255,255,0.06)" : "transparent", color: sortBy === id ? "#e8edf5" : "#6b7c96" }}>
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Group filter */}
+      <div className="flex flex-wrap gap-1.5 mb-4">
+        <button onClick={() => setGroupFilter(null)}
+          className="px-2.5 py-1 rounded-lg text-xs font-semibold transition-all"
+          style={{ background: !groupFilter ? "rgba(244,114,182,0.12)" : "rgba(255,255,255,0.04)", border: `1px solid ${!groupFilter ? "rgba(244,114,182,0.3)" : "rgba(255,255,255,0.08)"}`, color: !groupFilter ? "#f472b6" : "#6b7c96" }}>
+          Tous
+        </button>
+        {groups.map(g => (
+          <button key={g} onClick={() => setGroupFilter(g === groupFilter ? null : g)}
+            className="px-2.5 py-1 rounded-lg text-xs font-bold transition-all"
+            style={{ background: groupFilter === g ? "rgba(234,179,8,0.12)" : "rgba(255,255,255,0.04)", border: `1px solid ${groupFilter === g ? "rgba(234,179,8,0.3)" : "rgba(255,255,255,0.08)"}`, color: groupFilter === g ? "#eab308" : "#6b7c96" }}>
+            Gr.{g}
+          </button>
+        ))}
+      </div>
+
+      {/* Legend */}
+      <div className="flex flex-wrap gap-3 mb-4">
+        {[
+          { label: "Excellent (70+)", color: "#22c55e" },
+          { label: "Positif (55–70)", color: "#00d4ff" },
+          { label: "Neutre (40–55)", color: "#f59e0b" },
+          { label: "Tendu (<40)",    color: "#ef4444" },
+        ].map(l => (
+          <div key={l.label} className="flex items-center gap-1.5 text-xs" style={{ color: l.color }}>
+            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: l.color }} />
+            {l.label}
+          </div>
+        ))}
+      </div>
+
+      {/* Team cards */}
+      <div className="space-y-2">
+        {sorted.map((team) => {
+          const { color, border } = emotionColor(team.score);
+          const delta = computeDelta(team.score);
+          const isOpen = expanded === team.name;
+          return (
+            <div key={team.name} className="rounded-2xl overflow-hidden" style={{ background: "#0d1421", border: `1px solid ${border}` }}>
+              <button className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-all text-left"
+                onClick={() => setExpanded(isOpen ? null : team.name)}>
+                <ScoreGauge score={team.score} size={52} />
+                <span className="text-2xl flex-shrink-0">{team.flag}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-sm" style={{ color: "#e8edf5" }}>{team.name}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded font-bold" style={{ background: "rgba(234,179,8,0.12)", color: "#eab308" }}>
+                      Gr.{team.group}
+                    </span>
+                    {delta !== 0 && (
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
+                        style={{ background: delta > 0 ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)", color: delta > 0 ? "#22c55e" : "#ef4444" }}>
+                        <Zap size={9} />{delta > 0 ? "+" : ""}{delta}%
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs mt-0.5" style={{ color }}>{emotionLabel(team.score)}</p>
+                  <p className="text-[10px] mt-0.5 truncate" style={{ color: "#6b7c96" }}>{team.note}</p>
+                </div>
+                {/* Mini bars */}
+                <div className="hidden sm:flex flex-col gap-1 items-end flex-shrink-0 mr-2">
+                  {([["Éco", team.eco], ["Média", team.media], ["Humain", team.human], ["Fans", team.fan]] as const).map(([label, val]) => {
+                    const c = emotionColor(val);
+                    return (
+                      <div key={label} className="flex items-center gap-1.5">
+                        <span className="text-xs w-10 text-right" style={{ color: "#6b7c96" }}>{label}</span>
+                        <div className="w-14 h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                          <div className="h-full rounded-full" style={{ width: `${val}%`, background: c.color }} />
+                        </div>
+                        <span className="text-xs w-5" style={{ color: c.color }}>{val}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <ChevronDown size={14} style={{ color: "#6b7c96", flexShrink: 0 }}
+                  className={`transition-transform ${isOpen ? "rotate-180" : ""}`} />
+              </button>
+
+              {isOpen && (
+                <div className="px-4 pb-4 space-y-3" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                  {/* Bars */}
+                  <div className="space-y-2 pt-3">
+                    {([
+                      ["Économique",    team.eco,   "#f59e0b", <Building2 key="eco" size={12} />],
+                      ["Médias",        team.media, "#00d4ff", <Newspaper key="media" size={12} />],
+                      ["Humain",        team.human, "#22c55e", <Users key="human" size={12} />],
+                      ["Supporters",    team.fan,   "#f472b6", <MessageCircle key="fan" size={12} />],
+                    ] as const).map(([label, val, clr, icon]) => (
+                      <div key={label}>
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-1.5 text-xs" style={{ color: clr }}>{icon}{label}</div>
+                          <span className="text-xs font-bold" style={{ color: clr }}>{val}/100</span>
+                        </div>
+                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                          <div className="h-full rounded-full transition-all" style={{ width: `${val}%`, background: clr }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Details */}
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    {[
+                      { label: "Valeur effectif", value: team.squadValue },
+                      { label: "Blessures", value: team.injury },
+                      { label: "Joueur clé", value: team.topPlayer },
+                    ].map(d => (
+                      <div key={d.label} className="rounded-xl p-2 text-center"
+                        style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                        <p className="text-[10px]" style={{ color: "#6b7c96" }}>{d.label}</p>
+                        <p className="font-semibold mt-0.5 truncate" style={{ color: "#e8edf5" }}>{d.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[10px] px-2 py-1.5 rounded-lg" style={{ background: "rgba(255,255,255,0.03)", color: "#94a3b8" }}>
+                    ⚡ {team.note}
+                  </p>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <p className="mt-4 text-center text-xs" style={{ color: "#475569" }}>
+        Scores IA générés par FootPredictom · Données estimées avant tournoi · Mis à jour au fur et à mesure
+      </p>
+    </div>
+  );
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 export default function EmotionalScoreTab() {
+  const [subTab, setSubTab] = useState<"l1" | "cdm">("l1");
   const [data, setData] = useState<EmotionalData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -595,24 +792,42 @@ export default function EmotionalScoreTab() {
     );
   }, [scored, sortBy]);
 
+  const SubTabs = () => (
+    <div className="flex gap-1 mb-5 p-1 rounded-xl" style={{ background: "#0a0f1c", border: "1px solid #1a2235", display: "inline-flex" }}>
+      {([["l1", "🏆 Ligue 1"], ["cdm", "🌍 Coupe du Monde"]] as const).map(([id, label]) => (
+        <button key={id} onClick={() => setSubTab(id)}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap"
+          style={{ background: subTab === id ? "rgba(255,255,255,0.08)" : "transparent", color: subTab === id ? "#e2e8f0" : "#64748b", border: subTab === id ? "1px solid rgba(255,255,255,0.1)" : "1px solid transparent" }}>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (subTab === "cdm") return <div><SubTabs /><WCEmotionalView /></div>;
+
   if (loading) {
     return (
-      <div className="space-y-3">
-        <div className="text-center py-6">
-          <Heart size={24} className="text-pink-400 mx-auto mb-3 animate-pulse" />
-          <p className="text-sm font-medium" style={{ color: "#e8edf5" }}>Analyse en cours…</p>
-          <p className="text-xs mt-1" style={{ color: "#6b7c96" }}>Collecte : RMC, Figaro, Google News, Transfermarkt</p>
+      <div>
+        <SubTabs />
+        <div className="space-y-3">
+          <div className="text-center py-6">
+            <Heart size={24} className="text-pink-400 mx-auto mb-3 animate-pulse" />
+            <p className="text-sm font-medium" style={{ color: "#e8edf5" }}>Analyse en cours…</p>
+            <p className="text-xs mt-1" style={{ color: "#6b7c96" }}>Collecte : RMC, Figaro, Google News, Transfermarkt</p>
+          </div>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="h-20 rounded-2xl animate-pulse" style={{ background: "#0d1421", border: "1px solid #1e2d42" }} />
+          ))}
         </div>
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-20 rounded-2xl animate-pulse" style={{ background: "#0d1421", border: "1px solid #1e2d42" }} />
-        ))}
       </div>
     );
   }
-  if (error) return <div className="text-center py-16 text-red-400 text-sm">{error}</div>;
+  if (error) return <div><SubTabs /><div className="text-center py-16 text-red-400 text-sm">{error}</div></div>;
 
   return (
     <div>
+      <SubTabs />
       {data && <Methodology sources={data.sources} />}
       <WeightSliders weights={weights} onChange={setWeights} />
 
