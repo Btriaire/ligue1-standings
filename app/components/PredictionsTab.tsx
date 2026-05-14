@@ -52,6 +52,8 @@ interface ExpertMatch {
   confidence: "high" | "medium" | "low";
   confidenceScore?: number;
   odds?: { home: number; draw: number; away: number };
+  /** Vig-removed implied probabilities from Betclic (0-100) */
+  impliedProbs?: { home: number; draw: number; away: number };
   source?: string;
 }
 
@@ -150,6 +152,49 @@ function teamMatches(expertName: string, ourName: string): boolean {
   const ew = e.split(" ").filter((w) => w.length > 3);
   const ow = o.split(" ").filter((w) => w.length > 3);
   return ew.some((w) => o.includes(w)) || ow.some((w) => e.includes(w));
+}
+
+/**
+ * Build a prediction from Betclic implied probabilities, then apply facteur additionnel weighting.
+ * The emotional score shifts the home/away probabilities up to ±8pp based on the delta
+ * between the two teams' emotional scores.
+ */
+function betclicWithEmo(
+  impliedProbs: { home: number; draw: number; away: number },
+  baseXG: { homeXG: number; awayXG: number },
+  homeEmo?: EmoEntry,
+  awayEmo?: EmoEntry,
+): { pred: Prediction; emoShift: number; homeScore: number | null; awayScore: number | null } {
+  const homeScore = homeEmo?.emotionalScore ?? null;
+  const awayScore = awayEmo?.emotionalScore ?? null;
+
+  // Emotional shift: difference between normalized emo scores, max ±8pp
+  let emoShift = 0;
+  if (homeScore !== null && awayScore !== null) {
+    const normalizedDelta = ((homeScore - awayScore) / 100); // -1 to +1
+    emoShift = Math.round(normalizedDelta * 8); // max ±8pp
+  }
+
+  let hp = Math.max(5, Math.min(88, impliedProbs.home + emoShift));
+  let ap = Math.max(5, Math.min(88, impliedProbs.away - emoShift));
+  let dp = impliedProbs.draw;
+  const sum = hp + ap + dp;
+  hp = Math.round((hp / sum) * 100);
+  ap = Math.round((ap / sum) * 100);
+  dp = 100 - hp - ap;
+
+  return {
+    pred: {
+      homeProb: hp, drawProb: dp, awayProb: ap,
+      winner: calcWinner(hp, dp, ap),
+      confidence: calcConfidence(hp, dp, ap),
+      homeXG: baseXG.homeXG,
+      awayXG: baseXG.awayXG,
+    },
+    emoShift,
+    homeScore,
+    awayScore,
+  };
 }
 
 function applyEmoCorrection(
@@ -375,6 +420,7 @@ function MatchCard({
   match,
   computedPrediction,
   useEmotional,
+  useExpert,
   emoMap,
   expertMatches,
   showXG,
@@ -385,6 +431,7 @@ function MatchCard({
   match: MatchPrediction;
   computedPrediction: Prediction;
   useEmotional: boolean;
+  useExpert: boolean;
   emoMap: Map<number, EmoEntry>;
   expertMatches: ExpertMatch[];
   showXG: boolean;
@@ -397,16 +444,45 @@ function MatchCard({
 
   const homeEmo = emoMap.get(match.homeTeam.id);
   const awayEmo = emoMap.get(match.awayTeam.id);
-  const { corrected, homeDelta, awayDelta, homeScore, awayScore } = applyEmoCorrection(computedPrediction, homeEmo, awayEmo);
-
-  const pred = useEmotional ? corrected : computedPrediction;
-  const hasCorrectionApplied = useEmotional && (homeDelta !== 0 || awayDelta !== 0);
-  const conf = CONF[pred.confidence];
-  const winnerTeam = pred.winner === "home" ? match.homeTeam : pred.winner === "away" ? match.awayTeam : null;
 
   const expertMatch = expertMatches.find(
     (e) => teamMatches(e.homeTeam, match.homeTeam.name) && teamMatches(e.awayTeam, match.awayTeam.name)
   );
+
+  // Determine base probabilities source
+  const hasBetclic = useExpert && !!(expertMatch?.impliedProbs);
+  let pred: Prediction;
+  let betclicEmoShift = 0;
+  let homeScore: number | null = null;
+  let awayScore: number | null = null;
+  let homeDelta = 0;
+  let awayDelta = 0;
+
+  if (hasBetclic) {
+    // PRIMARY PATH: Betclic implied probs → weighted by facteur additionnel
+    const { pred: bp, emoShift, homeScore: hs, awayScore: as_ } = betclicWithEmo(
+      expertMatch!.impliedProbs!,
+      { homeXG: computedPrediction.homeXG, awayXG: computedPrediction.awayXG },
+      useEmotional ? homeEmo : undefined,
+      useEmotional ? awayEmo : undefined,
+    );
+    pred = bp;
+    betclicEmoShift = emoShift;
+    homeScore = hs;
+    awayScore = as_;
+  } else {
+    // FALLBACK PATH: our algorithm + optional facteur additionnel correction
+    const emoResult = applyEmoCorrection(computedPrediction, homeEmo, awayEmo);
+    pred = useEmotional ? emoResult.corrected : computedPrediction;
+    homeDelta = emoResult.homeDelta;
+    awayDelta = emoResult.awayDelta;
+    homeScore = emoResult.homeScore;
+    awayScore = emoResult.awayScore;
+  }
+
+  const hasCorrectionApplied = useEmotional && (hasBetclic ? betclicEmoShift !== 0 : (homeDelta !== 0 || awayDelta !== 0));
+  const conf = CONF[pred.confidence];
+  const winnerTeam = pred.winner === "home" ? match.homeTeam : pred.winner === "away" ? match.awayTeam : null;
   const expertAgrees = expertMatch && expertMatch.prediction === pred.winner;
 
   const homeMomentum = calcFormMomentum(match.homeTeam.form);
@@ -518,37 +594,98 @@ function MatchCard({
           <FormMini form={match.awayTeam.form} />
         </div>
 
+        {/* ── Betclic odds row ── */}
+        {expertMatch?.odds && (
+          <div className="mt-4 rounded-xl overflow-hidden" style={{ border: "1px solid rgba(234,179,8,0.25)", background: "rgba(234,179,8,0.04)" }}>
+            <div className="flex items-center gap-2 px-3 py-1.5" style={{ borderBottom: "1px solid rgba(234,179,8,0.12)" }}>
+              <Star size={10} style={{ color: "#eab308" }} />
+              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#eab308" }}>
+                Cotes Betclic
+              </span>
+              {hasBetclic && (
+                <span className="text-[9px] ml-auto" style={{ color: "#6b7c96" }}>
+                  {useEmotional && betclicEmoShift !== 0
+                    ? `base Betclic · ajusté facteur additionnel ${betclicEmoShift > 0 ? "+" : ""}${betclicEmoShift}pp`
+                    : "base Betclic"}
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-3 divide-x" style={{ borderColor: "rgba(234,179,8,0.12)" }}>
+              {[
+                { label: "1 · Dom.", odds: expertMatch.odds.home, prob: expertMatch.impliedProbs?.home, color: "#00d4ff", win: pred.winner === "home" },
+                { label: "X · Nul", odds: expertMatch.odds.draw, prob: expertMatch.impliedProbs?.draw, color: "#94a3b8", win: pred.winner === "draw" },
+                { label: "2 · Ext.", odds: expertMatch.odds.away, prob: expertMatch.impliedProbs?.away, color: "#a78bfa", win: pred.winner === "away" },
+              ].map(cell => (
+                <div key={cell.label} className="flex flex-col items-center py-2 px-1" style={{ opacity: cell.win ? 1 : 0.55 }}>
+                  <span className="text-base font-black" style={{ color: cell.win ? cell.color : "#e8edf5" }}>
+                    {cell.odds > 0 ? cell.odds.toFixed(2) : "—"}
+                  </span>
+                  {cell.prob != null && (
+                    <span className="text-[9px] font-semibold" style={{ color: cell.color }}>{cell.prob}%</span>
+                  )}
+                  <span className="text-[9px] mt-0.5" style={{ color: "#6b7c96" }}>{cell.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Prediction summary */}
         {winnerTeam && (
-          <div className="mt-4 px-4 py-3 rounded-xl text-center" style={{ background: "rgba(0,212,255,0.05)", border: "1px solid rgba(0,212,255,0.15)" }}>
-            <p className="text-xs" style={{ color: "#6b7c96" }}>AI FootPredictom</p>
-            <p className="text-sm font-bold mt-0.5" style={{ color: "#00d4ff" }}>
+          <div className="mt-2 px-4 py-3 rounded-xl text-center"
+            style={{
+              background: hasBetclic ? "rgba(234,179,8,0.07)" : "rgba(0,212,255,0.05)",
+              border: hasBetclic ? "1px solid rgba(234,179,8,0.2)" : "1px solid rgba(0,212,255,0.15)",
+            }}>
+            <p className="text-xs" style={{ color: "#6b7c96" }}>
+              {hasBetclic ? "Betclic" : "AI FootPredictom"}
+              {useEmotional && hasBetclic ? " + Facteur additionnel" : ""}
+            </p>
+            <p className="text-sm font-bold mt-0.5" style={{ color: hasBetclic ? "#eab308" : "#00d4ff" }}>
               Victoire {winnerTeam.shortName || winnerTeam.tla} — {Math.max(pred.homeProb, pred.awayProb)}%
             </p>
           </div>
         )}
         {pred.winner === "draw" && (
-          <div className="mt-4 px-4 py-3 rounded-xl text-center" style={{ background: "rgba(148,163,184,0.05)", border: "1px solid rgba(148,163,184,0.15)" }}>
-            <p className="text-xs" style={{ color: "#6b7c96" }}>AI FootPredictom</p>
-            <p className="text-sm font-bold mt-0.5" style={{ color: "#94a3b8" }}>Match nul probable — {pred.drawProb}%</p>
+          <div className="mt-2 px-4 py-3 rounded-xl text-center"
+            style={{
+              background: hasBetclic ? "rgba(234,179,8,0.07)" : "rgba(148,163,184,0.05)",
+              border: hasBetclic ? "1px solid rgba(234,179,8,0.2)" : "1px solid rgba(148,163,184,0.15)",
+            }}>
+            <p className="text-xs" style={{ color: "#6b7c96" }}>
+              {hasBetclic ? "Betclic" : "AI FootPredictom"}
+              {useEmotional && hasBetclic ? " + Facteur additionnel" : ""}
+            </p>
+            <p className="text-sm font-bold mt-0.5" style={{ color: hasBetclic ? "#eab308" : "#94a3b8" }}>
+              Match nul probable — {pred.drawProb}%
+            </p>
           </div>
         )}
 
-        {/* Emotional correction badge */}
+        {/* Facteur additionnel correction badge */}
         {hasCorrectionApplied && (
           <div className="mt-2 px-3 py-2 rounded-xl flex flex-wrap items-center gap-2 text-xs"
             style={{ background: "rgba(236,72,153,0.06)", border: "1px solid rgba(236,72,153,0.2)" }}>
             <Heart size={12} className="text-pink-400 flex-shrink-0" />
-            <span style={{ color: "#f472b6" }}>Correction émotionnelle :</span>
-            <span style={{ color: "#94a3b8" }}>
-              brut {computedPrediction.homeProb}%–{computedPrediction.awayProb}%
-              → <strong style={{ color: "#f472b6" }}>{pred.homeProb}%–{pred.awayProb}%</strong>
-            </span>
+            <span style={{ color: "#f472b6" }}>Facteur additionnel :</span>
+            {hasBetclic ? (
+              <span style={{ color: "#94a3b8" }}>
+                cotes brutes → pondérées <strong style={{ color: "#f472b6" }}>{betclicEmoShift > 0 ? "+" : ""}{betclicEmoShift}pp</strong>
+                {homeScore !== null && awayScore !== null && (
+                  <span> ({match.homeTeam.shortName} ❤{homeScore} / {match.awayTeam.shortName} ❤{awayScore})</span>
+                )}
+              </span>
+            ) : (
+              <span style={{ color: "#94a3b8" }}>
+                algo {computedPrediction.homeProb}%–{computedPrediction.awayProb}%
+                → <strong style={{ color: "#f472b6" }}>{pred.homeProb}%–{pred.awayProb}%</strong>
+              </span>
+            )}
           </div>
         )}
 
-        {/* Expert badge */}
-        {expertMatch && (
+        {/* Expert algo agreement badge (when Betclic not available) */}
+        {!hasBetclic && expertMatch && (
           <div className="mt-2 px-3 py-2 rounded-xl flex items-center gap-2 text-xs"
             style={{ background: "rgba(234,179,8,0.06)", border: "1px solid rgba(234,179,8,0.2)" }}>
             <Star size={12} style={{ color: "#eab308", flexShrink: 0 }} />
@@ -556,17 +693,9 @@ function MatchCard({
             <span style={{ color: "#e8edf5" }}>
               {expertMatch.prediction === "home" ? `Victoire ${match.homeTeam.shortName}` : expertMatch.prediction === "away" ? `Victoire ${match.awayTeam.shortName}` : "Match nul"}
             </span>
-            <span className="px-1.5 py-0.5 rounded text-xs font-bold ml-auto"
-              style={{
-                background: expertMatch.confidence === "high" ? "rgba(34,197,94,0.15)" : expertMatch.confidence === "medium" ? "rgba(245,158,11,0.15)" : "rgba(148,163,184,0.1)",
-                color: expertMatch.confidence === "high" ? "#22c55e" : expertMatch.confidence === "medium" ? "#f59e0b" : "#94a3b8",
-              }}>
-              {expertMatch.confidence === "high" ? "Haute conf." : expertMatch.confidence === "medium" ? "Conf. moy." : "Incertain"}
-              {expertMatch.confidenceScore ? ` ${expertMatch.confidenceScore}%` : ""}
-            </span>
             {expertAgrees
-              ? <span className="text-xs font-bold" style={{ color: "#22c55e" }}>✓ Accord</span>
-              : <span className="text-xs font-bold" style={{ color: "#f97316" }}>⚠ Diverge</span>}
+              ? <span className="text-xs font-bold ml-auto" style={{ color: "#22c55e" }}>✓ Accord</span>
+              : <span className="text-xs font-bold ml-auto" style={{ color: "#f97316" }}>⚠ Diverge</span>}
           </div>
         )}
 
@@ -592,23 +721,35 @@ function MatchCard({
         {showTechnicalDetails && showDetail && (
           <div className="mt-2 px-3 py-3 rounded-xl text-xs space-y-1"
             style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-            <p style={{ color: "#6b7c96" }}>
-              Algorithme : Forme · PPG · Diff. buts · Position · Avantage dom. ({homeAdv}%)
-              {formMomentumEnabled ? " · Élan de forme" : ""}
-            </p>
-            <p style={{ color: "#6b7c96" }}>
-              Probabilités brutes : Dom {computedPrediction.homeProb}% · Nul {computedPrediction.drawProb}% · Ext {computedPrediction.awayProb}%
-            </p>
-            {formMomentumEnabled && (
+            {hasBetclic ? (
+              <p style={{ color: "#eab308" }}>
+                Source principale : Betclic (cotes {expertMatch?.odds?.home?.toFixed(2)} / {expertMatch?.odds?.draw?.toFixed(2)} / {expertMatch?.odds?.away?.toFixed(2)})
+              </p>
+            ) : (
+              <p style={{ color: "#6b7c96" }}>
+                Algorithme : Forme · PPG · Diff. buts · Position · Avantage dom. ({homeAdv}%)
+                {formMomentumEnabled ? " · Élan de forme" : ""}
+              </p>
+            )}
+            {!hasBetclic && (
+              <p style={{ color: "#6b7c96" }}>
+                Probabilités brutes : Dom {computedPrediction.homeProb}% · Nul {computedPrediction.drawProb}% · Ext {computedPrediction.awayProb}%
+              </p>
+            )}
+            {formMomentumEnabled && !hasBetclic && (
               <p style={{ color: "#22c55e" }}>
                 Élan : {match.homeTeam.shortName} {calcFormMomentum(match.homeTeam.form) > 0 ? "+" : ""}{Math.round(calcFormMomentum(match.homeTeam.form) * 100)}%
                 · {match.awayTeam.shortName} {calcFormMomentum(match.awayTeam.form) > 0 ? "+" : ""}{Math.round(calcFormMomentum(match.awayTeam.form) * 100)}%
               </p>
             )}
-            {useEmotional && homeEmo && awayEmo && (
+            {useEmotional && homeScore !== null && awayScore !== null && (
               <p style={{ color: "#f472b6" }}>
-                Facteur additionnel : {match.homeTeam.shortName} {homeEmo.emotionalScore}/100 (Δ{homeDelta > 0 ? "+" : ""}{homeDelta}%)
-                · {match.awayTeam.shortName} {awayEmo.emotionalScore}/100 (Δ{awayDelta > 0 ? "+" : ""}{awayDelta}%)
+                Facteur additionnel : {match.homeTeam.shortName} ❤{homeScore}
+                · {match.awayTeam.shortName} ❤{awayScore}
+                {hasBetclic
+                  ? ` → pondération cotes ${betclicEmoShift > 0 ? "+" : ""}${betclicEmoShift}pp`
+                  : ` (Δ${homeDelta > 0 ? "+" : ""}${homeDelta}% / ${awayDelta > 0 ? "+" : ""}${awayDelta}%)`
+                }
               </p>
             )}
           </div>
@@ -798,15 +939,23 @@ export default function PredictionsTab() {
           </span>
         </div>
       )}
-      {useExpert && expertCount > 0 && (
-        <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl mb-3 text-xs"
-          style={{ background: "rgba(234,179,8,0.06)", border: "1px solid rgba(234,179,8,0.2)" }}>
-          <Star size={13} style={{ color: "#eab308", flexShrink: 0 }} />
-          <span style={{ color: "#eab308" }}>
-            <strong>{expertCount} match{expertCount > 1 ? "s" : ""}</strong> couverts par les experts
-          </span>
-        </div>
-      )}
+      {useExpert && expertCount > 0 && (() => {
+        const betclicCount = data?.predictions.filter(m =>
+          expertMatches.some(e => teamMatches(e.homeTeam, m.homeTeam.name) && teamMatches(e.awayTeam, m.awayTeam.name) && !!e.impliedProbs)
+        ).length ?? 0;
+        return (
+          <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl mb-3 text-xs"
+            style={{ background: "rgba(234,179,8,0.06)", border: "1px solid rgba(234,179,8,0.2)" }}>
+            <Star size={13} style={{ color: "#eab308", flexShrink: 0 }} />
+            <span style={{ color: "#eab308" }}>
+              {betclicCount > 0
+                ? <><strong>{betclicCount} match{betclicCount > 1 ? "s" : ""}</strong> — probabilités basées sur cotes Betclic{useEmotional ? " + facteur additionnel" : ""}</>
+                : <><strong>{expertCount} match{expertCount > 1 ? "s" : ""}</strong> couverts par les experts</>
+              }
+            </span>
+          </div>
+        );
+      })()}
 
       {/* Cards */}
       <div className="grid sm:grid-cols-2 gap-4">
@@ -816,8 +965,9 @@ export default function PredictionsTab() {
               match={match}
               computedPrediction={computedPredictions.get(match.id) ?? match.prediction}
               useEmotional={useEmotional}
+              useExpert={useExpert}
               emoMap={emoMap}
-              expertMatches={useExpert ? expertMatches : []}
+              expertMatches={expertMatches}
               showXG={config.showXG}
               showTechnicalDetails={config.showTechnicalDetails}
               formMomentumEnabled={config.formMomentumEnabled}

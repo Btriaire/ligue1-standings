@@ -33,6 +33,8 @@ export interface ExpertMatch {
   confidence: "high" | "medium" | "low";
   confidenceScore?: number;
   odds?: { home: number; draw: number; away: number };
+  /** Vig-removed implied probabilities (0–100) derived from Betclic odds */
+  impliedProbs?: { home: number; draw: number; away: number };
   date?: string;
   source?: string;
 }
@@ -177,6 +179,11 @@ function parseBetclicData(raw: unknown): ExpertMatch[] {
     const gap = normalizedFavProb - secondProb;
     const confidence: "high" | "medium" | "low" = gap >= 20 ? "high" : gap >= 8 ? "medium" : "low";
 
+    // Vig-removed implied probabilities
+    const impliedHome = totalProb > 0 ? Math.round((homeProb / totalProb) * 100) : 0;
+    const impliedAway = totalProb > 0 ? Math.round((awayProb / totalProb) * 100) : 0;
+    const impliedDraw = 100 - impliedHome - impliedAway;
+
     matches.push({
       homeTeam: item.home_team,
       awayTeam: item.away_team,
@@ -189,12 +196,124 @@ function parseBetclicData(raw: unknown): ExpertMatch[] {
         draw: drawOdds,
         away: awayOdds,
       },
+      impliedProbs: { home: impliedHome, draw: impliedDraw, away: impliedAway },
       date: item.commence_time,
       source: "Betclic",
     });
   }
 
   return matches;
+}
+
+// ── Direct Betclic scraping (no API key needed) ────────────────────────────────
+
+interface BetclicEvent {
+  id?: string;
+  name?: string;
+  startDate?: string;
+  start_date?: string;
+  sportId?: string;
+  competitionId?: string;
+  markets?: Array<{
+    type?: string;
+    key?: string;
+    selections?: Array<{ type?: string; name?: string; odds?: number; price?: number }>;
+    outcomes?: Array<{ type?: string; name?: string; odds?: number; price?: number }>;
+  }>;
+}
+
+function parseBetclicEventName(name: string): { home: string; away: string } | null {
+  // Betclic events are typically "Home - Away" or "Home vs Away"
+  const sep = name.includes(" - ") ? " - " : name.includes(" vs ") ? " vs " : null;
+  if (!sep) return null;
+  const [home, away] = name.split(sep);
+  return { home: home.trim(), away: away.trim() };
+}
+
+async function fetchBetclicDirect(): Promise<ExpertMatch[]> {
+  // Betclic internal sports gateway API for Ligue 1 (competition id = c4)
+  const candidates = [
+    "https://api.betclic.com/sports-gateway/sports/fr-FR/events?sportIds=FOOTBALL&competitionId=c4&count=20",
+    "https://offer.cdn.betclic.com/api/v1/sports/fr-FR/competition/c4/events?count=20&lang=fr-FR",
+    "https://www.betclic.fr/api/sports/v1/events?sportId=FOOTBALL&competitionId=c4&count=20",
+  ];
+
+  for (const url of candidates) {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; FootPredictom/1.0)",
+          Accept: "application/json",
+          "Accept-Language": "fr-FR,fr;q=0.9",
+          "Cache-Control": "no-cache",
+        },
+        signal: AbortSignal.timeout(6000),
+      } as RequestInit);
+      if (!res.ok) continue;
+      const raw = await res.json() as { events?: BetclicEvent[]; data?: BetclicEvent[] } | BetclicEvent[];
+      const events: BetclicEvent[] = Array.isArray(raw)
+        ? raw
+        : (raw as { events?: BetclicEvent[]; data?: BetclicEvent[] }).events
+          ?? (raw as { events?: BetclicEvent[]; data?: BetclicEvent[] }).data
+          ?? [];
+      if (!events.length) continue;
+
+      const matches: ExpertMatch[] = [];
+      for (const ev of events) {
+        if (!ev.name) continue;
+        const teams = parseBetclicEventName(ev.name);
+        if (!teams) continue;
+
+        // Find the 1X2 / RESULT market
+        const market = ev.markets?.find(m =>
+          m.type === "RESULT" || m.type === "1X2" || m.key === "h2h" || m.type === "MATCH_RESULT"
+        );
+        if (!market) continue;
+
+        const sels = market.selections ?? market.outcomes ?? [];
+        const getOdds = (types: string[]) => {
+          const sel = sels.find(s => s.type && types.includes(s.type.toUpperCase()));
+          return sel ? (sel.odds ?? sel.price ?? 0) : 0;
+        };
+        const homeOdds = getOdds(["HOME", "1", "TEAM1"]);
+        const drawOdds = getOdds(["DRAW", "X", "DRAW_NO_BET"]);
+        const awayOdds = getOdds(["AWAY", "2", "TEAM2"]);
+        if (!homeOdds || !awayOdds) continue;
+
+        const hp = homeOdds > 0 ? 1 / homeOdds : 0;
+        const dp = drawOdds > 0 ? 1 / drawOdds : 0;
+        const ap = awayOdds > 0 ? 1 / awayOdds : 0;
+        const total = hp + dp + ap || 1;
+
+        const impliedHome = Math.round((hp / total) * 100);
+        const impliedAway = Math.round((ap / total) * 100);
+        const impliedDraw = 100 - impliedHome - impliedAway;
+
+        const candidates2 = ([
+          { outcome: "home" as const, p: impliedHome },
+          { outcome: "draw" as const, p: impliedDraw },
+          { outcome: "away" as const, p: impliedAway },
+        ] as Array<{ outcome: "home" | "draw" | "away"; p: number }>).sort((a, b) => b.p - a.p);
+        const favP = candidates2[0].p;
+        const gap = favP - candidates2[1].p;
+
+        matches.push({
+          homeTeam: teams.home,
+          awayTeam: teams.away,
+          league: "Ligue 1",
+          prediction: candidates2[0].outcome,
+          confidence: gap >= 20 ? "high" : gap >= 8 ? "medium" : "low",
+          confidenceScore: favP,
+          odds: { home: homeOdds, draw: drawOdds, away: awayOdds },
+          impliedProbs: { home: impliedHome, draw: impliedDraw, away: impliedAway },
+          date: ev.startDate ?? ev.start_date,
+          source: "Betclic",
+        });
+      }
+      if (matches.length > 0) return matches;
+    } catch { continue; }
+  }
+  return [];
 }
 
 function mergeMatches(predictors: ExpertMatch[], betclic: ExpertMatch[]): ExpertMatch[] {
@@ -229,47 +348,52 @@ export async function GET() {
   try {
     const THE_ODDS_API_KEY = process.env.THE_ODDS_API_KEY;
 
-    const predictorsPromise = fetch("https://the-predictors.p.rapidapi.com/predictor/safe", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "x-rapidapi-host": "the-predictors.p.rapidapi.com",
-        "x-rapidapi-key": RAPIDAPI_KEY,
-      },
-      next: { revalidate: 3600 },
-    });
+    // 1. Try direct Betclic scraping first (no key needed)
+    // 2. Fallback: The Odds API (requires THE_ODDS_API_KEY)
+    // 3. Background: The Predictors RapidAPI for broader coverage
+    const [directBetclic, predictorsRes, oddsApiRes] = await Promise.all([
+      fetchBetclicDirect(),
+      fetch("https://the-predictors.p.rapidapi.com/predictor/safe", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "x-rapidapi-host": "the-predictors.p.rapidapi.com",
+          "x-rapidapi-key": RAPIDAPI_KEY,
+        },
+        next: { revalidate: 3600 },
+      }).catch(() => null),
+      THE_ODDS_API_KEY
+        ? fetch(
+            `https://api.the-odds-api.com/v4/sports/soccer_france_ligue_one/odds/?regions=eu&markets=h2h&bookmakers=betclic&apiKey=${THE_ODDS_API_KEY}`,
+            { next: { revalidate: 3600 } }
+          ).catch(() => null)
+        : Promise.resolve(null),
+    ]);
 
-    const betclicPromise = THE_ODDS_API_KEY
-      ? fetch(
-          `https://api.the-odds-api.com/v4/sports/soccer_france_ligue_one/odds/?regions=eu&markets=h2h&bookmakers=betclic&apiKey=${THE_ODDS_API_KEY}`,
-          { next: { revalidate: 3600 } }
-        )
-      : Promise.resolve(null);
-
-    const [predictorsRes, betclicRes] = await Promise.all([predictorsPromise, betclicPromise]);
-
-    let predictorsMatches: ExpertMatch[] = [];
-    if (predictorsRes.ok) {
-      const raw = await predictorsRes.json();
-      predictorsMatches = parseRawData(raw);
+    // Betclic odds: prefer direct scrape, fallback to The Odds API
+    let betclicMatches = directBetclic;
+    if (betclicMatches.length === 0 && oddsApiRes?.ok) {
+      const raw = await oddsApiRes.json();
+      betclicMatches = parseBetclicData(raw);
     }
 
-    let betclicMatches: ExpertMatch[] = [];
-    if (betclicRes && betclicRes.ok) {
-      const raw = await betclicRes.json();
-      betclicMatches = parseBetclicData(raw);
+    let predictorsMatches: ExpertMatch[] = [];
+    if (predictorsRes?.ok) {
+      const raw = await predictorsRes.json();
+      predictorsMatches = parseRawData(raw);
     }
 
     const matches = mergeMatches(predictorsMatches, betclicMatches);
 
     return NextResponse.json({
       available: matches.length > 0,
+      betclicAvailable: betclicMatches.length > 0,
       matches,
       teamMatchFn: null,
     });
   } catch (err) {
     console.error("Expert predictions error:", err);
-    return NextResponse.json({ available: false, matches: [], error: String(err) });
+    return NextResponse.json({ available: false, betclicAvailable: false, matches: [], error: String(err) });
   }
 }
 
