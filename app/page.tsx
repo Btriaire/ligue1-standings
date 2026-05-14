@@ -2,13 +2,14 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { RefreshCw, TrendingUp, TrendingDown, Minus, Trophy, Wifi, WifiOff, Clock, Zap, BarChart2, Heart, Globe, Settings, Target, ArrowLeftRight, ChevronRight, ChevronDown, Users, Lock, LogIn, LogOut } from "lucide-react";
+import { RefreshCw, TrendingUp, TrendingDown, Minus, Trophy, Wifi, WifiOff, Clock, Zap, BarChart2, Heart, Globe, Settings, Target, ArrowLeftRight, ChevronRight, Users, Lock, LogIn, LogOut } from "lucide-react";
 import TeamModal from "./components/TeamModal";
 import PredictionsTab from "./components/PredictionsTab";
 import EmotionalScoreTab from "./components/EmotionalScoreTab";
 import ResultsTab from "./components/ResultsTab";
 import ConfigTab from "./components/ConfigTab";
 import TransfersTab from "./components/TransfersTab";
+import WorldCupTab from "./components/WorldCupTab";
 
 interface Team {
   id: number;
@@ -38,7 +39,8 @@ interface StandingsData {
   updatedAt: string;
 }
 
-type TabId = "ligue1" | "predictions" | "results" | "emotional" | "config";
+type TabId = "ligue1" | "worldcup" | "predictions" | "results" | "emotional" | "config";
+type L1SubTab = "classement" | "mercato" | "joueurs" | "transfert";
 
 const ZONE_CONFIG = [
   { label: "Champion",            positions: [1],          color: "#60a5fa", bg: "rgba(96,165,250,0.05)"  },
@@ -365,29 +367,16 @@ function ClubSidebar({ standings }: { standings?: Standing[] }) {
   );
 }
 
-function L1Section({ title, icon, color, defaultOpen = false, badge, children }: {
-  title: string; icon: React.ReactNode; color: string; defaultOpen?: boolean;
-  badge?: React.ReactNode; children: React.ReactNode;
-}) {
-  const [open, setOpen] = React.useState(defaultOpen);
-  return (
-    <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42", background: "#0d1421" }}>
-      <button onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-2.5 px-4 py-3 transition-colors hover:bg-white/[0.02] text-left"
-        style={{ borderBottom: open ? "1px solid #1e2d42" : "none" }}>
-        <span style={{ color }}>{icon}</span>
-        <span className="font-bold text-sm" style={{ color: "#e8edf5" }}>{title}</span>
-        {badge && <span className="ml-2">{badge}</span>}
-        <ChevronDown size={13} style={{ color: "#6b7c96", marginLeft: "auto" }}
-          className={`transition-transform ${open ? "rotate-180" : ""}`} />
-      </button>
-      {open && <div>{children}</div>}
-    </div>
-  );
-}
+const L1_SUBTABS: { id: L1SubTab; label: string; icon: React.ReactNode }[] = [
+  { id: "classement", label: "Classement",   icon: <BarChart2 size={13} /> },
+  { id: "mercato",    label: "Mercato",      icon: <ArrowLeftRight size={13} /> },
+  { id: "joueurs",    label: "Stats Joueurs",icon: <Users size={13} /> },
+  { id: "transfert",  label: "Transferts",   icon: <ArrowLeftRight size={13} /> },
+];
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode; shortLabel?: string }[] = [
   { id: "ligue1",      label: "Ligue 1",            icon: <Trophy size={14} />,          shortLabel: "L1" },
+  { id: "worldcup",    label: "Coupe du Monde",      icon: <Globe size={14} />,           shortLabel: "CdM" },
   { id: "predictions", label: "AI FootPredictom",   icon: <Zap size={14} />,             shortLabel: "AI Foot" },
   { id: "results",     label: "Résultats",           icon: <Target size={14} /> },
   { id: "emotional",   label: "Facteur additionnel", icon: <Heart size={14} />,           shortLabel: "Fact. add." },
@@ -430,6 +419,7 @@ function AuthGate({ label, icon }: { label: string; icon: React.ReactNode }) {
 
 export default function Home() {
   const [tab, setTab] = useState<TabId>("ligue1");
+  const [l1SubTab, setL1SubTab] = useState<L1SubTab>("classement");
   const [data, setData] = useState<StandingsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -579,20 +569,37 @@ export default function Home() {
 
         {/* Ligue 1 tab */}
         {tab === "ligue1" && (
-          <div className="space-y-3">
-            {/* Zone legend */}
-            <div className="flex flex-wrap gap-x-5 gap-y-1.5 mb-1 px-1">
-              {ZONE_CONFIG.map((z) => (
-                <div key={z.label} className="flex items-center gap-1.5 text-xs" style={{ color: "#6b7c96" }}>
-                  <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: z.color, opacity: 0.8 }} />
-                  <span style={{ color: z.color }}>{z.label}</span>
-                </div>
-              ))}
+          <div>
+            {/* L1 Sub-tabs */}
+            <div className="flex gap-1 mb-5 p-1 rounded-xl overflow-x-auto" style={{ background: "#0a0f1c", border: "1px solid #1a2235" }}>
+              {L1_SUBTABS.map((st) => {
+                const active = l1SubTab === st.id;
+                return (
+                  <button key={st.id} onClick={() => setL1SubTab(st.id)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap flex-shrink-0"
+                    style={{
+                      background: active ? "rgba(255,255,255,0.08)" : "transparent",
+                      color: active ? "#e2e8f0" : "#64748b",
+                      border: active ? "1px solid rgba(255,255,255,0.1)" : "1px solid transparent",
+                    }}>
+                    {st.icon}
+                    {st.label}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Classement */}
-            <L1Section title="Classement" icon={<BarChart2 size={13} />} color="#60a5fa" defaultOpen={true}>
-              <div className="p-0">
+            {l1SubTab === "classement" && (
+              <div>
+                <div className="flex flex-wrap gap-x-5 gap-y-1.5 mb-3 px-1">
+                  {ZONE_CONFIG.map((z) => (
+                    <div key={z.label} className="flex items-center gap-1.5 text-xs">
+                      <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: z.color, opacity: 0.8 }} />
+                      <span style={{ color: z.color }}>{z.label}</span>
+                    </div>
+                  ))}
+                </div>
                 {loading && !data ? (
                   <LoadingSkeleton />
                 ) : error && !data ? (
@@ -601,23 +608,19 @@ export default function Home() {
                   <StandingsTable standings={data.standings} />
                 ) : null}
               </div>
-            </L1Section>
+            )}
 
             {/* Mercato */}
-            <L1Section title="Mercato" icon={<ArrowLeftRight size={13} />} color="#f59e0b" defaultOpen={false}>
-              <div className="p-4">
-                <TransfersTab />
-              </div>
-            </L1Section>
+            {l1SubTab === "mercato" && <TransfersTab />}
 
-            {/* Joueurs */}
-            <L1Section title="Joueurs Ligue 1" icon={<Users size={13} />} color="#00d4ff" defaultOpen={false}>
-              <div className="p-4">
+            {/* Stats Joueurs */}
+            {l1SubTab === "joueurs" && (
+              <div>
                 <Link href="/players"
-                  className="flex items-center justify-between px-4 py-3 rounded-xl hover:opacity-80 transition-opacity"
+                  className="flex items-center justify-between px-5 py-4 rounded-2xl hover:opacity-80 transition-opacity"
                   style={{ background: "rgba(0,212,255,0.06)", border: "1px solid rgba(0,212,255,0.2)" }}>
                   <div className="flex items-center gap-3">
-                    <Users size={16} style={{ color: "#00d4ff" }} />
+                    <Users size={18} style={{ color: "#00d4ff" }} />
                     <div>
                       <p className="text-sm font-bold" style={{ color: "#e8edf5" }}>Statistiques joueurs</p>
                       <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>xG, xA, buts, passes déc. — tous les clubs</p>
@@ -626,37 +629,18 @@ export default function Home() {
                   <ChevronRight size={16} style={{ color: "#00d4ff" }} />
                 </Link>
               </div>
-            </L1Section>
+            )}
+
+            {/* Transferts */}
+            {l1SubTab === "transfert" && <TransfersTab />}
           </div>
         )}
 
+        {tab === "worldcup" && <WorldCupTab />}
         {tab === "predictions" && (user ? <PredictionsTab /> : <AuthGate label="AI FootPredictom" icon={<Zap size={16} className="inline" style={{ color: "#3b82f6" }} />} />)}
         {tab === "results" && <ResultsTab />}
         {tab === "emotional" && (user ? <EmotionalScoreTab /> : <AuthGate label="Facteur additionnel" icon={<Heart size={16} className="inline" style={{ color: "#a78bfa" }} />} />)}
         {tab === "config" && <ConfigTab />}
-
-        {/* World Cup banner — standalone entry */}
-        <Link href="/worldcup"
-          className="mt-8 mb-2 flex items-center gap-4 px-5 py-4 rounded-2xl transition-all hover:opacity-90 group"
-          style={{
-            background: "linear-gradient(120deg, rgba(0,212,255,0.07), rgba(124,58,237,0.07), rgba(234,179,8,0.07))",
-            border: "1px solid rgba(234,179,8,0.25)",
-          }}>
-          <span className="text-3xl flex-shrink-0">🌍</span>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-black tracking-tight" style={{ color: "#e8edf5" }}>Coupe du Monde 2026</span>
-              <span className="text-xs px-2 py-0.5 rounded-full font-bold flex-shrink-0"
-                style={{ background: "rgba(234,179,8,0.15)", color: "#eab308", border: "1px solid rgba(234,179,8,0.25)" }}>
-                FIFA
-              </span>
-            </div>
-            <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>
-              USA · Canada · Mexique · 11 juin – 19 juillet 2026 · 48 équipes
-            </p>
-          </div>
-          <ChevronRight size={16} style={{ color: "#eab308", flexShrink: 0 }} className="group-hover:translate-x-0.5 transition-transform" />
-        </Link>
 
         {/* Footer */}
         <div className="mt-4 flex items-center justify-between text-xs" style={{ color: "#6b7c96" }}>
@@ -672,20 +656,6 @@ export default function Home() {
 
         {/* Club sidebar — always visible on lg+ */}
         <div className="hidden lg:block space-y-3" style={{ position: "sticky", top: "73px" }}>
-          {/* World Cup sidebar card */}
-          <Link href="/worldcup"
-            className="flex items-center gap-3 px-3 py-3 rounded-2xl transition-all hover:opacity-85 group"
-            style={{
-              background: "linear-gradient(120deg, rgba(0,212,255,0.07), rgba(234,179,8,0.09))",
-              border: "1px solid rgba(234,179,8,0.3)",
-            }}>
-            <span className="text-2xl flex-shrink-0">🌍</span>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-black" style={{ color: "#e8edf5" }}>Coupe du Monde</p>
-              <p className="text-[10px] mt-0.5" style={{ color: "#eab308" }}>2026 · FIFA</p>
-            </div>
-            <ChevronRight size={12} style={{ color: "#eab308" }} className="group-hover:translate-x-0.5 transition-transform" />
-          </Link>
           <ClubSidebar standings={data?.standings} />
         </div>
         </div>{/* end grid */}
