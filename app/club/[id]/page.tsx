@@ -1058,8 +1058,9 @@ export default function ClubPage() {
                 const squadMatch = findSquadMatch(p.name, squad?.squad ?? []);
                 const isInjured = squadMatch?.status?.toLowerCase().includes("injury");
                 const fb = squadMatch?.formBadge;
-                const formScore = isInjured ? 20 : fb === "hot" ? 90 : fb === "good" ? 70 : fb === "cold" ? 30 : fb === "neutral" ? 50 : null;
-                const formColor = formScore != null ? ec(formScore) : "#6b7c96";
+                // Use pFormScore to avoid shadowing the module-level formScore function
+                const pFormScore = isInjured ? 20 : fb === "hot" ? 90 : fb === "good" ? 70 : fb === "cold" ? 30 : fb === "neutral" ? 50 : null;
+                const pFormColor = pFormScore != null ? ec(pFormScore) : "#6b7c96";
                 const formEmoji: Record<string, string> = { hot: "🔥", good: "⚡", cold: "❄️" };
 
                 return (
@@ -1112,14 +1113,14 @@ export default function ClubPage() {
                         )}
                       </div>
                       {/* Form score row — same as Effectif */}
-                      {formScore != null && (
+                      {pFormScore != null && (
                         <div className="flex items-center gap-1 mt-1">
                           {fb && fb !== "neutral" && formEmoji[fb] && (
                             <span style={{ fontSize: 10 }}>{formEmoji[fb]}</span>
                           )}
-                          <span className="text-[10px] font-black" style={{ color: formColor }}>{formScore}</span>
+                          <span className="text-[10px] font-black" style={{ color: pFormColor }}>{pFormScore}</span>
                           <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
-                            <div className="h-full rounded-full" style={{ width: `${formScore}%`, background: formColor }} />
+                            <div className="h-full rounded-full" style={{ width: `${pFormScore}%`, background: pFormColor }} />
                           </div>
                         </div>
                       )}
