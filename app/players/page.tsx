@@ -71,6 +71,14 @@ interface PlayerEntry {
   dm_shotsBlocked90?: number; dm_redCards90?: number;
   dm_gcTotal?: number; dm_xgConceded90?: number; dm_preventedGoals90?: number;
   dm_backPassesGK90?: number; dm_shotsConceded90?: number;
+  // Datamb — finishing & penalties
+  dm_goalsPerXg?: number; dm_shotsOnTarget90?: number;
+  dm_penaltiesScored?: number; dm_penaltiesAttempted?: number;
+  // Datamb — creation advanced
+  dm_crossesToBox90?: number; dm_thirdAssists90?: number;
+  dm_smartPasses90?: number; dm_smartPassAcc?: number;
+  // Datamb — extra volume
+  dm_duelsWon90?: number; dm_misplacedPasses90?: number;
   // Club
   clubId: number;
   club: TeamInfo;
@@ -113,6 +121,11 @@ const SORT_OPTIONS: { key: string; label: string }[] = [
   { key: "dm_possWon90",   label: "Poss. gagnées/90" },
   { key: "dm_touchesBox90",label: "Touches zone/90" },
   { key: "dm_savePct",     label: "Arrêts % (GK)" },
+  { key: "dm_goalsPerXg",    label: "Buts/xG (finition)" },
+  { key: "dm_shotsOnTarget90", label: "Tirs cadrés/90" },
+  { key: "dm_crossesToBox90",  label: "Crosses box/90" },
+  { key: "dm_smartPasses90",   label: "Passes smart/90" },
+  { key: "dm_thirdAssists90",  label: "3e PD/90" },
   { key: "minutes",        label: "Minutes" },
   { key: "marketValue",    label: "Valeur" },
   { key: "age",            label: "Âge" },
@@ -375,6 +388,10 @@ function PlayerDetail({ p }: { p: PlayerEntry }) {
             <StatBox label="Tirs/90"        value={fmt1(p.dm_shots90)}         color="#94a3b8" />
             <StatBox label="Cadrés %"       value={pct(p.dm_shotsOnTarget)}    color="#f59e0b" />
             <StatBox label="Conv. %"        value={pct(p.dm_goalConversion)}   color="#ef4444" />
+            <StatBox label="Buts/xG" value={fmt2(p.dm_goalsPerXg)} color={(p.dm_goalsPerXg ?? 0) >= 1 ? "#22c55e" : "#f59e0b"} />
+            <StatBox label="Cadrés/90" value={fmt1(p.dm_shotsOnTarget90)} color="#f59e0b" />
+            {(p.dm_penaltiesAttempted ?? 0) > 0 && <StatBox label="Pen. tentés" value={p.dm_penaltiesAttempted ?? 0} color="#f97316" />}
+            {(p.dm_penaltiesScored ?? 0) > 0 && <StatBox label="Pen. inscrits" value={p.dm_penaltiesScored ?? 0} color="#22c55e" />}
             <StatBox label="xG/tir"         value={fmt2(p.dm_xgShot)}          color="#6b7c96" />
             <StatBox label="npxG/tir"       value={fmt2(p.dm_npxgShot)}        color="#6b7c96" />
             {!isDef && <StatBox label="Touches zone" value={fmt1(p.dm_touchesBox90)} color="#f97316" />}
@@ -393,6 +410,10 @@ function PlayerDetail({ p }: { p: PlayerEntry }) {
             <StatBox label="Passes prof./90" value={fmt1(p.dm_deepCompletions90)} color="#22c55e" />
             <StatBox label="Crosses/90"     value={fmt1(p.dm_crosses90)}       color="#f59e0b" />
             <StatBox label="Cross. prec. %" value={pct(p.dm_crossAcc)}         color="#f59e0b" />
+            <StatBox label="Crosses box/90" value={fmt1(p.dm_crossesToBox90)} color="#f59e0b" />
+            <StatBox label="3e PD/90" value={fmt1(p.dm_thirdAssists90)} color="#a78bfa" />
+            <StatBox label="Smart/90" value={fmt1(p.dm_smartPasses90)} color="#22c55e" />
+            <StatBox label="Smart %" value={pct(p.dm_smartPassAcc)} color="#22c55e" />
           </StatSection>
 
           {/* 4. Dribbles & duels offensifs */}
@@ -441,6 +462,7 @@ function PlayerDetail({ p }: { p: PlayerEntry }) {
             <StatBox label="Aérien %"       value={pct(p.dm_aerialPct)}        color="#f59e0b" />
             <StatBox label="Poss. gagnées"  value={fmt1(p.dm_possWon90)}       color="#22c55e" />
             <StatBox label="Poss. perdues"  value={fmt1(p.dm_possLost90)}      color="#ef4444" />
+            <StatBox label="Duels gagnés/90" value={fmt1(p.dm_duelsWon90)} color="#94a3b8" />
           </StatSection>
 
           {/* 7. Discipline */}

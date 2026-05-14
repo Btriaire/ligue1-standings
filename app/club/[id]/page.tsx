@@ -176,34 +176,48 @@ interface SquadPlayer {
   recentAssists?: number;
   imageUrl?: string;
   // Understat season totals
-  xG?: number;
-  xA?: number;
-  usGoals?: number;
-  usAssists?: number;
-  shots?: number;
-  minutes?: number;
-  games?: number;
-  // Datamb per-90 rates
-  dm_goals90?: number;
-  dm_assists90?: number;
-  dm_xg90?: number;
-  dm_xa90?: number;
-  dm_shots90?: number;
-  dm_keyPasses90?: number;
-  dm_dribbles90?: number;
-  dm_dribblePct?: number;
-  dm_defDuels90?: number;
-  dm_defDuelPct?: number;
-  dm_interceptions90?: number;
-  dm_aerialPct?: number;
-  dm_passPct?: number;
-  dm_progressive90?: number;
-  dm_savePct?: number;
-  dm_gcPer90?: number;
-  dm_cleanSheets?: number;
-  dm_xgxa90?: number;
-  dm_minPerMatch?: number;
-  dm_team?: string;
+  xG?: number; xA?: number; usGoals?: number; usAssists?: number;
+  shots?: number; minutes?: number; games?: number;
+  // Datamb — core
+  dm_goals90?: number; dm_assists90?: number; dm_xg90?: number; dm_xa90?: number;
+  dm_shots90?: number; dm_keyPasses90?: number; dm_dribbles90?: number;
+  dm_dribblePct?: number; dm_defDuels90?: number; dm_defDuelPct?: number;
+  dm_interceptions90?: number; dm_aerialPct?: number; dm_passPct?: number;
+  dm_progressive90?: number; dm_savePct?: number; dm_gcPer90?: number;
+  dm_cleanSheets?: number; dm_xgxa90?: number; dm_minPerMatch?: number; dm_team?: string;
+  // Datamb — extra
+  dm_shotsOnTarget?: number; dm_goalConversion?: number; dm_touchesBox90?: number;
+  dm_possWon90?: number; dm_npxg90?: number; dm_duelsWonPct?: number;
+  dm_crosses90?: number; dm_crossAcc?: number; dm_fouls90?: number;
+  dm_tackles90?: number; dm_yellowCards90?: number; dm_saves90?: number; dm_exits90?: number;
+  // Datamb — full
+  dm_minutes?: number; dm_matches?: number; dm_touches90?: number;
+  dm_ga90?: number; dm_npga90?: number; dm_npGoals90?: number; dm_headedGoals90?: number;
+  dm_xgShot?: number; dm_npxgShot?: number; dm_npxgXa90?: number; dm_goalsMinusXg90?: number;
+  dm_possLost90?: number; dm_possBalance?: number; dm_progressiveActions90?: number;
+  dm_successfulDribbles90?: number; dm_offDuels90?: number; dm_offDuelPct?: number;
+  dm_offDuelWon90?: number; dm_accelerations90?: number; dm_duels90?: number;
+  dm_passes90?: number; dm_fwdPasses90?: number; dm_fwdPassPct?: number;
+  dm_longPasses90?: number; dm_longPassAcc?: number; dm_avgPassLength?: number;
+  dm_passesRec90?: number; dm_foulsSuffered90?: number;
+  dm_shotAssists90?: number; dm_preAssists90?: number;
+  dm_passesToFinal90?: number; dm_passFinalPct?: number;
+  dm_passesToBox90?: number; dm_throughPasses90?: number; dm_throughPassPct?: number;
+  dm_progressivePasses90?: number; dm_progressivePassAcc?: number;
+  dm_deepCompletions90?: number; dm_xaPer100?: number;
+  dm_chanceCreation?: number; dm_inaccuratePct?: number;
+  dm_aerialDuels90?: number; dm_aerialWon90?: number;
+  dm_shotsBlocked90?: number; dm_redCards90?: number;
+  dm_gcTotal?: number; dm_xgConceded90?: number; dm_preventedGoals90?: number;
+  dm_backPassesGK90?: number; dm_shotsConceded90?: number;
+  // Datamb — finishing & penalties
+  dm_goalsPerXg?: number; dm_shotsOnTarget90?: number;
+  dm_penaltiesScored?: number; dm_penaltiesAttempted?: number;
+  // Datamb — creation advanced
+  dm_crossesToBox90?: number; dm_thirdAssists90?: number;
+  dm_smartPasses90?: number; dm_smartPassAcc?: number;
+  // Datamb — extra volume
+  dm_duelsWon90?: number; dm_misplacedPasses90?: number;
 }
 
 interface SquadData {
@@ -446,32 +460,60 @@ function MatchRow({ match, teamId, standings }: { match: MatchInfo; teamId: numb
   );
 }
 
+function DmStat({ label, value, color }: { label: string; value: string | number; color?: string }) {
+  return (
+    <div className="flex flex-col items-center rounded-lg py-1.5 px-1.5" style={{ background: "rgba(255,255,255,0.04)", minWidth: 50 }}>
+      <span className="text-xs font-black leading-none" style={{ color: color ?? "#e8edf5" }}>{value}</span>
+      <span className="text-[8px] mt-1 text-center leading-tight" style={{ color: "#6b7c96" }}>{label}</span>
+    </div>
+  );
+}
+
+function DmSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-2.5">
+      <p className="text-[9px] font-bold uppercase tracking-widest mb-1" style={{ color: "#6b7c96" }}>{title}</p>
+      <div className="flex flex-wrap gap-1">{children}</div>
+    </div>
+  );
+}
+
+function fmt2m(v?: number) { return v != null && v > 0 ? v.toFixed(2) : "—"; }
+function fmt1m(v?: number) { return v != null && v > 0 ? v.toFixed(1) : "—"; }
+function pctm(v?: number)  { return v != null && v > 0 ? `${v.toFixed(0)}%` : "—"; }
+
 function PlayerModal({ player, onClose }: { player: SquadPlayer; onClose: () => void }) {
   const isInj = player.status?.toLowerCase().includes("injury");
   const posColor = POS_COL[player.position] ?? "#6b7c96";
-  const tmId = player.id;
-  const tmUrl = `https://www.transfermarkt.fr/profil/spieler/${tmId}`;
+  const isGk  = player.position === "Goalkeeper";
+  const isDef = player.position === "Defender";
+  const isMid = player.position === "Midfielder";
+  const isWing = player.position === "Winger";
+  const isFwd = player.position === "Centre-Forward";
+  const tmUrl = `https://www.transfermarkt.fr/profil/spieler/${player.id}`;
+  const hasUnderstat = (player.games ?? 0) > 0;
+  const hasDatamb = (player.dm_minutes ?? 0) > 0 || (player.dm_xg90 ?? 0) > 0 || (player.dm_savePct ?? 0) > 0;
+  const dmCtx = hasDatamb ? `${player.dm_matches ?? "?"} matchs · ${player.dm_minutes ?? player.minutes ?? "?"} min` : "";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.8)" }}
-      onClick={onClose}>
-      <div className="rounded-2xl max-w-sm w-full overflow-hidden"
-        style={{ background: "#0d1421", border: "1px solid #1e2d42" }}
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      style={{ background: "rgba(0,0,0,0.85)" }} onClick={onClose}>
+      <div className="rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md overflow-hidden"
+        style={{ background: "#0d1421", border: "1px solid #1e2d42", maxHeight: "90vh", display: "flex", flexDirection: "column" }}
         onClick={e => e.stopPropagation()}>
+
         {/* Header */}
-        <div className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: "1px solid #1e2d42", background: "rgba(255,255,255,0.02)" }}>
-          {/* Photo */}
+        <div className="flex items-center gap-3 px-4 py-3 flex-shrink-0" style={{ borderBottom: "1px solid #1e2d42", background: "rgba(255,255,255,0.02)" }}>
           {player.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={player.imageUrl} alt={player.name}
-              className="w-14 h-14 rounded-xl object-cover flex-shrink-0"
+              className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
               style={{ border: `2px solid ${posColor}40` }}
-              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-            />
+              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
           ) : (
-            <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0"
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
               style={{ background: `${posColor}15`, border: `2px solid ${posColor}30` }}>
-              <Users size={22} style={{ color: posColor }} />
+              <Users size={18} style={{ color: posColor }} />
             </div>
           )}
           <div className="flex-1 min-w-0">
@@ -482,6 +524,7 @@ function PlayerModal({ player, onClose }: { player: SquadPlayer; onClose: () => 
             <div className="flex items-center gap-1.5 mt-0.5">
               <Chip color={posColor}>{POS_FR[player.position] ?? player.position}</Chip>
               {player.nationality?.[0] && <span className="text-xs" style={{ color: "#6b7c96" }}>{player.nationality[0]}</span>}
+              {(player.marketValue ?? 0) > 0 && <span className="text-xs font-bold ml-auto" style={{ color: "#00d4ff" }}>{fv(player.marketValue)}</span>}
             </div>
           </div>
           <button onClick={onClose} className="flex-shrink-0 p-1 rounded-lg hover:bg-white/[0.06]">
@@ -489,120 +532,143 @@ function PlayerModal({ player, onClose }: { player: SquadPlayer; onClose: () => 
           </button>
         </div>
 
-        {/* Understat season stats */}
-        {(player.games ?? 0) > 0 && (
-          <div className="px-4 py-3" style={{ borderBottom: "1px solid #1e2d42" }}>
-            <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "#6b7c96" }}>
-              Saison — {player.games} matchs · {player.minutes} min
-            </p>
-            <div className="grid grid-cols-4 gap-2 text-center">
-              {[
-                { label: "Buts", value: player.usGoals ?? 0, color: "#f59e0b" },
-                { label: "Passes D.", value: player.usAssists ?? 0, color: "#00d4ff" },
-                { label: "xG", value: (player.xG ?? 0).toFixed(1), color: "#22c55e" },
-                { label: "xA", value: (player.xA ?? 0).toFixed(1), color: "#a78bfa" },
-              ].map(s => (
-                <div key={s.label} className="rounded-lg py-1.5" style={{ background: "rgba(255,255,255,0.04)" }}>
-                  <p className="text-sm font-black" style={{ color: s.color }}>{s.value}</p>
-                  <p className="text-[9px] mt-0.5" style={{ color: "#6b7c96" }}>{s.label}</p>
-                </div>
-              ))}
-            </div>
-            {(player.shots ?? 0) > 0 && (
-              <p className="text-[10px] mt-2 text-center" style={{ color: "#6b7c96" }}>
-                {player.shots} tirs · xG/tir {player.shots! > 0 ? ((player.xG ?? 0) / player.shots!).toFixed(2) : "—"}
-              </p>
-            )}
+        {/* Scrollable body */}
+        <div className="overflow-y-auto flex-1 px-4 py-3 space-y-0">
+
+          {/* Bio */}
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs mb-3">
+            {player.dateOfBirth && <span style={{ color: "#94a3b8" }}><span style={{ color: "#6b7c96" }}>Né </span>{new Date(player.dateOfBirth).toLocaleDateString("fr-FR")} ({player.age} ans)</span>}
+            {(player.height ?? 0) > 0 && <span style={{ color: "#94a3b8" }}><span style={{ color: "#6b7c96" }}>Taille </span>{player.height} cm</span>}
+            {player.foot && <span style={{ color: "#94a3b8" }}><span style={{ color: "#6b7c96" }}>Pied </span>{player.foot}</span>}
+            {player.signedFrom && <span style={{ color: "#94a3b8" }}><span style={{ color: "#6b7c96" }}>De </span>{player.signedFrom}</span>}
+            {player.contract && <span style={{ color: "#94a3b8" }}><span style={{ color: "#6b7c96" }}>Contrat → </span>{player.contract}</span>}
           </div>
-        )}
 
-        {/* Datamb per-90 stats */}
-        {(player.dm_xg90 ?? 0) > 0 || (player.dm_savePct ?? 0) > 0 ? (() => {
-          const isGk = player.position === "Goalkeeper";
-          const stats = isGk
-            ? [
-                { label: "Arrêts %", value: `${(player.dm_savePct ?? 0).toFixed(1)}%`, color: "#00d4ff" },
-                { label: "Buts enc./90", value: (player.dm_gcPer90 ?? 0).toFixed(2), color: "#ef4444" },
-                { label: "Clean sheets", value: player.dm_cleanSheets ?? 0, color: "#22c55e" },
-                { label: "Duels aér. %", value: `${(player.dm_aerialPct ?? 0).toFixed(0)}%`, color: "#a78bfa" },
-              ]
-            : [
-                { label: "xG/90", value: (player.dm_xg90 ?? 0).toFixed(2), color: "#22c55e" },
-                { label: "xA/90", value: (player.dm_xa90 ?? 0).toFixed(2), color: "#a78bfa" },
-                { label: "Passes %", value: `${(player.dm_passPct ?? 0).toFixed(0)}%`, color: "#00d4ff" },
-                { label: "Dribbles/90", value: (player.dm_dribbles90 ?? 0).toFixed(1), color: "#f59e0b" },
-              ];
-          const extra = isGk ? [] : [
-            { label: "Def. duels/90", value: (player.dm_defDuels90 ?? 0).toFixed(1) },
-            { label: "Def. won %", value: `${(player.dm_defDuelPct ?? 0).toFixed(0)}%` },
-            { label: "Int./90", value: (player.dm_interceptions90 ?? 0).toFixed(2) },
-            { label: "Prog./90", value: (player.dm_progressive90 ?? 0).toFixed(1) },
-          ].filter(e => parseFloat(e.value) > 0);
-          return (
-            <div className="px-4 py-3" style={{ borderBottom: "1px solid #1e2d42" }}>
-              <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "#6b7c96" }}>
-                Per 90 · Datamb{player.dm_minPerMatch ? ` · ${Math.round(player.dm_minPerMatch)} min/match` : ""}
-              </p>
-              <div className="grid grid-cols-4 gap-2 text-center mb-2">
-                {stats.map(s => (
-                  <div key={s.label} className="rounded-lg py-1.5" style={{ background: "rgba(255,255,255,0.04)" }}>
-                    <p className="text-sm font-black" style={{ color: s.color }}>{s.value}</p>
-                    <p className="text-[9px] mt-0.5" style={{ color: "#6b7c96" }}>{s.label}</p>
-                  </div>
-                ))}
-              </div>
-              {extra.length > 0 && (
-                <div className="flex flex-wrap gap-x-3 gap-y-1">
-                  {extra.map(e => (
-                    <span key={e.label} className="text-[10px]" style={{ color: "#94a3b8" }}>
-                      <span style={{ color: "#6b7c96" }}>{e.label} </span>{e.value}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })() : null}
+          {/* Understat saison */}
+          {hasUnderstat && (
+            <DmSection title={`Saison · ${player.games} matchs · ${player.minutes} min`}>
+              <DmStat label="Buts"     value={player.usGoals ?? 0}             color="#f59e0b" />
+              <DmStat label="PD"       value={player.usAssists ?? 0}           color="#00d4ff" />
+              <DmStat label="xG"       value={(player.xG ?? 0).toFixed(1)}     color="#22c55e" />
+              <DmStat label="xA"       value={(player.xA ?? 0).toFixed(1)}     color="#a78bfa" />
+              {(player.shots ?? 0) > 0 && <DmStat label="Tirs"  value={player.shots ?? 0}  color="#94a3b8" />}
+              {(player.shots ?? 0) > 0 && <DmStat label="xG/tir" value={((player.xG ?? 0) / (player.shots ?? 1)).toFixed(3)} color="#6b7c96" />}
+            </DmSection>
+          )}
 
-        {/* Bio grid */}
-        <div className="px-4 py-3 grid grid-cols-2 gap-x-4 gap-y-2.5 text-xs">
-          {player.dateOfBirth && (
-            <div><p style={{ color: "#6b7c96" }}>Date de naissance</p>
-              <p className="font-semibold mt-0.5" style={{ color: "#e8edf5" }}>
-                {new Date(player.dateOfBirth).toLocaleDateString("fr-FR")} ({player.age} ans)
-              </p></div>
-          )}
-          {(player.height ?? 0) > 0 && (
-            <div><p style={{ color: "#6b7c96" }}>Taille / Pied</p>
-              <p className="font-semibold mt-0.5" style={{ color: "#e8edf5" }}>{player.height} cm · {player.foot || "—"}</p></div>
-          )}
-          {player.joinedOn && (
-            <div><p style={{ color: "#6b7c96" }}>Arrivé le</p>
-              <p className="font-semibold mt-0.5" style={{ color: "#e8edf5" }}>
-                {new Date(player.joinedOn).toLocaleDateString("fr-FR", { month: "short", year: "numeric" })}
-              </p></div>
-          )}
-          {player.signedFrom && (
-            <div><p style={{ color: "#6b7c96" }}>Provenance</p>
-              <p className="font-semibold mt-0.5 truncate" style={{ color: "#e8edf5" }}>{player.signedFrom}</p></div>
-          )}
-          {player.contract && (
-            <div><p style={{ color: "#6b7c96" }}>Fin de contrat</p>
-              <p className="font-semibold mt-0.5" style={{ color: "#e8edf5" }}>{player.contract}</p></div>
-          )}
-          {(player.marketValue ?? 0) > 0 && (
-            <div><p style={{ color: "#6b7c96" }}>Valeur marchande</p>
-              <p className="font-black mt-0.5" style={{ color: "#00d4ff" }}>{fv(player.marketValue)}</p></div>
-          )}
-        </div>
+          {/* GK stats */}
+          {hasDatamb && isGk && (<>
+            <DmSection title={`Gardien — ${dmCtx}`}>
+              <DmStat label="Arrêts %"    value={pctm(player.dm_savePct)}         color="#00d4ff" />
+              <DmStat label="Arrêts/90"   value={fmt1m(player.dm_saves90)}        color="#00d4ff" />
+              <DmStat label="BC/90"       value={fmt2m(player.dm_gcPer90)}        color="#ef4444" />
+              <DmStat label="xG enc./90"  value={fmt2m(player.dm_xgConceded90)}   color="#f97316" />
+              <DmStat label="Prév./90"    value={fmt2m(player.dm_preventedGoals90)} color="#22c55e" />
+              <DmStat label="CS"          value={player.dm_cleanSheets ?? 0}      color="#22c55e" />
+              <DmStat label="Sorties/90"  value={fmt1m(player.dm_exits90)}        color="#a78bfa" />
+              <DmStat label="Tirs conc."  value={fmt1m(player.dm_shotsConceded90)} color="#6b7c96" />
+            </DmSection>
+            <DmSection title="Jeu au pied">
+              <DmStat label="Pass %"      value={pctm(player.dm_passPct)}         color="#00d4ff" />
+              <DmStat label="Longues/90"  value={fmt1m(player.dm_longPasses90)}   color="#94a3b8" />
+              <DmStat label="Longues %"   value={pctm(player.dm_longPassAcc)}     color="#94a3b8" />
+              <DmStat label="Passes/90"   value={fmt1m(player.dm_passes90)}       color="#6b7c96" />
+            </DmSection>
+          </>)}
 
-        {/* Footer */}
-        <div className="px-4 pb-3">
-          <a href={tmUrl} target="_blank" rel="noopener noreferrer"
-            className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold hover:opacity-80 transition-all"
-            style={{ background: "rgba(0,212,255,0.07)", border: "1px solid rgba(0,212,255,0.18)", color: "#00d4ff" }}>
-            <ExternalLink size={12} /> Voir sur Transfermarkt
-          </a>
+          {/* Outfield stats */}
+          {hasDatamb && !isGk && (<>
+
+            <DmSection title={`Vue d'ensemble — ${dmCtx}`}>
+              <DmStat label="G+A/90"       value={fmt2m(player.dm_ga90)}          color="#f59e0b" />
+              <DmStat label="xG+xA/90"     value={fmt2m(player.dm_xgxa90)}        color="#22c55e" />
+              <DmStat label="npxG+xA/90"   value={fmt2m(player.dm_npxgXa90)}      color="#22c55e" />
+              <DmStat label="Touches/90"   value={fmt1m(player.dm_touches90)}     color="#6b7c96" />
+              <DmStat label="Prog./90"     value={fmt1m(player.dm_progressiveActions90)} color="#a78bfa" />
+              <DmStat label="Poss. +/-"    value={fmt1m(player.dm_possBalance)}   color={(player.dm_possBalance ?? 0) >= 0 ? "#22c55e" : "#ef4444"} />
+            </DmSection>
+
+            {(isFwd || isWing || isMid) && (
+              <DmSection title="Attaque &amp; Finition">
+                <DmStat label="Buts/90"     value={fmt2m(player.dm_goals90)}       color="#f59e0b" />
+                <DmStat label="xG/90"       value={fmt2m(player.dm_xg90)}          color="#22c55e" />
+                <DmStat label="npxG/90"     value={fmt2m(player.dm_npxg90)}        color="#22c55e" />
+                <DmStat label="Buts/xG"     value={fmt2m(player.dm_goalsPerXg)}    color={(player.dm_goalsPerXg ?? 0) >= 1 ? "#22c55e" : "#f59e0b"} />
+                <DmStat label="Tirs/90"     value={fmt1m(player.dm_shots90)}       color="#94a3b8" />
+                <DmStat label="Cadrés/90"   value={fmt1m(player.dm_shotsOnTarget90)} color="#f59e0b" />
+                <DmStat label="Cadrés %"    value={pctm(player.dm_shotsOnTarget)}  color="#f59e0b" />
+                <DmStat label="Conv. %"     value={pctm(player.dm_goalConversion)} color="#ef4444" />
+                {(player.dm_penaltiesAttempted ?? 0) > 0 && <DmStat label="Pen. tentés" value={player.dm_penaltiesAttempted ?? 0} color="#f97316" />}
+                {(player.dm_penaltiesScored ?? 0) > 0 && <DmStat label="Pen. inscrits" value={player.dm_penaltiesScored ?? 0} color="#22c55e" />}
+                {!isDef && <DmStat label="Zone/90" value={fmt1m(player.dm_touchesBox90)} color="#f97316" />}
+              </DmSection>
+            )}
+
+            <DmSection title="Création">
+              <DmStat label="xA/90"         value={fmt2m(player.dm_xa90)}          color="#a78bfa" />
+              <DmStat label="PD/90"         value={fmt2m(player.dm_assists90)}     color="#00d4ff" />
+              <DmStat label="Shot ast./90"  value={fmt1m(player.dm_shotAssists90)} color="#a78bfa" />
+              <DmStat label="Pré-PD/90"     value={fmt1m(player.dm_preAssists90)}  color="#a78bfa" />
+              <DmStat label="3e PD/90"      value={fmt1m(player.dm_thirdAssists90)} color="#a78bfa" />
+              <DmStat label="Passes clés"   value={fmt1m(player.dm_keyPasses90)}   color="#a78bfa" />
+              <DmStat label="Smart/90"      value={fmt1m(player.dm_smartPasses90)} color="#22c55e" />
+              <DmStat label="Smart %"       value={pctm(player.dm_smartPassAcc)}   color="#22c55e" />
+              {(isWing || isFwd) && <DmStat label="Cross. box/90" value={fmt1m(player.dm_crossesToBox90)} color="#f59e0b" />}
+              {(isWing) && <DmStat label="Crosses/90" value={fmt1m(player.dm_crosses90)} color="#f59e0b" />}
+              {(isWing) && <DmStat label="Cross. prec." value={pctm(player.dm_crossAcc)} color="#f59e0b" />}
+              <DmStat label="Prof./90"      value={fmt1m(player.dm_deepCompletions90)} color="#22c55e" />
+            </DmSection>
+
+            {(isMid || isDef || isWing) && (
+              <DmSection title="Passes">
+                <DmStat label="Passes/90"   value={fmt1m(player.dm_passes90)}      color="#00d4ff" />
+                <DmStat label="Pass %"      value={pctm(player.dm_passPct)}        color="#00d4ff" />
+                <DmStat label="Imprécis %"  value={pctm(player.dm_inaccuratePct)}  color="#ef4444" />
+                <DmStat label="Avant %"     value={pctm(player.dm_fwdPassPct)}     color="#22c55e" />
+                <DmStat label="Longues %"   value={pctm(player.dm_longPassAcc)}    color="#94a3b8" />
+                <DmStat label="Prog./90"    value={fmt1m(player.dm_progressivePasses90)} color="#a78bfa" />
+                <DmStat label="Prog. %"     value={pctm(player.dm_progressivePassAcc)} color="#a78bfa" />
+                <DmStat label="Vers box/90" value={fmt1m(player.dm_passesToBox90)} color="#f59e0b" />
+              </DmSection>
+            )}
+
+            <DmSection title="Dribbles &amp; Duels">
+              <DmStat label="Drib. %"       value={pctm(player.dm_dribblePct)}     color="#f59e0b" />
+              <DmStat label="Drib./90"      value={fmt1m(player.dm_dribbles90)}    color="#f59e0b" />
+              <DmStat label="Accél./90"     value={fmt1m(player.dm_accelerations90)} color="#94a3b8" />
+              <DmStat label="Duels/90"      value={fmt1m(player.dm_duels90)}       color="#94a3b8" />
+              <DmStat label="Duels gagnés"  value={fmt1m(player.dm_duelsWon90)}    color="#94a3b8" />
+              <DmStat label="Duels %"       value={pctm(player.dm_duelsWonPct)}    color="#94a3b8" />
+            </DmSection>
+
+            <DmSection title="Défense">
+              <DmStat label="Déf. duel/90"  value={fmt1m(player.dm_defDuels90)}    color="#a78bfa" />
+              <DmStat label="Déf. duel %"   value={pctm(player.dm_defDuelPct)}     color="#a78bfa" />
+              <DmStat label="Int./90"        value={fmt2m(player.dm_interceptions90)} color="#ef4444" />
+              <DmStat label="Tacles/90"      value={fmt1m(player.dm_tackles90)}    color="#ef4444" />
+              <DmStat label="Aérien %"       value={pctm(player.dm_aerialPct)}     color="#f59e0b" />
+              <DmStat label="Poss. gagnées"  value={fmt1m(player.dm_possWon90)}    color="#22c55e" />
+              <DmStat label="Poss. perdues"  value={fmt1m(player.dm_possLost90)}   color="#ef4444" />
+            </DmSection>
+
+            <DmSection title="Discipline">
+              <DmStat label="Fautes/90"     value={fmt1m(player.dm_fouls90)}       color="#f97316" />
+              <DmStat label="Jaunes/90"     value={fmt2m(player.dm_yellowCards90)} color="#f59e0b" />
+            </DmSection>
+          </>)}
+
+          {!hasUnderstat && !hasDatamb && (
+            <p className="text-xs py-2" style={{ color: "#6b7c96" }}>Statistiques non disponibles.</p>
+          )}
+
+          {/* Footer link */}
+          <div className="pt-2">
+            <a href={tmUrl} target="_blank" rel="noopener noreferrer"
+              className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold hover:opacity-80 transition-all"
+              style={{ background: "rgba(0,212,255,0.07)", border: "1px solid rgba(0,212,255,0.18)", color: "#00d4ff" }}>
+              <ExternalLink size={12} /> Voir sur Transfermarkt
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -1413,15 +1479,16 @@ export default function ClubPage() {
 
           {/* Column headers */}
           <div className="grid px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest"
-            style={{ gridTemplateColumns: "1fr 56px 72px 44px 28px 28px 64px 32px", borderBottom: "1px solid rgba(255,255,255,0.04)", color: "#6b7c96" }}>
+            style={{ gridTemplateColumns: "1fr 56px 60px 40px 28px 28px 48px 48px 64px", borderBottom: "1px solid rgba(255,255,255,0.04)", color: "#6b7c96" }}>
             <span>Joueur</span>
             <span className="text-center">Poste</span>
             <span className="text-center" style={{ color: "#fbbf24" }}>Forme</span>
             <span className="text-center" style={{ color: "#fbbf24" }}>1vs1</span>
             <span className="text-center" style={{ color: "#34d399" }}>⚽</span>
             <span className="text-center" style={{ color: "#60a5fa" }}>🅰</span>
+            <span className="text-center hidden sm:block" style={{ color: "#22c55e" }}>xG/90</span>
+            <span className="text-center hidden sm:block" style={{ color: "#a78bfa" }}>xA/90</span>
             <span className="text-right" style={{ color: "#00d4ff" }}>Cote</span>
-            <span className="text-right hidden sm:block">Âge</span>
           </div>
 
           {squadStats.playerCount === 0 ? (
@@ -1458,7 +1525,7 @@ export default function ClubPage() {
                     return (
                       <button key={p.id} onClick={() => setExpandedPlayer(p)}
                         className="w-full grid px-3 py-1.5 hover:bg-white/[0.03] transition-colors items-center text-left"
-                        style={{ gridTemplateColumns: "1fr 56px 72px 44px 28px 28px 64px 32px", background: inj ? "rgba(249,115,22,0.02)" : "transparent", borderBottom: "1px solid rgba(255,255,255,0.02)" }}>
+                        style={{ gridTemplateColumns: "1fr 56px 60px 40px 28px 28px 48px 48px 64px", background: inj ? "rgba(249,115,22,0.02)" : "transparent", borderBottom: "1px solid rgba(255,255,255,0.02)" }}>
 
                         {/* Joueur */}
                         <div className="flex items-center gap-1.5 min-w-0">
@@ -1513,14 +1580,22 @@ export default function ClubPage() {
                           {assists > 0 ? assists : "—"}
                         </span>
 
+                        {/* xG/90 */}
+                        <span className="text-[10px] text-center hidden sm:block font-mono"
+                          style={{ color: (p.dm_xg90 ?? 0) > 0.3 ? "#22c55e" : (p.dm_xg90 ?? 0) > 0 ? "#86efac" : "#2d3748" }}>
+                          {(p.dm_xg90 ?? 0) > 0 ? p.dm_xg90!.toFixed(2) : "—"}
+                        </span>
+                        {/* xA/90 */}
+                        <span className="text-[10px] text-center hidden sm:block font-mono"
+                          style={{ color: (p.dm_xa90 ?? 0) > 0.2 ? "#a78bfa" : (p.dm_xa90 ?? 0) > 0 ? "#c4b5fd" : "#2d3748" }}>
+                          {(p.dm_xa90 ?? 0) > 0 ? p.dm_xa90!.toFixed(2) : "—"}
+                        </span>
+
                         {/* Market value */}
                         <span className="text-[10px] text-right font-mono font-bold"
                           style={{ color: p.marketValue > 20_000_000 ? "#00d4ff" : p.marketValue > 5_000_000 ? "#e8edf5" : "#6b7c96" }}>
                           {p.marketValue > 0 ? fv(p.marketValue) : "—"}
                         </span>
-
-                        {/* Age */}
-                        <span className="text-[10px] text-right hidden sm:block" style={{ color: "#6b7c96" }}>{p.age}</span>
                       </button>
                     );
                   })}

@@ -119,6 +119,19 @@ interface TmPlayer {
   dm_preventedGoals90?: number;
   dm_backPassesGK90?: number;
   dm_shotsConceded90?: number;
+  // Datamb — finishing & penalties
+  dm_goalsPerXg?: number;
+  dm_shotsOnTarget90?: number;
+  dm_penaltiesScored?: number;
+  dm_penaltiesAttempted?: number;
+  // Datamb — creation advanced
+  dm_crossesToBox90?: number;
+  dm_thirdAssists90?: number;
+  dm_smartPasses90?: number;
+  dm_smartPassAcc?: number;
+  // Datamb — extra volume
+  dm_duelsWon90?: number;
+  dm_misplacedPasses90?: number;
 }
 
 interface UnderstatPlayer {
@@ -290,6 +303,19 @@ function extractDatambStats(row: DatambRow): Partial<TmPlayer> {
     dm_preventedGoals90:     n(row["Prevented goals per 90"]),
     dm_backPassesGK90:       n(row["Back passes received as GK per 90"]),
     dm_shotsConceded90:      n(row["Shots conceded per 90"]),
+    // Finishing & penalties
+    dm_goalsPerXg:         n(row["Goals per xG"]),
+    dm_shotsOnTarget90:    n(row["Shots on target per 90"]),
+    dm_penaltiesScored:    n(row["Penalties scored"]),
+    dm_penaltiesAttempted: n(row["Penalties taken"]),
+    // Creation advanced
+    dm_crossesToBox90:     n(row["Crosses to box per 90"]),
+    dm_thirdAssists90:     n(row["Third assists per 90"]),
+    dm_smartPasses90:      n(row["Smart passes per 90"]),
+    dm_smartPassAcc:       n(row["Accurate smart passes, %"]),
+    // Extra volume
+    dm_duelsWon90:         n(row["Duels won per 90"]),
+    dm_misplacedPasses90:  n(row["Misplaced passes per 90"]),
   };
 }
 
