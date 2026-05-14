@@ -516,6 +516,71 @@ export default function Home() {
         </div>
       </header>
 
+      {/* ── HERO BANNER ── */}
+      <div className="relative overflow-hidden" style={{ background: "linear-gradient(135deg, #060c1a 0%, #0a1628 40%, #060e1c 100%)" }}>
+        {/* Animated background grid */}
+        <div className="absolute inset-0 opacity-[0.04]"
+          style={{ backgroundImage: "linear-gradient(#00d4ff 1px, transparent 1px), linear-gradient(90deg, #00d4ff 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
+        {/* Glow effects */}
+        <div className="absolute top-0 left-1/4 w-96 h-32 rounded-full opacity-10 blur-3xl pointer-events-none"
+          style={{ background: "radial-gradient(ellipse, #00d4ff, transparent)" }} />
+        <div className="absolute top-0 right-1/4 w-96 h-32 rounded-full opacity-8 blur-3xl pointer-events-none"
+          style={{ background: "radial-gradient(ellipse, #7c3aed, transparent)" }} />
+
+        <div className="max-w-[1300px] mx-auto px-4 py-10 sm:py-14 relative z-10">
+          {/* Badge */}
+          <div className="flex items-center gap-2 mb-4">
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full"
+              style={{ background: "rgba(0,212,255,0.1)", border: "1px solid rgba(0,212,255,0.25)", color: "#00d4ff" }}>
+              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "#00d4ff" }} />
+              Ligue 1 · Saison 2025–26 · Analyse en temps réel
+            </span>
+          </div>
+
+          {/* Title */}
+          <h1 className="text-3xl sm:text-5xl font-black tracking-tight mb-4 leading-tight">
+            <span style={{ color: "#e8edf5" }}>Foot</span>
+            <span style={{ background: "linear-gradient(90deg, #00d4ff, #7c3aed)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Predictom</span>
+          </h1>
+
+          {/* Description */}
+          <p className="text-sm sm:text-base leading-relaxed mb-6 max-w-2xl"
+            style={{ color: "#94a3b8" }}>
+            Plateforme d&apos;analyse prédictive dédiée à la{" "}
+            <span style={{ color: "#e8edf5", fontWeight: 600 }}>Ligue 1</span>.
+            Nous combinons les données de classement, les statistiques individuelles des joueurs et
+            un{" "}
+            <span style={{ color: "#00d4ff", fontWeight: 600 }}>score émotionnel propriétaire</span>{" "}
+            (économique · médias · humain · supporters) pour évaluer la forme réelle des clubs et
+            prédire les résultats des prochains matchs — jusqu&apos;aux{" "}
+            <span style={{ color: "#fbbf24", fontWeight: 600 }}>buteurs potentiels</span>{" "}
+            par rencontre.
+          </p>
+
+          {/* Feature pills */}
+          <div className="flex flex-wrap gap-2">
+            {[
+              { icon: "⚡", label: "Prédictions IA", color: "#3b82f6" },
+              { icon: "❤", label: "Score Émotionnel", color: "#f472b6" },
+              { icon: "⚽", label: "Buteurs potentiels", color: "#fbbf24" },
+              { icon: "📊", label: "Stats joueurs 1vs1", color: "#34d399" },
+              { icon: "📰", label: "Buzz supporters", color: "#a78bfa" },
+              { icon: "💶", label: "Analyse mercato", color: "#00d4ff" },
+            ].map(f => (
+              <span key={f.label}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full"
+                style={{ background: `${f.color}12`, border: `1px solid ${f.color}30`, color: f.color }}>
+                <span>{f.icon}</span>{f.label}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom fade */}
+        <div className="absolute bottom-0 inset-x-0 h-8"
+          style={{ background: "linear-gradient(to bottom, transparent, #080c14)" }} />
+      </div>
+
       <div className="max-w-[1300px] mx-auto px-4 py-6">
         <div className="lg:grid lg:gap-5 lg:items-start" style={{ gridTemplateColumns: "1fr 196px" }}>
         <div className="min-w-0">
