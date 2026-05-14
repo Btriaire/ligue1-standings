@@ -33,10 +33,55 @@ const STADIUM_IMAGES: Record<number, { name: string; file: string }> = {
   1045: { name: "Stade Charléty",             file: "Stade_Charléty.jpg" },
 };
 
+// Club banner photos (action / atmosphere shots from Wikimedia Commons)
+const CLUB_BANNERS: Record<number, string> = {
+  524:  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Parc_des_Princes_-_20130116_2.jpg/1200px-Parc_des_Princes_-_20130116_2.jpg",
+  548:  "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Stade_Louis_II.jpg/1200px-Stade_Louis_II.jpg",
+  516:  "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Stade_Velodrome_Marseille.jpg/1200px-Stade_Velodrome_Marseille.jpg",
+  521:  "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Stade_Pierre-Mauroy.jpg/1200px-Stade_Pierre-Mauroy.jpg",
+  529:  "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Stade_de_la_Route_de_Lorient_Rennes.JPG/1200px-Stade_de_la_Route_de_Lorient_Rennes.JPG",
+  522:  "https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/Allianz_Riviera_panorama.jpg/1200px-Allianz_Riviera_panorama.jpg",
+  546:  "https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Stade_Bollaert-Delelis.jpg/1200px-Stade_Bollaert-Delelis.jpg",
+  523:  "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Groupama_Stadium_-_Lyon_%28D%C3%A9cines%29.jpg/1200px-Groupama_Stadium_-_Lyon_%28D%C3%A9cines%29.jpg",
+  576:  "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d9/Stade_Meinau_2012.JPG/1200px-Stade_Meinau_2012.JPG",
+  511:  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Stadium_de_Toulouse.jpg/1200px-Stadium_de_Toulouse.jpg",
+  512:  "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c4/Stade_Francis_Le_Ble_Brest.jpg/1200px-Stade_Francis_Le_Ble_Brest.jpg",
+  532:  "https://upload.wikimedia.org/wikipedia/commons/thumb/5/55/Stade_Jean-Bouin_Angers.JPG/1200px-Stade_Jean-Bouin_Angers.JPG",
+  533:  "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Stade_Oceane_Le_Havre.jpg/1200px-Stade_Oceane_Le_Havre.jpg",
+  519:  "https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Stade_de_l%27Abb%C3%A9-Deschamps.jpg/1200px-Stade_de_l%27Abb%C3%A9-Deschamps.jpg",
+  543:  "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Stade_de_la_Beaujoire.JPG/1200px-Stade_de_la_Beaujoire.JPG",
+  545:  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Stade_Saint_Symphorien_Metz.jpg/1200px-Stade_Saint_Symphorien_Metz.jpg",
+  525:  "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Stade_du_Moustoir_Lorient.jpg/1200px-Stade_du_Moustoir_Lorient.jpg",
+  1045: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Stade_Charl%C3%A9ty.jpg/1200px-Stade_Charl%C3%A9ty.jpg",
+};
+
+// Club primary colors for gradient fallback
+const CLUB_COLORS: Record<number, { primary: string; secondary: string }> = {
+  524:  { primary: "#0033a0", secondary: "#dc143c" },
+  548:  { primary: "#d4af37", secondary: "#e41f20" },
+  516:  { primary: "#00a0e4", secondary: "#ffffff" },
+  521:  { primary: "#c8102e", secondary: "#ffd700" },
+  529:  { primary: "#e41e20", secondary: "#000000" },
+  522:  { primary: "#e30a17", secondary: "#000000" },
+  546:  { primary: "#e31e24", secondary: "#ffd700" },
+  523:  { primary: "#c8102e", secondary: "#0033a0" },
+  576:  { primary: "#00529f", secondary: "#ffffff" },
+  511:  { primary: "#6a1de0", secondary: "#ffffff" },
+  512:  { primary: "#c8102e", secondary: "#003da5" },
+  532:  { primary: "#1a1a1a", secondary: "#ffffff" },
+  533:  { primary: "#0033a0", secondary: "#ffffff" },
+  519:  { primary: "#003399", secondary: "#ffffff" },
+  543:  { primary: "#ffd700", secondary: "#00671c" },
+  545:  { primary: "#8b0000", secondary: "#000000" },
+  525:  { primary: "#1a1a1a", secondary: "#ff6600" },
+  1045: { primary: "#003da5", secondary: "#e4002b" },
+};
+
 function stadiumUrl(id: number): string {
-  const f = STADIUM_IMAGES[id]?.file;
-  if (!f) return "";
-  return `https://commons.wikimedia.org/wiki/Special:FilePath/${f}?width=800`;
+  // Use the direct CDN URL first, fall back to Special:FilePath
+  return CLUB_BANNERS[id] ?? (STADIUM_IMAGES[id]?.file
+    ? `https://commons.wikimedia.org/wiki/Special:FilePath/${STADIUM_IMAGES[id].file}?width=1000`
+    : "");
 }
 
 interface AdminEntry {
@@ -858,41 +903,72 @@ export default function ClubPage() {
 
         {/* ── HERO: stadium photo + club identity ── */}
         <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42" }}>
-          {stadImg ? (
-            <div className="relative h-44 overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={stadImg} alt={STADIUM_IMAGES[teamId]?.name ?? "Stade"}
-                className="w-full h-full object-cover"
-                onError={() => setStadiumErr(true)}
-              />
-              <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, transparent 40%, rgba(8,12,20,0.95))" }} />
-              <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between">
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.5)" }}>
-                    {STADIUM_IMAGES[teamId]?.name}
-                  </p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    {team.crest && <img src={team.crest} alt="" className="w-8 h-8 object-contain flex-shrink-0" />}
-                    <h1 className="text-xl font-black" style={{ color: "#e8edf5" }}>{team.name}</h1>
+          {(() => {
+            const clubColor = CLUB_COLORS[teamId];
+            const primary = clubColor?.primary ?? "#0033a0";
+            const secondary = clubColor?.secondary ?? "#ffffff";
+            return (
+              <div className="relative h-52 overflow-hidden">
+                {/* Photo du stade / club */}
+                {stadImg && !stadiumErr ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={stadImg} alt={STADIUM_IMAGES[teamId]?.name ?? team.name ?? ""}
+                    className="w-full h-full object-cover"
+                    onError={() => setStadiumErr(true)}
+                  />
+                ) : (
+                  /* Fallback : dégradé aux couleurs du club + crest géant */
+                  <div className="w-full h-full" style={{
+                    background: `linear-gradient(135deg, ${primary}cc 0%, ${secondary}33 50%, ${primary}99 100%)`,
+                  }}>
+                    {team.crest && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={team.crest} alt=""
+                        className="absolute inset-0 m-auto w-40 h-40 object-contain opacity-20"
+                        style={{ filter: "blur(2px)" }} />
+                    )}
+                  </div>
+                )}
+
+                {/* Dégradé noir vers le bas */}
+                <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, transparent 20%, rgba(8,12,20,0.85) 70%, rgba(8,12,20,0.98))" }} />
+
+                {/* Crest + nom + forme en bas */}
+                <div className="absolute bottom-0 left-0 right-0 px-4 pb-4">
+                  <div className="flex items-end justify-between">
+                    <div className="flex items-center gap-3">
+                      {team.crest && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={team.crest} alt="" className="w-14 h-14 object-contain flex-shrink-0 drop-shadow-lg" />
+                      )}
+                      <div>
+                        {STADIUM_IMAGES[teamId] && (
+                          <p className="text-[10px] font-semibold uppercase tracking-widest mb-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>
+                            {STADIUM_IMAGES[teamId].name}
+                          </p>
+                        )}
+                        <h1 className="text-2xl font-black leading-tight" style={{ color: "#ffffff", textShadow: "0 2px 12px rgba(0,0,0,0.8)" }}>
+                          {team.name}
+                        </h1>
+                        {thisTeamStanding && (
+                          <p className="text-xs mt-0.5 font-semibold" style={{ color: "rgba(255,255,255,0.6)" }}>
+                            {thisTeamStanding.position}e · {thisTeamStanding.points} pts
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="flex gap-1">{recentForm.map((r, i) => <FormDot key={i} result={r} />)}</div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                        style={{ background: `${primary}99`, color: "#ffffff", border: `1px solid ${primary}` }}>
+                        Ligue 1
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <div className="flex gap-1">
-                  {recentForm.map((r, i) => <FormDot key={i} result={r} />)}
-                </div>
               </div>
-            </div>
-          ) : (
-            <div className="px-4 pt-4 pb-3 flex items-center gap-3"
-              style={{ background: "linear-gradient(135deg, rgba(0,212,255,0.04), rgba(124,58,237,0.04))" }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              {team.crest && <img src={team.crest} alt="" className="w-14 h-14 object-contain flex-shrink-0" />}
-              <div className="flex-1 min-w-0">
-                <h1 className="text-xl font-black truncate" style={{ color: "#e8edf5" }}>{team.name}</h1>
-                <div className="flex gap-1 mt-1">{recentForm.map((r, i) => <FormDot key={i} result={r} />)}</div>
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Info row */}
           <div className="px-4 py-3" style={{ background: "#0d1421", borderTop: "1px solid #1e2d42" }}>
