@@ -776,8 +776,19 @@ export default function ClubPage() {
     })
     .filter((r): r is "W" | "D" | "L" => r !== null) ?? [];
 
+  // Normalize varied Transfermarkt position strings to our 5 canonical groups
+  function normalizePos(pos: string): string {
+    const p = pos.toLowerCase();
+    if (p.includes("goalkeeper") || p === "goalie") return "Goalkeeper";
+    if (p.includes("back") || p === "defence" || p === "defender" || p.startsWith("def")) return "Defender";
+    if (p.includes("winger") || p.includes("wide") || p.includes("left mid") || p.includes("right mid")) return "Winger";
+    if (p.includes("forward") || p === "offence" || p === "striker" || p.includes("attack")) return "Centre-Forward";
+    if (p.includes("midfield") || p === "midfield" || p === "midfielder") return "Midfielder";
+    return "Midfielder"; // fallback for unrecognised positions
+  }
+
   const byPos = POS_ORDER.reduce<Record<string, SquadPlayer[]>>((acc, p) => {
-    const pl = (squad?.squad ?? []).filter(x => x.position === p);
+    const pl = (squad?.squad ?? []).filter(x => normalizePos(x.position) === p);
     if (pl.length) acc[p] = pl;
     return acc;
   }, {});
