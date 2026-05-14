@@ -100,7 +100,7 @@ function parseBetclicOddsApi(raw: unknown): ExpertMatch[] {
       odds: { home: ho, draw: dro, away: ao },
       impliedProbs: { home: impliedHome, draw: impliedDraw, away: impliedAway },
       date: item.commence_time,
-      source: "Betclic",
+      source: "ExpertWEB",
     });
   }
   return matches;

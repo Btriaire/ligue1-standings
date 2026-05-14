@@ -600,7 +600,7 @@ function MatchCard({
             <div className="flex items-center gap-2 px-3 py-1.5" style={{ borderBottom: "1px solid rgba(234,179,8,0.12)" }}>
               <Star size={10} style={{ color: "#eab308" }} />
               <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#eab308" }}>
-                {expertMatch?.source === "Betclic" ? "Cotes Betclic" : "Analyse experte"}
+                {expertMatch?.source === "ExpertWEB" ? "Cotes ExpertWEB" : "Analyse experte"}
               </span>
               {hasBetclic && (
                 <span className="text-[9px] ml-auto" style={{ color: "#6b7c96" }}>
@@ -723,7 +723,7 @@ function MatchCard({
             style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
             {hasBetclic ? (
               <p style={{ color: "#eab308" }}>
-                Source principale : Betclic (cotes {expertMatch?.odds?.home?.toFixed(2)} / {expertMatch?.odds?.draw?.toFixed(2)} / {expertMatch?.odds?.away?.toFixed(2)})
+                Source principale : ExpertWEB (cotes {expertMatch?.odds?.home?.toFixed(2)} / {expertMatch?.odds?.draw?.toFixed(2)} / {expertMatch?.odds?.away?.toFixed(2)})
               </p>
             ) : (
               <p style={{ color: "#6b7c96" }}>
@@ -949,7 +949,7 @@ export default function PredictionsTab() {
             <Star size={13} style={{ color: "#eab308", flexShrink: 0 }} />
             <span style={{ color: "#eab308" }}>
               {betclicCount > 0
-                ? <><strong>{betclicCount} match{betclicCount > 1 ? "s" : ""}</strong> — probabilités basées sur cotes Betclic{useEmotional ? " + facteur additionnel" : ""}</>
+                ? <><strong>{betclicCount} match{betclicCount > 1 ? "s" : ""}</strong> — probabilités basées sur cotes ExpertWEB{useEmotional ? " + facteur additionnel" : ""}</>
                 : <><strong>{expertCount} match{expertCount > 1 ? "s" : ""}</strong> couverts par les experts</>
               }
             </span>

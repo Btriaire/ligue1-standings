@@ -186,8 +186,9 @@ const DATAMB_POS_FILES: Record<string, string[]> = {
 // Dynamically compute season string e.g. "TOP72526" for 2025/26
 function datambVersionStr(): string {
   const now = new Date();
-  const start = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
-  const end = String((start + 1) % 100).padStart(2, "0");
+  const fullYear = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+  const start = String(fullYear % 100).padStart(2, "0"); // e.g. "25"
+  const end   = String((fullYear + 1) % 100).padStart(2, "0"); // e.g. "26"
   return `TOP7${start}${end}`;
 }
 

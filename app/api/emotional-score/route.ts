@@ -318,7 +318,7 @@ export async function GET() {
         fan: "Reddit (r/[club] + r/ligue1)",
         mercato: "Transfermarkt",
         economic: "Données publiques (UEFA, rapports annuels)",
-        market: hasOdds ? "The Odds API (Betclic, Unibet, Winamax…)" : null,
+        market: hasOdds ? "ExpertWEB" : null,
       },
       updatedAt: new Date().toISOString(),
     });
