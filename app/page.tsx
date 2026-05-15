@@ -10,6 +10,7 @@ import ResultsTab from "./components/ResultsTab";
 import ConfigTab from "./components/ConfigTab";
 import TransfersTab from "./components/TransfersTab";
 import WorldCupTab from "./components/WorldCupTab";
+import MonClubTab from "./components/MonClubTab";
 
 interface Team {
   id: number;
@@ -39,7 +40,7 @@ interface StandingsData {
   updatedAt: string;
 }
 
-type TabId = "ligue1" | "worldcup" | "predictions" | "results" | "emotional" | "config";
+type TabId = "ligue1" | "worldcup" | "monclub" | "predictions" | "results" | "emotional" | "config";
 type L1SubTab = "classement" | "mercato" | "joueurs" | "transfert";
 
 const ZONE_CONFIG = [
@@ -377,6 +378,7 @@ const L1_SUBTABS: { id: L1SubTab; label: string; icon: React.ReactNode }[] = [
 const TABS: { id: TabId; label: string; icon: React.ReactNode; shortLabel?: string }[] = [
   { id: "ligue1",      label: "Ligue 1",            icon: <Trophy size={14} />,          shortLabel: "L1" },
   { id: "worldcup",    label: "Coupe du Monde",      icon: <Globe size={14} />,           shortLabel: "CdM" },
+  { id: "monclub",     label: "Mon Club",            icon: <Heart size={14} />,           shortLabel: "❤️ Club" },
   { id: "predictions", label: "AI FootPredictom",   icon: <Zap size={14} />,             shortLabel: "AI Foot" },
   { id: "results",     label: "Résultats",           icon: <Target size={14} /> },
   { id: "emotional",   label: "Facteur additionnel", icon: <Heart size={14} />,           shortLabel: "Fact. add." },
@@ -637,6 +639,7 @@ export default function Home() {
         )}
 
         {tab === "worldcup" && <WorldCupTab />}
+        {tab === "monclub" && <MonClubTab />}
         {tab === "predictions" && (user ? <PredictionsTab /> : <AuthGate label="AI FootPredictom" icon={<Zap size={16} className="inline" style={{ color: "#3b82f6" }} />} />)}
         {tab === "results" && <ResultsTab />}
         {tab === "emotional" && (user ? <EmotionalScoreTab /> : <AuthGate label="Facteur additionnel" icon={<Heart size={16} className="inline" style={{ color: "#a78bfa" }} />} />)}
