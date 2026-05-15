@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   Trophy, Heart, ChevronDown, ChevronUp, X, TrendingUp, TrendingDown,
   Users, Calendar, Zap, RefreshCw, Shield, MapPin, Target,
-  Star, Activity, BarChart2, Save, CheckCircle2,
+  Star, Activity, BarChart2, Save, CheckCircle2, Share2, Globe2,
 } from "lucide-react";
 
 /* ══════════════════════════════════════════ CLUBS ══ */
@@ -176,6 +176,12 @@ function calcProba(t:Standing,o:Standing):{w:number;d:number;l:number} {
   const d=Math.max(0.12,1-w-l),tot=w+d+l;
   return {w:Math.round(w/tot*100),d:Math.round(d/tot*100),l:Math.round(l/tot*100)};
 }
+function getSessionId():string {
+  let id=localStorage.getItem("fp_session_id");
+  if(!id){id=Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem("fp_session_id",id);}
+  return id;
+}
+
 const POS_FR:Record<string,string>    = {Goalkeeper:"Gardien",Defender:"Défenseur",Midfielder:"Milieu",Winger:"Ailier","Centre-Forward":"Attaquant"};
 const POS_COLOR:Record<string,string> = {Goalkeeper:"#f59e0b",Defender:"#3b82f6",Midfielder:"#a78bfa",Winger:"#34d399","Centre-Forward":"#ef4444"};
 const POS_CODE:Record<string,string>  = {Goalkeeper:"GB",Defender:"DEF",Midfielder:"MIL",Winger:"AIL","Centre-Forward":"ATT"};
@@ -368,10 +374,14 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
 
   // Ma Compo state
   const COMPO_KEY = `monClub_compo_${club.id}`;
-  const [formation, setFormation] = useState<FKey>("4-3-3");
-  const [players11, setPlayers11] = useState<(string|null)[]>(Array(11).fill(null));
-  const [selSlot,   setSelSlot]   = useState<number|null>(null);
+  const [formation,  setFormation]  = useState<FKey>("4-3-3");
+  const [players11,  setPlayers11]  = useState<(string|null)[]>(Array(11).fill(null));
+  const [selSlot,    setSelSlot]    = useState<number|null>(null);
   const [compoSaved, setCompoSaved] = useState(false);
+  const [compoSaving,setCompoSaving]= useState(false);
+  const [compoView,  setCompoView]  = useState<"personal"|"community">("personal");
+  const [communityTeam, setCommunityTeam] = useState<{votes:number;formation:FKey;players:(string|null)[];slotDetails:{name:string;count:number}[][];}|null>(null);
+  const [communityLoading, setCommunityLoading] = useState(false);
 
   // Load compo from LS
   useEffect(()=>{
@@ -381,14 +391,57 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
     } catch { /**/ }
   }, [COMPO_KEY]);
 
-  const saveCompo = () => {
+  const saveCompo = async () => {
+    setCompoSaving(true);
+    // Save locally
     localStorage.setItem(COMPO_KEY, JSON.stringify({formation,players:players11}));
-    setCompoSaved(true); setTimeout(()=>setCompoSaved(false),2000);
+    // Save to Firestore via API
+    try {
+      await fetch("/api/compo", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({clubId:club.id,clubName:club.name,formation,players:players11,sessionId:getSessionId()}),
+      });
+    } catch { /**/ }
+    setCompoSaving(false);
+    setCompoSaved(true);
+    setTimeout(()=>setCompoSaved(false),3000);
   };
+
+  const loadCommunityTeam = async () => {
+    setCommunityLoading(true);
+    try {
+      const r=await fetch(`/api/compo?clubId=${club.id}`);
+      if(r.ok){
+        const d=await r.json();
+        if(d.votes>0) setCommunityTeam({votes:d.votes,formation:d.formation as FKey,players:d.players,slotDetails:d.slotDetails});
+      }
+    } catch { /**/ }
+    setCommunityLoading(false);
+  };
+
+  const buildTweet = (team:{formation:FKey;players:(string|null)[];votes:number}) => {
+    const slots=FORMATIONS[team.formation];
+    const byType:{GK:string[];DF:string[];MF:string[];FW:string[]}={GK:[],DF:[],MF:[],FW:[]};
+    slots.forEach((s,i)=>{ const n=team.players[i]; if(n) byType[s.type].push(n.split(" ").pop()!); });
+    const lines=[
+      `⚽ L'équipe type des supporters du ${club.shortName} selon FootPredictom ! (${team.votes} votes)`,
+      ``,
+      `Formation: ${team.formation}`,
+      byType.GK.length?`🧤 ${byType.GK.join(" · ")}`:"",
+      byType.DF.length?`🔵 ${byType.DF.join(" · ")}`:"",
+      byType.MF.length?`🟢 ${byType.MF.join(" · ")}`:"",
+      byType.FW.length?`🔴 ${byType.FW.join(" · ")}`:"",
+      ``,
+      `Votre compo sur FootPredictom 🚀`,
+      `#${club.shortName.replace(/\s/g,"")} #Ligue1 #FootPredictom`,
+    ].filter(l=>l!==undefined);
+    return encodeURIComponent(lines.join("\n"));
+  };
+
   const clearCompo = () => { setPlayers11(Array(11).fill(null)); setSelSlot(null); };
   const changeFormation = (f:FKey) => { setFormation(f); setPlayers11(Array(11).fill(null)); setSelSlot(null); };
   const assignPlayer = (idx:number, name:string) => {
-    // remove from other slots
     const arr=[...players11].map(p=>p===name?null:p);
     arr[idx]=name;
     setPlayers11(arr);
@@ -857,149 +910,254 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
       {/* ══════════ MA COMPO ! ══════════ */}
       {section==="compo"&&(
         <div className="space-y-4">
-          {/* Formation picker */}
-          <div className="rounded-xl p-3" style={{background:"#0d1421",border:"1px solid #1e2d42"}}>
-            <p className="text-[9px] font-black uppercase tracking-widest mb-2" style={{color:"#6b7c96"}}>Choisir une formation</p>
-            <div className="flex gap-1.5 flex-wrap">
-              {F_KEYS.map(f=>(
-                <button key={f} onClick={()=>changeFormation(f)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-black transition-all hover:opacity-90"
-                  style={{background:formation===f?club.color:"rgba(255,255,255,0.05)",color:formation===f?"#fff":"#64748b",border:`1px solid ${formation===f?club.color:"rgba(255,255,255,0.08)"}`}}>
-                  {f}
-                </button>
-              ))}
+
+          {/* Personal / Community toggle */}
+          <div className="flex gap-1 p-1 rounded-xl" style={{background:"#0a0f1c",border:"1px solid #1a2235"}}>
+            <button onClick={()=>setCompoView("personal")}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all"
+              style={{background:compoView==="personal"?"rgba(255,255,255,0.08)":"transparent",color:compoView==="personal"?"#e2e8f0":"#64748b",border:compoView==="personal"?"1px solid rgba(255,255,255,0.1)":"1px solid transparent"}}>
+              <Star size={11}/> Ma Compo
+            </button>
+            <button onClick={()=>{ setCompoView("community"); if(!communityTeam) loadCommunityTeam(); }}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all"
+              style={{background:compoView==="community"?"rgba(255,255,255,0.08)":"transparent",color:compoView==="community"?"#e2e8f0":"#64748b",border:compoView==="community"?"1px solid rgba(255,255,255,0.1)":"1px solid transparent"}}>
+              <Globe2 size={11}/> Équipe Type 🗳️
+            </button>
+          </div>
+
+          {/* ── PERSONAL COMPO ── */}
+          {compoView==="personal"&&<>
+            {/* Formation picker */}
+            <div className="rounded-xl p-3" style={{background:"#0d1421",border:"1px solid #1e2d42"}}>
+              <p className="text-[9px] font-black uppercase tracking-widest mb-2" style={{color:"#6b7c96"}}>Formation</p>
+              <div className="flex gap-1.5 flex-wrap">
+                {F_KEYS.map(f=>(
+                  <button key={f} onClick={()=>changeFormation(f)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-black transition-all hover:opacity-90"
+                    style={{background:formation===f?club.color:"rgba(255,255,255,0.05)",color:formation===f?"#fff":"#64748b",border:`1px solid ${formation===f?club.color:"rgba(255,255,255,0.08)"}`}}>
+                    {f}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Save / Clear buttons */}
-          <div className="flex gap-2 items-center">
-            <span className="text-xs flex-shrink-0" style={{color:"#6b7c96"}}>{filledCount}/11 joueurs</span>
-            <div className="flex-1"/>
-            <button onClick={clearCompo} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-80 transition-all"
-              style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",color:"#f87171"}}>
-              <X size={10}/> Effacer
-            </button>
-            <button onClick={saveCompo} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black hover:opacity-90 transition-all"
-              style={{background:compoSaved?"rgba(34,197,94,0.2)":club.color,color:"#fff",border:"none"}}>
-              {compoSaved?<><CheckCircle2 size={11}/> Sauvé !</>:<><Save size={11}/> Sauvegarder</>}
-            </button>
-          </div>
+            {/* PITCH — smaller via maxWidth */}
+            <div style={{maxWidth:340,margin:"0 auto",width:"100%"}}>
+              <div className="rounded-2xl overflow-hidden" style={{border:`1px solid ${club.color}35`,position:"relative",paddingBottom:"128%"}}>
+                <div style={{position:"absolute",inset:0}}>
+                  <FootPitch color={club.color}/>
+                  {slots.map((slot,idx)=>{
+                    const name=players11[idx];
+                    const isSel=selSlot===idx;
+                    const used=new Set(players11.filter((p,i)=>p!==null&&i!==idx));
+                    // ANY player — no position filter
+                    const available=squad.filter(p=>!used.has(p.name));
+                    return (
+                      <div key={idx} style={{position:"absolute",left:`${slot.x}%`,top:`${slot.y}%`,transform:"translate(-50%,-50%)",zIndex:isSel?20:10}}>
+                        <button onClick={()=>setSelSlot(isSel?null:idx)}
+                          className="flex flex-col items-center" style={{outline:"none",background:"none",border:"none",padding:0,cursor:"pointer"}}>
+                          <div className="flex items-center justify-center rounded-full transition-all duration-150"
+                            style={{width:38,height:38,background:name?club.color:"rgba(10,15,28,0.8)",
+                              border:`2px solid ${name?club.color:isSel?"rgba(255,255,255,0.6)":"rgba(255,255,255,0.2)"}`,
+                              boxShadow:name?`0 0 10px ${club.color}66`:isSel?"0 0 8px rgba(255,255,255,0.25)":"none"}}>
+                            {name
+                              ?<span className="text-white font-black text-center px-0.5" style={{fontSize:7,lineHeight:1.1,maxWidth:34,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{name.split(" ").pop()}</span>
+                              :<span style={{fontSize:15,color:"rgba(255,255,255,0.3)"}}>+</span>}
+                          </div>
+                          <div className="text-center rounded" style={{marginTop:1,fontSize:7,fontWeight:900,color:"rgba(255,255,255,0.7)",background:"rgba(0,0,0,0.6)",padding:"1px 3px"}}>{slot.role}</div>
+                        </button>
+                        {isSel&&(
+                          <div className="absolute z-30 rounded-xl overflow-hidden shadow-2xl"
+                            style={{top:"105%",left:"50%",transform:"translateX(-50%)",marginTop:3,minWidth:148,maxHeight:200,overflowY:"auto",background:"#0d1421",border:`1px solid ${club.color}55`}}>
+                            <div className="px-2 py-1.5 sticky top-0" style={{background:"#0a0f1c",borderBottom:"1px solid #1e2d42"}}>
+                              <span className="text-[9px] font-black uppercase tracking-widest" style={{color:club.color}}>{slot.role}</span>
+                            </div>
+                            {available.length===0
+                              ?<p className="px-3 py-2 text-[10px]" style={{color:"#6b7c96"}}>Aucun joueur</p>
+                              :available.sort((a,b)=>((b.xG??0)+(b.xA??0))-((a.xG??0)+(a.xA??0))).map(p=>(
+                                <button key={p.id} onClick={()=>assignPlayer(idx,p.name)}
+                                  className="w-full text-left flex items-center gap-2 px-3 py-2 hover:bg-white/[0.06] transition-colors"
+                                  style={{borderTop:"1px solid rgba(30,45,66,0.35)"}}>
+                                  <span className="text-[8px] font-black px-1 py-0.5 rounded flex-shrink-0"
+                                    style={{background:`${POS_COLOR[p.position]??club.color}22`,color:POS_COLOR[p.position]??club.color}}>{POS_CODE[p.position]??"?"}</span>
+                                  {p.formBadge==="hot"&&<span className="text-[10px]">🔥</span>}
+                                  <span className="flex-1 text-xs font-semibold truncate" style={{color:"#e8edf5"}}>{p.name}</span>
+                                  {(p.usGoals??0)>0&&<span className="text-[9px] font-black flex-shrink-0" style={{color:"#22c55e"}}>{p.usGoals}B</span>}
+                                </button>
+                              ))}
+                            {name&&<button onClick={()=>{const a=[...players11];a[idx]=null;setPlayers11(a);setSelSlot(null);}}
+                              className="w-full text-left flex items-center gap-2 px-3 py-2 hover:bg-white/[0.04]"
+                              style={{borderTop:"1px solid rgba(30,45,66,0.4)"}}>
+                              <X size={10} style={{color:"#f87171"}}/><span className="text-[10px]" style={{color:"#f87171"}}>Retirer</span>
+                            </button>}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
 
-          {/* PITCH */}
-          <div className="rounded-2xl overflow-hidden" style={{border:`1px solid ${club.color}35`,position:"relative",paddingBottom:"145%"}}>
-            <div style={{position:"absolute",inset:0}}>
-              <FootPitch color={club.color}/>
-              {/* Player slots */}
-              {slots.map((slot,idx)=>{
-                const name=players11[idx];
-                const isSelected=selSlot===idx;
-                const slotClub=squad.filter(p=>slotPosMatch(slot.type,p.position));
-                const used=new Set(players11.filter((p,i)=>p!==null&&i!==idx));
-                const available=slotClub.filter(p=>!used.has(p.name));
+            {/* Actions bar */}
+            <div className="flex gap-2 items-center">
+              <span className="text-xs font-semibold" style={{color:"#6b7c96"}}>{filledCount}/11</span>
+              <div className="flex-1"/>
+              <button onClick={clearCompo} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-80"
+                style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",color:"#f87171"}}>
+                <X size={10}/> Effacer
+              </button>
+              {/* BIG SAVE BUTTON */}
+              <button onClick={saveCompo} disabled={compoSaving||filledCount===0}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black hover:opacity-90 transition-all disabled:opacity-50"
+                style={{background:compoSaved?"#22c55e":club.color,color:"#fff",boxShadow:`0 0 20px ${compoSaved?"#22c55e":club.color}55`}}>
+                {compoSaved?<><CheckCircle2 size={14}/> Sauvegardé !</>:compoSaving?<><RefreshCw size={13} className="animate-spin"/> Envoi...</>:<><Save size={14}/> Sauvegarder ma compo</>}
+              </button>
+            </div>
+            {compoSaved&&<p className="text-[10px] text-center" style={{color:"#22c55e"}}>✓ Ta compo a été enregistrée et contribue à l&apos;équipe type communauté !</p>}
+
+            {/* XI list */}
+            {filledCount>0&&(
+              <div className="rounded-xl overflow-hidden" style={{border:"1px solid #1e2d42"}}>
+                <div className="px-4 py-2" style={{background:"#0d1421",borderBottom:"1px solid #1e2d42"}}>
+                  <span className="text-[9px] font-black uppercase tracking-widest" style={{color:"#6b7c96"}}>XI — {formation}</span>
+                </div>
+                <div className="divide-y" style={{borderColor:"rgba(30,45,66,0.4)"}}>
+                  {slots.map((slot,idx)=>{
+                    const name=players11[idx];
+                    const player=squad.find(p=>p.name===name);
+                    const pc=POS_COLOR[{GK:"Goalkeeper",DF:"Defender",MF:"Midfielder",FW:"Centre-Forward"}[slot.type]]??club.color;
+                    return (
+                      <div key={idx} className="flex items-center gap-2 px-4 py-2">
+                        <span className="text-[9px] font-black w-8 flex-shrink-0" style={{color:pc}}>{slot.role}</span>
+                        {name?<>
+                          <span className="flex-1 text-xs font-semibold truncate" style={{color:"#e8edf5"}}>{name}</span>
+                          {player?.formBadge==="hot"&&<span>🔥</span>}
+                          {(player?.usGoals??0)>0&&<span className="text-[9px] font-black" style={{color:"#22c55e"}}>{player!.usGoals}B</span>}
+                          <button onClick={()=>{const a=[...players11];a[idx]=null;setPlayers11(a);}} className="hover:opacity-80" style={{color:"#475569"}}><X size={9}/></button>
+                        </>:<span className="flex-1 text-xs" style={{color:"#475569"}}>Poste vide</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </>}
+
+          {/* ── COMMUNITY TEAM ── */}
+          {compoView==="community"&&(
+            <div className="space-y-4">
+              {communityLoading?(
+                <div className="flex flex-col items-center py-12 gap-3">
+                  <div className="w-8 h-8 rounded-full border-2 animate-spin" style={{borderColor:club.color,borderTopColor:"transparent"}}/>
+                  <span className="text-xs" style={{color:"#6b7c96"}}>Calcul de l&apos;équipe type en cours…</span>
+                </div>
+              ):!communityTeam||communityTeam.votes===0?(
+                <div className="rounded-2xl p-8 text-center" style={{background:"#0d1421",border:"1px solid #1e2d42"}}>
+                  <Globe2 size={32} className="mx-auto mb-3" style={{color:"#6b7c96"}}/>
+                  <p className="text-sm font-bold mb-1" style={{color:"#e8edf5"}}>Pas encore de votes</p>
+                  <p className="text-xs" style={{color:"#6b7c96"}}>Sois le premier à sauvegarder ta compo pour lancer l&apos;équipe type !</p>
+                  <button onClick={()=>setCompoView("personal")} className="mt-4 flex items-center gap-2 mx-auto px-4 py-2 rounded-xl text-sm font-black hover:opacity-90"
+                    style={{background:club.color,color:"#fff"}}>
+                    <Star size={13}/> Créer ma compo
+                  </button>
+                </div>
+              ):(()=>{
+                const ct=communityTeam;
+                const ctSlots=FORMATIONS[ct.formation]??FORMATIONS["4-3-3"];
+                const tweetUrl=`https://twitter.com/intent/tweet?text=${buildTweet(ct)}`;
                 return (
-                  <div key={idx} style={{
-                    position:"absolute",
-                    left:`${slot.x}%`,top:`${slot.y}%`,
-                    transform:"translate(-50%,-50%)",
-                    zIndex:isSelected?20:10,
-                  }}>
-                    {/* Circle */}
-                    <button onClick={()=>setSelSlot(isSelected?null:idx)}
-                      className="flex flex-col items-center"
-                      style={{outline:"none",background:"none",border:"none",padding:0,cursor:"pointer"}}>
-                      <div className="flex items-center justify-center rounded-full transition-all duration-150"
-                        style={{
-                          width:40,height:40,
-                          background:name?club.color:"rgba(10,15,28,0.75)",
-                          border:`2px solid ${name?club.color:isSelected?"rgba(255,255,255,0.5)":"rgba(255,255,255,0.25)"}`,
-                          boxShadow:name?`0 0 10px ${club.color}66`:isSelected?"0 0 8px rgba(255,255,255,0.2)":"none",
-                        }}>
-                        {name?(
-                          <span className="text-white font-black leading-tight text-center px-0.5"
-                            style={{fontSize:8,lineHeight:1.1,maxWidth:36,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>
-                            {name.split(" ").pop()}
-                          </span>
-                        ):(
-                          <span style={{fontSize:16,color:"rgba(255,255,255,0.35)"}}>+</span>
-                        )}
+                  <div className="space-y-4">
+                    {/* Header */}
+                    <div className="rounded-xl px-4 py-3 flex items-center justify-between"
+                      style={{background:`${club.color}10`,border:`1px solid ${club.color}30`}}>
+                      <div>
+                        <p className="text-sm font-black" style={{color:"#e8edf5"}}>Équipe Type des Supporters</p>
+                        <p className="text-xs mt-0.5" style={{color:"#6b7c96"}}>
+                          <span className="font-bold" style={{color:club.color}}>{ct.votes}</span> compo{ct.votes>1?"s":""} soumise{ct.votes>1?"s":""} · Formation dominante : <b style={{color:"#e8edf5"}}>{ct.formation}</b>
+                        </p>
                       </div>
-                      <div className="text-center rounded" style={{marginTop:2,fontSize:8,fontWeight:900,color:"rgba(255,255,255,0.65)",background:"rgba(0,0,0,0.55)",padding:"1px 3px"}}>
-                        {slot.role}
-                      </div>
-                    </button>
+                      <button onClick={loadCommunityTeam} className="p-1.5 rounded-lg hover:opacity-80" style={{color:"#6b7c96",background:"rgba(255,255,255,0.04)",border:"1px solid #1e2d42"}}>
+                        <RefreshCw size={12} className={communityLoading?"animate-spin":""}/>
+                      </button>
+                    </div>
 
-                    {/* Dropdown to pick player */}
-                    {isSelected&&(
-                      <div className="absolute z-30 rounded-xl overflow-hidden shadow-2xl"
-                        style={{
-                          top:"100%",left:"50%",transform:"translateX(-50%)",
-                          marginTop:4,
-                          minWidth:140,maxHeight:180,overflowY:"auto",
-                          background:"#0d1421",border:`1px solid ${club.color}60`,
-                        }}>
-                        <div className="px-2 py-1.5 sticky top-0" style={{background:"#0a0f1c",borderBottom:"1px solid #1e2d42"}}>
-                          <span className="text-[9px] font-black uppercase tracking-widest" style={{color:club.color}}>{slot.role} — {slot.type}</span>
+                    {/* Community pitch */}
+                    <div style={{maxWidth:340,margin:"0 auto",width:"100%"}}>
+                      <div className="rounded-2xl overflow-hidden" style={{border:`2px solid ${club.color}55`,position:"relative",paddingBottom:"128%"}}>
+                        <div style={{position:"absolute",inset:0}}>
+                          <FootPitch color={club.color}/>
+                          {ctSlots.map((slot,idx)=>{
+                            const name=ct.players[idx];
+                            const details=ct.slotDetails?.[idx]??[];
+                            const topVotes=details[0]?.count??0;
+                            const pct=ct.votes>0?Math.round((topVotes/ct.votes)*100):0;
+                            return (
+                              <div key={idx} style={{position:"absolute",left:`${slot.x}%`,top:`${slot.y}%`,transform:"translate(-50%,-50%)",zIndex:10}}>
+                                <div className="flex flex-col items-center">
+                                  <div className="flex items-center justify-center rounded-full"
+                                    style={{width:38,height:38,background:name?club.color:"rgba(10,15,28,0.7)",
+                                      border:`2px solid ${name?club.color:"rgba(255,255,255,0.15)"}`,
+                                      boxShadow:name?`0 0 12px ${club.color}88`:"none"}}>
+                                    {name
+                                      ?<span className="text-white font-black text-center px-0.5" style={{fontSize:7,lineHeight:1.1,maxWidth:34,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{name.split(" ").pop()}</span>
+                                      :<span style={{fontSize:12,color:"rgba(255,255,255,0.2)"}}>?</span>}
+                                  </div>
+                                  {name&&pct>0&&<div className="text-center rounded" style={{marginTop:1,fontSize:6,fontWeight:900,color:`${club.color}`,background:"rgba(0,0,0,0.75)",padding:"1px 3px"}}>{pct}%</div>}
+                                  <div className="text-center rounded" style={{marginTop:name&&pct>0?0:1,fontSize:7,fontWeight:900,color:"rgba(255,255,255,0.65)",background:"rgba(0,0,0,0.55)",padding:"1px 3px"}}>{slot.role}</div>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                        {available.length===0?(
-                          <p className="px-3 py-2 text-[10px]" style={{color:"#6b7c96"}}>Aucun joueur disponible</p>
-                        ):available.sort((a,b)=>((b.xG??0)+(b.xA??0))-((a.xG??0)+(a.xA??0))).map(p=>(
-                          <button key={p.id} onClick={()=>assignPlayer(idx,p.name)}
-                            className="w-full text-left flex items-center gap-2 px-3 py-2 hover:bg-white/[0.05] transition-colors"
-                            style={{borderTop:"1px solid rgba(30,45,66,0.35)"}}>
-                            {p.formBadge==="hot"&&<span className="text-[10px]">🔥</span>}
-                            <span className="flex-1 text-xs font-semibold truncate" style={{color:"#e8edf5"}}>{p.name}</span>
-                            {(p.usGoals??p.xG??0)>0&&<span className="text-[9px] font-black" style={{color:"#22c55e"}}>{p.usGoals??Math.round(p.xG!)}B</span>}
-                          </button>
-                        ))}
-                        {name&&(
-                          <button onClick={()=>{const a=[...players11];a[idx]=null;setPlayers11(a);setSelSlot(null);}}
-                            className="w-full text-left flex items-center gap-2 px-3 py-2 hover:bg-white/[0.05]"
-                            style={{borderTop:"1px solid rgba(30,45,66,0.4)"}}>
-                            <X size={10} style={{color:"#f87171"}}/>
-                            <span className="text-[10px]" style={{color:"#f87171"}}>Retirer {name.split(" ").pop()}</span>
-                          </button>
-                        )}
                       </div>
-                    )}
+                    </div>
+
+                    {/* Twitter share */}
+                    <a href={tweetUrl} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-3 w-full py-3.5 rounded-2xl text-sm font-black hover:opacity-90 transition-all"
+                      style={{background:"#1DA1F2",color:"#fff",boxShadow:"0 0 24px rgba(29,161,242,0.35)"}}>
+                      <Share2 size={16}/>
+                      Publier l&apos;équipe type sur Twitter / X
+                    </a>
+
+                    {/* Per-slot details */}
+                    <div className="rounded-2xl overflow-hidden" style={{border:"1px solid #1e2d42"}}>
+                      <div className="px-4 py-2.5" style={{background:"#0d1421",borderBottom:"1px solid #1e2d42"}}>
+                        <span className="text-[9px] font-black uppercase tracking-widest" style={{color:"#6b7c96"}}>Détail des votes par poste</span>
+                      </div>
+                      {ctSlots.map((slot,idx)=>{
+                        const details=(ct.slotDetails?.[idx]??[]).slice(0,3);
+                        const top=details[0];
+                        const pc=POS_COLOR[{GK:"Goalkeeper",DF:"Defender",MF:"Midfielder",FW:"Centre-Forward"}[slot.type]]??club.color;
+                        return (
+                          <div key={idx} className="px-4 py-2.5" style={{borderTop:"1px solid rgba(30,45,66,0.4)"}}>
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <span className="text-[9px] font-black w-8" style={{color:pc}}>{slot.role}</span>
+                              {top
+                                ?<span className="text-xs font-black" style={{color:"#e8edf5"}}>{top.name}</span>
+                                :<span className="text-xs" style={{color:"#475569"}}>—</span>}
+                              {top&&<span className="ml-auto text-[9px] font-bold" style={{color:club.color}}>{top.count} vote{top.count>1?"s":""}</span>}
+                            </div>
+                            {details.length>1&&(
+                              <div className="flex gap-1 flex-wrap">
+                                {details.slice(1).map((d,i)=>(
+                                  <span key={i} className="text-[9px] px-1.5 py-0.5 rounded" style={{background:"rgba(255,255,255,0.04)",color:"#6b7c96"}}>
+                                    {d.name.split(" ").pop()} ({d.count})
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 );
-              })}
-            </div>
-          </div>
-
-          {/* Selected XI list */}
-          {filledCount>0&&(
-            <div className="rounded-xl overflow-hidden" style={{border:"1px solid #1e2d42"}}>
-              <div className="px-4 py-2" style={{background:"#0d1421",borderBottom:"1px solid #1e2d42"}}>
-                <span className="text-[9px] font-black uppercase tracking-widest" style={{color:"#6b7c96"}}>XI sélectionné — {formation}</span>
-              </div>
-              <div className="divide-y" style={{borderColor:"rgba(30,45,66,0.4)"}}>
-                {slots.map((slot,idx)=>{
-                  const name=players11[idx];
-                  const player=squad.find(p=>p.name===name);
-                  return (
-                    <div key={idx} className="flex items-center gap-2 px-4 py-2">
-                      <span className="text-[9px] font-black w-8 flex-shrink-0" style={{color:POS_COLOR[{GK:"Goalkeeper",DF:"Defender",MF:"Midfielder",FW:"Centre-Forward"}[slot.type]]??club.color}}>{slot.role}</span>
-                      {name?(
-                        <>
-                          <span className="flex-1 text-xs font-semibold truncate" style={{color:"#e8edf5"}}>{name}</span>
-                          {player?.formBadge==="hot"&&<span className="text-[10px]">🔥</span>}
-                          {player&&(player.usGoals!=null||player.xG!=null)&&
-                            <span className="text-[9px] font-black" style={{color:"#22c55e"}}>{player.usGoals??Math.round(player.xG??0)}B</span>}
-                          <button onClick={()=>{const a=[...players11];a[idx]=null;setPlayers11(a);}}
-                            className="flex-shrink-0 hover:opacity-80" style={{color:"#475569"}}>
-                            <X size={9}/>
-                          </button>
-                        </>
-                      ):(
-                        <span className="flex-1 text-xs" style={{color:"#475569"}}>Poste vide</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+              })()}
             </div>
           )}
+
         </div>
       )}
 
