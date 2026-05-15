@@ -953,7 +953,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                     // ANY player — no position filter
                     const available=squad.filter(p=>!used.has(p.name));
                     return (
-                      <div key={idx} style={{position:"absolute",left:`${slot.x}%`,top:`${slot.y}%`,transform:"translate(-50%,-50%)",zIndex:isSel?20:10}}>
+                      <div key={idx} style={{position:"absolute",left:`${slot.x}%`,top:`${slot.y}%`,transform:"translate(-50%,-50%)",zIndex:10}}>
                         <button onClick={()=>setSelSlot(isSel?null:idx)}
                           className="flex flex-col items-center" style={{outline:"none",background:"none",border:"none",padding:0,cursor:"pointer"}}>
                           <div className="flex items-center justify-center rounded-full transition-all duration-150"
@@ -966,38 +966,52 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                           </div>
                           <div className="text-center rounded" style={{marginTop:1,fontSize:7,fontWeight:900,color:"rgba(255,255,255,0.7)",background:"rgba(0,0,0,0.6)",padding:"1px 3px"}}>{slot.role}</div>
                         </button>
-                        {isSel&&(
-                          <div className="absolute z-30 rounded-xl overflow-hidden shadow-2xl"
-                            style={{top:"105%",left:"50%",transform:"translateX(-50%)",marginTop:3,minWidth:148,maxHeight:200,overflowY:"auto",background:"#0d1421",border:`1px solid ${club.color}55`}}>
-                            <div className="px-2 py-1.5 sticky top-0" style={{background:"#0a0f1c",borderBottom:"1px solid #1e2d42"}}>
-                              <span className="text-[9px] font-black uppercase tracking-widest" style={{color:club.color}}>{slot.role}</span>
-                            </div>
-                            {available.length===0
-                              ?<p className="px-3 py-2 text-[10px]" style={{color:"#6b7c96"}}>Aucun joueur</p>
-                              :available.sort((a,b)=>((b.xG??0)+(b.xA??0))-((a.xG??0)+(a.xA??0))).map(p=>(
-                                <button key={p.id} onClick={()=>assignPlayer(idx,p.name)}
-                                  className="w-full text-left flex items-center gap-2 px-3 py-2 hover:bg-white/[0.06] transition-colors"
-                                  style={{borderTop:"1px solid rgba(30,45,66,0.35)"}}>
-                                  <span className="text-[8px] font-black px-1 py-0.5 rounded flex-shrink-0"
-                                    style={{background:`${POS_COLOR[p.position]??club.color}22`,color:POS_COLOR[p.position]??club.color}}>{POS_CODE[p.position]??"?"}</span>
-                                  {p.formBadge==="hot"&&<span className="text-[10px]">🔥</span>}
-                                  <span className="flex-1 text-xs font-semibold truncate" style={{color:"#e8edf5"}}>{p.name}</span>
-                                  {(p.usGoals??0)>0&&<span className="text-[9px] font-black flex-shrink-0" style={{color:"#22c55e"}}>{p.usGoals}B</span>}
-                                </button>
-                              ))}
-                            {name&&<button onClick={()=>{const a=[...players11];a[idx]=null;setPlayers11(a);setSelSlot(null);}}
-                              className="w-full text-left flex items-center gap-2 px-3 py-2 hover:bg-white/[0.04]"
-                              style={{borderTop:"1px solid rgba(30,45,66,0.4)"}}>
-                              <X size={10} style={{color:"#f87171"}}/><span className="text-[10px]" style={{color:"#f87171"}}>Retirer</span>
-                            </button>}
-                          </div>
-                        )}
                       </div>
                     );
                   })}
                 </div>
               </div>
             </div>
+
+            {/* Player picker — outside overflow-hidden so it never gets clipped */}
+            {selSlot!==null&&(()=>{
+              const slot=slots[selSlot];
+              const name=players11[selSlot];
+              const used=new Set(players11.filter((p,i)=>p!==null&&i!==selSlot));
+              const available=squad.filter(p=>!used.has(p.name));
+              return (
+                <div className="rounded-xl overflow-hidden" style={{border:`1px solid ${club.color}55`,background:"#0d1421"}}>
+                  <div className="flex items-center justify-between px-3 py-2" style={{background:"#0a0f1c",borderBottom:"1px solid #1e2d42"}}>
+                    <span className="text-[10px] font-black uppercase tracking-widest" style={{color:club.color}}>
+                      Choisir — {slot.role}
+                    </span>
+                    <button onClick={()=>setSelSlot(null)} className="hover:opacity-70" style={{color:"#6b7c96"}}><X size={12}/></button>
+                  </div>
+                  <div style={{maxHeight:200,overflowY:"auto"}}>
+                    {available.length===0
+                      ?<p className="px-3 py-3 text-[11px]" style={{color:"#6b7c96"}}>Tous les joueurs sont placés</p>
+                      :available.sort((a,b)=>((b.xG??0)+(b.xA??0))-((a.xG??0)+(a.xA??0))).map(p=>(
+                        <button key={p.id} onClick={()=>assignPlayer(selSlot,p.name)}
+                          className="w-full text-left flex items-center gap-2 px-3 py-2 hover:bg-white/[0.06] transition-colors"
+                          style={{borderTop:"1px solid rgba(30,45,66,0.35)"}}>
+                          <span className="text-[8px] font-black px-1 py-0.5 rounded flex-shrink-0"
+                            style={{background:`${POS_COLOR[p.position]??club.color}22`,color:POS_COLOR[p.position]??club.color}}>{POS_CODE[p.position]??"?"}</span>
+                          {p.formBadge==="hot"&&<span className="text-[10px]">🔥</span>}
+                          <span className="flex-1 text-sm font-semibold truncate" style={{color:"#e8edf5"}}>{p.name}</span>
+                          {(p.usGoals??0)>0&&<span className="text-[9px] font-black flex-shrink-0" style={{color:"#22c55e"}}>{p.usGoals}B</span>}
+                        </button>
+                      ))}
+                    {name&&(
+                      <button onClick={()=>{const a=[...players11];a[selSlot]=null;setPlayers11(a);setSelSlot(null);}}
+                        className="w-full text-left flex items-center gap-2 px-3 py-2 hover:bg-white/[0.04]"
+                        style={{borderTop:"1px solid rgba(239,68,68,0.2)"}}>
+                        <X size={10} style={{color:"#f87171"}}/><span className="text-[11px] font-semibold" style={{color:"#f87171"}}>Retirer {name.split(" ").pop()}</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Actions bar */}
             <div className="flex gap-2 items-center">
