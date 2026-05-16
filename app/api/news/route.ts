@@ -7,23 +7,24 @@ export interface NewsItem {
   pubDate: string;
   url: string;
   source?: string;
-  description?: string;
 }
 
-/* ─── HTML entity decoder ────────────────────────────────────── */
-function de(s: string): string {
+/* ─── HTML / entity helpers ──────────────────────────────────── */
+function stripHtml(s: string) {
+  return s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+function de(s: string) {
   return s
     .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/g, "'")
     .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)));
 }
 
-/* ─── Parse raw RSS XML string → NewsItem[] ─────────────────── */
-function parseRSS(xml: string): NewsItem[] {
+/* ─── Parse RSS XML → items ──────────────────────────────────── */
+function parseRSS(xml: string, filter?: (title: string) => boolean): NewsItem[] {
   const items: NewsItem[] = [];
   let pos = 0;
-
-  while (items.length < 10) {
+  while (items.length < 15) {
     const s = xml.indexOf("<item>", pos);
     if (s === -1) break;
     const e = xml.indexOf("</item>", s);
@@ -31,142 +32,101 @@ function parseRSS(xml: string): NewsItem[] {
     const b = xml.slice(s, e + 7);
     pos = e + 7;
 
-    // Title: try CDATA first, then plain text
-    const titleCdata = b.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/);
-    const titlePlain = b.match(/<title>([\s\S]*?)<\/title>/);
-    const rawTitle = de((titleCdata?.[1] ?? titlePlain?.[1] ?? "").trim());
-    if (!rawTitle || rawTitle.length < 8) continue;
+    // Title: CDATA or plain
+    const tc = b.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/);
+    const tp = b.match(/<title>([\s\S]*?)<\/title>/);
+    const title = de(stripHtml((tc?.[1] ?? tp?.[1] ?? "").trim()));
+    if (!title || title.length < 8) continue;
+    if (filter && !filter(title)) continue;
 
-    // Strip " - Source Name" suffix Google News appends
-    const title = rawTitle.replace(/\s[-–]\s[^-–]{2,50}$/, "").trim();
-    if (/comprehensive.*news|aggregated from sources|google news/i.test(title)) continue;
+    // URL
+    const lc = b.match(/<link><!\[CDATA\[([\s\S]*?)\]\]><\/link>/);
+    const lp = b.match(/<link>([^<]+)<\/link>/);
+    const url = de((lc?.[1] ?? lp?.[1] ?? "").trim());
 
     // Date
-    const dateM = b.match(/<pubDate>([\s\S]*?)<\/pubDate>/);
-    const pubDate = dateM ? new Date(de(dateM[1])).toISOString() : new Date().toISOString();
+    const dm = b.match(/<pubDate>([\s\S]*?)<\/pubDate>/);
+    const pubDate = dm ? new Date(de(dm[1])).toISOString() : new Date().toISOString();
 
-    // URL — <link> contains Google redirect URL (works fine for opening articles)
-    const linkM = b.match(/<link>([^<]+)<\/link>/);
-    const url = linkM ? de(linkM[1]).trim() : "";
+    // Source / creator
+    const sc = b.match(/<dc:creator><!\[CDATA\[([\s\S]*?)\]\]><\/dc:creator>/);
+    const sp = b.match(/<dc:creator>([\s\S]*?)<\/dc:creator>/);
+    const source = sc?.[1]?.trim() ?? sp?.[1]?.trim() ?? "So Foot";
 
-    // Source — from <source> tag
-    const srcM = b.match(/<source[^>]*>([\s\S]*?)<\/source>/);
-    const source = srcM ? de(srcM[1]).trim() : undefined;
-
-    // Description — extract 2nd <li> from decoded HTML for related context
-    let description: string | undefined;
-    const descCdata = b.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/);
-    const descPlain = b.match(/<description>([\s\S]*?)<\/description>/);
-    const descHtml = de((descCdata?.[1] ?? descPlain?.[1] ?? "").trim());
-    if (descHtml) {
-      const lis = [...descHtml.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)];
-      if (lis.length >= 2) {
-        const txt = lis[1][1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-        if (txt.length > 20 && !/comprehensive|aggregated|google news/i.test(txt)) {
-          description = txt.slice(0, 120);
-        }
-      }
-    }
-
-    items.push({ title, pubDate, url, source, description });
+    items.push({ title, pubDate, url, source });
   }
   return items;
 }
 
-/* ─── Fetch RSS (primary) ────────────────────────────────────── */
-async function fetchGoogleRSS(rssUrl: string): Promise<{ items: NewsItem[]; error?: string }> {
+/* ─── Fetch helpers ──────────────────────────────────────────── */
+async function fetchXML(url: string): Promise<string> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 8000);
   try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 8000);
-    const res = await fetch(rssUrl, {
+    const res = await fetch(url, {
       signal: ctrl.signal,
       cache: "no-store",
       headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "fr-FR,fr;q=0.9",
+        "User-Agent": "Mozilla/5.0 (compatible; FootInsider/1.0; +https://footinsider.fr)",
+        "Accept": "application/rss+xml, application/xml, text/xml, */*",
       },
     });
     clearTimeout(timer);
-    if (!res.ok) return { items: [], error: `HTTP ${res.status}` };
-    const xml = await res.text();
-    const items = parseRSS(xml);
-    return { items };
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "unknown";
-    return { items: [], error: msg };
-  }
-}
-
-/* ─── Fallback: rss2json.com proxy ──────────────────────────── */
-async function fetchViaProxy(rssUrl: string): Promise<NewsItem[]> {
-  try {
-    const proxyUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=10`;
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 8000);
-    const res = await fetch(proxyUrl, { signal: ctrl.signal, cache: "no-store" });
-    clearTimeout(timer);
-    if (!res.ok) return [];
-    const json = await res.json() as {
-      status: string;
-      items?: Array<{ title: string; pubDate: string; link: string; author?: string; description?: string }>;
-    };
-    if (json.status !== "ok" || !json.items?.length) return [];
-    return json.items.map(it => ({
-      title: it.title?.replace(/\s[-–]\s[^-–]{2,50}$/, "").trim() ?? "",
-      pubDate: it.pubDate ? new Date(it.pubDate).toISOString() : new Date().toISOString(),
-      url: it.link ?? "",
-      source: it.author || undefined,
-    })).filter(it => it.title.length > 8);
+    if (!res.ok) return "";
+    return await res.text();
   } catch {
-    return [];
+    clearTimeout(timer);
+    return "";
   }
 }
 
-/* ─── Query config ───────────────────────────────────────────── */
-const GN_BASE = "https://news.google.com/rss/search?hl=fr&gl=FR&ceid=FR:fr&q=";
+/* ─── RSS sources ────────────────────────────────────────────── */
+// So Foot: best French football RSS, no blocking, proper UTF-8
+const SOFOOT_RSS = "https://www.sofoot.com/rss/";
 
-const QUERIES: Record<string, string> = {
-  l1:      "ligue+1+football+OR+mercato+OR+transfert+OR+match",
-  mondial: "coupe+du+monde+2026+FIFA+OR+france+mondial+football",
-};
+// Keywords to route articles to Mondial column
+const MONDIAL_KW = /mondial|coupe du monde|world cup|équipe de france|les bleus|fifa 2026|2026/i;
 
-function clubQuery(name: string) {
-  return encodeURIComponent(`${name} football ligue 1`);
-}
+// Keywords to route articles to L1 column
+const L1_KW = /ligue 1|ligue1|mercato|transfert|OM|PSG|Monaco|Lyon|Marseille|Lille|Rennes|Nice|Lens|Strasbourg|Brest|Nantes|Angers/i;
 
 /* ─── Handler ────────────────────────────────────────────────── */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const topic    = searchParams.get("topic") ?? "l1";
   const clubName = searchParams.get("club") ?? "";
-  const debug    = searchParams.get("debug") === "1";
 
-  const rssUrl = topic === "club" && clubName
-    ? GN_BASE + clubQuery(clubName)
-    : GN_BASE + (QUERIES[topic] ?? QUERIES.l1);
+  const xml = await fetchXML(SOFOOT_RSS);
 
-  // 1. Try direct Google News RSS
-  const { items: directItems, error: directError } = await fetchGoogleRSS(rssUrl);
+  if (!xml) {
+    return NextResponse.json({ items: [] }, {
+      headers: { "Cache-Control": "no-store" },
+    });
+  }
 
-  let items = directItems;
-  let source = "direct";
+  let items: NewsItem[];
 
-  // 2. If direct fails or returns 0 items, try rss2json proxy
-  if (!items.length) {
-    const proxyItems = await fetchViaProxy(rssUrl);
-    if (proxyItems.length) {
-      items = proxyItems;
-      source = "proxy";
+  if (topic === "club" && clubName) {
+    // Filter articles mentioning the club name
+    const kw = new RegExp(clubName.split(" ")[0], "i"); // e.g. "Paris" for PSG
+    items = parseRSS(xml, t => kw.test(t));
+    // Fallback: if too few results, take top general news
+    if (items.length < 3) {
+      items = parseRSS(xml).slice(0, 8);
     }
+  } else if (topic === "mondial") {
+    items = parseRSS(xml, t => MONDIAL_KW.test(t));
+    if (items.length < 3) {
+      // Fallback: any international news
+      items = parseRSS(xml).filter((_, i) => i >= 5).slice(0, 8);
+    }
+  } else {
+    // L1: prefer L1-tagged articles, fallback to top news
+    const l1 = parseRSS(xml, t => L1_KW.test(t));
+    items = l1.length >= 3 ? l1 : parseRSS(xml).slice(0, 10);
   }
 
-  const body: Record<string, unknown> = { items };
-  if (debug) {
-    body.debug = { rssUrl, directError, source, count: items.length };
-  }
-
-  return NextResponse.json(body, {
-    headers: { "Cache-Control": "no-store" },
+  return NextResponse.json({ items }, {
+    headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=60" },
   });
 }
