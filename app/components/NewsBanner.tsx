@@ -3,7 +3,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import dynamic from "next/dynamic";
 
-// Lazy-load modal to keep banner bundle small
 const NewsModal = dynamic(() => import("./NewsModal"), { ssr: false });
 
 interface Standing {
@@ -14,7 +13,7 @@ interface Standing {
   points: number; goalsFor: number; goalsAgainst: number;
   goalDifference: number; form: string;
 }
-interface NewsItem { title: string; pubDate: string; url: string; source?: string; description?: string }
+interface NewsItem { title: string; pubDate: string; url: string; source?: string }
 interface SelectedNews { title: string; url: string; pubDate: string }
 type Col = { label: string; color: string; items: NewsItem[]; loaded: boolean };
 
@@ -40,10 +39,86 @@ const CLUB_META: Record<number, { shortName: string; color: string; searchName: 
   1045: { shortName: "Paris FC",   color: "#003090", searchName: "Paris FC"            },
 };
 
+/* ─── Client-side RSS fetch + parse ─────────────────────────── */
+// Uses allorigins.win as CORS proxy so we fetch from the user's browser,
+// not from Vercel servers (which Google may block).
+const GN_BASE = "https://news.google.com/rss/search?hl=fr&gl=FR&ceid=FR:fr&q=";
+
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/g, "'")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)));
+}
+
+function parseRSS(xml: string): NewsItem[] {
+  const items: NewsItem[] = [];
+  let pos = 0;
+  while (items.length < 10) {
+    const s = xml.indexOf("<item>", pos);
+    if (s === -1) break;
+    const e = xml.indexOf("</item>", s);
+    if (e === -1) break;
+    const b = xml.slice(s, e + 7);
+    pos = e + 7;
+
+    // Title
+    const tc = b.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/);
+    const tp = b.match(/<title>([\s\S]*?)<\/title>/);
+    const rawTitle = decodeEntities((tc?.[1] ?? tp?.[1] ?? "").trim());
+    if (!rawTitle || rawTitle.length < 8) continue;
+    // Strip " - Source" suffix Google News appends
+    const title = rawTitle.replace(/\s[-–]\s[^-–]{2,50}$/, "").trim();
+    // Filter boilerplate
+    if (/comprehensive.*news|aggregated from sources|google news/i.test(title)) continue;
+    if (title.length < 8) continue;
+
+    // Date
+    const dm = b.match(/<pubDate>([\s\S]*?)<\/pubDate>/);
+    const pubDate = dm ? new Date(decodeEntities(dm[1])).toISOString() : new Date().toISOString();
+
+    // URL — Google redirect link (works fine)
+    const lm = b.match(/<link>([^<]+)<\/link>/);
+    const url = lm ? decodeEntities(lm[1]).trim() : "";
+
+    // Source outlet
+    const sm = b.match(/<source[^>]*>([\s\S]*?)<\/source>/);
+    const source = sm ? decodeEntities(sm[1]).trim() : undefined;
+
+    items.push({ title, pubDate, url, source });
+  }
+  return items;
+}
+
+async function fetchNewsRSS(query: string): Promise<NewsItem[]> {
+  const rssUrl = GN_BASE + query;
+  // Try via allorigins.win (CORS proxy) — fetch happens in the user's browser
+  try {
+    const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
+    const res = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
+    if (res.ok) {
+      const data = await res.json() as { contents?: string; status?: { http_code: number } };
+      if (data.contents && data.status?.http_code === 200) {
+        const items = parseRSS(data.contents);
+        if (items.length) return items;
+      }
+    }
+  } catch { /* fallthrough */ }
+
+  // Fallback: try our own API route (works locally, may fail on Vercel)
+  try {
+    const res = await fetch(`/api/news?topic=${encodeURIComponent(query)}&_=${Date.now()}`);
+    if (res.ok) {
+      const { items } = await res.json() as { items: NewsItem[] };
+      if (items?.length) return items;
+    }
+  } catch { /* ignore */ }
+
+  return [];
+}
+
 /* ─── Rotating column ────────────────────────────────────────── */
-function NewsColumn({
-  title, color, items, loaded, onSelect,
-}: {
+function NewsColumn({ title, color, items, loaded, onSelect }: {
   title: string; color: string; items: NewsItem[]; loaded: boolean;
   onSelect: (item: NewsItem) => void;
 }) {
@@ -67,7 +142,6 @@ function NewsColumn({
 
   return (
     <div className="flex-1 min-w-0 flex flex-col justify-center gap-1 px-3 py-2.5">
-      {/* Header */}
       <div className="flex items-center gap-1.5">
         <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: color }} />
         <span className="text-[9px] font-black uppercase tracking-widest" style={{ color }}>{title}</span>
@@ -82,7 +156,6 @@ function NewsColumn({
         )}
       </div>
 
-      {/* News text — clickable */}
       <button
         onClick={() => item?.url && onSelect(item)}
         className="text-left group"
@@ -92,18 +165,11 @@ function NewsColumn({
       >
         <p className="text-[11px] font-medium leading-snug line-clamp-2 group-hover:underline decoration-dotted underline-offset-2"
           style={{ color: loaded ? "#c8d4e0" : "#6b7c96", textDecorationColor: color }}>
-          {!loaded ? "Chargement des actualités…" : (item?.title ?? "")}
+          {!loaded ? "Chargement…" : (item?.title ?? "")}
         </p>
-        {/* Source outlet */}
         {loaded && item?.source && (
           <p className="text-[9px] mt-0.5 truncate" style={{ color: "#475569" }}>
             {item.source}
-          </p>
-        )}
-        {/* Description / related context */}
-        {loaded && item?.description && (
-          <p className="text-[10px] leading-snug line-clamp-1 mt-0.5" style={{ color: "#6b7c96" }}>
-            {item.description}
           </p>
         )}
       </button>
@@ -121,7 +187,6 @@ export default function NewsBanner({ standings }: { standings: Standing[] }) {
   ]);
   const [selected, setSelected] = useState<SelectedNews | null>(null);
 
-  // Read club from localStorage
   useEffect(() => {
     const raw = localStorage.getItem("monClub_id");
     if (raw) setMonClubId(Number(raw));
@@ -132,28 +197,20 @@ export default function NewsBanner({ standings }: { standings: Standing[] }) {
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
-  // Fetch L1 news
+  // Fetch L1 news (client-side via allorigins CORS proxy)
   useEffect(() => {
-    fetch("/api/news?topic=l1")
-      .then(r => r.json())
-      .then(({ items }: { items: NewsItem[] }) => {
-        const validItems = items?.length ? items : [{ title: "Actualités Ligue 1 indisponibles", pubDate: new Date().toISOString(), url: "" }];
-        setCols(prev => prev.map((c, i) => i === 0 ? { ...c, items: validItems, loaded: true } : c));
-      }).catch(() => {
-        setCols(prev => prev.map((c, i) => i === 0 ? { ...c, items: [{ title: "Actualités indisponibles", pubDate: new Date().toISOString(), url: "" }], loaded: true } : c));
-      });
+    fetchNewsRSS("ligue+1+football+OR+mercato+OR+transfert+OR+match").then(items => {
+      const valid = items.length ? items : [{ title: "Actualités Ligue 1 indisponibles", pubDate: new Date().toISOString(), url: "" }];
+      setCols(prev => prev.map((c, i) => i === 0 ? { ...c, items: valid, loaded: true } : c));
+    });
   }, []);
 
-  // Fetch Mondial news
+  // Fetch Mondial 2026 news
   useEffect(() => {
-    fetch("/api/news?topic=mondial")
-      .then(r => r.json())
-      .then(({ items }: { items: NewsItem[] }) => {
-        const validItems = items?.length ? items : [{ title: "Actualités Mondial 2026 indisponibles", pubDate: new Date().toISOString(), url: "" }];
-        setCols(prev => prev.map((c, i) => i === 1 ? { ...c, items: validItems, loaded: true } : c));
-      }).catch(() => {
-        setCols(prev => prev.map((c, i) => i === 1 ? { ...c, items: [{ title: "Actualités indisponibles", pubDate: new Date().toISOString(), url: "" }], loaded: true } : c));
-      });
+    fetchNewsRSS("coupe+du+monde+2026+FIFA+OR+france+mondial+football").then(items => {
+      const valid = items.length ? items : [{ title: "Actualités Mondial 2026 indisponibles", pubDate: new Date().toISOString(), url: "" }];
+      setCols(prev => prev.map((c, i) => i === 1 ? { ...c, items: valid, loaded: true } : c));
+    });
   }, []);
 
   // Fetch club news
@@ -165,32 +222,19 @@ export default function NewsBanner({ standings }: { standings: Standing[] }) {
       : c));
 
     if (!meta) {
-      const fallbackItem: NewsItem = {
-        title: "Sélectionne ton club dans l'onglet Mon Club pour ses actus",
-        pubDate: new Date().toISOString(),
-        url: "",
-      };
-      if (standings[0]) {
-        const leader: NewsItem = {
-          title: `Leader : ${standings[0].team.shortName} · ${standings[0].points} pts`,
-          pubDate: new Date().toISOString(),
-          url: "",
-        };
-        setCols(prev => prev.map((c, i) => i === 2 ? { ...c, items: [fallbackItem, leader], loaded: true } : c));
-      } else {
-        setCols(prev => prev.map((c, i) => i === 2 ? { ...c, items: [fallbackItem], loaded: true } : c));
-      }
+      const fallbackItems: NewsItem[] = [
+        { title: "Sélectionne ton club dans l'onglet Mon Club pour ses actus", pubDate: new Date().toISOString(), url: "" },
+        ...(standings[0] ? [{ title: `Leader : ${standings[0].team.shortName} · ${standings[0].points} pts`, pubDate: new Date().toISOString(), url: "" }] : []),
+      ];
+      setCols(prev => prev.map((c, i) => i === 2 ? { ...c, items: fallbackItems, loaded: true } : c));
       return;
     }
 
-    fetch(`/api/news?topic=club&club=${encodeURIComponent(meta.searchName)}`)
-      .then(r => r.json())
-      .then(({ items }: { items: NewsItem[] }) => {
-        const validItems = items?.length ? items : [{ title: `Pas d'actualités récentes pour ${meta.shortName}`, pubDate: new Date().toISOString(), url: "" }];
-        setCols(prev => prev.map((c, i) => i === 2 ? { ...c, items: validItems, loaded: true } : c));
-      }).catch(() => {
-        setCols(prev => prev.map((c, i) => i === 2 ? { ...c, items: [{ title: "Actualités indisponibles", pubDate: new Date().toISOString(), url: "" }], loaded: true } : c));
-      });
+    const q = encodeURIComponent(`${meta.searchName} football ligue 1`);
+    fetchNewsRSS(q).then(items => {
+      const valid = items.length ? items : [{ title: `Pas d'actualités récentes pour ${meta.shortName}`, pubDate: new Date().toISOString(), url: "" }];
+      setCols(prev => prev.map((c, i) => i === 2 ? { ...c, items: valid, loaded: true } : c));
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monClubId, standings.length]);
 
@@ -198,9 +242,7 @@ export default function NewsBanner({ standings }: { standings: Standing[] }) {
     setSelected({ title: item.title, url: item.url, pubDate: item.pubDate });
   };
 
-  const div = (
-    <div className="hidden sm:block flex-shrink-0" style={{ width: 1, background: "#1e2d42" }} />
-  );
+  const div = <div className="hidden sm:block flex-shrink-0" style={{ width: 1, background: "#1e2d42" }} />;
 
   return (
     <>
@@ -217,7 +259,6 @@ export default function NewsBanner({ standings }: { standings: Standing[] }) {
         </div>
       </div>
 
-      {/* Modal — mounts outside banner so scroll restore works correctly */}
       {selected && (
         <NewsModal
           title={selected.title}
