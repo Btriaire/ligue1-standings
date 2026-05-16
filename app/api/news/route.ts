@@ -40,6 +40,9 @@ async function fetchRSS(url: string): Promise<NewsItem[]> {
       const rawTitle = titleMatch[1].trim();
       const title = rawTitle.replace(/\s[-–]\s[^-–]{3,40}$/, "").trim();
 
+      // Skip Google News boilerplate channel descriptions
+      if (/comprehensive.*news|aggregated from sources|google news/i.test(title)) continue;
+
       const pubDate = dateMatch?.[1]
         ? new Date(dateMatch[1]).toISOString()
         : new Date().toISOString();
