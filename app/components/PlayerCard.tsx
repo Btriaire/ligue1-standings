@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   ChevronDown, ChevronUp, AlertTriangle, ExternalLink, Camera,
 } from "lucide-react";
+import Tooltip, { GLOSSARY } from "./Tooltip";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -218,12 +219,16 @@ export function PlayerPhoto({ p, size = "sm", eager = false }: { p: PlayerEntry;
 // ── StatBox ───────────────────────────────────────────────────────────────────
 
 export function StatBox({ label, value, color, sub }: { label: string; value: string | number; color?: string; sub?: string }) {
+  const hasGloss = !!GLOSSARY[label];
+  const labelEl = hasGloss
+    ? <Tooltip term={label} className="text-[9px] mt-1 text-center leading-tight" style={{ color: "#6b7c96" }} />
+    : <span className="text-[9px] mt-1 text-center leading-tight" style={{ color: "#6b7c96" }}>{label}</span>;
   return (
     <div className="flex flex-col items-center rounded-lg py-2 px-2"
       style={{ background: "rgba(255,255,255,0.04)", minWidth: 56 }}>
       <span className="text-sm font-black leading-none" style={{ color: color ?? "#e8edf5" }}>{value}</span>
       {sub && <span className="text-[8px] mt-0.5 font-semibold" style={{ color: color ?? "#6b7c96", opacity: 0.7 }}>{sub}</span>}
-      <span className="text-[9px] mt-1 text-center leading-tight" style={{ color: "#6b7c96" }}>{label}</span>
+      {labelEl}
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ChevronRight, Clock } from "lucide-react";
 import Link from "next/link";
+import Tooltip from "./Tooltip";
 
 interface TeamInfo {
   id: number;
@@ -95,42 +96,43 @@ export default function TeamPanel({ standing, zoneColor }: Props) {
         {/* W/D/L */}
         <div className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-mono"
           style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)" }}>
-          <span style={{ color: "#22c55e" }} className="font-black">{standing.won}V</span>
+          <Tooltip term="V" style={{ color: "#22c55e" }} className="font-black">{standing.won}V</Tooltip>
           <span style={{ color: "#6b7c96" }}>·</span>
-          <span style={{ color: "#f59e0b" }} className="font-black">{standing.draw}N</span>
+          <Tooltip term="N" style={{ color: "#f59e0b" }} className="font-black">{standing.draw}N</Tooltip>
           <span style={{ color: "#6b7c96" }}>·</span>
-          <span style={{ color: "#ef4444" }} className="font-black">{standing.lost}D</span>
+          <Tooltip term="D" style={{ color: "#ef4444" }} className="font-black">{standing.lost}D</Tooltip>
         </div>
 
         {/* Goals */}
         <div className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-mono"
           style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
-          <span style={{ color: "#22c55e" }}>{standing.goalsFor} BP</span>
+          <Tooltip term="BP" style={{ color: "#22c55e" }}>{standing.goalsFor} BP</Tooltip>
           <span style={{ color: "#6b7c96" }}>·</span>
-          <span style={{ color: "#ef4444" }}>{standing.goalsAgainst} BC</span>
+          <Tooltip term="BC" style={{ color: "#ef4444" }}>{standing.goalsAgainst} BC</Tooltip>
         </div>
 
         {/* GD */}
-        <div className="flex items-center rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold"
+        <Tooltip term="DB"
+          className="flex items-center rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold"
           style={{
             background: standing.goalDifference >= 0 ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)",
             border: `1px solid ${standing.goalDifference >= 0 ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}`,
             color: standing.goalDifference > 0 ? "#22c55e" : standing.goalDifference < 0 ? "#ef4444" : "#6b7c96",
           }}>
           DB {standing.goalDifference > 0 ? "+" : ""}{standing.goalDifference}
-        </div>
+        </Tooltip>
 
         {/* Pts/match */}
         <div className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-mono"
           style={{ background: `${zoneColor}10`, border: `1px solid ${zoneColor}25` }}>
           <span style={{ color: zoneColor }} className="font-bold">{ptsPerGame}</span>
-          <span style={{ color: "#6b7c96" }}>pts/match</span>
+          <Tooltip term="Pts" style={{ color: "#6b7c96" }}>pts/match</Tooltip>
         </div>
 
         {/* Win % */}
         <div className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-mono"
           style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
-          <span style={{ color: "#94a3b8" }}>{winPct}% V</span>
+          <Tooltip term="V" style={{ color: "#94a3b8" }}>{winPct}% V</Tooltip>
         </div>
       </div>
 
@@ -139,7 +141,7 @@ export default function TeamPanel({ standing, zoneColor }: Props) {
         {/* Form badges */}
         {formResults.length > 0 && (
           <div className="flex items-center gap-1">
-            <span className="text-[9px] uppercase tracking-widest mr-1" style={{ color: "#475569" }}>Forme</span>
+            <Tooltip term="Forme" className="text-[9px] uppercase tracking-widest mr-1" style={{ color: "#475569" }} />
             {formResults.map((r, i) => {
               const s = RESULT_STYLE[r];
               return s ? (

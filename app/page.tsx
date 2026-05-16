@@ -5,6 +5,7 @@ import Link from "next/link";
 import { RefreshCw, TrendingUp, TrendingDown, Minus, Trophy, Wifi, WifiOff, Clock, Zap, BarChart2, Heart, Globe, Settings, Target, ArrowLeftRight, ChevronRight, Users, Lock, LogIn, LogOut } from "lucide-react";
 import dynamic from "next/dynamic";
 const TeamPanel = dynamic(() => import("./components/TeamPanel"), { ssr: false });
+import { TipText } from "./components/Tooltip";
 import PredictionsTab from "./components/PredictionsTab";
 import EmotionalScoreTab from "./components/EmotionalScoreTab";
 import ResultsTab from "./components/ResultsTab";
@@ -131,13 +132,13 @@ function StandingsTable({ standings }: { standings: Standing[] }) {
         }}>
         <span className="text-center">#</span>
         <span>Équipe</span>
-        <span className="text-center">J</span>
-        <span className="text-center hidden sm:block">V · N · D</span>
-        <span className="text-center hidden md:block">BP</span>
-        <span className="text-center hidden md:block">BC</span>
-        <span className="text-center">DB</span>
-        <span className="text-center font-bold" style={{ color: "#e8edf5" }}>Pts</span>
-        <span className="text-center hidden sm:block">Forme</span>
+        <span className="text-center"><TipText>J</TipText></span>
+        <span className="text-center hidden sm:block"><TipText>V</TipText> · <TipText>N</TipText> · <TipText>D</TipText></span>
+        <span className="text-center hidden md:block"><TipText>BP</TipText></span>
+        <span className="text-center hidden md:block"><TipText>BC</TipText></span>
+        <span className="text-center"><TipText>DB</TipText></span>
+        <span className="text-center font-bold" style={{ color: "#e8edf5" }}><TipText>Pts</TipText></span>
+        <span className="text-center hidden sm:block"><TipText>Forme</TipText></span>
         <span className="hidden lg:block" />
       </div>
 
