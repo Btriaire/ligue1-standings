@@ -461,19 +461,29 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
     const arr = [...players11];
     const alreadyUsed = new Set(arr.filter(Boolean) as string[]);
     const emptySlots = arr.map((v, i) => v === null ? i : -1).filter(i => i >= 0);
-    if (emptySlots.length === 0) return; // nothing to fill
+    if (emptySlots.length === 0) return;
 
-    // Pool: fit players not already on the pitch
+    const slots = FORMATIONS[formation];
+
+    // Pool: available players not already on the pitch — shuffled randomly
     const pool = squad.filter(p => !isUnavailable(p) && !alreadyUsed.has(p.name));
-    // Shuffle (Fisher-Yates)
     const shuffled = [...pool];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-    // Fill only empty slots
-    emptySlots.forEach((slotIdx, pick) => {
-      if (shuffled[pick]) arr[slotIdx] = shuffled[pick].name;
+
+    // Fill each empty slot with a player matching the slot's required position
+    const remaining = new Set(shuffled.map(p => p.name));
+    emptySlots.forEach((slotIdx) => {
+      const slotType = slots[slotIdx]?.type;
+      // First pass: strict position match
+      const match = slotType
+        ? shuffled.find(p => remaining.has(p.name) && slotPosMatch(slotType, p.position))
+        : null;
+      // Fallback: any remaining player (keeps compo complete even if squad lacks depth)
+      const pick = match ?? shuffled.find(p => remaining.has(p.name));
+      if (pick) { arr[slotIdx] = pick.name; remaining.delete(pick.name); }
     });
     setPlayers11(arr);
     setSelSlot(null);
