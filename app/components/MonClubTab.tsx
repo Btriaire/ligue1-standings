@@ -6,6 +6,7 @@ import {
   Users, Calendar, Zap, RefreshCw, Shield, MapPin, Target,
   Star, Activity, BarChart2, Save, CheckCircle2, Share2, Globe2,
 } from "lucide-react";
+import { PlayerRow, PlayerEntry, POS_ORDER, POS_FR as POS_FR_PLURAL, POS_COL } from "./PlayerCard";
 
 /* ══════════════════════════════════════════ CLUBS ══ */
 
@@ -372,7 +373,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
   const [sqLoading,    setSqLoading]    = useState(true);
   const [section, setSection] = useState<"apercu"|"effectif"|"resultats"|"compo">("apercu");
   const [resTab,  setResTab]  = useState<"resultats"|"predictions">("resultats");
-  const [exPlayer, setExPlayer] = useState<string|null>(null);
+  const [expandedId, setExpandedId] = useState<string|null>(null);
   const [exPred,   setExPred]   = useState<number|null>(null);
 
   // Ma Compo state
@@ -712,85 +713,41 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                   {fmtVal(squad.reduce((s,p)=>s+(p.marketValue??0),0))} valeur totale
                 </span>
               </div>
-              {!hasStats&&(
-                <div className="rounded-xl px-3 py-2 flex items-center gap-2" style={{background:"rgba(245,158,11,0.07)",border:"1px solid rgba(245,158,11,0.2)"}}>
-                  <Activity size={11} style={{color:"#f59e0b"}}/>
-                  <span className="text-[10px]" style={{color:"#f59e0b"}}>Stats avancées (xG/xA) en chargement depuis les APIs externes — données de base disponibles.</span>
-                </div>
-              )}
-              {Object.entries(byPos)
-                .sort(([,a],[,b])=>(POS_ORD[a[0]?.position]??9)-(POS_ORD[b[0]?.position]??9))
-                .map(([posLabel,players])=>{
-                  const posKey=players[0]?.position;
-                  const pc=POS_COLOR[posKey]??club.color;
-                  return (
-                    <div key={posLabel} className="rounded-2xl overflow-hidden" style={{border:"1px solid #1e2d42"}}>
-                      <div className="px-4 py-2.5 flex items-center gap-2" style={{background:`${pc}0d`,borderBottom:"1px solid #1e2d42"}}>
-                        <div className="w-1 h-4 rounded-full flex-shrink-0" style={{background:pc}}/>
-                        <span className="text-xs font-black uppercase tracking-widest" style={{color:pc}}>{posLabel}</span>
-                        <span className="text-[9px] ml-1" style={{color:"#6b7c96"}}>{players.length}</span>
-                      </div>
-                      <div className="grid px-4 py-2 text-[9px] font-bold uppercase tracking-widest"
-                        style={{gridTemplateColumns:"1fr 30px 26px 26px 36px 50px 30px",background:"#0a0f1c",borderBottom:"1px solid #1e2d42",color:"#475569"}}>
-                        <span>Joueur</span><span className="text-center">Âge</span>
-                        <span className="text-center" style={{color:"#22c55e"}}>B</span>
-                        <span className="text-center" style={{color:"#60a5fa"}}>PD</span>
-                        <span className="text-center" style={{color:"#f59e0b"}}>xG</span>
-                        <span className="text-center hidden sm:block">Valeur</span><span/>
-                      </div>
-                      {players.sort((a,b)=>((b.xG??0)+(b.xA??0))-((a.xG??0)+(a.xA??0))).map((p,idx)=>{
-                        const exp=exPlayer===p.id;
+              {POS_ORDER.map(pos => {
+                const playersInPos = squad.filter(p => p.position === pos);
+                if (playersInPos.length === 0) return null;
+                const pc = POS_COL[pos] ?? club.color;
+                // Map SquadPlayer → PlayerEntry for shared component
+                const entries: PlayerEntry[] = playersInPos.map(p => ({
+                  ...p,
+                  nationality: p.nationality ?? [],
+                  clubId: club.id,
+                  club: { id: club.id, name: club.name, shortName: club.shortName, crest: club.crest },
+                }));
+                return (
+                  <div key={pos}>
+                    <p className="text-[10px] font-bold uppercase tracking-widest mb-1.5 flex items-center gap-1.5"
+                      style={{color: pc}}>
+                      <span className="w-1 h-3 rounded-full inline-block" style={{background: pc}}/>
+                      {POS_FR_PLURAL[pos]} · {playersInPos.length}
+                    </p>
+                    {entries
+                      .sort((a, b) => ((b.dm_xgxa90 ?? 0) + (b.xG ?? 0)) - ((a.dm_xgxa90 ?? 0) + (a.xG ?? 0)))
+                      .map(p => {
+                        const uid = `effectif-${p.id}`;
                         return (
-                          <div key={p.id}>
-                            <div className="grid items-center px-4 py-2.5 cursor-pointer hover:bg-white/[0.02] transition-colors"
-                              style={{gridTemplateColumns:"1fr 30px 26px 26px 36px 50px 30px",borderTop:idx>0?"1px solid rgba(30,45,66,0.35)":undefined}}
-                              onClick={()=>setExPlayer(exp?null:p.id)}>
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                {p.formBadge==="hot"&&<span className="text-[10px]">🔥</span>}
-                                {p.formBadge==="cold"&&<span className="text-[10px]">🩹</span>}
-                                {(!p.formBadge||p.formBadge==="good"||p.formBadge==="neutral")&&<span className="text-[10px] opacity-0">·</span>}
-                                <span className="text-sm font-semibold truncate" style={{color:"#e8edf5"}}>{p.name}</span>
-                              </div>
-                              <span className="text-center text-xs font-mono" style={{color:"#6b7c96"}}>{p.age||"—"}</span>
-                              <span className="text-center text-sm font-black" style={{color:"#22c55e"}}>{p.usGoals!=null?p.usGoals:(p.xG??0)>0?Math.round(p.xG!):"—"}</span>
-                              <span className="text-center text-sm font-black" style={{color:"#60a5fa"}}>{p.usAssists!=null?p.usAssists:(p.xA??0)>0?Math.round(p.xA!):"—"}</span>
-                              <span className="text-center text-xs font-mono" style={{color:"#f59e0b"}}>{(p.xG??0)>0?(p.xG!).toFixed(1):"—"}</span>
-                              <span className="hidden sm:block text-center text-[10px] font-mono" style={{color:"#6b7c96"}}>{p.marketValue?fmtVal(p.marketValue):"—"}</span>
-                              <div className="flex justify-end">{exp?<ChevronUp size={11} style={{color:"#6b7c96"}}/>:<ChevronDown size={11} style={{color:"#6b7c96"}}/>}</div>
-                            </div>
-                            {exp&&(
-                              <div className="px-4 py-3 border-t space-y-2" style={{background:"rgba(0,0,0,0.2)",borderColor:"rgba(30,45,66,0.4)"}}>
-                                <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
-                                  {posKey!=="Goalkeeper"?<>
-                                    {(p.xG??0)>0&&<div className="flex items-center gap-2 text-xs"><span className="w-20 shrink-0" style={{color:"#6b7c96"}}>xG saison</span><MiniBar val={p.xG??0} max={Math.max(...squad.map(s=>s.xG??0),1)} color="#22c55e"/><span className="w-8 text-right font-black" style={{color:"#22c55e"}}>{(p.xG!).toFixed(2)}</span></div>}
-                                    {(p.xA??0)>0&&<div className="flex items-center gap-2 text-xs"><span className="w-20 shrink-0" style={{color:"#6b7c96"}}>xA saison</span><MiniBar val={p.xA??0} max={Math.max(...squad.map(s=>s.xA??0),1)} color="#60a5fa"/><span className="w-8 text-right font-black" style={{color:"#60a5fa"}}>{(p.xA!).toFixed(2)}</span></div>}
-                                    {(p.dm_xg90??0)>0&&<div className="flex items-center gap-2 text-xs"><span className="w-20 shrink-0" style={{color:"#6b7c96"}}>xG/90</span><MiniBar val={p.dm_xg90??0} max={1} color="#f59e0b"/><span className="w-8 text-right font-black" style={{color:"#f59e0b"}}>{(p.dm_xg90!).toFixed(2)}</span></div>}
-                                    {(p.dm_shots90??0)>0&&<div className="flex items-center gap-2 text-xs"><span className="w-20 shrink-0" style={{color:"#6b7c96"}}>Tirs/90</span><MiniBar val={p.dm_shots90??0} max={5} color="#a78bfa"/><span className="w-8 text-right font-black" style={{color:"#a78bfa"}}>{(p.dm_shots90!).toFixed(1)}</span></div>}
-                                    {(p.dm_keyPasses90??0)>0&&<div className="flex items-center gap-2 text-xs"><span className="w-20 shrink-0" style={{color:"#6b7c96"}}>Pcs clés/90</span><MiniBar val={p.dm_keyPasses90??0} max={3} color="#34d399"/><span className="w-8 text-right font-black" style={{color:"#34d399"}}>{(p.dm_keyPasses90!).toFixed(1)}</span></div>}
-                                    {(p.dm_passPct??0)>0&&<div className="flex items-center gap-2 text-xs"><span className="w-20 shrink-0" style={{color:"#6b7c96"}}>Passes %</span><MiniBar val={p.dm_passPct??0} max={100} color="#38bdf8"/><span className="w-8 text-right font-black" style={{color:"#38bdf8"}}>{Math.round(p.dm_passPct!)}%</span></div>}
-                                    {(p.dm_defDuels90??0)>0&&<div className="flex items-center gap-2 text-xs"><span className="w-20 shrink-0" style={{color:"#6b7c96"}}>Duels déf/90</span><MiniBar val={p.dm_defDuels90??0} max={10} color="#fb923c"/><span className="w-8 text-right font-black" style={{color:"#fb923c"}}>{(p.dm_defDuels90!).toFixed(1)}</span></div>}
-                                    {(p.dm_interceptions90??0)>0&&<div className="flex items-center gap-2 text-xs"><span className="w-20 shrink-0" style={{color:"#6b7c96"}}>Intercep/90</span><MiniBar val={p.dm_interceptions90??0} max={4} color="#e879f9"/><span className="w-8 text-right font-black" style={{color:"#e879f9"}}>{(p.dm_interceptions90!).toFixed(1)}</span></div>}
-                                  </>:<>
-                                    {(p.dm_savePct??0)>0&&<div className="flex items-center gap-2 text-xs"><span className="w-20 shrink-0" style={{color:"#6b7c96"}}>Arrêts %</span><MiniBar val={p.dm_savePct??0} max={100} color="#22c55e"/><span className="w-8 text-right font-black" style={{color:"#22c55e"}}>{Math.round(p.dm_savePct!)}%</span></div>}
-                                    {(p.dm_gcPer90??0)>0&&<div className="flex items-center gap-2 text-xs"><span className="w-20 shrink-0" style={{color:"#6b7c96"}}>Buts enc/90</span><MiniBar val={Math.max(0,3-p.dm_gcPer90!)} max={3} color="#3b82f6"/><span className="w-8 text-right font-black" style={{color:"#3b82f6"}}>{(p.dm_gcPer90!).toFixed(2)}</span></div>}
-                                    {(p.dm_cleanSheets??0)>0&&<div className="flex items-center gap-2 text-xs"><span className="w-20 shrink-0" style={{color:"#6b7c96"}}>Clean sheets</span><MiniBar val={p.dm_cleanSheets??0} max={20} color="#60a5fa"/><span className="w-8 text-right font-black" style={{color:"#60a5fa"}}>{p.dm_cleanSheets}</span></div>}
-                                  </>}
-                                </div>
-                                {(p.foot||p.contract||p.marketValue>0)&&(
-                                  <div className="flex gap-3 pt-2 border-t" style={{borderColor:"rgba(30,45,66,0.4)"}}>
-                                    {p.foot&&<span className="text-[9px]" style={{color:"#6b7c96"}}>Pied: <b style={{color:"#94a3b8"}}>{p.foot==="right"?"Droit":p.foot==="left"?"Gauche":"Ambidextre"}</b></span>}
-                                    {p.contract&&<span className="text-[9px]" style={{color:"#6b7c96"}}>Contrat: <b style={{color:"#94a3b8"}}>{p.contract.slice(0,7)}</b></span>}
-                                    {p.marketValue>0&&<span className="text-[9px]" style={{color:"#6b7c96"}}>Valeur: <b style={{color:club.color}}>{fmtVal(p.marketValue)}</b></span>}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
+                          <PlayerRow
+                            key={uid}
+                            p={p}
+                            expanded={expandedId === uid}
+                            onToggle={() => setExpandedId(expandedId === uid ? null : uid)}
+                          />
                         );
-                      })}
-                    </div>
-                  );
-                })}
+                      })
+                    }
+                  </div>
+                );
+              })}
             </>
           )}
         </div>
