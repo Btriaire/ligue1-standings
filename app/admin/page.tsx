@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   Shield, SignOut, ArrowsClockwise, Play, CheckCircle, XCircle,
-  Clock, Database, Users, Lightning, Globe, Pulse, Warning,
-  CaretRight, Eye, EyeSlash, HardDrives,
+  Clock, Database, Users, Lightning, Globe, Warning,
+  Eye, EyeSlash, HardDrives, Trash, WifiHigh, WifiSlash,
+  ArrowSquareOut, Funnel, ToggleLeft, ToggleRight,
 } from "@phosphor-icons/react";
 
 /* ─── Types ──────────────────────────────────────────────────── */
@@ -25,24 +26,24 @@ interface Status {
   firebase: { registeredUsers: number | null };
   app: { base: string; env: string };
 }
+type LogEntry = { msg: string; ok: boolean; ts: number };
 
-/* ─── Status badge ───────────────────────────────────────────── */
-function StatusBadge({ status }: { status: DataSource["status"] }) {
-  const cfg = {
-    ok:      { icon: <CheckCircle size={13}/>, color: "#22c55e", label: "OK" },
-    error:   { icon: <XCircle size={13}/>,      color: "#ef4444", label: "Erreur" },
-    unknown: { icon: <Clock size={13}/>,         color: "#f59e0b", label: "Inconnu" },
-    blocked: { icon: <Warning size={13}/>, color: "#f97316", label: "Bloqué" },
-  }[status];
+/* ─── Helpers ────────────────────────────────────────────────── */
+function StatusDot({ status }: { status: DataSource["status"] }) {
+  const c = { ok: "#22c55e", error: "#ef4444", unknown: "#f59e0b", blocked: "#f97316" }[status];
+  return <span className="w-2 h-2 rounded-full flex-shrink-0 inline-block" style={{ background: c }} />;
+}
+
+function Pill({ label, color }: { label: string; color: string }) {
   return (
-    <span className="flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full"
-      style={{ background: `${cfg.color}18`, color: cfg.color, border: `1px solid ${cfg.color}40` }}>
-      {cfg.icon} {cfg.label}
+    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full"
+      style={{ background: `${color}18`, color, border: `1px solid ${color}30` }}>
+      {label}
     </span>
   );
 }
 
-/* ─── Login screen ───────────────────────────────────────────── */
+/* ─── Login ──────────────────────────────────────────────────── */
 function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [u, setU] = useState(""); const [p, setP] = useState("");
   const [err, setErr] = useState(""); const [show, setShow] = useState(false);
@@ -51,74 +52,101 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault(); setErr(""); setLoading(true);
     const res = await fetch("/api/admin/auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: u, password: p }),
     });
     setLoading(false);
-    if (res.ok) { onLogin(); }
-    else { setErr("Identifiants incorrects"); }
+    if (res.ok) onLogin(); else setErr("Identifiants incorrects");
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: "#080c14" }}>
-      <div className="w-full max-w-sm mx-4">
-        <div className="rounded-2xl p-8 space-y-6" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
-          <div className="text-center">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
-              style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)" }}>
-              <Shield size={24} style={{ color: "#ef4444" }} />
-            </div>
-            <h1 className="text-xl font-black" style={{ color: "#e8edf5" }}>Administration</h1>
-            <p className="text-xs mt-1" style={{ color: "#6b7c96" }}>FootPredictom · Accès restreint</p>
+      <div className="w-full max-w-sm mx-4 rounded-2xl p-8 space-y-5"
+        style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
+        <div className="text-center">
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3"
+            style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)" }}>
+            <Shield size={20} style={{ color: "#ef4444" }} />
           </div>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="text-xs font-semibold block mb-1" style={{ color: "#94a3b8" }}>Identifiant</label>
-              <input value={u} onChange={e => setU(e.target.value)} required
-                type="text" autoComplete="off" spellCheck={false}
-                className="w-full rounded-xl px-4 py-2.5 text-sm outline-none"
-                style={{ background: "rgba(255,255,255,0.05)", border: "1px solid #1e2d42", color: "#e8edf5" }} />
-            </div>
-            <div>
-              <label className="text-xs font-semibold block mb-1" style={{ color: "#94a3b8" }}>Mot de passe</label>
-              <div className="relative">
-                <input value={p} onChange={e => setP(e.target.value)} required
-                  type={show ? "text" : "password"} autoComplete="current-password"
-                  className="w-full rounded-xl px-4 py-2.5 text-sm outline-none pr-10"
-                  style={{ background: "rgba(255,255,255,0.05)", border: "1px solid #1e2d42", color: "#e8edf5" }} />
-                <button type="button" onClick={() => setShow(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: "#6b7c96" }}>
-                  {show ? <EyeSlash size={14}/> : <Eye size={14}/>}
-                </button>
-              </div>
-            </div>
-            {err && <p className="text-xs text-red-400">{err}</p>}
-            <button type="submit" disabled={loading}
-              className="w-full py-2.5 rounded-xl text-sm font-black hover:opacity-90 transition-all disabled:opacity-50"
-              style={{ background: "#ef4444", color: "#fff" }}>
-              {loading ? "Connexion…" : "Se connecter"}
-            </button>
-          </form>
-          <div className="text-center">
-            <Link href="/" className="text-xs hover:underline" style={{ color: "#6b7c96" }}>
-              ← Retour à l&apos;application
-            </Link>
-          </div>
+          <h1 className="text-lg font-black" style={{ color: "#e8edf5" }}>Administration</h1>
         </div>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <input value={u} onChange={e => setU(e.target.value)} required
+            type="text" placeholder="Identifiant" autoComplete="off"
+            className="w-full rounded-xl px-4 py-2.5 text-sm outline-none"
+            style={{ background: "rgba(255,255,255,0.05)", border: "1px solid #1e2d42", color: "#e8edf5" }} />
+          <div className="relative">
+            <input value={p} onChange={e => setP(e.target.value)} required
+              type={show ? "text" : "password"} placeholder="Mot de passe"
+              className="w-full rounded-xl px-4 py-2.5 text-sm outline-none pr-10"
+              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid #1e2d42", color: "#e8edf5" }} />
+            <button type="button" onClick={() => setShow(v => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: "#6b7c96" }}>
+              {show ? <EyeSlash size={14}/> : <Eye size={14}/>}
+            </button>
+          </div>
+          {err && <p className="text-xs text-red-400">{err}</p>}
+          <button type="submit" disabled={loading}
+            className="w-full py-2.5 rounded-xl text-sm font-black hover:opacity-90 disabled:opacity-50"
+            style={{ background: "#ef4444", color: "#fff" }}>
+            {loading ? "…" : "Connexion"}
+          </button>
+        </form>
+        <Link href="/" className="block text-center text-xs hover:underline" style={{ color: "#475569" }}>
+          ← Retour à l&apos;app
+        </Link>
       </div>
     </div>
   );
 }
 
-/* ─── Admin dashboard ────────────────────────────────────────── */
+/* ─── Action button ──────────────────────────────────────────── */
+function ActionBtn({
+  label, sub, icon, color, log, onClick,
+}: {
+  label: string; sub?: string; icon: React.ReactNode;
+  color: string; log?: LogEntry | null; onClick: () => void;
+}) {
+  return (
+    <button onClick={onClick}
+      className="flex items-start gap-3 w-full px-3 py-2.5 rounded-xl text-left hover:brightness-125 transition-all"
+      style={{ background: `${color}0d`, border: `1px solid ${color}25` }}>
+      <span className="mt-0.5 flex-shrink-0" style={{ color }}>{icon}</span>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-semibold leading-tight" style={{ color: "#e8edf5" }}>{label}</p>
+        {sub && <p className="text-[9px] mt-0.5" style={{ color: "#475569" }}>{sub}</p>}
+        {log && (
+          <p className="text-[9px] font-mono mt-1"
+            style={{ color: log.ok ? "#22c55e" : "#ef4444" }}>
+            {log.msg}
+          </p>
+        )}
+      </div>
+    </button>
+  );
+}
+
+/* ─── Feature toggle ─────────────────────────────────────────── */
+function Toggle({ label, enabled, onToggle }: { label: string; enabled: boolean; onToggle: () => void }) {
+  return (
+    <div className="flex items-center justify-between px-3 py-2 rounded-xl"
+      style={{ background: "rgba(255,255,255,0.03)", border: "1px solid #1e2d42" }}>
+      <span className="text-xs" style={{ color: "#94a3b8" }}>{label}</span>
+      <button onClick={onToggle} style={{ color: enabled ? "#22c55e" : "#475569" }}>
+        {enabled ? <ToggleRight size={20} weight="fill"/> : <ToggleLeft size={20}/>}
+      </button>
+    </div>
+  );
+}
+
+/* ─── Dashboard ──────────────────────────────────────────────── */
 export default function AdminPage() {
   const [authed, setAuthed] = useState<boolean | null>(null);
   const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(false);
-  const [triggerLog, setTriggerLog] = useState<Record<string, string>>({});
+  const [logs, setLogs] = useState<Record<string, LogEntry>>({});
+  const [features, setFeatures] = useState({ news: true, predictions: true, emotional: true, transfers: true });
 
-  // Check admin session
   useEffect(() => {
     fetch("/api/admin/auth")
       .then(r => r.ok ? r.json() : { admin: false })
@@ -140,254 +168,246 @@ export default function AdminPage() {
     setAuthed(false);
   }
 
-  async function trigger(path: string) {
-    setTriggerLog(l => ({ ...l, [path]: "⏳ En cours…" }));
-    const res = await fetch("/api/admin/trigger", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path }),
-    });
-    const d = await res.json();
-    setTriggerLog(l => ({
-      ...l,
-      [path]: d.ok ? `✅ OK · ${d.ms}ms` : `❌ Erreur ${d.status ?? ""} · ${d.ms}ms`,
-    }));
+  async function trigger(key: string, path: string) {
+    setLogs(l => ({ ...l, [key]: { msg: "⏳ En cours…", ok: true, ts: Date.now() } }));
+    try {
+      const res = await fetch("/api/admin/trigger", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path }),
+      });
+      const d = await res.json();
+      setLogs(l => ({
+        ...l,
+        [key]: { msg: d.ok ? `✅ OK · ${d.ms}ms` : `❌ Erreur ${d.status} · ${d.ms}ms`, ok: d.ok, ts: Date.now() },
+      }));
+    } catch {
+      setLogs(l => ({ ...l, [key]: { msg: "❌ Échec réseau", ok: false, ts: Date.now() } }));
+    }
   }
 
   if (authed === null) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: "#080c14" }}>
-      <ArrowsClockwise size={20} className="animate-spin" style={{ color: "#6b7c96" }} />
+      <ArrowsClockwise size={18} className="animate-spin" style={{ color: "#6b7c96" }} />
     </div>
   );
-
   if (!authed) return <LoginScreen onLogin={() => setAuthed(true)} />;
 
-  /* ── Dashboard ── */
+  const s = status;
+
   return (
     <div className="min-h-screen" style={{ background: "#080c14" }}>
-      {/* Header */}
+      {/* ── Header ── */}
       <header className="sticky top-0 z-50 border-b backdrop-blur-xl"
-        style={{ background: "rgba(8,12,20,0.92)", borderColor: "#1e2d42" }}>
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
-          <Shield size={16} style={{ color: "#ef4444" }} />
-          <span className="font-black text-sm" style={{ color: "#e8edf5" }}>Admin Panel</span>
-          <span className="text-[10px] px-2 py-0.5 rounded-full font-black"
-            style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.3)" }}>
-            FootPredictom
+        style={{ background: "rgba(8,12,20,0.95)", borderColor: "#1e2d42" }}>
+        <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center gap-2">
+          <Shield size={14} style={{ color: "#ef4444" }} />
+          <span className="font-black text-sm" style={{ color: "#e8edf5" }}>Admin</span>
+          <span className="text-[9px] px-2 py-0.5 rounded-full font-black"
+            style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.25)" }}>
+            {s?.app.env ?? "…"}
           </span>
-          <div className="flex-1"/>
+          <div className="flex-1" />
+          {/* Stat pills */}
+          {s && (
+            <div className="hidden sm:flex items-center gap-2">
+              <span className="text-[10px] flex items-center gap-1" style={{ color: "#6b7c96" }}>
+                <Users size={11}/> {s.firebase.registeredUsers ?? "—"} users
+              </span>
+              <span className="text-[10px] flex items-center gap-1" style={{ color: "#6b7c96" }}>
+                <Database size={11}/> {s.firestore.totalCompoVotes ?? "—"} votes
+              </span>
+            </div>
+          )}
           <button onClick={loadStatus} disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-80"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs hover:opacity-80"
             style={{ background: "rgba(255,255,255,0.05)", border: "1px solid #1e2d42", color: "#94a3b8" }}>
-            <ArrowsClockwise size={11} className={loading ? "animate-spin" : ""} /> Actualiser
+            <ArrowsClockwise size={10} className={loading ? "animate-spin" : ""} />
+            <span className="hidden sm:inline ml-1">Refresh</span>
           </button>
-          <Link href="/" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-80"
+          <Link href="/" className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs hover:opacity-80"
             style={{ background: "rgba(255,255,255,0.05)", border: "1px solid #1e2d42", color: "#94a3b8" }}>
             ← App
           </Link>
           <button onClick={logout}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-80"
-            style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", color: "#f87171" }}>
-            <SignOut size={11}/> Déconnexion
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs hover:opacity-80"
+            style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#f87171" }}>
+            <SignOut size={10}/> <span className="hidden sm:inline">Logout</span>
           </button>
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
-        {/* ── Stats bar ── */}
-        {status && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[
-              { icon: <Users size={16}/>, label: "Utilisateurs Firebase", value: status.firebase.registeredUsers ?? "—", color: "#3b82f6" },
-              { icon: <Database size={16}/>, label: "Votes Ma Compo", value: status.firestore.totalCompoVotes ?? "—", color: "#a78bfa" },
-              { icon: <Pulse size={16}/>, label: "Clubs SofaScore", value: status.firestore.sofascoreClubs ?? "—", color: "#f59e0b" },
-              { icon: <HardDrives size={16}/>, label: "Env", value: status.app.env, color: "#22c55e" },
-            ].map(s => (
-              <div key={s.label} className="rounded-2xl p-4" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
-                <div className="flex items-center gap-2 mb-2" style={{ color: s.color }}>{s.icon}</div>
-                <p className="text-2xl font-black" style={{ color: "#e8edf5" }}>{s.value}</p>
-                <p className="text-[10px] mt-0.5" style={{ color: "#6b7c96" }}>{s.label}</p>
-              </div>
-            ))}
-          </div>
-        )}
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-        {/* ── Data sources ── */}
-        <section>
-          <h2 className="text-sm font-black uppercase tracking-widest mb-4 flex items-center gap-2"
-            style={{ color: "#6b7c96" }}>
-            <Globe size={14}/> Sources de données
-          </h2>
-          <div className="space-y-2">
-            {(status?.sources ?? []).map(src => (
-              <div key={src.name} className="rounded-2xl p-4" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
-                <div className="flex flex-wrap items-start gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="font-black text-sm" style={{ color: "#e8edf5" }}>{src.name}</span>
-                      <StatusBadge status={src.status} />
-                      {src.latencyMs != null && (
-                        <span className="text-[10px] font-mono" style={{ color: "#475569" }}>{src.latencyMs}ms</span>
-                      )}
-                      {src.replaceable && (
-                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded"
-                          style={{ background: "rgba(168,85,247,0.12)", color: "#a78bfa" }}>
-                          Remplaçable
-                        </span>
+          {/* ══ LEFT COL (2/3) ══ */}
+          <div className="lg:col-span-2 space-y-4">
+
+            {/* ── Actions rapides ── */}
+            <section>
+              <h2 className="text-[9px] font-black uppercase tracking-widest mb-2 flex items-center gap-1.5"
+                style={{ color: "#475569" }}>
+                <Lightning size={11}/> Actions base de données
+              </h2>
+              <div className="grid grid-cols-2 gap-2">
+                <ActionBtn label="Warm cache joueurs" sub="Tous les 18 clubs L1 → Firestore" icon={<HardDrives size={13}/>}
+                  color="#3b82f6" log={logs["warm"]} onClick={() => trigger("warm", "/api/cron/warm-players")} />
+                <ActionBtn label="Scraper SofaScore" sub="Blessures · valeurs · matchs" icon={<ArrowsClockwise size={13}/>}
+                  color="#f59e0b" log={logs["sofa"]} onClick={() => trigger("sofa", "/api/cron/sofascore")} />
+                <ActionBtn label="Refresh classement L1" sub="Cache football-data.org" icon={<Globe size={13}/>}
+                  color="#22c55e" log={logs["standings"]} onClick={() => trigger("standings", "/api/standings?refresh=1")} />
+                <ActionBtn label="Purge cache news" sub="Force re-fetch So Foot RSS" icon={<Trash size={13}/>}
+                  color="#a78bfa" log={logs["news"]} onClick={() => trigger("news", "/api/news?topic=l1")} />
+                <ActionBtn label="Ping toutes les sources" sub="Vérifie latences en direct" icon={<WifiHigh size={13}/>}
+                  color="#06b6d4" log={logs["ping"]} onClick={() => { trigger("ping", "/api/admin/status"); loadStatus(); }} />
+                <ActionBtn label="Warm SofaScore PSG" sub="Club 524 en priorité" icon={<Play size={13}/>}
+                  color="#ef4444" log={logs["psgwarm"]} onClick={() => trigger("psgwarm", "/api/squad/524?force=1")} />
+              </div>
+            </section>
+
+            {/* ── Feature flags ── */}
+            <section>
+              <h2 className="text-[9px] font-black uppercase tracking-widest mb-2 flex items-center gap-1.5"
+                style={{ color: "#475569" }}>
+                <Funnel size={11}/> Feature flags (session locale)
+              </h2>
+              <div className="grid grid-cols-2 gap-2">
+                <Toggle label="🗞️ Bandeau news" enabled={features.news}
+                  onToggle={() => setFeatures(f => ({ ...f, news: !f.news }))} />
+                <Toggle label="⚡ Prédictions IA" enabled={features.predictions}
+                  onToggle={() => setFeatures(f => ({ ...f, predictions: !f.predictions }))} />
+                <Toggle label="❤️ Score émotionnel" enabled={features.emotional}
+                  onToggle={() => setFeatures(f => ({ ...f, emotional: !f.emotional }))} />
+                <Toggle label="🔄 Onglet Transferts" enabled={features.transfers}
+                  onToggle={() => setFeatures(f => ({ ...f, transfers: !f.transfers }))} />
+              </div>
+            </section>
+
+            {/* ── Cron jobs ── */}
+            <section>
+              <h2 className="text-[9px] font-black uppercase tracking-widest mb-2 flex items-center gap-1.5"
+                style={{ color: "#475569" }}>
+                <Clock size={11}/> Crons Vercel
+              </h2>
+              <div className="rounded-xl overflow-hidden" style={{ border: "1px solid #1e2d42" }}>
+                {(s?.crons ?? []).map((cron, i) => (
+                  <div key={cron.path}
+                    className="flex items-center gap-3 px-3 py-2.5"
+                    style={{
+                      borderBottom: i < (s?.crons.length ?? 0) - 1 ? "1px solid #1e2d42" : "none",
+                      background: "#0d1421",
+                    }}>
+                    <div className="flex-1 min-w-0">
+                      <code className="text-[10px] font-mono" style={{ color: "#60a5fa" }}>{cron.path}</code>
+                      <p className="text-[9px] mt-0.5" style={{ color: "#475569" }}>{cron.schedule}</p>
+                      <p className="text-[9px]" style={{ color: "#334155" }}>{cron.lastRun}</p>
+                      {logs[cron.path] && (
+                        <p className="text-[9px] font-mono mt-0.5"
+                          style={{ color: logs[cron.path].ok ? "#22c55e" : "#ef4444" }}>
+                          {logs[cron.path].msg}
+                        </p>
                       )}
                     </div>
-                    <p className="text-xs mb-1" style={{ color: "#94a3b8" }}>{src.role}</p>
-                    <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[10px]" style={{ color: "#475569" }}>
-                      <span>⟳ {src.updateFreq}</span>
-                      <span>📊 {src.freeQuota}</span>
-                      {src.sofaLastFetch && <span>🕒 Dernier fetch: {src.sofaLastFetch}</span>}
-                    </div>
-                    <p className="text-[10px] mt-1.5 italic" style={{ color: "#64748b" }}>→ {src.notes}</p>
+                    <button onClick={() => trigger(cron.path, cron.path)}
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold flex-shrink-0 hover:opacity-80"
+                      style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", color: "#22c55e" }}>
+                      <Play size={9}/> Run
+                    </button>
                   </div>
-                  <a href={src.url} target="_blank" rel="noopener noreferrer"
-                    className="flex-shrink-0 flex items-center gap-1 text-[10px] hover:opacity-70"
-                    style={{ color: "#3b82f6" }}>
-                    Ouvrir <CaretRight size={10}/>
-                  </a>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </section>
+            </section>
 
-        {/* ── FBref analysis ── */}
-        <section>
-          <h2 className="text-sm font-black uppercase tracking-widest mb-4 flex items-center gap-2"
-            style={{ color: "#6b7c96" }}>
-            <Warning size={14}/> Analyse FBref
-          </h2>
-          <div className="rounded-2xl p-5 space-y-3" style={{ background: "#0d1421", border: "1px solid rgba(249,115,22,0.3)" }}>
-            <div className="flex items-start gap-3">
-              <Warning size={18} style={{ color: "#f97316", flexShrink: 0, marginTop: 2 }} />
-              <div>
-                <p className="text-sm font-bold mb-2" style={{ color: "#e8edf5" }}>
-                  FBref — Inaccessible côté serveur (403 anti-bot)
-                </p>
-                <p className="text-xs mb-3" style={{ color: "#94a3b8" }}>
-                  FBref renvoie un 403 sur toutes les requêtes serveur. Leur anti-bot détecte les User-Agent automatisés.
-                  Les données FBref qui nous intéresseraient mais ne sont disponibles nulle part ailleurs :
-                </p>
-                <div className="grid md:grid-cols-2 gap-3">
-                  {[
-                    { stat: "Pressures / 90", detail: "Nombre de pressions exercées par joueur — mesure l'intensité défensive. Absent de Datamb, Understat, SofaScore.", interest: "élevé" },
-                    { stat: "SCA / GCA", detail: "Shot-creating actions & Goal-creating actions — compte les actions qui mènent à un tir/but sur 2 passes. Unique à FBref.", interest: "élevé" },
-                    { stat: "Progressive passes reçues", detail: "Passes progressives reçues par un joueur — complète nos carries. Absent partout ailleurs.", interest: "moyen" },
-                    { stat: "Touches par zone", detail: "Touches en zone défensive / milieu / attaque — contexte positionnel. Absent de nos sources.", interest: "moyen" },
-                    { stat: "Blocks shots/passes", detail: "Tirs et passes bloqués — plus granulaire que les interceptions. Absent.", interest: "faible" },
-                  ].map(item => (
-                    <div key={item.stat} className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid #1e2d42" }}>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-black" style={{ color: "#e8edf5" }}>{item.stat}</span>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded font-black"
-                          style={{
-                            background: item.interest === "élevé" ? "rgba(239,68,68,0.12)" : item.interest === "moyen" ? "rgba(245,158,11,0.12)" : "rgba(100,116,139,0.12)",
-                            color: item.interest === "élevé" ? "#ef4444" : item.interest === "moyen" ? "#f59e0b" : "#64748b",
-                          }}>
-                          Intérêt {item.interest}
-                        </span>
-                      </div>
-                      <p className="text-[10px]" style={{ color: "#6b7c96" }}>{item.detail}</p>
+          </div>
+
+          {/* ══ RIGHT COL (1/3) ══ */}
+          <div className="space-y-4">
+
+            {/* ── Firestore stats ── */}
+            <section>
+              <h2 className="text-[9px] font-black uppercase tracking-widest mb-2 flex items-center gap-1.5"
+                style={{ color: "#475569" }}>
+                <Database size={11}/> Firestore
+              </h2>
+              <div className="rounded-xl overflow-hidden" style={{ border: "1px solid #1e2d42" }}>
+                {[
+                  { label: "Users Firebase", value: s?.firebase.registeredUsers, icon: <Users size={11}/>, color: "#3b82f6" },
+                  { label: "Clubs SofaScore", value: s?.firestore.sofascoreClubs, icon: <HardDrives size={11}/>, color: "#f59e0b" },
+                  { label: "Clubs compos", value: s?.firestore.composClubs, icon: <Funnel size={11}/>, color: "#a78bfa" },
+                  { label: "Total votes compo", value: s?.firestore.totalCompoVotes, icon: <Database size={11}/>, color: "#22c55e" },
+                ].map((row, i, arr) => (
+                  <div key={row.label} className="flex items-center justify-between px-3 py-2"
+                    style={{ background: "#0d1421", borderBottom: i < arr.length - 1 ? "1px solid #1e2d42" : "none" }}>
+                    <span className="flex items-center gap-1.5 text-[10px]" style={{ color: "#6b7c96" }}>
+                      <span style={{ color: row.color }}>{row.icon}</span>
+                      {row.label}
+                    </span>
+                    <span className="text-sm font-black" style={{ color: "#e8edf5" }}>{row.value ?? "—"}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* ── Sources de données ── */}
+            <section>
+              <h2 className="text-[9px] font-black uppercase tracking-widest mb-2 flex items-center gap-1.5"
+                style={{ color: "#475569" }}>
+                <Globe size={11}/> Sources
+              </h2>
+              <div className="rounded-xl overflow-hidden" style={{ border: "1px solid #1e2d42" }}>
+                {(s?.sources ?? []).map((src, i, arr) => (
+                  <div key={src.name} className="flex items-center gap-2 px-3 py-2"
+                    style={{ background: "#0d1421", borderBottom: i < arr.length - 1 ? "1px solid #1e2d42" : "none" }}>
+                    <StatusDot status={src.status} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-semibold truncate" style={{ color: "#e2e8f0" }}>{src.name}</p>
+                      <p className="text-[9px] truncate" style={{ color: "#475569" }}>{src.role}</p>
                     </div>
-                  ))}
-                </div>
-                <p className="text-[10px] mt-3 p-2 rounded-lg" style={{ background: "rgba(249,115,22,0.08)", color: "#f97316" }}>
-                  💡 Alternative envisageable : FBref offre des exports CSV manuels (non-automatisables). Pour les pressures et SCA, Wyscout/StatsBomb sont les alternatives commerciales. En open-source, rien ne les égale.
-                </p>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {src.latencyMs != null && (
+                        <span className="text-[9px] font-mono" style={{ color: "#334155" }}>{src.latencyMs}ms</span>
+                      )}
+                      {src.status === "ok" ? <WifiHigh size={10} style={{ color: "#22c55e" }}/>
+                        : src.status === "blocked" ? <Warning size={10} style={{ color: "#f97316" }}/>
+                        : src.status === "error" ? <WifiSlash size={10} style={{ color: "#ef4444" }}/>
+                        : <Clock size={10} style={{ color: "#f59e0b" }}/>}
+                      <a href={src.url} target="_blank" rel="noopener noreferrer">
+                        <ArrowSquareOut size={9} style={{ color: "#334155" }}/>
+                      </a>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
-          </div>
-        </section>
+            </section>
 
-        {/* ── Cron jobs ── */}
-        <section>
-          <h2 className="text-sm font-black uppercase tracking-widest mb-4 flex items-center gap-2"
-            style={{ color: "#6b7c96" }}>
-            <Clock size={14}/> Crons Vercel
-          </h2>
-          <div className="space-y-2">
-            {(status?.crons ?? []).map(cron => (
-              <div key={cron.path} className="rounded-2xl p-4 flex flex-wrap items-start gap-4"
-                style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-black mb-0.5" style={{ color: "#e8edf5" }}>
-                    <code className="text-xs font-mono px-1.5 py-0.5 rounded mr-2"
-                      style={{ background: "#0a0f1c", color: "#60a5fa" }}>{cron.path}</code>
-                  </p>
-                  <p className="text-xs" style={{ color: "#94a3b8" }}>{cron.role}</p>
-                  <p className="text-[10px] mt-1" style={{ color: "#475569" }}>
-                    🕒 {cron.schedule} · Dernier run: {cron.lastRun}
-                  </p>
-                  {triggerLog[cron.path] && (
-                    <p className="text-[11px] mt-1.5 font-mono" style={{ color: "#94a3b8" }}>{triggerLog[cron.path]}</p>
-                  )}
-                </div>
-                <button onClick={() => trigger(cron.path)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-80 flex-shrink-0"
-                  style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)", color: "#22c55e" }}>
-                  <Play size={11}/> Déclencher
-                </button>
+            {/* ── FBref warning compact ── */}
+            <section className="rounded-xl p-3 space-y-1.5"
+              style={{ background: "rgba(249,115,22,0.06)", border: "1px solid rgba(249,115,22,0.2)" }}>
+              <div className="flex items-center gap-1.5">
+                <XCircle size={12} style={{ color: "#f97316" }}/>
+                <span className="text-[10px] font-black" style={{ color: "#f97316" }}>FBref bloqué (403)</span>
               </div>
-            ))}
-          </div>
-        </section>
+              <p className="text-[9px]" style={{ color: "#6b7c96" }}>
+                Données manquantes : Pressures/90, SCA, GCA, Progressive passes reçues.
+                Anti-bot côté serveur — inaccessible automatiquement.
+              </p>
+              <a href="https://fbref.com" target="_blank" rel="noopener noreferrer"
+                className="text-[9px] flex items-center gap-1 hover:underline" style={{ color: "#f97316" }}>
+                Export CSV manuel <ArrowSquareOut size={9}/>
+              </a>
+            </section>
 
-        {/* ── Firestore ── */}
-        {status && (
-          <section>
-            <h2 className="text-sm font-black uppercase tracking-widest mb-4 flex items-center gap-2"
-              style={{ color: "#6b7c96" }}>
-              <Database size={14}/> Firestore
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {[
-                { label: "sofascore/", value: status.firestore.sofascoreClubs, desc: "Clubs avec cache SofaScore" },
-                { label: "compos/", value: status.firestore.composClubs, desc: "Clubs avec votes Ma Compo" },
-                { label: "Total votes", value: status.firestore.totalCompoVotes, desc: "Votes Ma Compo toutes équipes" },
-              ].map(item => (
-                <div key={item.label} className="rounded-2xl p-4" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
-                  <code className="text-xs font-mono" style={{ color: "#60a5fa" }}>{item.label}</code>
-                  <p className="text-3xl font-black mt-2" style={{ color: "#e8edf5" }}>{item.value ?? "—"}</p>
-                  <p className="text-[10px] mt-1" style={{ color: "#6b7c96" }}>{item.desc}</p>
+            {/* ── Env info ── */}
+            {s && (
+              <div className="rounded-xl px-3 py-2" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
+                <p className="text-[9px] font-mono break-all" style={{ color: "#334155" }}>{s.app.base}</p>
+                <div className="flex gap-2 mt-1">
+                  <Pill label={s.app.env} color="#22c55e"/>
+                  <Pill label="Session 8h" color="#3b82f6"/>
                 </div>
-              ))}
-            </div>
-          </section>
-        )}
+              </div>
+            )}
 
-        {/* ── Useful actions ── */}
-        <section>
-          <h2 className="text-sm font-black uppercase tracking-widest mb-4 flex items-center gap-2"
-            style={{ color: "#6b7c96" }}>
-            <Lightning size={14}/> Actions rapides
-          </h2>
-          <div className="grid md:grid-cols-2 gap-3">
-            {[
-              { label: "Forcer warm cache (tous les clubs)", path: "/api/cron/warm-players", color: "#3b82f6" },
-              { label: "Rescraper SofaScore maintenant", path: "/api/cron/sofascore", color: "#f59e0b" },
-            ].map(action => (
-              <button key={action.path} onClick={() => trigger(action.path)}
-                className="flex items-center gap-3 px-5 py-4 rounded-2xl text-left hover:opacity-80 transition-all"
-                style={{ background: `${action.color}0d`, border: `1px solid ${action.color}30` }}>
-                <Play size={14} style={{ color: action.color, flexShrink: 0 }} />
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold" style={{ color: "#e8edf5" }}>{action.label}</p>
-                  {triggerLog[action.path] && (
-                    <p className="text-[10px] font-mono mt-0.5" style={{ color: "#6b7c96" }}>{triggerLog[action.path]}</p>
-                  )}
-                </div>
-              </button>
-            ))}
           </div>
-        </section>
-
-        {/* ── Footer ── */}
-        <div className="text-center py-4 text-[10px]" style={{ color: "#2d3a4f" }}>
-          FootPredictom Admin · Session valide 8h · {status?.app.base}
         </div>
       </div>
     </div>
