@@ -354,6 +354,23 @@ function playerNamesMatch(scorerName: string, playerName: string): boolean {
   return sWords.some((sw) => sw.length > 3 && pWords.some((pw) => pw === sw));
 }
 
+/** Normalise any position string (TM, FD, Understat) to our 5 canonical values */
+function normalisePosition(raw: string): string {
+  const p = raw.toLowerCase().trim();
+  if (/goalkeeper|portier|keeper/.test(p)) return "Goalkeeper";
+  if (/centre.back|central.def|stopper|libero|sweeper|centreback|cb/.test(p)) return "Defender";
+  if (/back|def|arriere|latéral|laterale/.test(p)) return "Defender";
+  if (/winger|ailier|wing/.test(p)) return "Winger";
+  if (/forward|attaquant|striker|centre.forward|second.striker|avant.centre|st\b/.test(p)) return "Centre-Forward";
+  if (/midfield|milieu|playmaker|cm\b|dm\b|am\b/.test(p)) return "Midfielder";
+  // Understat single-letter codes
+  if (p === "f" || p === "fw" || p === "amf") return "Centre-Forward";
+  if (p === "m") return "Midfielder";
+  if (p === "d") return "Defender";
+  if (p === "gk" || p === "g") return "Goalkeeper";
+  return raw; // keep unknown as-is
+}
+
 const EMPTY_RESPONSE = (teamId: number) => NextResponse.json({
   team: { id: teamId, name: null, shortName: null, crest: null, venue: null, founded: null, coach: null },
   squad: [],
@@ -473,6 +490,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     }));
   }
 
+  // Normalise all positions to our 5 canonical values immediately after TM/FD load
+  players = players.map(p => ({ ...p, position: normalisePosition(p.position) }));
+
   // Fetch Understat season stats for this team
   const understatName = UNDERSTAT_TEAM_MAP[teamId];
   const usPlayers = understatName ? await fetchUnderstatPlayers(understatName) : [];
@@ -499,7 +519,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
         players.push({
           id: usp.id,
           name: usp.player,
-          position: usp.position?.split(", ")[0] ?? "Unknown",
+          position: normalisePosition(usp.position?.split(", ")[0] ?? ""),
           dateOfBirth: "", age: 0, nationality: [],
           height: 0, foot: "", joinedOn: "", signedFrom: "", contract: "", marketValue: 0,
           xG: parseFloat(usp.xG) || 0,
