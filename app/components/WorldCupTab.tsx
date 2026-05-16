@@ -283,6 +283,15 @@ const CAT_CFG: Record<CatType, { label: string; color: string; icon: string }> =
 
 // ─── Bracket tab ─────────────────────────────────────────────────────────────
 
+// ── Résultats réels — mis à jour au fur et à mesure ──────────────────────────
+// Dernière mise à jour : avant phase à élimination directe (CdM 2026 débute le 11 juin)
+// Format : id_match → { winner: 0 (équipe 1) | 1 (équipe 2), score?: "X-Y" }
+const ACTUAL_RESULTS: Record<string, { winner: 0 | 1; score?: string }> = {
+  // 1/8 de finale — résultats à renseigner à partir du 4 juillet 2026
+  // Exemple: "L1": { winner: 0, score: "2-1" }, // Argentine bat Équateur
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Layout constants (px)
 const MH = 46;   // match card height
 const GAP = 8;   // vertical gap between cards in same round
@@ -304,28 +313,57 @@ interface BMatch { id: string; t1: string; t2: string }
 function BMatchCard({ m, picks, onPick }: {
   m: BMatch; picks: Record<string, 0|1>; onPick: (id: string, s: 0|1) => void;
 }) {
-  const p = picks[m.id];
+  // Real result takes priority over user pick
+  const actual = ACTUAL_RESULTS[m.id];
+  const p: 0 | 1 | undefined = actual !== undefined ? actual.winner : picks[m.id];
+  const isReal = actual !== undefined;
   const isEmpty = (t: string) => t === "?" || t === "";
+
   return (
     <div className="flex flex-col overflow-hidden"
-      style={{ height: MH, border: "1px solid #1e3050", borderRadius: 6, background: "#0a1220", width: "100%" }}>
+      style={{
+        height: MH, borderRadius: 6, width: "100%",
+        border: isReal
+          ? "1px solid rgba(234,179,8,0.4)"   // gold border for played matches
+          : "1px solid #1e3050",
+        background: isReal ? "#0d1520" : "#0a1220",
+      }}>
       {([0, 1] as const).map(side => {
         const t = side === 0 ? m.t1 : m.t2;
         const won = p === side;
         const lost = p !== undefined && !won;
+        // Score display: show each team's goals
+        const scoreParts = actual?.score?.split("-");
+        const scoreStr = scoreParts ? scoreParts[side] : null;
+
         return (
-          <button key={side} onClick={() => !isEmpty(t) && onPick(m.id, side)}
+          <button key={side}
+            onClick={() => !isReal && !isEmpty(t) && onPick(m.id, side)}
             style={{
-              flex: 1, textAlign: "left", padding: "2px 6px", fontSize: 9, fontWeight: won ? 700 : 400,
-              background: won ? "rgba(34,197,94,0.15)" : "transparent",
-              color: isEmpty(t) ? "#2a3a50" : won ? "#22c55e" : lost ? "#334155" : "#94a3b8",
+              flex: 1, textAlign: "left", padding: "2px 6px", fontSize: 9,
+              fontWeight: won ? 700 : 400,
+              background: won
+                ? isReal ? "rgba(234,179,8,0.12)" : "rgba(34,197,94,0.15)"
+                : "transparent",
+              color: isEmpty(t) ? "#2a3a50"
+                : won ? (isReal ? "#eab308" : "#22c55e")
+                : lost ? "#2e3e52"
+                : "#94a3b8",
               borderBottom: side === 0 ? "1px solid #1a2840" : "none",
-              cursor: isEmpty(t) ? "default" : "pointer",
+              cursor: isReal || isEmpty(t) ? "default" : "pointer",
               whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-              lineHeight: 1.2,
+              lineHeight: 1.2, display: "flex", alignItems: "center", gap: 3,
             }}>
-            {won && <span style={{ marginRight: 2, fontSize: 7 }}>✓</span>}
-            {isEmpty(t) ? "—" : t}
+            <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>
+              {won && !isReal && <span style={{ marginRight: 2, fontSize: 7 }}>✓</span>}
+              {isEmpty(t) ? "—" : t}
+            </span>
+            {scoreStr != null && (
+              <span style={{ fontSize: 9, fontWeight: 800, flexShrink: 0,
+                color: won ? "#eab308" : "#2e3e52" }}>
+                {scoreStr}
+              </span>
+            )}
           </button>
         );
       })}
@@ -368,8 +406,12 @@ function BracketTab() {
   const setPick = (id: string, side: 0|1) =>
     setPicks(p => { const n = { ...p }; if (n[id] === side) delete n[id]; else n[id] = side; return n; });
 
-  const w = (id: string, t1: string, t2: string) =>
-    picks[id] === 0 ? t1 : picks[id] === 1 ? t2 : "?";
+  // Returns the winner of a match: real result first, then user pick, then "?"
+  const w = (id: string, t1: string, t2: string) => {
+    const actual = ACTUAL_RESULTS[id];
+    if (actual !== undefined) return actual.winner === 0 ? t1 : t2;
+    return picks[id] === 0 ? t1 : picks[id] === 1 ? t2 : "?";
+  };
 
   // ── Seeds: 8 left-side 1/8 matches (Groups A-F + best 3e) ──────────────────
   const L16: BMatch[] = [
@@ -433,15 +475,40 @@ function BracketTab() {
 
   return (
     <div>
+      {/* Probabiliste banner */}
+      {Object.keys(ACTUAL_RESULTS).length === 0 && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl mb-3"
+          style={{ background: "rgba(234,179,8,0.06)", border: "1px solid rgba(234,179,8,0.2)" }}>
+          <span style={{ fontSize: 12 }}>⚠️</span>
+          <div>
+            <p className="text-[10px] font-bold" style={{ color: "#eab308" }}>
+              Tableau probabiliste — Phase à élimination directe à partir du 4 juillet 2026
+            </p>
+            <p className="text-[9px] mt-0.5" style={{ color: "#6b7c96" }}>
+              Les équipes affichées sont des qualifiés probables basés sur les groupes. Le tableau sera mis à jour avec les vrais résultats au fil des matchs.
+            </p>
+          </div>
+        </div>
+      )}
+      {Object.keys(ACTUAL_RESULTS).length > 0 && (
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl mb-3"
+          style={{ background: "rgba(234,179,8,0.06)", border: "1px solid rgba(234,179,8,0.2)" }}>
+          <span style={{ fontSize: 10, color: "#eab308" }}>🟡</span>
+          <p className="text-[9px]" style={{ color: "#eab308" }}>
+            Matchs joués affichés en or · {Object.keys(ACTUAL_RESULTS).length} résultat(s) officiel(s) enregistré(s)
+          </p>
+        </div>
+      )}
+
       {/* Legend + reset */}
       <div className="flex items-center justify-between mb-3">
         <p className="text-[10px]" style={{ color: "#475569" }}>
-          🖱 Clique sur une équipe pour la faire avancer au tour suivant
+          🖱 Clique sur une équipe pour simuler l&apos;avancement
         </p>
         <button onClick={() => setPicks({})}
           className="text-[9px] px-2 py-1 rounded hover:opacity-80"
           style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#f87171" }}>
-          Reset
+          Reset simulation
         </button>
       </div>
 
