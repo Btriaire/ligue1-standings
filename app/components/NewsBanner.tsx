@@ -14,7 +14,7 @@ interface Standing {
   points: number; goalsFor: number; goalsAgainst: number;
   goalDifference: number; form: string;
 }
-interface NewsItem { title: string; pubDate: string; url: string; description?: string }
+interface NewsItem { title: string; pubDate: string; url: string; source?: string; description?: string }
 interface SelectedNews { title: string; url: string; pubDate: string }
 type Col = { label: string; color: string; items: NewsItem[]; loaded: boolean };
 
@@ -86,15 +86,26 @@ function NewsColumn({
       <button
         onClick={() => item?.url && onSelect(item)}
         className="text-left group"
-        style={{ opacity: visible ? 1 : 0, transition: "opacity 0.35s ease", minHeight: 30,
+        style={{ opacity: visible ? 1 : 0, transition: "opacity 0.35s ease", minHeight: 32,
           cursor: item?.url ? "pointer" : "default" }}
         disabled={!loaded || !item?.url}
       >
         <p className="text-[11px] font-medium leading-snug line-clamp-2 group-hover:underline decoration-dotted underline-offset-2"
-          style={{ color: loaded ? "#c8d4e0" : "#6b7c96",
-            textDecorationColor: color }}>
+          style={{ color: loaded ? "#c8d4e0" : "#6b7c96", textDecorationColor: color }}>
           {!loaded ? "Chargement des actualités…" : (item?.title ?? "")}
         </p>
+        {/* Source outlet */}
+        {loaded && item?.source && (
+          <p className="text-[9px] mt-0.5 truncate" style={{ color: "#475569" }}>
+            {item.source}
+          </p>
+        )}
+        {/* Description / related context */}
+        {loaded && item?.description && (
+          <p className="text-[10px] leading-snug line-clamp-1 mt-0.5" style={{ color: "#6b7c96" }}>
+            {item.description}
+          </p>
+        )}
       </button>
     </div>
   );
@@ -189,7 +200,7 @@ export default function NewsBanner({ standings }: { standings: Standing[] }) {
     <>
       <div style={{ borderBottom: "1px solid #1e2d42", background: "#090e1a" }}>
         <div className="max-w-[1300px] mx-auto">
-          <div className="flex" style={{ minHeight: 56 }}>
+          <div className="flex" style={{ minHeight: 64 }}>
             <NewsColumn {...cols[0]} title={cols[0].label} onSelect={handleSelect} />
             {div}
             <NewsColumn {...cols[1]} title={cols[1].label} onSelect={handleSelect} />

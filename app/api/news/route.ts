@@ -7,7 +7,8 @@ export interface NewsItem {
   title: string;
   pubDate: string; // ISO
   url: string;     // Google News redirect URL → resolved at article-fetch time
-  description?: string;
+  source?: string; // news outlet name extracted from RSS <source> tag
+  description?: string; // cleaned snippet if available (not Google boilerplate)
 }
 
 /* ─── RSS fetcher + parser ───────────────────────────────────── */
@@ -50,12 +51,38 @@ async function fetchRSS(url: string): Promise<NewsItem[]> {
         : new Date().toISOString();
 
       const url = linkMatch?.[1]?.trim() ?? "";
-      // Strip HTML from description
-      const description = descMatch?.[1]
-        ? descMatch[1].replace(/<[^>]+>/g, "").trim().slice(0, 200)
-        : undefined;
 
-      if (title.length > 8) items.push({ title, pubDate, url, description });
+      // ── Extract source outlet from <source> tag ────────────────
+      const sourceTagMatch = block.match(/<source[^>]*>([^<]+)<\/source>/);
+      const source = sourceTagMatch?.[1]?.trim() || undefined;
+
+      // ── Extract description ────────────────────────────────────
+      // Google News RSS <description> is HTML with a list of related articles.
+      // We extract the source from the first <font> (after vert bar) if <source> missing,
+      // and any text after the first <li> that isn't just the main title.
+      let description: string | undefined;
+      if (descMatch?.[1]) {
+        const raw = descMatch[1];
+        // Try to get text from second+ <li> items (related context)
+        const liItems = [...raw.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)];
+        if (liItems.length >= 2) {
+          // Second li often has a real related headline
+          const secondLi = liItems[1][1].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+          // Only use if it looks like real content (not boilerplate)
+          if (secondLi.length > 15 && !/comprehensive|aggregated|google news/i.test(secondLi)) {
+            description = secondLi.slice(0, 120);
+          }
+        }
+        // Fallback: strip all HTML and check it's not boilerplate
+        if (!description) {
+          const stripped = raw.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 200);
+          if (stripped.length > 20 && !/comprehensive.*news|aggregated from sources|google news/i.test(stripped)) {
+            description = stripped.slice(0, 140);
+          }
+        }
+      }
+
+      if (title.length > 8) items.push({ title, pubDate, url, source, description });
     }
     return items;
   } catch {
