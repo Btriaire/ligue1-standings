@@ -14,7 +14,7 @@ function makeToken() {
 
 export async function POST(req: NextRequest) {
   const { username, password } = await req.json().catch(() => ({}));
-  if (username !== ADMIN_USER || password !== ADMIN_PASS) {
+  if (username?.toLowerCase() !== ADMIN_USER.toLowerCase() || password !== ADMIN_PASS) {
     return NextResponse.json({ error: "Identifiants incorrects" }, { status: 401 });
   }
   const store = await cookies();

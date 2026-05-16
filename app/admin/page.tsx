@@ -75,7 +75,8 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="text-xs font-semibold block mb-1" style={{ color: "#94a3b8" }}>Identifiant</label>
-              <input value={u} onChange={e => setU(e.target.value)} required autoComplete="username"
+              <input value={u} onChange={e => setU(e.target.value)} required
+                type="text" autoComplete="off" spellCheck={false}
                 className="w-full rounded-xl px-4 py-2.5 text-sm outline-none"
                 style={{ background: "rgba(255,255,255,0.05)", border: "1px solid #1e2d42", color: "#e8edf5" }} />
             </div>
