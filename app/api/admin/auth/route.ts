@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
+export const dynamic = "force-dynamic";
+
 // Simple HMAC-free token: base64(username:timestamp) signed with secret
 // Good enough for a private admin panel — upgrade to JWT if needed
 const ADMIN_USER = process.env.ADMIN_USER ?? "Admin";
