@@ -292,6 +292,56 @@ const ACTUAL_RESULTS: Record<string, { winner: 0 | 1; score?: string }> = {
 };
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── Cotes de force IA (basées sur performances récentes : CdM 2022, EURO 2024,
+//    Copa América 2024, CAN 2023, classement FIFA mai 2026) ────────────────────
+const TEAM_STR: Record<string, number> = {
+  // Gauche
+  "🇦🇷 Argentine":    93, // Champion du monde 2022, Copa América 2024
+  "🇪🇨 Équateur":     67,
+  "🇺🇸 USA":          73, // Pays hôte, en forte progression
+  "🇺🇾 Uruguay":      78, // Expérimenté, demi-finale Copa 2024
+  "🇪🇸 Espagne":      92, // Champion EURO 2024, Yamal / Pedri
+  "🇩🇿 Algérie":      62,
+  "🇫🇷 France":       91, // Finaliste CdM 2022, Mbappé / Griezmann
+  "🇧🇪 Belgique":     74, // Post-génération dorée
+  "🇲🇽 Mexique":      71, // Pays hôte
+  "🇨🇱 Chili":        64,
+  "🇨🇦 Canada":       73, // Pays hôte, Davies / Jonathan David
+  "🇵🇹 Portugal":     83, // Leão, Bruno Fernandes, Félix
+  "🇲🇦 Maroc":        77, // ½ finale 2022, Hakimi / En-Nesyri
+  "🇯🇵 Japon":        74, // R16 2022, régulièrement en progression
+  "🇨🇭 Suisse":       73, // Solide, R16 2022
+  "🇵🇪 Pérou":        61,
+  // Droite
+  "🇧🇷 Brésil":       86, // Vinicius Jr, Endrick, puissant mais irrégulier
+  "🇨🇲 Cameroun":     58,
+  "🇩🇪 Allemagne":    82, // Wirtz, EURO 2024 QF pays hôte
+  "🇷🇸 Serbie":       68,
+  "🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre": 85, // Bellingham, Saka, Kane
+  "🇬🇭 Ghana":        59,
+  "🇮🇹 Italie":       76, // Champion EURO 2020, reconstruction
+  "🇷🇴 Roumanie":     61,
+  "🇨🇴 Colombie":     73, // Finaliste Copa América 2024
+  "🇵🇾 Paraguay":     60,
+  "🇳🇱 Pays-Bas":     80, // ½ finale EURO 2024, Van Dijk / Gakpo
+  "🇵🇱 Pologne":      67,
+  "🇸🇳 Sénégal":      74, // Champion CAN 2022, ère Mané
+  "🇹🇳 Tunisie":      62,
+  "🇭🇷 Croatie":      77, // 3e place 2022, surperformant chronique
+  "🇰🇷 Corée du S":   72, // Son Heung-min, en progression
+};
+
+function getStr(name: string): number { return TEAM_STR[name] ?? 65; }
+
+// Logistic win probability: P(t1 wins) based on strength diff
+function matchProb(t1: string, t2: string): number {
+  if (!t1 || t1 === "?" || !t2 || t2 === "?") return 0.5;
+  const diff = getStr(t1) - getStr(t2);
+  return Math.round(100 / (1 + Math.exp(-diff / 10))) / 100;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Layout constants (px)
 const MH = 46;   // match card height
 const GAP = 8;   // vertical gap between cards in same round
@@ -310,59 +360,69 @@ const TOTAL_H = 8 * SLOT; // 432
 
 interface BMatch { id: string; t1: string; t2: string }
 
-function BMatchCard({ m, picks, onPick }: {
+function BMatchCard({ m, picks, onPick, aiMode }: {
   m: BMatch; picks: Record<string, 0|1>; onPick: (id: string, s: 0|1) => void;
+  aiMode?: boolean;
 }) {
-  // Real result takes priority over user pick
   const actual = ACTUAL_RESULTS[m.id];
   const p: 0 | 1 | undefined = actual !== undefined ? actual.winner : picks[m.id];
   const isReal = actual !== undefined;
   const isEmpty = (t: string) => t === "?" || t === "";
+  const prob1 = (!isEmpty(m.t1) && !isEmpty(m.t2)) ? matchProb(m.t1, m.t2) : null;
 
   return (
     <div className="flex flex-col overflow-hidden"
       style={{
         height: MH, borderRadius: 6, width: "100%",
         border: isReal
-          ? "1px solid rgba(234,179,8,0.4)"   // gold border for played matches
+          ? "1px solid rgba(234,179,8,0.4)"
+          : aiMode ? "1px solid rgba(99,102,241,0.4)"
           : "1px solid #1e3050",
-        background: isReal ? "#0d1520" : "#0a1220",
+        background: isReal ? "#0d1520" : aiMode ? "#0b0f1e" : "#0a1220",
       }}>
       {([0, 1] as const).map(side => {
         const t = side === 0 ? m.t1 : m.t2;
         const won = p === side;
         const lost = p !== undefined && !won;
-        // Score display: show each team's goals
         const scoreParts = actual?.score?.split("-");
         const scoreStr = scoreParts ? scoreParts[side] : null;
+        const pct = prob1 != null ? Math.round((side === 0 ? prob1 : 1 - prob1) * 100) : null;
 
         return (
           <button key={side}
-            onClick={() => !isReal && !isEmpty(t) && onPick(m.id, side)}
+            onClick={() => !isReal && !aiMode && !isEmpty(t) && onPick(m.id, side)}
             style={{
-              flex: 1, textAlign: "left", padding: "2px 6px", fontSize: 9,
+              flex: 1, textAlign: "left", padding: "2px 5px", fontSize: 9,
               fontWeight: won ? 700 : 400,
               background: won
-                ? isReal ? "rgba(234,179,8,0.12)" : "rgba(34,197,94,0.15)"
+                ? isReal ? "rgba(234,179,8,0.12)"
+                : aiMode ? "rgba(99,102,241,0.18)"
+                : "rgba(34,197,94,0.15)"
                 : "transparent",
               color: isEmpty(t) ? "#2a3a50"
-                : won ? (isReal ? "#eab308" : "#22c55e")
+                : won ? (isReal ? "#eab308" : aiMode ? "#818cf8" : "#22c55e")
                 : lost ? "#2e3e52"
                 : "#94a3b8",
               borderBottom: side === 0 ? "1px solid #1a2840" : "none",
-              cursor: isReal || isEmpty(t) ? "default" : "pointer",
+              cursor: (isReal || aiMode || isEmpty(t)) ? "default" : "pointer",
               whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-              lineHeight: 1.2, display: "flex", alignItems: "center", gap: 3,
+              lineHeight: 1.15, display: "flex", alignItems: "center", gap: 2,
             }}>
-            <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>
-              {won && !isReal && <span style={{ marginRight: 2, fontSize: 7 }}>✓</span>}
+            <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", fontSize: 8.5 }}>
+              {won && !isReal && !aiMode && <span style={{ marginRight: 2, fontSize: 7 }}>✓</span>}
               {isEmpty(t) ? "—" : t}
             </span>
+            {/* Score (real result) */}
             {scoreStr != null && (
               <span style={{ fontSize: 9, fontWeight: 800, flexShrink: 0,
-                color: won ? "#eab308" : "#2e3e52" }}>
-                {scoreStr}
-              </span>
+                color: won ? "#eab308" : "#2e3e52" }}>{scoreStr}</span>
+            )}
+            {/* AI probability */}
+            {aiMode && pct != null && !isReal && (
+              <span style={{ fontSize: 8, fontWeight: 700, flexShrink: 0,
+                color: won ? "#818cf8" : "#334155",
+                background: won ? "rgba(99,102,241,0.15)" : "transparent",
+                borderRadius: 3, padding: "0 2px" }}>{pct}%</span>
             )}
           </button>
         );
@@ -371,15 +431,15 @@ function BMatchCard({ m, picks, onPick }: {
   );
 }
 
-function BracketColumn({ matches, tops, picks, onPick, style }: {
+function BracketColumn({ matches, tops, picks, onPick, aiMode, style }: {
   matches: BMatch[]; tops: number[]; picks: Record<string, 0|1>;
-  onPick: (id: string, s: 0|1) => void; style?: React.CSSProperties;
+  onPick: (id: string, s: 0|1) => void; aiMode?: boolean; style?: React.CSSProperties;
 }) {
   return (
     <div style={{ position: "relative", width: 90, flexShrink: 0, height: TOTAL_H, ...style }}>
       {matches.map((m, i) => (
         <div key={m.id} style={{ position: "absolute", top: tops[i], left: 0, right: 0 }}>
-          <BMatchCard m={m} picks={picks} onPick={onPick} />
+          <BMatchCard m={m} picks={picks} onPick={onPick} aiMode={aiMode} />
         </div>
       ))}
     </div>
@@ -402,11 +462,12 @@ function Connector({ top1, top2, color = "#1e3050" }: { top1: number; top2: numb
 
 function BracketTab() {
   const [picks, setPicks] = useState<Record<string, 0|1>>({});
+  const [aiMode, setAiMode] = useState(false);
 
   const setPick = (id: string, side: 0|1) =>
     setPicks(p => { const n = { ...p }; if (n[id] === side) delete n[id]; else n[id] = side; return n; });
 
-  // Returns the winner of a match: real result first, then user pick, then "?"
+  // Returns the winner of a match: real result first, then user/AI pick, then "?"
   const w = (id: string, t1: string, t2: string) => {
     const actual = ACTUAL_RESULTS[id];
     if (actual !== undefined) return actual.winner === 0 ? t1 : t2;
@@ -469,6 +530,74 @@ function BracketTab() {
   const finalT1 = w(LSF[0].id, LSF[0].t1, LSF[0].t2);
   const finalT2 = w(RSF[0].id, RSF[0].t1, RSF[0].t2);
   const finalMatch: BMatch = { id: "FIN", t1: finalT1, t2: finalT2 };
+
+  // ── AI prediction engine ───────────────────────────────────────────────────
+  // Cascade through bracket: predict each round using strength ratings
+  const computeAIPicks = (): Record<string, 0|1> => {
+    const p: Record<string, 0|1> = {};
+    const wAI = (id: string, t1: string, t2: string): string => {
+      const actual = ACTUAL_RESULTS[id];
+      if (actual) return actual.winner === 0 ? t1 : t2;
+      return p[id] === 0 ? t1 : p[id] === 1 ? t2 : t1; // default t1 if unknown
+    };
+    const predict = (id: string, t1: string, t2: string) => {
+      if (ACTUAL_RESULTS[id]) return; // don't override real results
+      if (t1 === "?" || t2 === "?") return;
+      p[id] = matchProb(t1, t2) >= 0.5 ? 0 : 1;
+    };
+
+    // Round 1 — seeds are known
+    L16.forEach(m => predict(m.id, m.t1, m.t2));
+    R16.forEach(m => predict(m.id, m.t1, m.t2));
+
+    // QF — computed from R16 results
+    const lqf = Array.from({ length: 4 }, (_, i) => ({
+      id: `LQ${i}`,
+      t1: wAI(L16[i*2].id, L16[i*2].t1, L16[i*2].t2),
+      t2: wAI(L16[i*2+1].id, L16[i*2+1].t1, L16[i*2+1].t2),
+    }));
+    lqf.forEach(m => predict(m.id, m.t1, m.t2));
+
+    const rqf = Array.from({ length: 4 }, (_, i) => ({
+      id: `RQ${i}`,
+      t1: wAI(R16[i*2].id, R16[i*2].t1, R16[i*2].t2),
+      t2: wAI(R16[i*2+1].id, R16[i*2+1].t1, R16[i*2+1].t2),
+    }));
+    rqf.forEach(m => predict(m.id, m.t1, m.t2));
+
+    // SF
+    const lsf = Array.from({ length: 2 }, (_, i) => ({
+      id: `LS${i}`,
+      t1: wAI(lqf[i*2].id, lqf[i*2].t1, lqf[i*2].t2),
+      t2: wAI(lqf[i*2+1].id, lqf[i*2+1].t1, lqf[i*2+1].t2),
+    }));
+    lsf.forEach(m => predict(m.id, m.t1, m.t2));
+
+    const rsf = Array.from({ length: 2 }, (_, i) => ({
+      id: `RS${i}`,
+      t1: wAI(rqf[i*2].id, rqf[i*2].t1, rqf[i*2].t2),
+      t2: wAI(rqf[i*2+1].id, rqf[i*2+1].t1, rqf[i*2+1].t2),
+    }));
+    rsf.forEach(m => predict(m.id, m.t1, m.t2));
+
+    // Final
+    const ft1 = wAI(lsf[0].id, lsf[0].t1, lsf[0].t2);
+    const ft2 = wAI(rsf[0].id, rsf[0].t1, rsf[0].t2);
+    predict("FIN", ft1, ft2);
+
+    return p;
+  };
+
+  const handleAI = () => {
+    if (aiMode) {
+      setAiMode(false);
+      setPicks({});
+    } else {
+      setPicks(computeAIPicks());
+      setAiMode(true);
+    }
+  };
+
   const champion = picks["FIN"] === 0 ? finalT1 : picks["FIN"] === 1 ? finalT2 : null;
 
   const CONN_W = 14; // connector column width
@@ -500,15 +629,38 @@ function BracketTab() {
         </div>
       )}
 
-      {/* Legend + reset */}
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-[10px]" style={{ color: "#475569" }}>
-          🖱 Clique sur une équipe pour simuler l&apos;avancement
+      {/* AI prediction banner */}
+      {aiMode && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl mb-3"
+          style={{ background: "rgba(99,102,241,0.07)", border: "1px solid rgba(99,102,241,0.3)" }}>
+          <span style={{ fontSize: 14 }}>🤖</span>
+          <div className="flex-1">
+            <p className="text-[10px] font-black" style={{ color: "#818cf8" }}>
+              Prédiction IA active — basée sur les performances récentes (CdM 2022, EURO 2024, Copa 2024…)
+            </p>
+            <p className="text-[9px] mt-0.5" style={{ color: "#475569" }}>
+              Les % indiquent la probabilité de victoire. Les bordures violettes = match prédit par l&apos;IA.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Toolbar */}
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        <p className="text-[10px] flex-1" style={{ color: "#475569" }}>
+          {aiMode ? "🔒 Mode IA — clique Reset pour simuler manuellement" : "🖱 Clique sur une équipe pour simuler l'avancement"}
         </p>
-        <button onClick={() => setPicks({})}
+        <button onClick={handleAI}
+          className="flex items-center gap-1.5 text-[9px] px-2.5 py-1 rounded-lg font-black hover:opacity-80 transition-all"
+          style={aiMode
+            ? { background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.5)", color: "#818cf8" }
+            : { background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.25)", color: "#6366f1" }}>
+          🤖 {aiMode ? "IA active — Désactiver" : "Prédiction IA"}
+        </button>
+        <button onClick={() => { setPicks({}); setAiMode(false); }}
           className="text-[9px] px-2 py-1 rounded hover:opacity-80"
           style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#f87171" }}>
-          Reset simulation
+          Reset
         </button>
       </div>
 
@@ -519,7 +671,7 @@ function BracketTab() {
           {/* ── LEFT: 1/8 ── */}
           <div style={{ display: "flex", flexDirection: "column", gap: 0, alignItems: "center" }}>
             <p className="text-[8px] font-black uppercase tracking-widest mb-1" style={{ color: "#1e3a5f" }}>1/8 Finale</p>
-            <BracketColumn matches={L16} tops={L16.map((_, i) => R16_TOP(i))} picks={picks} onPick={setPick} />
+            <BracketColumn matches={L16} tops={L16.map((_, i) => R16_TOP(i))} picks={picks} onPick={setPick} aiMode={aiMode} />
           </div>
 
           {/* connector L16→LQF */}
@@ -532,7 +684,7 @@ function BracketTab() {
           {/* ── LEFT: QF ── */}
           <div style={{ display: "flex", flexDirection: "column", gap: 0, alignItems: "center" }}>
             <p className="text-[8px] font-black uppercase tracking-widest mb-1" style={{ color: "#1e3a5f" }}>Quarts</p>
-            <BracketColumn matches={LQF} tops={LQF.map((_, i) => QF_TOP(i))} picks={picks} onPick={setPick} />
+            <BracketColumn matches={LQF} tops={LQF.map((_, i) => QF_TOP(i))} picks={picks} onPick={setPick} aiMode={aiMode} />
           </div>
 
           {/* connector LQF→LSF */}
@@ -545,7 +697,7 @@ function BracketTab() {
           {/* ── LEFT: SF ── */}
           <div style={{ display: "flex", flexDirection: "column", gap: 0, alignItems: "center" }}>
             <p className="text-[8px] font-black uppercase tracking-widest mb-1" style={{ color: "#1e3a5f" }}>Demis</p>
-            <BracketColumn matches={LSF} tops={LSF.map((_, i) => SF_TOP(i))} picks={picks} onPick={setPick} />
+            <BracketColumn matches={LSF} tops={LSF.map((_, i) => SF_TOP(i))} picks={picks} onPick={setPick} aiMode={aiMode} />
           </div>
 
           {/* connector LSF→Final */}
@@ -558,11 +710,17 @@ function BracketTab() {
             <p className="text-[8px] font-black uppercase tracking-widest mb-1" style={{ color: "#f59e0b" }}>🏆 Finale</p>
             <div style={{ position: "relative", height: TOTAL_H }}>
               <div style={{ position: "absolute", top: FIN_TOP, width: 100 }}>
-                <BMatchCard m={finalMatch} picks={picks} onPick={setPick} />
+                <BMatchCard m={finalMatch} picks={picks} onPick={setPick} aiMode={aiMode} />
                 {champion && champion !== "?" && (
                   <div className="text-center mt-1 px-1 py-0.5 rounded"
-                    style={{ background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)" }}>
-                    <span style={{ fontSize: 8, color: "#f59e0b", fontWeight: 700 }}>🥇 {champion}</span>
+                    style={{
+                      background: aiMode ? "rgba(99,102,241,0.12)" : "rgba(245,158,11,0.12)",
+                      border: `1px solid ${aiMode ? "rgba(99,102,241,0.35)" : "rgba(245,158,11,0.3)"}`,
+                    }}>
+                    <span style={{ fontSize: 8, fontWeight: 700,
+                      color: aiMode ? "#818cf8" : "#f59e0b" }}>
+                      {aiMode ? "🤖" : "🥇"} {champion}
+                    </span>
                   </div>
                 )}
               </div>
@@ -577,7 +735,7 @@ function BracketTab() {
           {/* ── RIGHT: SF ── */}
           <div style={{ display: "flex", flexDirection: "column", gap: 0, alignItems: "center" }}>
             <p className="text-[8px] font-black uppercase tracking-widest mb-1" style={{ color: "#1e3a5f" }}>Demis</p>
-            <BracketColumn matches={RSF} tops={RSF.map((_, i) => SF_TOP(i))} picks={picks} onPick={setPick} />
+            <BracketColumn matches={RSF} tops={RSF.map((_, i) => SF_TOP(i))} picks={picks} onPick={setPick} aiMode={aiMode} />
           </div>
 
           {/* connector RSF←RQF */}
@@ -590,7 +748,7 @@ function BracketTab() {
           {/* ── RIGHT: QF ── */}
           <div style={{ display: "flex", flexDirection: "column", gap: 0, alignItems: "center" }}>
             <p className="text-[8px] font-black uppercase tracking-widest mb-1" style={{ color: "#1e3a5f" }}>Quarts</p>
-            <BracketColumn matches={RQF} tops={RQF.map((_, i) => QF_TOP(i))} picks={picks} onPick={setPick} />
+            <BracketColumn matches={RQF} tops={RQF.map((_, i) => QF_TOP(i))} picks={picks} onPick={setPick} aiMode={aiMode} />
           </div>
 
           {/* connector RQF←R16 */}
@@ -603,7 +761,7 @@ function BracketTab() {
           {/* ── RIGHT: 1/8 ── */}
           <div style={{ display: "flex", flexDirection: "column", gap: 0, alignItems: "center" }}>
             <p className="text-[8px] font-black uppercase tracking-widest mb-1" style={{ color: "#1e3a5f" }}>1/8 Finale</p>
-            <BracketColumn matches={R16} tops={R16.map((_, i) => R16_TOP(i))} picks={picks} onPick={setPick} />
+            <BracketColumn matches={R16} tops={R16.map((_, i) => R16_TOP(i))} picks={picks} onPick={setPick} aiMode={aiMode} />
           </div>
         </div>
       </div>
