@@ -1,0 +1,223 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { ChevronRight, Clock } from "lucide-react";
+import Link from "next/link";
+
+interface TeamInfo {
+  id: number;
+  name: string;
+  shortName: string;
+  tla: string;
+  crest: string;
+}
+
+interface Standing {
+  position: number;
+  team: TeamInfo;
+  playedGames: number;
+  won: number;
+  draw: number;
+  lost: number;
+  points: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDifference: number;
+  form: string;
+}
+
+interface Match {
+  id: number;
+  date: string;
+  matchday: number;
+  status: string;
+  homeTeam: { id: number; name: string; shortName?: string; crest: string };
+  awayTeam: { id: number; name: string; shortName?: string; crest: string };
+  score: { home: number | null; away: number | null };
+}
+
+interface TeamData {
+  recent: Match[];
+  upcoming: Match[];
+}
+
+interface Props {
+  standing: Standing;
+  zoneColor: string;
+}
+
+function fmtShortDate(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+}
+function fmtTime(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+}
+
+const RESULT_STYLE: Record<string, { label: string; color: string; bg: string }> = {
+  W: { label: "V", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
+  D: { label: "N", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
+  L: { label: "D", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
+};
+
+export default function TeamPanel({ standing, zoneColor }: Props) {
+  const [data, setData] = useState<TeamData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`/api/team/${standing.team.id}`)
+      .then(r => r.json())
+      .then(setData)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [standing.team.id]);
+
+  const ptsPerGame = standing.playedGames > 0
+    ? (standing.points / standing.playedGames).toFixed(2)
+    : "—";
+  const winPct = standing.playedGames > 0
+    ? Math.round((standing.won / standing.playedGames) * 100)
+    : 0;
+
+  const formResults = standing.form?.split(",").filter(Boolean).slice(-5) ?? [];
+
+  const nextMatch = data?.upcoming?.[0] ?? null;
+  const lastMatch = data?.recent?.[0] ?? null;
+
+  return (
+    <div
+      className="px-4 py-3 space-y-3"
+      style={{ background: "rgba(59,130,246,0.04)" }}
+    >
+      {/* ── Stat pills ─────────────────────────────────────────── */}
+      <div className="flex flex-wrap gap-2">
+        {/* W/D/L */}
+        <div className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-mono"
+          style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)" }}>
+          <span style={{ color: "#22c55e" }} className="font-black">{standing.won}V</span>
+          <span style={{ color: "#6b7c96" }}>·</span>
+          <span style={{ color: "#f59e0b" }} className="font-black">{standing.draw}N</span>
+          <span style={{ color: "#6b7c96" }}>·</span>
+          <span style={{ color: "#ef4444" }} className="font-black">{standing.lost}D</span>
+        </div>
+
+        {/* Goals */}
+        <div className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-mono"
+          style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
+          <span style={{ color: "#22c55e" }}>{standing.goalsFor} BP</span>
+          <span style={{ color: "#6b7c96" }}>·</span>
+          <span style={{ color: "#ef4444" }}>{standing.goalsAgainst} BC</span>
+        </div>
+
+        {/* GD */}
+        <div className="flex items-center rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold"
+          style={{
+            background: standing.goalDifference >= 0 ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)",
+            border: `1px solid ${standing.goalDifference >= 0 ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}`,
+            color: standing.goalDifference > 0 ? "#22c55e" : standing.goalDifference < 0 ? "#ef4444" : "#6b7c96",
+          }}>
+          DB {standing.goalDifference > 0 ? "+" : ""}{standing.goalDifference}
+        </div>
+
+        {/* Pts/match */}
+        <div className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-mono"
+          style={{ background: `${zoneColor}10`, border: `1px solid ${zoneColor}25` }}>
+          <span style={{ color: zoneColor }} className="font-bold">{ptsPerGame}</span>
+          <span style={{ color: "#6b7c96" }}>pts/match</span>
+        </div>
+
+        {/* Win % */}
+        <div className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-mono"
+          style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
+          <span style={{ color: "#94a3b8" }}>{winPct}% V</span>
+        </div>
+      </div>
+
+      {/* ── Form + matches ─────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        {/* Form badges */}
+        {formResults.length > 0 && (
+          <div className="flex items-center gap-1">
+            <span className="text-[9px] uppercase tracking-widest mr-1" style={{ color: "#475569" }}>Forme</span>
+            {formResults.map((r, i) => {
+              const s = RESULT_STYLE[r];
+              return s ? (
+                <span key={i}
+                  className="w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-black"
+                  style={{ background: s.bg, color: s.color, border: `1px solid ${s.color}30` }}>
+                  {s.label}
+                </span>
+              ) : null;
+            })}
+          </div>
+        )}
+
+        {/* Last match score */}
+        {lastMatch && (() => {
+          const isHome = lastMatch.homeTeam.id === standing.team.id;
+          const myScore = isHome ? lastMatch.score.home : lastMatch.score.away;
+          const oppScore = isHome ? lastMatch.score.away : lastMatch.score.home;
+          const opp = isHome ? lastMatch.awayTeam : lastMatch.homeTeam;
+          const won = myScore !== null && oppScore !== null && myScore > oppScore;
+          const lost = myScore !== null && oppScore !== null && myScore < oppScore;
+          const color = won ? "#22c55e" : lost ? "#ef4444" : "#f59e0b";
+          return (
+            <div className="flex items-center gap-1.5 text-xs">
+              <span style={{ color: "#475569" }} className="text-[9px] uppercase tracking-widest">Dernier</span>
+              {opp.crest && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={opp.crest} alt="" className="w-4 h-4 object-contain" />
+              )}
+              <span style={{ color: "#94a3b8" }} className="font-medium truncate max-w-[80px]">
+                {opp.shortName ?? opp.name.split(" ").slice(-1)[0]}
+              </span>
+              <span className="font-black font-mono text-xs" style={{ color }}>
+                {myScore ?? "–"}–{oppScore ?? "–"}
+              </span>
+            </div>
+          );
+        })()}
+
+        {/* Next match */}
+        {loading ? (
+          <div className="flex items-center gap-1.5 text-xs" style={{ color: "#475569" }}>
+            <Clock size={10} className="animate-pulse" /> Chargement…
+          </div>
+        ) : nextMatch ? (() => {
+          const isHome = nextMatch.homeTeam.id === standing.team.id;
+          const opp = isHome ? nextMatch.awayTeam : nextMatch.homeTeam;
+          return (
+            <div className="flex items-center gap-1.5 text-xs">
+              <span style={{ color: "#475569" }} className="text-[9px] uppercase tracking-widest">Prochain</span>
+              {opp.crest && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={opp.crest} alt="" className="w-4 h-4 object-contain" />
+              )}
+              <span style={{ color: "#94a3b8" }} className="font-medium truncate max-w-[80px]">
+                {opp.shortName ?? opp.name.split(" ").slice(-1)[0]}
+              </span>
+              <span style={{ color: "#00d4ff" }} className="font-semibold">
+                {fmtShortDate(nextMatch.date)} {fmtTime(nextMatch.date)}
+              </span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded"
+                style={{ background: isHome ? "rgba(0,212,255,0.1)" : "rgba(255,255,255,0.05)", color: isHome ? "#00d4ff" : "#6b7c96" }}>
+                {isHome ? "Dom." : "Ext."}
+              </span>
+            </div>
+          );
+        })() : null}
+
+        {/* Club page link */}
+        <Link
+          href={`/club/${standing.team.id}`}
+          className="ml-auto flex items-center gap-1 text-xs font-semibold hover:opacity-80 transition-opacity"
+          style={{ color: zoneColor }}
+          onClick={e => e.stopPropagation()}
+        >
+          Fiche complète <ChevronRight size={11} />
+        </Link>
+      </div>
+    </div>
+  );
+}

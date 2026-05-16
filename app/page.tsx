@@ -3,7 +3,8 @@
 import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { RefreshCw, TrendingUp, TrendingDown, Minus, Trophy, Wifi, WifiOff, Clock, Zap, BarChart2, Heart, Globe, Settings, Target, ArrowLeftRight, ChevronRight, Users, Lock, LogIn, LogOut } from "lucide-react";
-import TeamModal from "./components/TeamModal";
+import dynamic from "next/dynamic";
+const TeamPanel = dynamic(() => import("./components/TeamPanel"), { ssr: false });
 import PredictionsTab from "./components/PredictionsTab";
 import EmotionalScoreTab from "./components/EmotionalScoreTab";
 import ResultsTab from "./components/ResultsTab";
@@ -116,43 +117,49 @@ function Trend({ form }: { form: string }) {
 }
 
 function StandingsTable({ standings }: { standings: Standing[] }) {
-  const [selected, setSelected] = useState<Standing | null>(null);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   return (
-    <>
-      {selected && <TeamModal standing={selected} onClose={() => setSelected(null)} />}
-      <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42" }}>
-        <div className="grid items-center px-4 py-3 text-xs font-semibold uppercase tracking-widest"
-          style={{
-            background: "#0d1421",
-            color: "#6b7c96",
-            gridTemplateColumns: "44px 1fr 40px 90px 40px 40px 48px 56px 100px 40px",
-            borderBottom: "1px solid #1e2d42",
-          }}>
-          <span className="text-center">#</span>
-          <span>Équipe</span>
-          <span className="text-center">J</span>
-          <span className="text-center hidden sm:block">V · N · D</span>
-          <span className="text-center hidden md:block">BP</span>
-          <span className="text-center hidden md:block">BC</span>
-          <span className="text-center">DB</span>
-          <span className="text-center font-bold" style={{ color: "#e8edf5" }}>Pts</span>
-          <span className="text-center hidden sm:block">Forme</span>
-          <span className="hidden lg:block" />
-        </div>
+    <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42" }}>
+      {/* Header */}
+      <div className="grid items-center px-4 py-3 text-xs font-semibold uppercase tracking-widest"
+        style={{
+          background: "#0d1421",
+          color: "#6b7c96",
+          gridTemplateColumns: "44px 1fr 40px 90px 40px 40px 48px 56px 100px 40px",
+          borderBottom: "1px solid #1e2d42",
+        }}>
+        <span className="text-center">#</span>
+        <span>Équipe</span>
+        <span className="text-center">J</span>
+        <span className="text-center hidden sm:block">V · N · D</span>
+        <span className="text-center hidden md:block">BP</span>
+        <span className="text-center hidden md:block">BC</span>
+        <span className="text-center">DB</span>
+        <span className="text-center font-bold" style={{ color: "#e8edf5" }}>Pts</span>
+        <span className="text-center hidden sm:block">Forme</span>
+        <span className="hidden lg:block" />
+      </div>
 
-        {standings.map((s, idx) => {
-          const zone = getZone(s.position);
-          return (
-            <div key={s.team.id} onClick={() => setSelected(s)}
-              className="group grid items-center px-4 py-3 transition-all duration-200 hover:brightness-125 animate-fade-in-up cursor-pointer"
+      {standings.map((s, idx) => {
+        const zone = getZone(s.position);
+        const isExpanded = expandedId === s.team.id;
+        return (
+          <React.Fragment key={s.team.id}>
+            {/* Row */}
+            <div
+              onClick={() => setExpandedId(isExpanded ? null : s.team.id)}
+              className="group grid items-center px-4 py-3 transition-all duration-200 hover:brightness-125 animate-fade-in-up cursor-pointer select-none"
               style={{
                 gridTemplateColumns: "44px 1fr 40px 90px 40px 40px 48px 56px 100px 40px",
-                background: zone ? zone.bg : idx % 2 === 0 ? "rgba(13,20,33,0.6)" : "transparent",
-                borderBottom: "1px solid rgba(30,45,66,0.4)",
+                background: isExpanded
+                  ? "rgba(59,130,246,0.07)"
+                  : zone ? zone.bg : idx % 2 === 0 ? "rgba(13,20,33,0.6)" : "transparent",
+                borderBottom: isExpanded ? "none" : "1px solid rgba(30,45,66,0.4)",
                 borderLeft: zone ? `3px solid ${zone.color}` : "3px solid transparent",
                 animationDelay: `${idx * 30}ms`,
-              }}>
+              }}
+            >
               <div className="flex justify-center"><PositionBadge position={s.position} /></div>
 
               <div className="flex items-center gap-3 min-w-0">
@@ -198,10 +205,17 @@ function StandingsTable({ standings }: { standings: Standing[] }) {
               <div className="hidden sm:flex justify-center"><FormStreak form={s.form} /></div>
               <div className="hidden lg:flex justify-center"><Trend form={s.form} /></div>
             </div>
-          );
-        })}
-      </div>
-    </>
+
+            {/* Inline compact panel */}
+            {isExpanded && (
+              <div style={{ borderBottom: "1px solid rgba(30,45,66,0.6)", borderLeft: zone ? `3px solid ${zone.color}` : "3px solid rgba(59,130,246,0.4)" }}>
+                <TeamPanel standing={s} zoneColor={zone?.color ?? "#3b82f6"} />
+              </div>
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
   );
 }
 
