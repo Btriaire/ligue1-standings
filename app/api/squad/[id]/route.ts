@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { TEAM_TM_MAP, UNDERSTAT_TEAM_MAP } from "@/app/lib/teamMapping";
+import { getAdminFirestore } from "@/app/lib/firebase-admin";
 
 const API_KEY = process.env.FOOTBALL_DATA_API_KEY;
 
@@ -359,10 +360,38 @@ const EMPTY_RESPONSE = (teamId: number) => NextResponse.json({
   stats: { totalValue: 0, avgValue: 0, playerCount: 0, injuredCount: 0, injuryRate: 0, injured: [], recentMatchCount: 0, teamWins: 0, teamDraws: 0, teamLosses: 0 },
 });
 
+// ─── SofaScore player shape (written by cron) ─────────────────────────────────
+interface SofaPlayer {
+  id: number; name: string; shortName: string; position: string;
+  jerseyNumber: string; nationality: string; height: number | null;
+  preferredFoot: string | null; dateOfBirth: number | null;
+  marketValue: number | null; contractUntil: number | null;
+  injured: boolean; injuryReason: string | null; injuryReturnTimestamp: number | null;
+}
+interface SofaMatch {
+  id: number; tournament: string;
+  homeTeam: string; homeTeamId: number;
+  awayTeam: string; awayTeamId: number;
+  homeScore: number | null; awayScore: number | null;
+  startTimestamp: number; status: string;
+}
+interface SofaCache {
+  players: SofaPlayer[]; lastMatches: SofaMatch[]; nextMatches: SofaMatch[];
+  fetchedAt: number;
+}
+
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const teamId = parseInt(id);
   const tmId = TEAM_TM_MAP[teamId];
+
+  // Load SofaScore weekly cache from Firestore (non-blocking)
+  let sofaCache: SofaCache | null = null;
+  try {
+    const db = getAdminFirestore();
+    const doc = await db.collection("sofascore").doc(String(teamId)).get();
+    if (doc.exists) sofaCache = doc.data() as SofaCache;
+  } catch { /* Firestore unavailable — continue without */ }
 
   const [fdRes, matchesRes] = await Promise.all([
     fetch(`https://api.football-data.org/v4/teams/${teamId}`, {
@@ -576,8 +605,61 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return { ...p, recentGoals, recentAssists, formBadge };
   });
 
-  const sortedPlayers = [...enrichedPlayers].sort(
+  // ── Merge SofaScore data when available ──────────────────────────────────────
+  const sofaByName = new Map<string, SofaPlayer>();
+  if (sofaCache?.players) {
+    for (const sp of sofaCache.players) {
+      sofaByName.set(sp.name.toLowerCase(), sp);
+      if (sp.shortName) sofaByName.set(sp.shortName.toLowerCase(), sp);
+    }
+  }
+
+  const finalPlayers = enrichedPlayers.map(p => {
+    const key = p.name.toLowerCase();
+    const sofa = sofaByName.get(key)
+      ?? sofaByName.get(p.name.split(" ").pop()!.toLowerCase())
+      ?? null;
+    if (!sofa) return p;
+
+    // Prefer SofaScore market value (more up-to-date) if available
+    const marketValue = sofa.marketValue ?? p.marketValue;
+    // SofaScore injury is authoritative
+    const sofaInjured = sofa.injured;
+    const sofaInjuryReason = sofa.injuryReason ?? null;
+    const sofaInjuryReturn = sofa.injuryReturnTimestamp
+      ? new Date(sofa.injuryReturnTimestamp * 1000).toISOString().slice(0, 10)
+      : null;
+    // Update status string so isUnavailable() works app-wide
+    const status = sofaInjured
+      ? `injury${sofaInjuryReason ? ` — ${sofaInjuryReason}` : ""}`
+      : (p.status ?? undefined);
+    const formBadge = sofaInjured ? "cold" as const : p.formBadge;
+
+    return {
+      ...p,
+      marketValue,
+      status,
+      formBadge,
+      sofaId: sofa.id,
+      sofaJerseyNumber: sofa.jerseyNumber,
+      sofaInjured,
+      sofaInjuryReason,
+      sofaInjuryReturn,
+      sofaPreferredFoot: sofa.preferredFoot,
+      sofaHeight: sofa.height,
+      sofaContractUntil: sofa.contractUntil
+        ? new Date(sofa.contractUntil * 1000).toISOString().slice(0, 4)
+        : null,
+    };
+  });
+
+  const sortedPlayers = [...finalPlayers].sort(
     (a, b) => (positionOrder[a.position] ?? 6) - (positionOrder[b.position] ?? 6)
+  );
+
+  // Recalculate injured count using merged data
+  const injuredFinal = sortedPlayers.filter(p =>
+    p.status && /injur|suspen|bless/i.test(p.status)
   );
 
   return NextResponse.json({
@@ -595,13 +677,17 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       totalValue,
       avgValue: Math.round(avgValue),
       playerCount: players.length,
-      injuredCount: injured.length,
-      injuryRate: Math.round(injuryRate * 100),
-      injured: injured.map((p) => ({ name: p.name, status: p.status })),
+      injuredCount: injuredFinal.length,
+      injuryRate: Math.round((injuredFinal.length / Math.max(players.length, 1)) * 100),
+      injured: injuredFinal.map(p => ({ name: p.name, status: p.status })),
       recentMatchCount,
       teamWins,
       teamDraws,
       teamLosses,
     },
+    // SofaScore extras — available to any page that uses this API
+    sofaNextMatches: sofaCache?.nextMatches ?? [],
+    sofaLastMatches: sofaCache?.lastMatches ?? [],
+    sofaFetchedAt: sofaCache?.fetchedAt ?? null,
   });
 }
