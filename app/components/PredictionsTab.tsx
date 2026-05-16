@@ -1476,6 +1476,17 @@ export default function PredictionsTab() {
   const [useEmotional, setUseEmotional] = useState(true);
   const [useExpert, setUseExpert] = useState(true);
   const [savedCount, setSavedCount] = useState(0);
+  const [monClubId, setMonClubId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const raw = localStorage.getItem("monClub_id");
+    if (raw) setMonClubId(Number(raw));
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "monClub_id") setMonClubId(e.newValue ? Number(e.newValue) : null);
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   useEffect(() => {
     fetch("/api/predictions")
@@ -1680,7 +1691,11 @@ export default function PredictionsTab() {
 
       {/* Cards */}
       <div className="grid sm:grid-cols-2 gap-4">
-        {data.predictions.map((match, i) => (
+        {[...data.predictions].sort((a, b) => {
+          const aIsClub = monClubId !== null && (a.homeTeam.id === monClubId || a.awayTeam.id === monClubId);
+          const bIsClub = monClubId !== null && (b.homeTeam.id === monClubId || b.awayTeam.id === monClubId);
+          return aIsClub === bIsClub ? 0 : aIsClub ? -1 : 1;
+        }).map((match, i) => (
           <div key={match.id} className="animate-fade-in-up" style={{ animationDelay: `${i * 60}ms` }}>
             <MatchCard
               match={match}
