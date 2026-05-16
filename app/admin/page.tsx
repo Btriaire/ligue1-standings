@@ -28,6 +28,21 @@ interface Status {
 }
 type LogEntry = { msg: string; ok: boolean; ts: number };
 
+interface PingResult {
+  ok: boolean; status: number; ms: number;
+  hint?: string; fixPath?: string; fixLabel?: string;
+}
+
+// Map source name → sourceId for ping route
+const SOURCE_IDS: Record<string, string> = {
+  "football-data.org": "football-data",
+  "Understat": "understat",
+  "SofaScore API": "sofascore",
+  "So Foot (news)": "sofoot",
+  "Transfermarkt API (fly.dev)": "transfermarkt",
+  "FBref (Sports Reference)": "fbref",
+};
+
 /* ─── Helpers ────────────────────────────────────────────────── */
 function StatusDot({ status }: { status: DataSource["status"] }) {
   const c = { ok: "#22c55e", error: "#ef4444", unknown: "#f59e0b", blocked: "#f97316" }[status];
@@ -146,6 +161,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState<Record<string, LogEntry>>({});
   const [features, setFeatures] = useState({ news: true, predictions: true, emotional: true, transfers: true });
+  const [pings, setPings] = useState<Record<string, PingResult | "loading">>({});
 
   useEffect(() => {
     fetch("/api/admin/auth")
@@ -166,6 +182,27 @@ export default function AdminPage() {
   async function logout() {
     await fetch("/api/admin/auth", { method: "DELETE" });
     setAuthed(false);
+  }
+
+  async function pingSource(sourceName: string) {
+    const sourceId = SOURCE_IDS[sourceName];
+    if (!sourceId) return;
+    setPings(p => ({ ...p, [sourceName]: "loading" }));
+    try {
+      const res = await fetch("/api/admin/ping", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sourceId }),
+      });
+      const data = await res.json() as PingResult;
+      setPings(p => ({ ...p, [sourceName]: data }));
+    } catch {
+      setPings(p => ({ ...p, [sourceName]: { ok: false, status: 0, ms: 0, hint: "Erreur réseau" } }));
+    }
+  }
+
+  async function pingAll() {
+    const names = status?.sources.map(src => src.name) ?? [];
+    await Promise.all(names.map(n => pingSource(n)));
   }
 
   async function trigger(key: string, path: string) {
@@ -352,30 +389,79 @@ export default function AdminPage() {
               <h2 className="text-[9px] font-black uppercase tracking-widest mb-2 flex items-center gap-1.5"
                 style={{ color: "#475569" }}>
                 <Globe size={11}/> Sources
+                <button onClick={pingAll}
+                  className="ml-auto flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-semibold hover:opacity-80"
+                  style={{ background: "rgba(6,182,212,0.1)", border: "1px solid rgba(6,182,212,0.25)", color: "#06b6d4" }}>
+                  <WifiHigh size={9}/> Tout tester
+                </button>
               </h2>
-              <div className="rounded-xl overflow-hidden" style={{ border: "1px solid #1e2d42" }}>
-                {(s?.sources ?? []).map((src, i, arr) => (
-                  <div key={src.name} className="flex items-center gap-2 px-3 py-2"
-                    style={{ background: "#0d1421", borderBottom: i < arr.length - 1 ? "1px solid #1e2d42" : "none" }}>
-                    <StatusDot status={src.status} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-semibold truncate" style={{ color: "#e2e8f0" }}>{src.name}</p>
-                      <p className="text-[9px] truncate" style={{ color: "#475569" }}>{src.role}</p>
-                    </div>
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      {src.latencyMs != null && (
-                        <span className="text-[9px] font-mono" style={{ color: "#334155" }}>{src.latencyMs}ms</span>
+              <div className="space-y-1.5">
+                {(s?.sources ?? []).map((src) => {
+                  const ping = pings[src.name];
+                  const isLoading = ping === "loading";
+                  const result = typeof ping === "object" ? ping : null;
+                  return (
+                    <div key={src.name} className="rounded-xl p-2.5"
+                      style={{ background: "#0d1421", border: `1px solid ${result ? (result.ok ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)") : "#1e2d42"}` }}>
+                      {/* Row 1: name + status + link */}
+                      <div className="flex items-center gap-2">
+                        <StatusDot status={result ? (result.ok ? "ok" : "error") : src.status} />
+                        <span className="text-[10px] font-semibold flex-1 truncate" style={{ color: "#e2e8f0" }}>{src.name}</span>
+                        {result && (
+                          <span className="text-[9px] font-mono flex-shrink-0" style={{ color: result.ok ? "#22c55e" : "#ef4444" }}>
+                            {result.ok ? `${result.ms}ms` : `HTTP ${result.status || "ERR"}`}
+                          </span>
+                        )}
+                        {!result && src.latencyMs != null && (
+                          <span className="text-[9px] font-mono" style={{ color: "#334155" }}>{src.latencyMs}ms</span>
+                        )}
+                        <a href={src.url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
+                          <ArrowSquareOut size={9} style={{ color: "#334155" }}/>
+                        </a>
+                      </div>
+                      {/* Row 2: role */}
+                      <p className="text-[8.5px] mt-0.5 truncate" style={{ color: "#475569" }}>{src.role}</p>
+                      {/* Row 3: hint if error */}
+                      {result && !result.ok && result.hint && (
+                        <p className="text-[8px] mt-1 font-mono truncate px-1.5 py-0.5 rounded"
+                          style={{ background: "rgba(239,68,68,0.08)", color: "#f87171" }}>
+                          {result.hint}
+                        </p>
                       )}
-                      {src.status === "ok" ? <WifiHigh size={10} style={{ color: "#22c55e" }}/>
-                        : src.status === "blocked" ? <Warning size={10} style={{ color: "#f97316" }}/>
-                        : src.status === "error" ? <WifiSlash size={10} style={{ color: "#ef4444" }}/>
-                        : <Clock size={10} style={{ color: "#f59e0b" }}/>}
-                      <a href={src.url} target="_blank" rel="noopener noreferrer">
-                        <ArrowSquareOut size={9} style={{ color: "#334155" }}/>
-                      </a>
+                      {/* Row 4: action buttons */}
+                      <div className="flex gap-1.5 mt-1.5">
+                        <button onClick={() => pingSource(src.name)} disabled={isLoading}
+                          className="flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-semibold hover:opacity-80 disabled:opacity-40"
+                          style={{ background: "rgba(6,182,212,0.08)", border: "1px solid rgba(6,182,212,0.2)", color: "#06b6d4" }}>
+                          {isLoading
+                            ? <ArrowsClockwise size={8} className="animate-spin"/>
+                            : <WifiHigh size={8}/>}
+                          {isLoading ? "Test…" : "Tester"}
+                        </button>
+                        {/* Fix button — shown if error OR as proactive action */}
+                        {result?.fixPath && (
+                          <button onClick={() => trigger(`fix_${src.name}`, result.fixPath!)} disabled={isLoading}
+                            className="flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-semibold hover:opacity-80"
+                            style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)", color: "#22c55e" }}>
+                            <Play size={8}/> {result.fixLabel ?? "Relancer"}
+                          </button>
+                        )}
+                        {logs[`fix_${src.name}`] && (
+                          <span className="text-[8px] font-mono self-center"
+                            style={{ color: logs[`fix_${src.name}`].ok ? "#22c55e" : "#ef4444" }}>
+                            {logs[`fix_${src.name}`].msg}
+                          </span>
+                        )}
+                        {src.status === "blocked" && (
+                          <span className="text-[8px] px-1.5 py-0.5 rounded self-center"
+                            style={{ background: "rgba(249,115,22,0.1)", color: "#f97316" }}>
+                            Anti-bot — irrécupérable auto
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
 
