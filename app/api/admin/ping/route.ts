@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
@@ -7,9 +6,8 @@ const ADMIN_USER = process.env.ADMIN_USER ?? "Admin";
 const COOKIE_NAME = "fp_admin";
 const TTL = 8 * 3600 * 1000;
 
-async function checkAdmin(): Promise<boolean> {
-  const store = await cookies();
-  const token = store.get(COOKIE_NAME)?.value;
+function checkAdmin(req: NextRequest): boolean {
+  const token = req.cookies.get(COOKIE_NAME)?.value;
   if (!token) return false;
   try {
     const decoded = Buffer.from(token, "base64").toString("utf-8");
@@ -62,7 +60,7 @@ const SOURCE_CONFIGS: Record<string, {
 };
 
 export async function POST(req: NextRequest) {
-  if (!await checkAdmin()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!checkAdmin(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { sourceId } = await req.json().catch(() => ({})) as { sourceId?: string };
   if (!sourceId) return NextResponse.json({ error: "Missing sourceId" }, { status: 400 });

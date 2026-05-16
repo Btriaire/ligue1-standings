@@ -107,13 +107,10 @@ export async function GET(req: NextRequest) {
   let items: NewsItem[];
 
   if (topic === "club" && clubName) {
-    // Filter articles mentioning the club name
+    // Filter articles mentioning the club — no fallback to general news
     const kw = new RegExp(clubName.split(" ")[0], "i"); // e.g. "Paris" for PSG
     items = parseRSS(xml, t => kw.test(t));
-    // Fallback: if too few results, take top general news
-    if (items.length < 3) {
-      items = parseRSS(xml).slice(0, 8);
-    }
+    // No general fallback: if 0 results, return empty so the banner shows the "no news" placeholder
   } else if (topic === "mondial") {
     items = parseRSS(xml, t => MONDIAL_KW.test(t));
     if (items.length < 3) {
