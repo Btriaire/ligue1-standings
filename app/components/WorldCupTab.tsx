@@ -276,7 +276,7 @@ const POS_CFG: Record<PosType, { label: string; color: string; bg: string }> = {
 
 const CAT_CFG: Record<CatType, { label: string; color: string; icon: string }> = {
   star:       { label: "Superstar",   color: "#fbbf24", icon: "⭐" },
-  revelation: { label: "Révélation",  color: "#f472b6", icon: "💥" },
+  revelation: { label: "Révélation",  color: "#06b6d4", icon: "💥" },
   veteran:    { label: "Vétéran",     color: "#94a3b8", icon: "🧠" },
   danger:     { label: "Danger",      color: "#f97316", icon: "⚡" },
 };
@@ -734,7 +734,7 @@ function FavorisTab() {
         { flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", name:"Angleterre", desc:"Bellingham, Saka, Kane.", color:"#a78bfa" },
         { flag:"🇩🇪", name:"Allemagne",  desc:"4× champion. Florian Wirtz.", color:"#ef4444" },
         { flag:"🇵🇹", name:"Portugal",   desc:"Ronaldo dernière CdM ? Félix, Leão.", color:"#fbbf24" },
-        { flag:"🇲🇦", name:"Maroc",      desc:"Demi-finaliste 2022. Hakimi.", color:"#f472b6" },
+        { flag:"🇲🇦", name:"Maroc",      desc:"Demi-finaliste 2022. Hakimi.", color:"#06b6d4" },
       ].map(t => (
         <div key={t.name} className="flex items-center gap-3 px-3 py-2 rounded-xl"
           style={{ background: "#0d1421", border: `1px solid ${t.color}20` }}>

@@ -161,7 +161,7 @@ function PredictionBadge({ saved, actualResult }: { saved: SavedPrediction | nul
           {" · "}{saved.prediction.homeProb}%–{saved.prediction.drawProb}%–{saved.prediction.awayProb}%
         </p>
         {saved.emotional?.applied && (
-          <p className="text-xs" style={{ color: "#f472b6" }}>
+          <p className="text-xs" style={{ color: "#06b6d4" }}>
             ❤ Score émot. dom. {saved.emotional.homeScore} · ext. {saved.emotional.awayScore}
           </p>
         )}

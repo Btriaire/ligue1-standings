@@ -515,7 +515,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
 
   useEffect(()=>{loadData();loadSquad();},[loadData,loadSquad]);
 
-  // Load next match info for "La Fiche" tab
+  // Load next match info for "La Fiche" tab (fall back to last match when season is over)
   useEffect(()=>{
     if(ficheMatchLoaded) return;
     let cancelled=false;
@@ -524,10 +524,14 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
         const r=await fetch(`/api/team/${club.id}`);
         if(!r.ok||cancelled) return;
         const d=await r.json();
+        // Prefer next scheduled match; fall back to most-recent finished match
         const next=d.upcoming?.[0]??null;
-        if(next&&!cancelled){
-          setFicheNextMatch(next);
-          const oppId=next.homeTeam.id===club.id?next.awayTeam.id:next.homeTeam.id;
+        const last=d.recent?.[0]??null;
+        const ref=next??last;
+        if(ref&&!cancelled){
+          // Always store the reference match so FicheSection can display opponent info
+          setFicheNextMatch(ref);
+          const oppId=ref.homeTeam.id===club.id?ref.awayTeam.id:ref.homeTeam.id;
           setFicheOpponentId(oppId);
         }
       }catch{/**/ }
@@ -536,9 +540,11 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
     return ()=>{cancelled=true;};
   },[club.id,ficheMatchLoaded]);
 
-  // Pre-fetch opponent data as soon as opponentId is known (background, not gated on tab click)
+  // Pre-fetch opponent data as soon as opponentId is known
+  // NOTE: ficheLoading intentionally excluded from deps — including it causes self-cancellation
+  // (cleanup sets cancelled=true when loading→true, preventing setFicheLoading(false) from ever running)
   useEffect(()=>{
-    if(ficheOpponentId===null||ficheTeamData!==null||ficheLoading) return;
+    if(ficheOpponentId===null||ficheTeamData!==null) return;
     let cancelled=false;
     setFicheLoading(true);
     (async()=>{
@@ -554,7 +560,8 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
       if(!cancelled) setFicheLoading(false);
     })();
     return ()=>{cancelled=true;};
-  },[ficheOpponentId,ficheTeamData,ficheLoading]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[ficheOpponentId,ficheTeamData]);
 
   const zone    = standing?getZone(standing.position):null;
   const formFR  = (standing?.form.split(",").filter(Boolean).slice(-5)??[]).map(r=>r==="W"?"V":r==="L"?"D":"N") as ("V"|"N"|"D")[];
@@ -1282,15 +1289,15 @@ function sectorScore(players: SquadPlayer[], pos: string[], statFn: (p: SquadPla
   if(pool.length===0) return 50;
   const vals = pool.map(statFn).filter(v=>v>0);
   if(vals.length===0) return 50;
-  return clamp(Math.round(avg(vals)*100), 0, 100);
+  return clamp(Math.round(avg(vals)), 0, 100);
 }
 
 type ZoneLevel = "red"|"orange"|"blue";
 
 function zoneColor(score: number): { fill: string; stroke: string; label: ZoneLevel } {
-  if(score>=70) return { fill:"rgba(239,68,68,0.22)", stroke:"#ef4444", label:"red" };
-  if(score>=50) return { fill:"rgba(251,146,60,0.18)", stroke:"#f97316", label:"orange" };
-  return { fill:"rgba(96,165,250,0.16)", stroke:"#60a5fa", label:"blue" };
+  if(score>=70) return { fill:"rgba(239,68,68,0.55)", stroke:"#ef4444", label:"red" };
+  if(score>=50) return { fill:"rgba(251,146,60,0.50)", stroke:"#f97316", label:"orange" };
+  return { fill:"rgba(96,165,250,0.45)", stroke:"#60a5fa", label:"blue" };
 }
 
 function SectorBar({label,myVal,oppVal,myColor,oppColor}:{label:string;myVal:number;oppVal:number;myColor:string;oppColor:string}) {
@@ -1324,72 +1331,76 @@ function SectorBar({label,myVal,oppVal,myColor,oppColor}:{label:string;myVal:num
 }
 
 function HeatmapPitch({oppSquad, oppColor}:{oppSquad:SquadPlayer[];oppColor:string}) {
-  // Calculate threat scores per zone based on opponent players
-  const attackScore = (p: SquadPlayer) => ((p.dm_xg90??0)*50 + (p.dm_shots90??0)*15);
-  const midScore    = (p: SquadPlayer) => ((p.dm_keyPasses90??0)*25 + (p.dm_dribbles90??0)*10 + (p.dm_passPct??0)*0.5);
-  const defScore    = (p: SquadPlayer) => ((p.dm_defDuelPct??0)*0.6 + (p.dm_interceptions90??0)*20);
+  // Portrait pitch: viewBox "0 0 120 180"
+  // Opponent attacks from top → ATT zones at top, DEF zones at bottom
+  const attackScore = (p: SquadPlayer) => clamp((p.dm_xg90??0)*50 + (p.dm_shots90??0)*15, 0, 100);
+  const midScore    = (p: SquadPlayer) => clamp((p.dm_keyPasses90??0)*20 + (p.dm_dribbles90??0)*8 + (p.dm_passPct??0)*0.4, 0, 100);
+  const defScore    = (p: SquadPlayer) => clamp((p.dm_defDuelPct??0)*0.55 + (p.dm_interceptions90??0)*18, 0, 100);
 
-  const attackZone  = sectorScore(oppSquad, ["Centre-Forward","Winger"], attackScore);
-  const midZone     = sectorScore(oppSquad, ["Midfielder"], midScore);
-  const defZone     = sectorScore(oppSquad, ["Defender"], defScore);
+  const attackZone = sectorScore(oppSquad, ["Centre-Forward","Winger"], attackScore);
+  const midZone    = sectorScore(oppSquad, ["Midfielder"], midScore);
+  const defZone    = sectorScore(oppSquad, ["Defender"], defScore);
 
-  // 6 zones: TL=attack-left, TR=attack-right, ML=mid-left, MR=mid-right, BL=def-left, BR=def-right
+  // Portrait 120×180 — 3 rows × 2 cols, all fitting within viewBox
+  // Row heights: 50 / 48 / 50  gaps: 6  side margins: 5  centre gap: 10
+  const CX = 5, CW = 50, RX = 65, RW = 50;
   const zones = [
-    { id:"TL", x:8,   y:10,  w:82,  h:62, score:attackZone, label:"ATT G" },
-    { id:"TR", x:110, y:10,  w:82,  h:62, score:attackZone, label:"ATT D" },
-    { id:"ML", x:8,   y:82,  w:82,  h:62, score:midZone,    label:"MIL G" },
-    { id:"MR", x:110, y:82,  w:82,  h:62, score:midZone,    label:"MIL D" },
-    { id:"BL", x:8,   y:154, w:82,  h:62, score:defZone,    label:"DEF G" },
-    { id:"BR", x:110, y:154, w:82,  h:62, score:defZone,    label:"DEF D" },
+    { id:"TL", x:CX, y:5,   w:CW, h:50, score:attackZone, label:"ATT G" },
+    { id:"TR", x:RX, y:5,   w:RW, h:50, score:attackZone, label:"ATT D" },
+    { id:"ML", x:CX, y:61,  w:CW, h:48, score:midZone,    label:"MIL G" },
+    { id:"MR", x:RX, y:61,  w:RW, h:48, score:midZone,    label:"MIL D" },
+    { id:"BL", x:CX, y:115, w:CW, h:60, score:defZone,    label:"DEF G" },
+    { id:"BR", x:RX, y:115, w:RW, h:60, score:defZone,    label:"DEF D" },
   ];
 
   return (
     <div>
-      <div className="relative rounded-xl overflow-hidden" style={{paddingBottom:"66%",border:"1px solid #1e2d42"}}>
-        <div style={{position:"absolute",inset:0}}>
-          {/* SVG pitch landscape */}
-          <svg viewBox="0 0 200 132" width="100%" height="100%" preserveAspectRatio="xMidYMid meet"
-            style={{position:"absolute",inset:0}}>
-            <rect width="200" height="132" fill="#1e4d1e"/>
-            {[0,1,2,3,4].map(i=><rect key={i} x={i*40} width="40" height="132" fill={i%2===0?"#1e4d1e":"#1a461a"}/>)}
-            {/* Pitch outline */}
-            <rect x="4" y="6" width="192" height="120" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1"/>
-            {/* Halfway line */}
-            <line x1="100" y1="6" x2="100" y2="126" stroke="rgba(255,255,255,0.45)" strokeWidth="1"/>
-            {/* Center circle */}
-            <circle cx="100" cy="66" r="18" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1"/>
-            <circle cx="100" cy="66" r="1.5" fill="rgba(255,255,255,0.5)"/>
-            {/* Left penalty area */}
-            <rect x="4" y="36" width="30" height="60" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1"/>
-            <rect x="4" y="48" width="14" height="36" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="0.7"/>
-            {/* Right penalty area */}
-            <rect x="166" y="36" width="30" height="60" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1"/>
-            <rect x="182" y="48" width="14" height="36" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="0.7"/>
-            {/* Zone overlays */}
-            {zones.map(z=>{
-              const zc=zoneColor(z.score);
-              return (
-                <g key={z.id}>
-                  <rect x={z.x} y={z.y} width={z.w} height={z.h} rx="2"
-                    fill={zc.fill} stroke={zc.stroke} strokeWidth="0.5" strokeOpacity="0.6"/>
-                  <text x={z.x+z.w/2} y={z.y+z.h/2-5} textAnchor="middle"
-                    fill="white" fontSize="7" fontWeight="900" opacity="0.9">{z.score}</text>
-                  <text x={z.x+z.w/2} y={z.y+z.h/2+6} textAnchor="middle"
-                    fill="rgba(255,255,255,0.6)" fontSize="5" fontWeight="600">{z.label}</text>
-                </g>
-              );
-            })}
-          </svg>
-          {/* Opponent label */}
-          <div style={{position:"absolute",top:6,left:0,right:0,display:"flex",justifyContent:"center"}}>
-            <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded"
-              style={{background:"rgba(0,0,0,0.6)",color:oppColor}}>Menace adverse</span>
-          </div>
-        </div>
+      {/* SVG sized by viewBox — width:100% height:auto is the only reliable approach */}
+      <div className="rounded-xl overflow-hidden mx-auto" style={{width:"68%",border:"2px solid #1e2d42"}}>
+        <svg viewBox="0 0 120 180" xmlns="http://www.w3.org/2000/svg"
+          style={{display:"block",width:"100%",height:"auto"}}>
+          {/* Pitch background — brighter green so it's visible on dark theme */}
+          <rect width="120" height="180" fill="#2d6a2d"/>
+          {[0,1,2,3,4].map(i=><rect key={i} y={i*36} width="120" height="36" fill={i%2===0?"#2d6a2d":"#265a26"}/>)}
+          {/* Pitch outline */}
+          <rect x="4" y="4" width="112" height="172" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.2"/>
+          {/* Halfway line */}
+          <line x1="4" y1="90" x2="116" y2="90" stroke="rgba(255,255,255,0.5)" strokeWidth="1.2"/>
+          {/* Center circle */}
+          <circle cx="60" cy="90" r="16" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1"/>
+          <circle cx="60" cy="90" r="1.5" fill="rgba(255,255,255,0.55)"/>
+          {/* Top penalty area */}
+          <rect x="30" y="4" width="60" height="28" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1"/>
+          <rect x="42" y="4" width="36" height="12" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="0.7"/>
+          {/* Top goal posts */}
+          <rect x="46" y="2" width="28" height="4" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="0.8"/>
+          {/* Bottom penalty area */}
+          <rect x="30" y="148" width="60" height="28" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1"/>
+          <rect x="42" y="164" width="36" height="12" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="0.7"/>
+          {/* Bottom goal posts */}
+          <rect x="46" y="174" width="28" height="4" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="0.8"/>
+          {/* "Menace adverse" label inside SVG — always visible */}
+          <rect x="25" y="82" width="70" height="16" rx="3" fill="rgba(0,0,0,0.55)"/>
+          <text x="60" y="93" textAnchor="middle" fill={oppColor} fontSize="6" fontWeight="900" letterSpacing="1">MENACE ADVERSE</text>
+          {/* Zone overlays */}
+          {zones.map(z=>{
+            const zc=zoneColor(z.score);
+            return (
+              <g key={z.id}>
+                <rect x={z.x} y={z.y} width={z.w} height={z.h} rx="3"
+                  fill={zc.fill} stroke={zc.stroke} strokeWidth="1.5" strokeOpacity="1"/>
+                <text x={z.x+z.w/2} y={z.y+z.h/2-3} textAnchor="middle"
+                  fill="white" fontSize="10" fontWeight="900" opacity="0.95">{z.score}</text>
+                <text x={z.x+z.w/2} y={z.y+z.h/2+8} textAnchor="middle"
+                  fill="rgba(255,255,255,0.7)" fontSize="6" fontWeight="700">{z.label}</text>
+              </g>
+            );
+          })}
+        </svg>
       </div>
       {/* Legend */}
-      <div className="flex justify-center gap-4 mt-2">
-        {([["red","#ef4444","Zone forte"],["orange","#f97316","Modérée"],["blue","#60a5fa","À exploiter"]] as const).map(([,c,l])=>(
+      <div className="flex justify-center gap-4 mt-3">
+        {([["#ef4444","Zone forte"],["#f97316","Modérée"],["#60a5fa","À exploiter"]] as const).map(([c,l])=>(
           <div key={l} className="flex items-center gap-1">
             <div className="w-2 h-2 rounded-full flex-shrink-0" style={{background:c}}/>
             <span className="text-[9px]" style={{color:"#6b7c96"}}>{l}</span>
@@ -1422,23 +1433,14 @@ function FicheSection({club,nextMatch,opponentId,ficheTeamData,ficheSquad,ficheL
     );
   }
 
-  if(!nextMatch || opponentId===null) {
-    return (
-      <div className="rounded-2xl p-10 text-center" style={{background:"#0d1421",border:"1px solid #1e2d42"}}>
-        <Swords size={32} className="mx-auto mb-3" style={{color:"#6b7c96"}}/>
-        <p className="text-sm font-bold" style={{color:"#e8edf5"}}>Pas de prochain match prévu</p>
-        <p className="text-xs mt-1" style={{color:"#6b7c96"}}>Le calendrier sera disponible dès la prochaine journée planifiée.</p>
-      </div>
-    );
-  }
-
-  const isHome = nextMatch.homeTeam.id === club.id;
-  const myTeam   = isHome ? nextMatch.homeTeam : nextMatch.awayTeam;
-  const oppTeam  = isHome ? nextMatch.awayTeam : nextMatch.homeTeam;
-
-  const matchDate = new Date(nextMatch.date);
-  const dateStr   = matchDate.toLocaleDateString("fr-FR",{weekday:"short",day:"2-digit",month:"short"});
-  const timeStr   = matchDate.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+  // If no match data at all, show minimal placeholder but still render heatmap below
+  const isHome    = nextMatch ? nextMatch.homeTeam.id === club.id : true;
+  const myTeam    = nextMatch ? (isHome ? nextMatch.homeTeam : nextMatch.awayTeam) : { id: club.id, name: club.shortName, crest: club.crest };
+  const oppTeamRaw= nextMatch ? (isHome ? nextMatch.awayTeam : nextMatch.homeTeam) : null;
+  const oppStandingTeam = allStandings.find(s=>s.team.id===opponentId)?.team??null;
+  const oppTeam   = oppTeamRaw ?? (oppStandingTeam ? { id: oppStandingTeam.id, name: oppStandingTeam.name, crest: oppStandingTeam.crest } : { id: opponentId??0, name:"Adversaire", crest:"" });
+  // Is this match in the future?
+  const isUpcoming = nextMatch ? new Date(nextMatch.date) > new Date() : false;
 
   // Standings
   const myStanding  = allStandings.find(s=>s.team.id===club.id)??null;
@@ -1478,33 +1480,45 @@ function FicheSection({club,nextMatch,opponentId,ficheTeamData,ficheSquad,ficheL
 
       {/* A. Match header */}
       <div className="rounded-2xl overflow-hidden" style={{background:`linear-gradient(135deg,${club.color}18 0%,#0d1421 50%,#1e2d4218 100%)`,border:`1px solid ${club.color}40`}}>
-        <div className="absolute inset-x-0 top-0 h-0.5" style={{background:`linear-gradient(90deg,${club.color},transparent)`}}/>
         <div className="relative px-4 pt-4 pb-3">
-          <div className="flex items-center justify-center gap-4 mb-3">
-            <div className="flex flex-col items-center gap-1.5">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={myTeam.crest} alt="" className="w-14 h-14 object-contain drop-shadow-lg" loading="lazy"/>
-              <span className="text-xs font-black text-center" style={{color:"#e8edf5",maxWidth:80}}>{club.shortName}</span>
+          {nextMatch ? (
+            <>
+              <div className="flex items-center justify-center gap-4 mb-3">
+                <div className="flex flex-col items-center gap-1.5">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={myTeam.crest} alt="" className="w-14 h-14 object-contain drop-shadow-lg" loading="lazy"/>
+                  <span className="text-xs font-black text-center" style={{color:"#e8edf5",maxWidth:80}}>{club.shortName}</span>
+                </div>
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-2xl font-black" style={{color:"#475569"}}>vs</span>
+                  {isUpcoming ? (
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-lg" style={{background:isHome?"rgba(34,197,94,0.1)":"rgba(239,68,68,0.1)",color:isHome?"#22c55e":"#f87171",border:`1px solid ${isHome?"rgba(34,197,94,0.2)":"rgba(239,68,68,0.2)"}`}}>
+                      {isHome?"Domicile":"Extérieur"}
+                    </span>
+                  ) : (
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-lg" style={{background:"rgba(100,116,139,0.1)",color:"#94a3b8",border:"1px solid rgba(100,116,139,0.2)"}}>
+                      Dernier match
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-col items-center gap-1.5">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {oppTeam.crest ? <img src={oppTeam.crest} alt="" className="w-14 h-14 object-contain drop-shadow-lg" loading="lazy"/> : <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{background:"#1e2d42"}}><Swords size={20} style={{color:"#475569"}}/></div>}
+                  <span className="text-xs font-black text-center" style={{color:"#e8edf5",maxWidth:80}}>{oppTeam.name}</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-center gap-3 text-[10px]" style={{color:"#6b7c96"}}>
+                <span className="flex items-center gap-1"><Calendar size={9}/>{new Date(nextMatch.date).toLocaleDateString("fr-FR",{weekday:"short",day:"2-digit",month:"short"})}</span>
+                <span style={{color:"#1e2d42"}}>·</span>
+                <span>{new Date(nextMatch.date).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}</span>
+                {nextMatch.matchday && <><span style={{color:"#1e2d42"}}>·</span><span className="font-bold" style={{color:"#94a3b8"}}>J{nextMatch.matchday}</span></>}
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-2">
+              <p className="text-xs font-bold" style={{color:"#6b7c96"}}>Analyse de saison</p>
             </div>
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-2xl font-black" style={{color:"#475569"}}>vs</span>
-              <span className="text-[9px] font-bold px-2 py-0.5 rounded-lg" style={{background:isHome?"rgba(34,197,94,0.1)":"rgba(239,68,68,0.1)",color:isHome?"#22c55e":"#f87171",border:`1px solid ${isHome?"rgba(34,197,94,0.2)":"rgba(239,68,68,0.2)"}`}}>
-                {isHome?"Domicile":"Extérieur"}
-              </span>
-            </div>
-            <div className="flex flex-col items-center gap-1.5">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={oppTeam.crest} alt="" className="w-14 h-14 object-contain drop-shadow-lg" loading="lazy"/>
-              <span className="text-xs font-black text-center" style={{color:"#e8edf5",maxWidth:80}}>{oppTeam.name}</span>
-            </div>
-          </div>
-          <div className="flex items-center justify-center gap-3 text-[10px]" style={{color:"#6b7c96"}}>
-            <span className="flex items-center gap-1"><Calendar size={9}/>{dateStr}</span>
-            <span style={{color:"#1e2d42"}}>·</span>
-            <span>{timeStr}</span>
-            <span style={{color:"#1e2d42"}}>·</span>
-            <span className="font-bold" style={{color:"#94a3b8"}}>J{nextMatch.matchday}</span>
-          </div>
+          )}
         </div>
       </div>
 
@@ -1585,11 +1599,10 @@ function FicheSection({club,nextMatch,opponentId,ficheTeamData,ficheSquad,ficheL
           <Target size={10} style={{color:"#6b7c96"}}/>
           <span className="text-[9px] font-black uppercase tracking-widest" style={{color:"#6b7c96"}}>Zones de menace adverse</span>
         </div>
-        <div className="p-3">
-          {ficheLoading ? (
-            <div className="rounded-xl animate-pulse" style={{paddingBottom:"66%",background:"#0d1421"}}/>
-          ) : (
-            <HeatmapPitch oppSquad={ficheSquad} oppColor={OPP_COLOR}/>
+        <div className="p-3 relative">
+          <HeatmapPitch oppSquad={ficheSquad} oppColor={OPP_COLOR}/>
+          {ficheLoading && ficheSquad.length === 0 && (
+            <div className="absolute inset-3 rounded-xl animate-pulse" style={{background:"#0d1421"}}/>
           )}
         </div>
       </div>

@@ -286,7 +286,7 @@ function ProbBar({ homeProb, drawProb, awayProb, winner }: { homeProb: number; d
   );
 }
 
-function Toggle({ enabled, onToggle, label, color = "#f472b6" }: { enabled: boolean; onToggle: () => void; label: string; color?: string }) {
+function Toggle({ enabled, onToggle, label, color = "#06b6d4" }: { enabled: boolean; onToggle: () => void; label: string; color?: string }) {
   return (
     <button onClick={onToggle} className="flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all"
       style={{
@@ -666,11 +666,11 @@ function MatchCard({
         {hasCorrectionApplied && (
           <div className="mt-2 px-3 py-2 rounded-xl flex flex-wrap items-center gap-2 text-xs"
             style={{ background: "rgba(236,72,153,0.06)", border: "1px solid rgba(236,72,153,0.2)" }}>
-            <Heart size={12} className="text-pink-400 flex-shrink-0" />
-            <span style={{ color: "#f472b6" }}>Facteur additionnel :</span>
+            <Heart size={12} className="text-cyan-400 flex-shrink-0" />
+            <span style={{ color: "#06b6d4" }}>Facteur additionnel :</span>
             {hasBetclic ? (
               <span style={{ color: "#94a3b8" }}>
-                cotes brutes → pondérées <strong style={{ color: "#f472b6" }}>{betclicEmoShift > 0 ? "+" : ""}{betclicEmoShift}pp</strong>
+                cotes brutes → pondérées <strong style={{ color: "#06b6d4" }}>{betclicEmoShift > 0 ? "+" : ""}{betclicEmoShift}pp</strong>
                 {homeScore !== null && awayScore !== null && (
                   <span> ({match.homeTeam.shortName} ❤{homeScore} / {match.awayTeam.shortName} ❤{awayScore})</span>
                 )}
@@ -678,7 +678,7 @@ function MatchCard({
             ) : (
               <span style={{ color: "#94a3b8" }}>
                 algo {computedPrediction.homeProb}%–{computedPrediction.awayProb}%
-                → <strong style={{ color: "#f472b6" }}>{pred.homeProb}%–{pred.awayProb}%</strong>
+                → <strong style={{ color: "#06b6d4" }}>{pred.homeProb}%–{pred.awayProb}%</strong>
               </span>
             )}
           </div>
@@ -743,7 +743,7 @@ function MatchCard({
               </p>
             )}
             {useEmotional && homeScore !== null && awayScore !== null && (
-              <p style={{ color: "#f472b6" }}>
+              <p style={{ color: "#06b6d4" }}>
                 Facteur additionnel : {match.homeTeam.shortName} ❤{homeScore}
                 · {match.awayTeam.shortName} ❤{awayScore}
                 {hasBetclic
@@ -780,7 +780,7 @@ const WC_FACTOR_META: Record<WCFactorType, { label: string; color: string; icon:
   derby:     { label: "Derby continental",    color: "#a78bfa", icon: "⚡", desc: "Rivalité de voisinage · Matchs toujours serrés" },
   cohesion:  { label: "Cohésion de club",     color: "#22c55e", icon: "🤝", desc: "Joueurs évoluant ensemble en club · Automatismes rôdés" },
   momentum:  { label: "Élan qualificatif",    color: "#34d399", icon: "📈", desc: "Série impressionnante en éliminatoires · Confiance maximale" },
-  underdog:  { label: "Effet surprise",       color: "#f472b6", icon: "💥", desc: "L'équipe n'a rien à perdre · Jeu libéré et dangereux" },
+  underdog:  { label: "Effet surprise",       color: "#06b6d4", icon: "💥", desc: "L'équipe n'a rien à perdre · Jeu libéré et dangereux" },
   veterans:  { label: "Leadership vétérans",  color: "#94a3b8", icon: "🧠", desc: "Expérience décisive des matchs couperets · Gestion du stress" },
   pressure:  { label: "Pression enjeu",       color: "#ef4444", icon: "😤", desc: "Match décisif pour la qualification · Nerfs à vif" },
 };
@@ -1386,11 +1386,11 @@ function WCPredictionsView() {
                     const dims: { key: keyof WCEmoEntry; label: string; icon: string; color: string }[] = [
                       { key: "media",  label: "Médias",     icon: "📰", color: "#00d4ff" },
                       { key: "human",  label: "Humain",     icon: "👥", color: "#22c55e" },
-                      { key: "fan",    label: "Supporters", icon: "❤️", color: "#f472b6" },
+                      { key: "fan",    label: "Supporters", icon: "❤️", color: "#06b6d4" },
                     ];
                     return (
                       <div className="rounded-xl px-3 py-3" style={{ background: "rgba(244,114,182,0.04)", border: "1px solid rgba(244,114,182,0.15)" }}>
-                        <p className="text-[10px] uppercase font-bold mb-2.5" style={{ color: "#f472b6" }}>❤️ Facteur Additionnel</p>
+                        <p className="text-[10px] uppercase font-bold mb-2.5" style={{ color: "#06b6d4" }}>❤️ Facteur Additionnel</p>
                         {/* Overall score comparison */}
                         <div className="flex items-center gap-2 mb-3">
                           <div className="flex flex-col items-center gap-0.5">
@@ -1628,7 +1628,7 @@ export default function PredictionsTab() {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Toggle enabled={useEmotional} onToggle={() => setUseEmotional(!useEmotional)}
-            label={emoLoading ? "Facteur…" : "Facteur additionnel"} color="#f472b6" />
+            label={emoLoading ? "Facteur…" : "Facteur additionnel"} color="#06b6d4" />
           <Toggle enabled={useExpert} onToggle={() => setUseExpert(!useExpert)}
             label={expertLoading ? "Experts…" : "Prédictions expertes"} color="#eab308" />
           {savedCount > 0 && (
@@ -1645,8 +1645,8 @@ export default function PredictionsTab() {
       {useEmotional && correctedCount > 0 && (
         <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl mb-3 text-xs"
           style={{ background: "rgba(236,72,153,0.06)", border: "1px solid rgba(236,72,153,0.2)" }}>
-          <Heart size={13} className="text-pink-400 flex-shrink-0" />
-          <span style={{ color: "#f472b6" }}>
+          <Heart size={13} className="text-cyan-400 flex-shrink-0" />
+          <span style={{ color: "#06b6d4" }}>
             <strong>{correctedCount} match{correctedCount > 1 ? "s" : ""}</strong> ajusté{correctedCount > 1 ? "s" : ""} par le score émotionnel
           </span>
         </div>

@@ -110,7 +110,7 @@ function WeightSliders({ weights, onChange }: { weights: Weights; onChange: (w: 
     { key: "eco",   label: "Économique",   color: "#f59e0b", icon: <Building2 size={12} /> },
     { key: "media", label: "Médias",       color: "#00d4ff", icon: <Newspaper size={12} /> },
     { key: "human", label: "Humain",       color: "#22c55e", icon: <Users size={12} /> },
-    { key: "fan",   label: "Supporters",  color: "#f472b6", icon: <MessageCircle size={12} /> },
+    { key: "fan",   label: "Supporters",  color: "#06b6d4", icon: <MessageCircle size={12} /> },
   ] as const;
 
   const isDefault = weights.eco === DEFAULT_WEIGHTS.eco && weights.media === DEFAULT_WEIGHTS.media &&
@@ -187,7 +187,7 @@ function Methodology({ sources }: { sources: EmotionalData["sources"] }) {
         className="w-full flex items-center gap-3 px-5 py-4 transition-colors hover:bg-white/[0.02]">
         <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
           style={{ background: "rgba(236,72,153,0.12)", border: "1px solid rgba(236,72,153,0.25)" }}>
-          <Info size={15} className="text-pink-400" />
+          <Info size={15} className="text-cyan-400" />
         </div>
         <div className="flex-1 text-left">
           <p className="text-sm font-bold" style={{ color: "#e8edf5" }}>Comment est calculé le Facteur additionnel ?</p>
@@ -209,7 +209,7 @@ function Methodology({ sources }: { sources: EmotionalData["sources"] }) {
               { icon: <Building2 size={16} />, color: "#f59e0b", weight: "28%", title: "Économique", desc: "Propriétaire, revenus annuels, solidité financière.", source: sources.economic },
               { icon: <Newspaper size={16} />, color: "#00d4ff", weight: "28%", title: "Médias & Sentiment", desc: "Analyse des 15 derniers articles par club (positifs vs négatifs).", source: sources.media.join(", ") },
               { icon: <Users size={16} />, color: "#22c55e", weight: "30%", title: "Humain", desc: "Valeur totale de l'effectif et taux de blessures.", source: sources.mercato },
-              { icon: <MessageCircle size={16} />, color: "#f472b6", weight: "14%", title: "Buzz Supporters", desc: "Analyse des articles Google News et L'Équipe, mots-clés supporters.", source: "Google News · L'Équipe" },
+              { icon: <MessageCircle size={16} />, color: "#06b6d4", weight: "14%", title: "Buzz Supporters", desc: "Analyse des articles Google News et L'Équipe, mots-clés supporters.", source: "Google News · L'Équipe" },
             ].map((c) => (
               <div key={c.title} className="rounded-xl p-3" style={{ background: `${c.color}08`, border: `1px solid ${c.color}20` }}>
                 <div className="flex items-center justify-between mb-1.5">
@@ -371,7 +371,7 @@ function FanBuzzSection({ teamId }: { teamId: number }) {
           )}
           <button onClick={load} disabled={loading}
             className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-lg transition-all hover:opacity-70 disabled:opacity-40"
-            style={{ background: "rgba(244,114,182,0.1)", color: "#f472b6", border: "1px solid rgba(244,114,182,0.2)" }}>
+            style={{ background: "rgba(244,114,182,0.1)", color: "#06b6d4", border: "1px solid rgba(244,114,182,0.2)" }}>
             <RefreshCw size={10} className={loading ? "animate-spin" : ""} />
             {loading ? "Chargement…" : fetched ? "Actualiser" : "Charger"}
           </button>
@@ -613,7 +613,7 @@ function WCEmotionalView() {
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
           <h2 className="text-base font-bold flex items-center gap-2" style={{ color: "#e8edf5" }}>
-            <Heart size={16} className="text-pink-400" /> Facteur additionnel — Coupe du Monde 2026
+            <Heart size={16} className="text-cyan-400" /> Facteur additionnel — Coupe du Monde 2026
           </h2>
           <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>
             Analyse IA · Économique · Médias · Effectif · Supporters
@@ -634,7 +634,7 @@ function WCEmotionalView() {
       <div className="flex flex-wrap gap-1.5 mb-4">
         <button onClick={() => setGroupFilter(null)}
           className="px-2.5 py-1 rounded-lg text-xs font-semibold transition-all"
-          style={{ background: !groupFilter ? "rgba(244,114,182,0.12)" : "rgba(255,255,255,0.04)", border: `1px solid ${!groupFilter ? "rgba(244,114,182,0.3)" : "rgba(255,255,255,0.08)"}`, color: !groupFilter ? "#f472b6" : "#6b7c96" }}>
+          style={{ background: !groupFilter ? "rgba(244,114,182,0.12)" : "rgba(255,255,255,0.04)", border: `1px solid ${!groupFilter ? "rgba(244,114,182,0.3)" : "rgba(255,255,255,0.08)"}`, color: !groupFilter ? "#06b6d4" : "#6b7c96" }}>
           Tous
         </button>
         {groups.map(g => (
@@ -715,7 +715,7 @@ function WCEmotionalView() {
                     {([
                       ["Médias",     team.media, "#00d4ff", <Newspaper key="media" size={12} />],
                       ["Humain",     team.human, "#22c55e", <Users key="human" size={12} />],
-                      ["Supporters", team.fan,   "#f472b6", <MessageCircle key="fan" size={12} />],
+                      ["Supporters", team.fan,   "#06b6d4", <MessageCircle key="fan" size={12} />],
                     ] as const).map(([label, val, clr, icon]) => (
                       <div key={label}>
                         <div className="flex items-center justify-between mb-1">
@@ -811,7 +811,7 @@ export default function EmotionalScoreTab() {
         <SubTabs />
         <div className="space-y-3">
           <div className="text-center py-6">
-            <Heart size={24} className="text-pink-400 mx-auto mb-3 animate-pulse" />
+            <Heart size={24} className="text-cyan-400 mx-auto mb-3 animate-pulse" />
             <p className="text-sm font-medium" style={{ color: "#e8edf5" }}>Analyse en cours…</p>
             <p className="text-xs mt-1" style={{ color: "#6b7c96" }}>Collecte : RMC, Figaro, Google News</p>
           </div>
@@ -833,7 +833,7 @@ export default function EmotionalScoreTab() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-base font-bold flex items-center gap-2" style={{ color: "#e8edf5" }}>
-            <Heart size={17} className="text-pink-400" /> Facteur additionnel — {sorted.length} clubs
+            <Heart size={17} className="text-cyan-400" /> Facteur additionnel — {sorted.length} clubs
           </h2>
           <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>Cliquez un club pour le détail · Buzz supporters chargeable par club</p>
         </div>

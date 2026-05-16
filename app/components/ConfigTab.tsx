@@ -174,7 +174,7 @@ export default function ConfigTab() {
       {/* Emotional score */}
       <Card>
         <SectionTitle
-          icon={<Heart size={16} style={{ color: "#f472b6" }} />}
+          icon={<Heart size={16} style={{ color: "#06b6d4" }} />}
           title="Facteur additionnel"
           subtitle="Dimensions incluses dans l'analyse"
         />
@@ -184,7 +184,7 @@ export default function ConfigTab() {
           description="Applique le score émotionnel aux prédictions IA"
           enabled={config.emotionalCorrectionEnabled}
           onChange={(v) => updateConfig({ emotionalCorrectionEnabled: v })}
-          color="#f472b6"
+          color="#06b6d4"
         />
 
         <div className="mt-4 mb-1">
@@ -215,11 +215,11 @@ export default function ConfigTab() {
           color="#22c55e"
         />
         <ToggleRow
-          label={<span className="flex items-center gap-1.5"><MessageCircle size={12} style={{ color: "#f472b6" }} /> Supporters (Fan Buzz)</span> as unknown as string}
+          label={<span className="flex items-center gap-1.5"><MessageCircle size={12} style={{ color: "#06b6d4" }} /> Supporters (Fan Buzz)</span> as unknown as string}
           description="Buzz supporters via Google News et L'Équipe"
           enabled={config.fanEnabled}
           onChange={(v) => updateConfig({ fanEnabled: v })}
-          color="#f472b6"
+          color="#06b6d4"
         />
       </Card>
 

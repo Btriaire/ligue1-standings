@@ -830,7 +830,7 @@ function ClubLoadingScreen({ teamId }: { teamId: number }) {
           {[
             { label: "Joueurs parsés", value: counter, suffix: "/34", color: "#00d4ff" },
             { label: "Sources actives", value: Math.min(step, 4), suffix: "/6", color: "#22c55e" },
-            { label: "Facteur additionnel", value: step >= 4 ? "…" : "—", suffix: "", color: "#f472b6" },
+            { label: "Facteur additionnel", value: step >= 4 ? "…" : "—", suffix: "", color: "#06b6d4" },
           ].map(stat => (
             <div key={stat.label} className="rounded-xl px-3 py-3 text-center"
               style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
@@ -1338,7 +1338,7 @@ export default function ClubPage() {
         })()}
 
         {/* ── BUZZ SUPPORTERS ── */}
-        <ClubSection title="Buzz Supporters" icon={<Heart size={13} />} iconColor="#f472b6" defaultOpen={false}
+        <ClubSection title="Buzz Supporters" icon={<Heart size={13} />} iconColor="#06b6d4" defaultOpen={false}
           badge={buzz ? <span className="text-xs font-black px-1.5 py-0.5 rounded" style={{ color: buzzColor, background: buzzColor + "15" }}>{buzz.score}</span> : undefined}>
           <div className="px-3 py-2.5">
             {/* Loading skeleton */}
@@ -1425,14 +1425,14 @@ export default function ClubPage() {
 
         {/* ── SCORE ÉMOTIONNEL ── */}
         {emotional && (
-          <ClubSection title="Facteur additionnel" icon={<Heart size={13} />} iconColor="#f472b6" defaultOpen={false}
+          <ClubSection title="Facteur additionnel" icon={<Heart size={13} />} iconColor="#06b6d4" defaultOpen={false}
             badge={<span className="text-lg font-black" style={{ color: ec(emotional.emotionalScore) }}>{emotional.emotionalScore}</span>}>
             <div className="px-4 py-3 space-y-2">
               <ScoreBar label="Économique" score={emotional.components.economic.score} color="#f59e0b" weight="28%" />
               <ScoreBar label="Médias" score={emotional.components.media.score} color="#00d4ff" weight="28%" />
               <ScoreBar label="Humain" score={emotional.components.human.score} color="#22c55e" weight="30%" />
               {emotional.components.fan && (
-                <ScoreBar label="Supporters" score={emotional.components.fan.score} color="#f472b6" weight="14%" />
+                <ScoreBar label="Supporters" score={emotional.components.fan.score} color="#06b6d4" weight="14%" />
               )}
               <div className="grid grid-cols-2 gap-2 mt-3 pt-3 text-xs" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
                 <div>
