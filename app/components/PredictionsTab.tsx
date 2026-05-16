@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { Zap, TrendingUp, Shield, Target, Clock, Heart, Star, ChevronDown, ChevronUp, Download, FlameKindling } from "lucide-react";
+import { Lightning, TrendUp, Shield, Target, Clock, Heart, Star, CaretDown, CaretUp, DownloadSimple, Fire } from "@phosphor-icons/react";
 import { useConfig } from "@/app/lib/config";
 import { upsertPrediction, downloadCSV, loadPredictions } from "@/app/lib/predictions-store";
 
@@ -257,7 +257,7 @@ function MomentumBadge({ form }: { form: string | null | undefined }) {
   return (
     <span className="flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
       style={{ background: isPos ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)", color: isPos ? "#22c55e" : "#ef4444" }}>
-      <FlameKindling size={8} />
+      <Fire size={8} />
       {isPos ? "+" : ""}{Math.round(momentum * 100)}%
     </span>
   );
@@ -368,7 +368,7 @@ function ButeursPotentiels({
         style={{ background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.2)", color: "#fbbf24" }}>
         <Star size={11} />
         {loading ? "Chargement…" : open ? "Masquer buteurs potentiels" : "Buteurs potentiels"}
-        {!loading && <ChevronDown size={11} className={`transition-transform ${open ? "rotate-180" : ""}`} />}
+        {!loading && <CaretDown size={11} className={`transition-transform ${open ? "rotate-180" : ""}`} />}
       </button>
 
       {open && !loading && loaded && (
@@ -496,7 +496,7 @@ function MatchCard({
         </div>
         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
           style={{ background: conf.bg, color: conf.color }}>
-          <Zap size={10} />{conf.label}
+          <Lightning size={10} />{conf.label}
         </div>
       </div>
 
@@ -572,7 +572,7 @@ function MatchCard({
         {/* Stats */}
         <div className="grid grid-cols-3 gap-2 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
           {[
-            { icon: <TrendingUp size={12} />, label: "Pts/match", home: match.homeTeam.ppg.toFixed(1), away: match.awayTeam.ppg.toFixed(1), homeWins: match.homeTeam.ppg >= match.awayTeam.ppg },
+            { icon: <TrendUp size={12} />, label: "Pts/match", home: match.homeTeam.ppg.toFixed(1), away: match.awayTeam.ppg.toFixed(1), homeWins: match.homeTeam.ppg >= match.awayTeam.ppg },
             { icon: <Target size={12} />, label: "Buts/match", home: (match.homeTeam.goalsFor / Math.max(match.homeTeam.playedGames, 1)).toFixed(1), away: (match.awayTeam.goalsFor / Math.max(match.awayTeam.playedGames, 1)).toFixed(1), homeWins: match.homeTeam.goalsFor >= match.awayTeam.goalsFor },
             { icon: <Shield size={12} />, label: "BC/match", home: (match.homeTeam.goalsAgainst / Math.max(match.homeTeam.playedGames, 1)).toFixed(1), away: (match.awayTeam.goalsAgainst / Math.max(match.awayTeam.playedGames, 1)).toFixed(1), homeWins: match.homeTeam.goalsAgainst <= match.awayTeam.goalsAgainst },
           ].map((stat) => (
@@ -714,7 +714,7 @@ function MatchCard({
           <button onClick={() => setShowDetail(!showDetail)}
             className="w-full mt-3 flex items-center justify-center gap-1 py-1 text-xs transition-colors hover:opacity-70"
             style={{ color: "#6b7c96" }}>
-            {showDetail ? <><ChevronUp size={12} /> Moins de détails</> : <><ChevronDown size={12} /> Détails techniques</>}
+            {showDetail ? <><CaretUp size={12} /> Moins de détails</> : <><CaretDown size={12} /> Détails techniques</>}
           </button>
         )}
 
@@ -1139,7 +1139,7 @@ function WCPredictionsView() {
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
           <h2 className="text-base font-bold flex items-center gap-2" style={{ color: "#e8edf5" }}>
-            <Zap size={16} style={{ color: "#eab308" }} /> Prédictions AI — Coupe du Monde 2026
+            <Lightning size={16} style={{ color: "#eab308" }} /> Prédictions AI — Coupe du Monde 2026
           </h2>
           <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>
             Modèle FootPredictom · xG · Score · Facteur CdM · H2H · Joueurs clés
@@ -1306,7 +1306,7 @@ function WCPredictionsView() {
                     style={{ background: `${factor.color}10`, color: factor.color }}>
                     {factor.icon} {factor.label}
                   </span>
-                  <ChevronDown size={12} style={{ color: "#6b7c96", flexShrink: 0 }}
+                  <CaretDown size={12} style={{ color: "#6b7c96", flexShrink: 0 }}
                     className={`transition-transform flex-shrink-0 ${isOpen ? "rotate-180" : ""}`} />
                 </div>
               </button>
@@ -1635,7 +1635,7 @@ export default function PredictionsTab() {
             <button onClick={downloadCSV}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
               style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)", color: "#22c55e" }}>
-              <Download size={12} /> CSV ({savedCount})
+              <DownloadSimple size={12} /> CSV ({savedCount})
             </button>
           )}
         </div>
@@ -1654,7 +1654,7 @@ export default function PredictionsTab() {
       {config.formMomentumEnabled && (
         <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl mb-3 text-xs"
           style={{ background: "rgba(34,197,94,0.04)", border: "1px solid rgba(34,197,94,0.15)" }}>
-          <FlameKindling size={13} style={{ color: "#22c55e", flexShrink: 0 }} />
+          <Fire size={13} style={{ color: "#22c55e", flexShrink: 0 }} />
           <span style={{ color: "#22c55e" }}>
             <strong>Élan de forme activé</strong> — les équipes en tendance haussière récente sont favorisées
           </span>

@@ -3,9 +3,9 @@
 import { useConfig, DEFAULT_CONFIG } from "@/app/lib/config";
 import { downloadCSV, loadPredictions } from "@/app/lib/predictions-store";
 import {
-  Settings, Zap, Heart, Star, Eye, RefreshCw, Download,
-  Building2, Newspaper, Users, MessageCircle, Trash2, ChevronRight,
-} from "lucide-react";
+  GearSix, Lightning, Heart, Star, Eye, ArrowsClockwise, DownloadSimple,
+  Buildings, Newspaper, Users, ChatCircle, Trash, CaretRight,
+} from "@phosphor-icons/react";
 import { useState } from "react";
 
 function SectionTitle({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle?: string }) {
@@ -128,7 +128,7 @@ export default function ConfigTab() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-base font-bold flex items-center gap-2" style={{ color: "#e8edf5" }}>
-            <Settings size={17} style={{ color: "#00d4ff" }} /> Configuration
+            <GearSix size={17} style={{ color: "#00d4ff" }} /> Configuration
           </h2>
           <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>
             Personnalisez l'algorithme et les fonctionnalités
@@ -139,7 +139,7 @@ export default function ConfigTab() {
             onClick={resetConfig}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all hover:opacity-70"
             style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", color: "#ef4444" }}>
-            <RefreshCw size={11} /> Réinitialiser
+            <ArrowsClockwise size={11} /> Réinitialiser
           </button>
         )}
       </div>
@@ -147,7 +147,7 @@ export default function ConfigTab() {
       {/* Algorithm */}
       <Card>
         <SectionTitle
-          icon={<Zap size={16} style={{ color: "#00d4ff" }} />}
+          icon={<Lightning size={16} style={{ color: "#00d4ff" }} />}
           title="Algorithme prédictif"
           subtitle="Paramètres du moteur de prédiction"
         />
@@ -194,7 +194,7 @@ export default function ConfigTab() {
         </div>
 
         <ToggleRow
-          label={<span className="flex items-center gap-1.5"><Building2 size={12} style={{ color: "#f59e0b" }} /> Économique</span> as unknown as string}
+          label={<span className="flex items-center gap-1.5"><Buildings size={12} style={{ color: "#f59e0b" }} /> Économique</span> as unknown as string}
           description="Solidité financière, propriétaire, revenus"
           enabled={config.ecoEnabled}
           onChange={(v) => updateConfig({ ecoEnabled: v })}
@@ -215,7 +215,7 @@ export default function ConfigTab() {
           color="#22c55e"
         />
         <ToggleRow
-          label={<span className="flex items-center gap-1.5"><MessageCircle size={12} style={{ color: "#06b6d4" }} /> Supporters (Fan Buzz)</span> as unknown as string}
+          label={<span className="flex items-center gap-1.5"><ChatCircle size={12} style={{ color: "#06b6d4" }} /> Supporters (Fan Buzz)</span> as unknown as string}
           description="Buzz supporters via Google News et L'Équipe"
           enabled={config.fanEnabled}
           onChange={(v) => updateConfig({ fanEnabled: v })}
@@ -313,7 +313,7 @@ export default function ConfigTab() {
       {/* Data management */}
       <Card>
         <SectionTitle
-          icon={<Download size={16} style={{ color: "#22c55e" }} />}
+          icon={<DownloadSimple size={16} style={{ color: "#22c55e" }} />}
           title="Historique des prédictions"
           subtitle={`${predCount} prédiction${predCount > 1 ? "s" : ""} sauvegardée${predCount > 1 ? "s" : ""} localement`}
         />
@@ -332,7 +332,7 @@ export default function ConfigTab() {
               disabled={predCount === 0}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-80 disabled:opacity-40"
               style={{ background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.3)", color: "#22c55e" }}>
-              <Download size={12} />
+              <DownloadSimple size={12} />
               {exported ? "✓ Téléchargé" : "Exporter .csv"}
             </button>
           </div>
@@ -350,7 +350,7 @@ export default function ConfigTab() {
               disabled={predCount === 0}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-80 disabled:opacity-40"
               style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", color: "#ef4444" }}>
-              <Trash2 size={12} />
+              <Trash size={12} />
               {cleared ? "✓ Effacé" : "Effacer"}
             </button>
           </div>
@@ -360,7 +360,7 @@ export default function ConfigTab() {
       {/* Info */}
       <div className="rounded-2xl px-5 py-4 text-xs" style={{ background: "rgba(0,212,255,0.04)", border: "1px solid rgba(0,212,255,0.12)", color: "#6b7c96" }}>
         <div className="flex items-start gap-2">
-          <ChevronRight size={13} style={{ color: "#00d4ff", marginTop: 1, flexShrink: 0 }} />
+          <CaretRight size={13} style={{ color: "#00d4ff", marginTop: 1, flexShrink: 0 }} />
           <div>
             <p>Les paramètres sont sauvegardés automatiquement dans votre navigateur (localStorage).</p>
             <p className="mt-1">Les prédictions sont auto-sauvegardées à chaque chargement de l'onglet AI FootPredictom, avant chaque match.</p>

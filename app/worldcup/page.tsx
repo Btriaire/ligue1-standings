@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { CaretLeft } from "@phosphor-icons/react";
 import WorldCupTab from "@/app/components/WorldCupTab";
 
 export const metadata: Metadata = {
@@ -18,7 +18,7 @@ export default function WorldCupPage() {
             href="/"
             className="flex items-center gap-1.5 text-xs font-semibold transition-opacity hover:opacity-70"
             style={{ color: "#64748b" }}>
-            <ChevronLeft size={13} />
+            <CaretLeft size={13} />
             Ligue 1
           </Link>
           <div className="h-4 w-px" style={{ background: "#1e2d42" }} />

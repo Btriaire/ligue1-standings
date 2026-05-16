@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle, XCircle, Minus, Clock, Target, Download, Trophy, Globe, Calendar } from "lucide-react";
+import { CheckCircle, XCircle, Minus, Clock, Target, DownloadSimple, Trophy, Globe, Calendar } from "@phosphor-icons/react";
 import { loadPredictions, downloadCSV, SavedPrediction } from "@/app/lib/predictions-store";
 
 // ── Standings + prediction logic (mirrored from club page) ────────────────────
@@ -517,7 +517,7 @@ export default function ResultsTab() {
             onClick={downloadCSV}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-80"
             style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", color: "#22c55e" }}>
-            <Download size={12} /> Exporter CSV
+            <DownloadSimple size={12} /> Exporter CSV
           </button>
         )}
       </div>

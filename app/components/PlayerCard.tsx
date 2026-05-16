@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  ChevronDown, ChevronUp, AlertTriangle, Camera,
-} from "lucide-react";
+  CaretDown, CaretUp, Warning, Camera,
+} from "@phosphor-icons/react";
 import Tooltip, { GLOSSARY } from "./Tooltip";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -276,7 +276,7 @@ export function PlayerDetail({ p }: { p: PlayerEntry }) {
               </span>
               {p.club.crest && <img src={p.club.crest} alt="" className="w-4 h-4 object-contain" />} {/* eslint-disable-line @next/next/no-img-element */}
               <span className="text-xs font-semibold" style={{ color: "#e8edf5" }}>{p.club.shortName ?? p.club.name ?? CLUB_SHORT[p.clubId]}</span>
-              {isInj && <span className="flex items-center gap-1 text-[10px] font-bold" style={{ color: "#f97316" }}><AlertTriangle size={10} /> Blessé</span>}
+              {isInj && <span className="flex items-center gap-1 text-[10px] font-bold" style={{ color: "#f97316" }}><Warning size={10} /> Blessé</span>}
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5">
               <StatBox label="Forme" value={formScore(p)} color={ec(formScore(p))} sub="/100" />
@@ -502,7 +502,7 @@ export function PlayerRow({ p, expanded, onToggle, rank }: {
         </span>
         <div className="flex-1 min-w-0">
           <p className="text-xs font-semibold truncate" style={{ color: isInj ? "#f97316" : "#e8edf5" }}>
-            {isInj && <AlertTriangle size={9} className="inline mr-1 text-orange-400" />}{p.name}
+            {isInj && <Warning size={9} className="inline mr-1 text-orange-400" />}{p.name}
           </p>
           <p className="text-[10px] truncate" style={{ color: "#6b7c96" }}>
             {p.nationality?.[0] && <span className="mr-1.5">{p.nationality[0]}</span>}
@@ -532,7 +532,7 @@ export function PlayerRow({ p, expanded, onToggle, rank }: {
           </span>
         </div>
         <span className="flex-shrink-0" style={{ color: "#6b7c96" }}>
-          {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          {expanded ? <CaretUp size={12} /> : <CaretDown size={12} />}
         </span>
       </button>
       {expanded && <PlayerDetail p={p} />}

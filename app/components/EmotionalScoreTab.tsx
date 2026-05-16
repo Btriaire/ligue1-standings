@@ -2,11 +2,11 @@
 
 import { useEffect, useState, useMemo } from "react";
 import {
-  Heart, TrendingUp, TrendingDown, Minus, Users, Newspaper,
-  Building2, ChevronDown, AlertTriangle, Star, Zap,
-  Info, BarChart2, Radio, Globe, MessageCircle, RefreshCw,
-  Sliders,
-} from "lucide-react";
+  Heart, TrendUp, TrendDown, Minus, Users, Newspaper,
+  Buildings, CaretDown, Warning, Star, Lightning,
+  Info, ChartBar, Radio, Globe, ChatCircle, ArrowsClockwise,
+  SlidersHorizontal,
+} from "@phosphor-icons/react";
 
 interface Article { title: string; pubDate: string; source: string; sentiment: "positive" | "negative" | "neutral" }
 interface SourceBreakdown { source: string; articleCount: number; positive: number; negative: number; score: number }
@@ -107,10 +107,10 @@ function WeightSliders({ weights, onChange }: { weights: Weights; onChange: (w: 
   const total = weights.eco + weights.media + weights.human + weights.fan;
 
   const items = [
-    { key: "eco",   label: "Économique",   color: "#f59e0b", icon: <Building2 size={12} /> },
+    { key: "eco",   label: "Économique",   color: "#f59e0b", icon: <Buildings size={12} /> },
     { key: "media", label: "Médias",       color: "#00d4ff", icon: <Newspaper size={12} /> },
     { key: "human", label: "Humain",       color: "#22c55e", icon: <Users size={12} /> },
-    { key: "fan",   label: "Supporters",  color: "#06b6d4", icon: <MessageCircle size={12} /> },
+    { key: "fan",   label: "Supporters",  color: "#06b6d4", icon: <ChatCircle size={12} /> },
   ] as const;
 
   const isDefault = weights.eco === DEFAULT_WEIGHTS.eco && weights.media === DEFAULT_WEIGHTS.media &&
@@ -122,7 +122,7 @@ function WeightSliders({ weights, onChange }: { weights: Weights; onChange: (w: 
         className="w-full flex items-center gap-3 px-5 py-4 transition-colors hover:bg-white/[0.02]">
         <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
           style={{ background: "rgba(124,58,237,0.12)", border: "1px solid rgba(124,58,237,0.25)" }}>
-          <Sliders size={15} style={{ color: "#a78bfa" }} />
+          <SlidersHorizontal size={15} style={{ color: "#a78bfa" }} />
         </div>
         <div className="flex-1 text-left">
           <p className="text-sm font-bold" style={{ color: "#e8edf5" }}>Pondération des dimensions</p>
@@ -131,7 +131,7 @@ function WeightSliders({ weights, onChange }: { weights: Weights; onChange: (w: 
           </p>
         </div>
         {!isDefault && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(124,58,237,0.2)", color: "#a78bfa" }}>Modifié</span>}
-        <ChevronDown size={15} style={{ color: "#6b7c96" }} className={`flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+        <CaretDown size={15} style={{ color: "#6b7c96" }} className={`flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (
@@ -171,7 +171,7 @@ function WeightSliders({ weights, onChange }: { weights: Weights; onChange: (w: 
             disabled={isDefault}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all disabled:opacity-40"
             style={{ background: "rgba(255,255,255,0.06)", color: "#6b7c96" }}>
-            <RefreshCw size={11} /> Réinitialiser les poids par défaut
+            <ArrowsClockwise size={11} /> Réinitialiser les poids par défaut
           </button>
         </div>
       )}
@@ -195,7 +195,7 @@ function Methodology({ sources }: { sources: EmotionalData["sources"] }) {
             {sources.media.join(" · ")} · Buzz Supporters · Données économiques publiques
           </p>
         </div>
-        <ChevronDown size={15} style={{ color: "#6b7c96" }} className={`flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+        <CaretDown size={15} style={{ color: "#6b7c96" }} className={`flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (
@@ -206,10 +206,10 @@ function Methodology({ sources }: { sources: EmotionalData["sources"] }) {
           </p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {[
-              { icon: <Building2 size={16} />, color: "#f59e0b", weight: "28%", title: "Économique", desc: "Propriétaire, revenus annuels, solidité financière.", source: sources.economic },
+              { icon: <Buildings size={16} />, color: "#f59e0b", weight: "28%", title: "Économique", desc: "Propriétaire, revenus annuels, solidité financière.", source: sources.economic },
               { icon: <Newspaper size={16} />, color: "#00d4ff", weight: "28%", title: "Médias & Sentiment", desc: "Analyse des 15 derniers articles par club (positifs vs négatifs).", source: sources.media.join(", ") },
               { icon: <Users size={16} />, color: "#22c55e", weight: "30%", title: "Humain", desc: "Valeur totale de l'effectif et taux de blessures.", source: sources.mercato },
-              { icon: <MessageCircle size={16} />, color: "#06b6d4", weight: "14%", title: "Buzz Supporters", desc: "Analyse des articles Google News et L'Équipe, mots-clés supporters.", source: "Google News · L'Équipe" },
+              { icon: <ChatCircle size={16} />, color: "#06b6d4", weight: "14%", title: "Buzz Supporters", desc: "Analyse des articles Google News et L'Équipe, mots-clés supporters.", source: "Google News · L'Équipe" },
             ].map((c) => (
               <div key={c.title} className="rounded-xl p-3" style={{ background: `${c.color}08`, border: `1px solid ${c.color}20` }}>
                 <div className="flex items-center justify-between mb-1.5">
@@ -285,8 +285,8 @@ function SourceRow({ src }: { src: SourceBreakdown }) {
 
 function ArticleRow({ article }: { article: Article }) {
   const cfg: Record<string, { color: string; icon: React.ReactNode }> = {
-    positive: { color: "#22c55e", icon: <TrendingUp size={9} /> },
-    negative: { color: "#ef4444", icon: <TrendingDown size={9} /> },
+    positive: { color: "#22c55e", icon: <TrendUp size={9} /> },
+    negative: { color: "#ef4444", icon: <TrendDown size={9} /> },
     neutral:  { color: "#94a3b8", icon: <Minus size={9} /> },
   };
   const { color, icon } = cfg[article.sentiment];
@@ -372,7 +372,7 @@ function FanBuzzSection({ teamId }: { teamId: number }) {
           <button onClick={load} disabled={loading}
             className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-lg transition-all hover:opacity-70 disabled:opacity-40"
             style={{ background: "rgba(244,114,182,0.1)", color: "#06b6d4", border: "1px solid rgba(244,114,182,0.2)" }}>
-            <RefreshCw size={10} className={loading ? "animate-spin" : ""} />
+            <ArrowsClockwise size={10} className={loading ? "animate-spin" : ""} />
             {loading ? "Chargement…" : fetched ? "Actualiser" : "Charger"}
           </button>
         </div>
@@ -424,11 +424,11 @@ function ClubDetail({ club, weights }: { club: ClubScore; weights: Weights }) {
     <div className="mt-4 space-y-4">
       {/* Component bars */}
       <div className="space-y-3 px-1">
-        <ComponentBar label="Économique" score={c.economic.score} icon={<Building2 size={12} />} detail={c.economic.owner} weight={effWeight(weights.eco)} />
+        <ComponentBar label="Économique" score={c.economic.score} icon={<Buildings size={12} />} detail={c.economic.owner} weight={effWeight(weights.eco)} />
         <ComponentBar label="Médias & Sentiment" score={c.media.score} icon={<Newspaper size={12} />} detail={c.media.total > 0 ? `${c.media.positive} pos · ${c.media.negative} nég` : "en attente"} weight={effWeight(weights.media)} />
         <ComponentBar label="Humain" score={c.human.score} icon={<Users size={12} />} detail={c.human.totalValue > 0 ? formatValue(c.human.totalValue) : "—"} weight={effWeight(weights.human)} />
-        {c.fan && <ComponentBar label="Supporters" score={c.fan.score} icon={<MessageCircle size={12} />} detail={c.fan.total > 0 ? `${c.fan.positive} pos · ${c.fan.negative} nég` : "en attente"} weight={effWeight(weights.fan)} />}
-        {c.market && <ComponentBar label="Paris Sportifs" score={c.market.score} icon={<BarChart2 size={12} />} detail={c.market.source} weight={effWeight(10)} />}
+        {c.fan && <ComponentBar label="Supporters" score={c.fan.score} icon={<ChatCircle size={12} />} detail={c.fan.total > 0 ? `${c.fan.positive} pos · ${c.fan.negative} nég` : "en attente"} weight={effWeight(weights.fan)} />}
+        {c.market && <ComponentBar label="Paris Sportifs" score={c.market.score} icon={<ChartBar size={12} />} detail={c.market.source} weight={effWeight(10)} />}
       </div>
 
       {/* Economic info */}
@@ -464,7 +464,7 @@ function ClubDetail({ club, weights }: { club: ClubScore; weights: Weights }) {
           )}
           {c.human.injuredPlayers.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2 pt-2" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-              <span className="text-xs flex items-center gap-1" style={{ color: "#f97316" }}><AlertTriangle size={10} /> Blessés :</span>
+              <span className="text-xs flex items-center gap-1" style={{ color: "#f97316" }}><Warning size={10} /> Blessés :</span>
               {c.human.injuredPlayers.map((p) => (
                 <span key={p} className="text-xs px-1.5 py-0.5 rounded" style={{ background: "rgba(249,115,22,0.1)", color: "#f97316" }}>{p}</span>
               ))}
@@ -525,7 +525,7 @@ function ClubCard({ club, customScore, weights }: { club: ClubScore; customScore
             {delta !== 0 && (
               <span className="flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full"
                 style={{ background: delta > 0 ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)", color: delta > 0 ? "#22c55e" : "#ef4444" }}>
-                <Zap size={9} />{delta > 0 ? "+" : ""}{delta}% prédiction
+                <Lightning size={9} />{delta > 0 ? "+" : ""}{delta}% prédiction
               </span>
             )}
           </div>
@@ -552,7 +552,7 @@ function ClubCard({ club, customScore, weights }: { club: ClubScore; customScore
           })}
         </div>
 
-        <ChevronDown size={16} style={{ color: "#6b7c96", flexShrink: 0 }} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
+        <CaretDown size={16} style={{ color: "#6b7c96", flexShrink: 0 }} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
       </button>
 
       {expanded && (
@@ -682,7 +682,7 @@ function WCEmotionalView() {
                     {delta !== 0 && (
                       <span className="text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
                         style={{ background: delta > 0 ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)", color: delta > 0 ? "#22c55e" : "#ef4444" }}>
-                        <Zap size={9} />{delta > 0 ? "+" : ""}{delta}%
+                        <Lightning size={9} />{delta > 0 ? "+" : ""}{delta}%
                       </span>
                     )}
                   </div>
@@ -704,7 +704,7 @@ function WCEmotionalView() {
                     );
                   })}
                 </div>
-                <ChevronDown size={14} style={{ color: "#6b7c96", flexShrink: 0 }}
+                <CaretDown size={14} style={{ color: "#6b7c96", flexShrink: 0 }}
                   className={`transition-transform ${isOpen ? "rotate-180" : ""}`} />
               </button>
 
@@ -715,7 +715,7 @@ function WCEmotionalView() {
                     {([
                       ["Médias",     team.media, "#00d4ff", <Newspaper key="media" size={12} />],
                       ["Humain",     team.human, "#22c55e", <Users key="human" size={12} />],
-                      ["Supporters", team.fan,   "#06b6d4", <MessageCircle key="fan" size={12} />],
+                      ["Supporters", team.fan,   "#06b6d4", <ChatCircle key="fan" size={12} />],
                     ] as const).map(([label, val, clr, icon]) => (
                       <div key={label}>
                         <div className="flex items-center justify-between mb-1">

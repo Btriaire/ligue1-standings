@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { X, ExternalLink, RefreshCw, AlertTriangle, Clock } from "lucide-react";
+import { X, ArrowSquareOut, ArrowsClockwise, Warning, Clock } from "@phosphor-icons/react";
 import type { ArticleData } from "@/app/api/news/article/route";
 
 interface Props {
@@ -129,7 +129,7 @@ export default function NewsModal({ title, url, pubDate, onClose }: Props) {
             {/* Loading state */}
             {loading && (
               <div className="flex flex-col items-center gap-3 py-10">
-                <RefreshCw size={20} className="animate-spin" style={{ color: "#3b82f6" }} />
+                <ArrowsClockwise size={20} className="animate-spin" style={{ color: "#3b82f6" }} />
                 <p className="text-xs" style={{ color: "#6b7c96" }}>Chargement de l&apos;article…</p>
               </div>
             )}
@@ -138,7 +138,7 @@ export default function NewsModal({ title, url, pubDate, onClose }: Props) {
             {!loading && error && (
               <div className="rounded-2xl p-5 flex flex-col items-center gap-3 text-center"
                 style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)" }}>
-                <AlertTriangle size={20} style={{ color: "#f87171" }} />
+                <Warning size={20} style={{ color: "#f87171" }} />
                 <p className="text-sm font-semibold" style={{ color: "#e8edf5" }}>
                   Article inaccessible depuis notre serveur
                 </p>
@@ -148,7 +148,7 @@ export default function NewsModal({ title, url, pubDate, onClose }: Props) {
                 <a href={url} target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold hover:opacity-80"
                   style={{ background: "#3b82f6", color: "#fff" }}>
-                  <ExternalLink size={13} /> Lire sur le site source
+                  <ArrowSquareOut size={13} /> Lire sur le site source
                 </a>
               </div>
             )}
@@ -181,7 +181,7 @@ export default function NewsModal({ title, url, pubDate, onClose }: Props) {
                 className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-semibold hover:opacity-80 transition-opacity mt-2"
                 style={{ background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.25)", color: "#60a5fa" }}
               >
-                <ExternalLink size={14} />
+                <ArrowSquareOut size={14} />
                 Lire l&apos;article complet
               </a>
             )}

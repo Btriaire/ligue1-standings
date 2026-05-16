@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, Trophy, Users, MapPin, Globe, Star, Zap, TrendingUp, Target, Shield } from "lucide-react";
+import { Calendar, Trophy, Users, MapPin, Globe, Star, Lightning, TrendUp, Target, Shield } from "@phosphor-icons/react";
 
 // ─── Data ──────────────────────────────────────────────────────────────────
 
@@ -429,10 +429,10 @@ function PlayerCard({ p }: { p: WCPlayer }) {
           {/* Full stat grid */}
           <div className="grid grid-cols-2 gap-1.5">
             {[
-              { label: "Vitesse",    value: p.vitesse,   color: "#00d4ff",  icon: <Zap size={10} /> },
+              { label: "Vitesse",    value: p.vitesse,   color: "#00d4ff",  icon: <Lightning size={10} /> },
               { label: "Technique",  value: p.technique, color: "#a78bfa",  icon: <Star size={10} /> },
               { label: "Menace buts",value: p.buts,      color: "#ef4444",  icon: <Target size={10} /> },
-              { label: "Impact CdM", value: p.impact,    color: cat.color,  icon: <TrendingUp size={10} /> },
+              { label: "Impact CdM", value: p.impact,    color: cat.color,  icon: <TrendUp size={10} /> },
             ].map(s => {
               const filled = Math.round(s.value / 20);  // 0-5 segments
               return (

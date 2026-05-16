@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
-  Shield, LogOut, RefreshCw, Play, CheckCircle2, XCircle,
-  Clock, Database, Users, Zap, Globe2, Activity, AlertTriangle,
-  ChevronRight, Eye, EyeOff, Server,
-} from "lucide-react";
+  Shield, SignOut, ArrowsClockwise, Play, CheckCircle, XCircle,
+  Clock, Database, Users, Lightning, Globe, Pulse, Warning,
+  CaretRight, Eye, EyeSlash, HardDrives,
+} from "@phosphor-icons/react";
 
 /* ─── Types ──────────────────────────────────────────────────── */
 interface DataSource {
@@ -29,10 +29,10 @@ interface Status {
 /* ─── Status badge ───────────────────────────────────────────── */
 function StatusBadge({ status }: { status: DataSource["status"] }) {
   const cfg = {
-    ok:      { icon: <CheckCircle2 size={13}/>, color: "#22c55e", label: "OK" },
+    ok:      { icon: <CheckCircle size={13}/>, color: "#22c55e", label: "OK" },
     error:   { icon: <XCircle size={13}/>,      color: "#ef4444", label: "Erreur" },
     unknown: { icon: <Clock size={13}/>,         color: "#f59e0b", label: "Inconnu" },
-    blocked: { icon: <AlertTriangle size={13}/>, color: "#f97316", label: "Bloqué" },
+    blocked: { icon: <Warning size={13}/>, color: "#f97316", label: "Bloqué" },
   }[status];
   return (
     <span className="flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full"
@@ -89,7 +89,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
                   style={{ background: "rgba(255,255,255,0.05)", border: "1px solid #1e2d42", color: "#e8edf5" }} />
                 <button type="button" onClick={() => setShow(v => !v)}
                   className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: "#6b7c96" }}>
-                  {show ? <EyeOff size={14}/> : <Eye size={14}/>}
+                  {show ? <EyeSlash size={14}/> : <Eye size={14}/>}
                 </button>
               </div>
             </div>
@@ -156,7 +156,7 @@ export default function AdminPage() {
 
   if (authed === null) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: "#080c14" }}>
-      <RefreshCw size={20} className="animate-spin" style={{ color: "#6b7c96" }} />
+      <ArrowsClockwise size={20} className="animate-spin" style={{ color: "#6b7c96" }} />
     </div>
   );
 
@@ -179,7 +179,7 @@ export default function AdminPage() {
           <button onClick={loadStatus} disabled={loading}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-80"
             style={{ background: "rgba(255,255,255,0.05)", border: "1px solid #1e2d42", color: "#94a3b8" }}>
-            <RefreshCw size={11} className={loading ? "animate-spin" : ""} /> Actualiser
+            <ArrowsClockwise size={11} className={loading ? "animate-spin" : ""} /> Actualiser
           </button>
           <Link href="/" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-80"
             style={{ background: "rgba(255,255,255,0.05)", border: "1px solid #1e2d42", color: "#94a3b8" }}>
@@ -188,7 +188,7 @@ export default function AdminPage() {
           <button onClick={logout}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-80"
             style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", color: "#f87171" }}>
-            <LogOut size={11}/> Déconnexion
+            <SignOut size={11}/> Déconnexion
           </button>
         </div>
       </header>
@@ -200,8 +200,8 @@ export default function AdminPage() {
             {[
               { icon: <Users size={16}/>, label: "Utilisateurs Firebase", value: status.firebase.registeredUsers ?? "—", color: "#3b82f6" },
               { icon: <Database size={16}/>, label: "Votes Ma Compo", value: status.firestore.totalCompoVotes ?? "—", color: "#a78bfa" },
-              { icon: <Activity size={16}/>, label: "Clubs SofaScore", value: status.firestore.sofascoreClubs ?? "—", color: "#f59e0b" },
-              { icon: <Server size={16}/>, label: "Env", value: status.app.env, color: "#22c55e" },
+              { icon: <Pulse size={16}/>, label: "Clubs SofaScore", value: status.firestore.sofascoreClubs ?? "—", color: "#f59e0b" },
+              { icon: <HardDrives size={16}/>, label: "Env", value: status.app.env, color: "#22c55e" },
             ].map(s => (
               <div key={s.label} className="rounded-2xl p-4" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
                 <div className="flex items-center gap-2 mb-2" style={{ color: s.color }}>{s.icon}</div>
@@ -216,7 +216,7 @@ export default function AdminPage() {
         <section>
           <h2 className="text-sm font-black uppercase tracking-widest mb-4 flex items-center gap-2"
             style={{ color: "#6b7c96" }}>
-            <Globe2 size={14}/> Sources de données
+            <Globe size={14}/> Sources de données
           </h2>
           <div className="space-y-2">
             {(status?.sources ?? []).map(src => (
@@ -247,7 +247,7 @@ export default function AdminPage() {
                   <a href={src.url} target="_blank" rel="noopener noreferrer"
                     className="flex-shrink-0 flex items-center gap-1 text-[10px] hover:opacity-70"
                     style={{ color: "#3b82f6" }}>
-                    Ouvrir <ChevronRight size={10}/>
+                    Ouvrir <CaretRight size={10}/>
                   </a>
                 </div>
               </div>
@@ -259,11 +259,11 @@ export default function AdminPage() {
         <section>
           <h2 className="text-sm font-black uppercase tracking-widest mb-4 flex items-center gap-2"
             style={{ color: "#6b7c96" }}>
-            <AlertTriangle size={14}/> Analyse FBref
+            <Warning size={14}/> Analyse FBref
           </h2>
           <div className="rounded-2xl p-5 space-y-3" style={{ background: "#0d1421", border: "1px solid rgba(249,115,22,0.3)" }}>
             <div className="flex items-start gap-3">
-              <AlertTriangle size={18} style={{ color: "#f97316", flexShrink: 0, marginTop: 2 }} />
+              <Warning size={18} style={{ color: "#f97316", flexShrink: 0, marginTop: 2 }} />
               <div>
                 <p className="text-sm font-bold mb-2" style={{ color: "#e8edf5" }}>
                   FBref — Inaccessible côté serveur (403 anti-bot)
@@ -363,7 +363,7 @@ export default function AdminPage() {
         <section>
           <h2 className="text-sm font-black uppercase tracking-widest mb-4 flex items-center gap-2"
             style={{ color: "#6b7c96" }}>
-            <Zap size={14}/> Actions rapides
+            <Lightning size={14}/> Actions rapides
           </h2>
           <div className="grid md:grid-cols-2 gap-3">
             {[

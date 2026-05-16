@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { RefreshCw, TrendingUp, TrendingDown, Minus, Trophy, Wifi, WifiOff, Clock, Zap, BarChart2, Shield, Activity, Globe, Settings, Target, ArrowLeftRight, ChevronRight, Users, Lock, LogIn, LogOut } from "lucide-react";
+import { ArrowsClockwise, TrendUp, TrendDown, Minus, Trophy, WifiHigh, WifiSlash, Clock, Lightning, ChartBar, Shield, Pulse, Globe, GearSix, Target, ArrowsLeftRight, CaretRight, Users, Lock, SignIn, SignOut } from "@phosphor-icons/react";
 import dynamic from "next/dynamic";
 const TeamPanel = dynamic(() => import("./components/TeamPanel"), { ssr: false });
 import { TipText } from "./components/Tooltip";
@@ -112,8 +112,8 @@ function Trend({ form }: { form: string }) {
   if (!form) return <Minus size={14} className="text-white/20" />;
   const results = form.split(",").filter(Boolean).slice(-3);
   const score = results.reduce((acc, r) => acc + (r === "W" ? 1 : r === "L" ? -1 : 0), 0);
-  if (score > 0) return <TrendingUp size={14} className="text-green-400" />;
-  if (score < 0) return <TrendingDown size={14} className="text-red-400" />;
+  if (score > 0) return <TrendUp size={14} className="text-green-400" />;
+  if (score < 0) return <TrendDown size={14} className="text-red-400" />;
   return <Minus size={14} className="text-yellow-400" />;
 }
 
@@ -243,7 +243,7 @@ function LoadingSkeleton() {
 function ErrorState({ error, onRetry }: { error: string; onRetry: () => void }) {
   return (
     <div className="rounded-2xl p-12 text-center" style={{ border: "1px solid #ef444430", background: "rgba(239,68,68,0.05)" }}>
-      <WifiOff size={40} className="text-red-400 mx-auto mb-4 opacity-60" />
+      <WifiSlash size={40} className="text-red-400 mx-auto mb-4 opacity-60" />
       <h2 className="text-lg font-bold mb-2" style={{ color: "#e8edf5" }}>Impossible de charger les données</h2>
       <p className="text-sm mb-6" style={{ color: "#6b7c96" }}>{error}</p>
       <button onClick={onRetry} className="px-6 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-80"
@@ -350,7 +350,7 @@ function ClubSidebar({ standings }: { standings?: Standing[] }) {
     <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42", background: "#0d1421" }}>
       <div className="px-3 py-2.5 flex items-center justify-between" style={{ borderBottom: "1px solid #1e2d42" }}>
         <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "#6b7c96" }}>Clubs L1</p>
-        <ChevronRight size={12} style={{ color: "#6b7c96" }} />
+        <CaretRight size={12} style={{ color: "#6b7c96" }} />
       </div>
       <div className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 140px)" }}>
         {sorted.map((club) => {
@@ -385,20 +385,20 @@ function ClubSidebar({ standings }: { standings?: Standing[] }) {
 }
 
 const L1_SUBTABS: { id: L1SubTab; label: string; icon: React.ReactNode }[] = [
-  { id: "classement", label: "Classement",   icon: <BarChart2 size={13} /> },
-  { id: "mercato",    label: "Mercato",      icon: <ArrowLeftRight size={13} /> },
+  { id: "classement", label: "Classement",   icon: <ChartBar size={13} /> },
+  { id: "mercato",    label: "Mercato",      icon: <ArrowsLeftRight size={13} /> },
   { id: "joueurs",    label: "Stats Joueurs",icon: <Users size={13} /> },
-  { id: "transfert",  label: "Transferts",   icon: <ArrowLeftRight size={13} /> },
+  { id: "transfert",  label: "Transferts",   icon: <ArrowsLeftRight size={13} /> },
 ];
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode; shortLabel?: string }[] = [
   { id: "ligue1",      label: "Ligue 1",            icon: <Trophy size={14} />,          shortLabel: "L1" },
   { id: "worldcup",    label: "Coupe du Monde",      icon: <Globe size={14} />,           shortLabel: "CdM" },
   { id: "monclub",     label: "Mon Club",            icon: <Shield size={14} />,          shortLabel: "Mon Club" },
-  { id: "predictions", label: "AI FootPredictom",   icon: <Zap size={14} />,             shortLabel: "AI Foot" },
+  { id: "predictions", label: "AI FootPredictom",   icon: <Lightning size={14} />,             shortLabel: "AI Foot" },
   { id: "results",     label: "Résultats",           icon: <Target size={14} /> },
-  { id: "emotional",   label: "Facteur additionnel", icon: <Activity size={14} />,        shortLabel: "Fact. add." },
-  { id: "config",      label: "Configuration",       icon: <Settings size={14} />,        shortLabel: "Config" },
+  { id: "emotional",   label: "Facteur additionnel", icon: <Pulse size={14} />,        shortLabel: "Fact. add." },
+  { id: "config",      label: "Configuration",       icon: <GearSix size={14} />,        shortLabel: "Config" },
 ];
 
 interface AuthUser { id: string; email: string; name: string }
@@ -423,7 +423,7 @@ function AuthGate({ label, icon }: { label: string; icon: React.ReactNode }) {
         <Link href="/login"
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black hover:opacity-90 transition-all"
           style={{ background: "#3b82f6", color: "#fff" }}>
-          <LogIn size={14} /> Se connecter
+          <SignIn size={14} /> Se connecter
         </Link>
         <Link href="/login?tab=register"
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold hover:opacity-80 transition-all"
@@ -494,7 +494,7 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-2">
               {error
-                ? <WifiOff size={14} className="text-red-400" />
+                ? <WifiSlash size={14} className="text-red-400" />
                 : <>
                     <span className="w-1.5 h-1.5 rounded-full live-pulse" style={{ background: "#34d399", boxShadow: "0 0 4px #34d399" }} />
                     <span className="text-xs font-medium tracking-widest" style={{ color: "#64748b" }}>EN DIRECT</span>
@@ -513,7 +513,7 @@ export default function Home() {
             <button onClick={() => fetchStandings(true)} disabled={refreshing}
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 active:scale-95"
               style={{ background: "rgba(255,255,255,0.04)", border: "1px solid #1e2d42", color: "#94a3b8" }}>
-              <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
+              <ArrowsClockwise size={12} className={refreshing ? "animate-spin" : ""} />
               <span className="hidden sm:inline">Actualiser</span>
             </button>
 
@@ -527,7 +527,7 @@ export default function Home() {
                   <button type="submit" title="Déconnexion"
                     className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs hover:opacity-80 transition-all"
                     style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#ef4444" }}>
-                    <LogOut size={12} />
+                    <SignOut size={12} />
                   </button>
                 </form>
               </div>
@@ -535,7 +535,7 @@ export default function Home() {
               <Link href="/login"
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-80 transition-all"
                 style={{ background: "rgba(255,255,255,0.05)", border: "1px solid #1e2d42", color: "#94a3b8" }}>
-                <LogIn size={12} /> <span className="hidden sm:inline">Connexion</span>
+                <SignIn size={12} /> <span className="hidden sm:inline">Connexion</span>
               </Link>
             )}
           </div>
@@ -629,7 +629,7 @@ export default function Home() {
                       <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>xG, xA, buts, passes déc. — tous les clubs</p>
                     </div>
                   </div>
-                  <ChevronRight size={16} style={{ color: "#00d4ff" }} />
+                  <CaretRight size={16} style={{ color: "#00d4ff" }} />
                 </Link>
               </div>
             )}
@@ -641,17 +641,17 @@ export default function Home() {
 
         {tab === "worldcup" && <WorldCupTab />}
         {tab === "monclub" && <MonClubTab />}
-        {tab === "predictions" && (user ? <PredictionsTab /> : <AuthGate label="AI FootPredictom" icon={<Zap size={16} className="inline" style={{ color: "#3b82f6" }} />} />)}
+        {tab === "predictions" && (user ? <PredictionsTab /> : <AuthGate label="AI FootPredictom" icon={<Lightning size={16} className="inline" style={{ color: "#3b82f6" }} />} />)}
         {tab === "results" && <ResultsTab />}
-        {tab === "emotional" && (user ? <EmotionalScoreTab /> : <AuthGate label="Facteur additionnel" icon={<Activity size={16} className="inline" style={{ color: "#a78bfa" }} />} />)}
+        {tab === "emotional" && (user ? <EmotionalScoreTab /> : <AuthGate label="Facteur additionnel" icon={<Pulse size={16} className="inline" style={{ color: "#a78bfa" }} />} />)}
         {tab === "config" && <ConfigTab />}
 
         {/* Footer */}
         <div className="mt-4 flex items-center justify-between text-xs" style={{ color: "#6b7c96" }}>
           <div className="flex items-center gap-1.5">
             {error
-              ? <><WifiOff size={11} className="text-red-400" /><span className="text-red-400 ml-1">Hors ligne</span></>
-              : <><Wifi size={11} /><span className="ml-1">Données en direct · Ligue 1</span></>
+              ? <><WifiSlash size={11} className="text-red-400" /><span className="text-red-400 ml-1">Hors ligne</span></>
+              : <><WifiHigh size={11} /><span className="ml-1">Données en direct · Ligue 1</span></>
             }
           </div>
           {data?.season && <span>Saison {data.season}</span>}

@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import {
-  Trophy, ChevronDown, ChevronUp, X, TrendingUp, TrendingDown,
-  Users, Calendar, Zap, RefreshCw, Shield, MapPin, Target,
-  Star, Activity, BarChart2, Save, CheckCircle2, Share2, Globe2, Swords,
-} from "lucide-react";
+  Trophy, CaretDown, CaretUp, X, TrendUp, TrendDown,
+  Users, Calendar, Lightning, ArrowsClockwise, Shield, MapPin, Target,
+  Star, Pulse, ChartBar, FloppyDisk, CheckCircle, ShareNetwork, Globe, Sword,
+} from "@phosphor-icons/react";
 import { PlayerRow, PlayerEntry, POS_ORDER, POS_FR as POS_FR_PLURAL, POS_COL } from "./PlayerCard";
 import { PlayerPhoto } from "./PlayerCard";
 
@@ -586,11 +586,11 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
   const filledCount = players11.filter(Boolean).length;
 
   const SECTIONS=[
-    {id:"apercu"    as const, label:"Aperçu",        icon:<BarChart2 size={11}/>},
+    {id:"apercu"    as const, label:"Aperçu",        icon:<ChartBar size={11}/>},
     {id:"effectif"  as const, label:"Effectif",      icon:<Users size={11}/>},
     {id:"resultats" as const, label:"Résultats",     icon:<Target size={11}/>},
     {id:"compo"     as const, label:"Ma Compo !",    icon:<Star size={11}/>},
-    {id:"fiche"     as const, label:"La Fiche",      icon:<Swords size={11}/>},
+    {id:"fiche"     as const, label:"La Fiche",      icon:<Sword size={11}/>},
   ];
 
   return (
@@ -667,7 +667,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
         ))}
         <div className="flex-1"/>
         <button onClick={()=>{loadData();loadSquad();}} className="px-2 py-1 rounded-lg hover:opacity-80" style={{color:"#6b7c96"}}>
-          <RefreshCw size={11} className={loading?"animate-spin":""}/>
+          <ArrowsClockwise size={11} className={loading?"animate-spin":""}/>
         </button>
       </div>
 
@@ -821,7 +821,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
               <button key={t} onClick={()=>setResTab(t)}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap"
                 style={{background:resTab===t?"rgba(255,255,255,0.08)":"transparent",color:resTab===t?"#e2e8f0":"#64748b",border:resTab===t?"1px solid rgba(255,255,255,0.1)":"1px solid transparent"}}>
-                {t==="resultats"?<><Calendar size={11}/> Résultats</>:<><Zap size={11}/> Prédictions AI</>}
+                {t==="resultats"?<><Calendar size={11}/> Résultats</>:<><Lightning size={11}/> Prédictions AI</>}
               </button>
             ))}
           </div>
@@ -866,7 +866,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
           {resTab==="predictions"&&(
             <div className="space-y-3">
               <div className="rounded-xl px-3 py-2 flex items-center gap-2" style={{background:"rgba(59,130,246,0.06)",border:"1px solid rgba(59,130,246,0.2)"}}>
-                <Activity size={10} style={{color:"#60a5fa"}}/>
+                <Pulse size={10} style={{color:"#60a5fa"}}/>
                 <p className="text-[10px]" style={{color:"#6b7c96"}}>Probabilités calculées sur la forme, la position et les stats de la saison en cours.</p>
               </div>
               {loading||!standing?(
@@ -902,7 +902,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                           </div>
                           <span className="text-xs font-black px-2 py-0.5 rounded-lg flex-shrink-0"
                             style={{background:`${vc}18`,color:vc,border:`1px solid ${vc}30`}}>{verdict}</span>
-                          {exp?<ChevronUp size={12} style={{color:"#6b7c96"}}/>:<ChevronDown size={12} style={{color:"#6b7c96"}}/>}
+                          {exp?<CaretUp size={12} style={{color:"#6b7c96"}}/>:<CaretDown size={12} style={{color:"#6b7c96"}}/>}
                         </div>
                         <div className="space-y-1">
                           <ProbBar label="Vic."  pct={proba.w} color="#22c55e"/>
@@ -924,7 +924,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                             {factors.map((f,i)=>(
                               <div key={i} className="rounded-lg px-3 py-2" style={{background:f.good?"rgba(34,197,94,0.07)":"rgba(239,68,68,0.07)",border:`1px solid ${f.good?"rgba(34,197,94,0.2)":"rgba(239,68,68,0.2)"}`}}>
                                 <div className="flex items-center gap-1 mb-0.5">
-                                  {f.good?<TrendingUp size={9} style={{color:"#22c55e"}}/>:<TrendingDown size={9} style={{color:"#f87171"}}/>}
+                                  {f.good?<TrendUp size={9} style={{color:"#22c55e"}}/>:<TrendDown size={9} style={{color:"#f87171"}}/>}
                                   <span className="text-[9px] font-bold" style={{color:f.good?"#22c55e":"#f87171"}}>{f.l}</span>
                                 </div>
                                 <p className="text-[9px]" style={{color:"#6b7c96"}}>{f.val}</p>
@@ -938,7 +938,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                                 Victoire: <b style={{color:"#22c55e"}}>{proba.w}%</b> · Confiance: <b style={{color:"#f59e0b"}}>{proba.w>=45||proba.w<=28?"Élevée":"Modérée"}</b>
                               </p>
                             </div>
-                            <Zap size={18} style={{color:vc}}/>
+                            <Lightning size={18} style={{color:vc}}/>
                           </div>
                         </div>
                       )}
@@ -965,7 +965,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
             <button onClick={()=>{ setCompoView("community"); if(!communityTeam) loadCommunityTeam(); }}
               className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all"
               style={{background:compoView==="community"?"rgba(255,255,255,0.08)":"transparent",color:compoView==="community"?"#e2e8f0":"#64748b",border:compoView==="community"?"1px solid rgba(255,255,255,0.1)":"1px solid transparent"}}>
-              <Globe2 size={11}/> Équipe Type 🗳️
+              <Globe size={11}/> Équipe Type 🗳️
             </button>
           </div>
 
@@ -1087,7 +1087,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
               <button onClick={saveCompo} disabled={compoSaving||filledCount===0}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black hover:opacity-90 transition-all disabled:opacity-50"
                 style={{background:compoSaved?"#22c55e":club.color,color:"#fff",boxShadow:`0 0 20px ${compoSaved?"#22c55e":club.color}55`}}>
-                {compoSaved?<><CheckCircle2 size={14}/> Sauvegardé !</>:compoSaving?<><RefreshCw size={13} className="animate-spin"/> Envoi...</>:<><Save size={14}/> Sauvegarder ma compo</>}
+                {compoSaved?<><CheckCircle size={14}/> Sauvegardé !</>:compoSaving?<><ArrowsClockwise size={13} className="animate-spin"/> Envoi...</>:<><FloppyDisk size={14}/> Sauvegarder ma compo</>}
               </button>
             </div>
             {compoSaved&&<p className="text-[10px] text-center" style={{color:"#22c55e"}}>✓ Ta compo a été enregistrée et contribue à l&apos;équipe type communauté !</p>}
@@ -1130,7 +1130,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                 </div>
               ):!communityTeam||communityTeam.votes===0?(
                 <div className="rounded-2xl p-8 text-center" style={{background:"#0d1421",border:"1px solid #1e2d42"}}>
-                  <Globe2 size={32} className="mx-auto mb-3" style={{color:"#6b7c96"}}/>
+                  <Globe size={32} className="mx-auto mb-3" style={{color:"#6b7c96"}}/>
                   <p className="text-sm font-bold mb-1" style={{color:"#e8edf5"}}>Pas encore de votes</p>
                   <p className="text-xs" style={{color:"#6b7c96"}}>Sois le premier à sauvegarder ta compo pour lancer l&apos;équipe type !</p>
                   <button onClick={()=>setCompoView("personal")} className="mt-4 flex items-center gap-2 mx-auto px-4 py-2 rounded-xl text-sm font-black hover:opacity-90"
@@ -1154,7 +1154,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                         </p>
                       </div>
                       <button onClick={loadCommunityTeam} className="p-1.5 rounded-lg hover:opacity-80" style={{color:"#6b7c96",background:"rgba(255,255,255,0.04)",border:"1px solid #1e2d42"}}>
-                        <RefreshCw size={12} className={communityLoading?"animate-spin":""}/>
+                        <ArrowsClockwise size={12} className={communityLoading?"animate-spin":""}/>
                       </button>
                     </div>
 
@@ -1193,7 +1193,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                     <a href={tweetUrl} target="_blank" rel="noopener noreferrer"
                       className="flex items-center justify-center gap-3 w-full py-3.5 rounded-2xl text-sm font-black hover:opacity-90 transition-all"
                       style={{background:"#1DA1F2",color:"#fff",boxShadow:"0 0 24px rgba(29,161,242,0.35)"}}>
-                      <Share2 size={16}/>
+                      <ShareNetwork size={16}/>
                       Publier l&apos;équipe type sur Twitter / X
                     </a>
 
@@ -1503,7 +1503,7 @@ function FicheSection({club,nextMatch,opponentId,ficheTeamData,ficheSquad,ficheL
                 </div>
                 <div className="flex flex-col items-center gap-1.5">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  {oppTeam.crest ? <img src={oppTeam.crest} alt="" className="w-14 h-14 object-contain drop-shadow-lg" loading="lazy"/> : <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{background:"#1e2d42"}}><Swords size={20} style={{color:"#475569"}}/></div>}
+                  {oppTeam.crest ? <img src={oppTeam.crest} alt="" className="w-14 h-14 object-contain drop-shadow-lg" loading="lazy"/> : <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{background:"#1e2d42"}}><Sword size={20} style={{color:"#475569"}}/></div>}
                   <span className="text-xs font-black text-center" style={{color:"#e8edf5",maxWidth:80}}>{oppTeam.name}</span>
                 </div>
               </div>
@@ -1575,7 +1575,7 @@ function FicheSection({club,nextMatch,opponentId,ficheTeamData,ficheSquad,ficheL
       {/* C. Secteur par secteur */}
       <div className="rounded-xl overflow-hidden" style={{border:"1px solid #1e2d42"}}>
         <div className="px-3 py-2 flex items-center gap-2" style={{background:"#0a0f1c",borderBottom:"1px solid #1e2d42"}}>
-          <BarChart2 size={10} style={{color:"#6b7c96"}}/>
+          <ChartBar size={10} style={{color:"#6b7c96"}}/>
           <span className="text-[9px] font-black uppercase tracking-widest" style={{color:"#6b7c96"}}>Secteur par secteur</span>
           {ficheLoading&&<div className="ml-auto w-3 h-3 rounded-full border animate-spin" style={{borderColor:"#6b7c96",borderTopColor:"transparent"}}/>}
         </div>

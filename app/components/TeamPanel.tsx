@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronRight, Clock } from "lucide-react";
+import { CaretRight, Clock } from "@phosphor-icons/react";
 import Link from "next/link";
 import Tooltip from "./Tooltip";
 
@@ -217,7 +217,7 @@ export default function TeamPanel({ standing, zoneColor }: Props) {
           style={{ color: zoneColor }}
           onClick={e => e.stopPropagation()}
         >
-          Fiche complète <ChevronRight size={11} />
+          Fiche complète <CaretRight size={11} />
         </Link>
       </div>
     </div>

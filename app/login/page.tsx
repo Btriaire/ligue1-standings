@@ -9,7 +9,7 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { getClientAuth } from "@/app/lib/firebase-client";
-import { ArrowLeft, LogIn, UserPlus, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, SignIn, UserPlus, Eye, EyeSlash } from "@phosphor-icons/react";
 
 function Field({ label, name, type = "text", placeholder, value, onChange }: {
   label: string; name: string; type?: string; placeholder?: string;
@@ -36,7 +36,7 @@ function Field({ label, name, type = "text", placeholder, value, onChange }: {
         {isPass && (
           <button type="button" onClick={() => setShow(v => !v)}
             className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: "#6b7c96" }}>
-            {show ? <EyeOff size={14} /> : <Eye size={14} />}
+            {show ? <EyeSlash size={14} /> : <Eye size={14} />}
           </button>
         )}
       </div>
@@ -141,7 +141,7 @@ function LoginForm() {
                   color: tab === t ? "#3b82f6" : "#6b7c96",
                   borderBottom: tab === t ? "2px solid #3b82f6" : "2px solid transparent",
                 }}>
-                {t === "login" ? <><LogIn size={12} /> Connexion</> : <><UserPlus size={12} /> Inscription</>}
+                {t === "login" ? <><SignIn size={12} /> Connexion</> : <><UserPlus size={12} /> Inscription</>}
               </button>
             ))}
           </div>

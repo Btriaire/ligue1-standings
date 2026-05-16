@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Calendar, Clock, ChevronRight } from "lucide-react";
+import { X, Calendar, Clock, CaretRight } from "@phosphor-icons/react";
 
 interface TeamInfo {
   id: number;
@@ -119,7 +119,7 @@ function UpcomingMatch({ match, teamId }: { match: Match; teamId: number }) {
       className="flex items-center gap-3 px-4 py-3 rounded-xl"
       style={{ background: "rgba(0,212,255,0.03)", border: "1px solid rgba(0,212,255,0.1)" }}
     >
-      <ChevronRight size={14} style={{ color: "#00d4ff", flexShrink: 0 }} />
+      <CaretRight size={14} style={{ color: "#00d4ff", flexShrink: 0 }} />
 
       {opponent.crest ? (
         // eslint-disable-next-line @next/next/no-img-element

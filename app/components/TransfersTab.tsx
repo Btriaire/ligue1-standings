@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RefreshCw, ExternalLink, TrendingUp, TrendingDown, Newspaper, ChevronDown } from "lucide-react";
+import { ArrowsClockwise, ArrowSquareOut, TrendUp, TrendDown, Newspaper, CaretDown } from "@phosphor-icons/react";
 import type { ClubTransfers, TransferItem } from "@/app/api/transfers/route";
 import { useConfig } from "@/app/lib/config";
 
@@ -70,7 +70,7 @@ function NewsItem({ item }: { item: TransferItem }) {
         {item.pubDate && (
           <span className="text-[9px]" style={{ color: "#6b7c96" }}>{formatDate(item.pubDate)}</span>
         )}
-        <ExternalLink size={10} className="text-white/20 group-hover:text-white/50 transition-colors" />
+        <ArrowSquareOut size={10} className="text-white/20 group-hover:text-white/50 transition-colors" />
       </div>
     </a>
   );
@@ -106,7 +106,7 @@ function ClubRow({ club }: { club: ClubTransfers }) {
               style={{ background: "rgba(0,212,255,0.1)", color: "#00d4ff", border: "1px solid rgba(0,212,255,0.2)" }}>
               {club.items.length}
             </span>
-            <ChevronDown size={11} style={{ color: "#6b7c96" }} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
+            <CaretDown size={11} style={{ color: "#6b7c96" }} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
           </div>
         )}
       </button>
@@ -132,8 +132,8 @@ function StatsBar({ clubs }: { clubs: ClubTransfers[] }) {
     <div className="grid grid-cols-4 gap-2 mb-4">
       {[
         { label: "Articles", value: totalNews,       color: "#00d4ff", icon: <Newspaper size={14} /> },
-        { label: "Arrivées", value: totalArrivals,   color: "#22c55e", icon: <TrendingUp size={14} /> },
-        { label: "Départs",  value: totalDepartures, color: "#ef4444", icon: <TrendingDown size={14} /> },
+        { label: "Arrivées", value: totalArrivals,   color: "#22c55e", icon: <TrendUp size={14} /> },
+        { label: "Départs",  value: totalDepartures, color: "#ef4444", icon: <TrendDown size={14} /> },
         { label: "Rumeurs",  value: totalRumors,     color: "#f59e0b", icon: <span className="text-sm">🟡</span> },
       ].map((s) => (
         <div key={s.label} className="rounded-lg p-2 text-center"
@@ -269,7 +269,7 @@ export default function TransfersTab() {
         <button onClick={() => load(true)} disabled={refreshing}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-80"
           style={{ background: "rgba(0,212,255,0.08)", border: "1px solid rgba(0,212,255,0.2)", color: "#00d4ff" }}>
-          <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
+          <ArrowsClockwise size={12} className={refreshing ? "animate-spin" : ""} />
           Actualiser
         </button>
       </div>

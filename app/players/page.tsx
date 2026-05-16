@@ -3,9 +3,9 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import {
-  Search, X, ArrowLeft, Users,
-  Filter, TrendingUp,
-} from "lucide-react";
+  MagnifyingGlass, X, ArrowLeft, Users,
+  FunnelSimple, TrendUp,
+} from "@phosphor-icons/react";
 import {
   PlayerEntry, PlayerRow,
   POS_ORDER, POS_FR, POS_COL, CLUB_SHORT,
@@ -103,7 +103,7 @@ function ClubSection({ clubId, players, sortKey, expandedId, onToggle }: {
           )}
         </div>
         <div className="flex items-center gap-1 flex-shrink-0 ml-2">
-          <TrendingUp size={11} style={{ color: "#4b5a72" }} />
+          <TrendUp size={11} style={{ color: "#4b5a72" }} />
           <span className="text-[10px]" style={{ color: "#4b5a72" }}>{open ? "−" : "+"}</span>
         </div>
       </button>
@@ -229,13 +229,13 @@ export default function PlayersPage() {
           <button onClick={() => setShowFilters(v => !v)}
             className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg flex-shrink-0"
             style={{ background: showFilters ? "rgba(0,212,255,0.1)" : "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: showFilters ? "#00d4ff" : "#6b7c96" }}>
-            <Filter size={11} /> Filtres
+            <FunnelSimple size={11} /> Filtres
           </button>
         </div>
 
         <div className="max-w-5xl mx-auto px-4 pb-2.5">
           <div className="relative">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "#6b7c96" }} />
+            <MagnifyingGlass size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "#6b7c96" }} />
             <input type="text" placeholder="Rechercher joueur, club, nationalité…"
               value={search} onChange={e => setSearch(e.target.value)}
               className="w-full pl-8 pr-8 py-2 rounded-xl text-sm outline-none"

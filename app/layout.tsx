@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import IconProvider from "./components/IconProvider";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -14,7 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr" className={`${inter.variable} h-full`}>
       <body className="min-h-full" style={{ background: "#080c14" }}>
-        {children}
+        <IconProvider>{children}</IconProvider>
       </body>
     </html>
   );

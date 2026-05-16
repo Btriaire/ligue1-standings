@@ -4,11 +4,11 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
-  ArrowLeft, Users, AlertTriangle, Trophy, TrendingUp,
-  ArrowLeftRight, Star, Calendar, Heart,
-  Info, ChevronDown, ExternalLink, Briefcase, DollarSign,
-  TrendingDown, X,
-} from "lucide-react";
+  ArrowLeft, Users, Warning, Trophy, TrendUp,
+  ArrowsLeftRight, Star, Calendar, Heart,
+  Info, CaretDown, ArrowSquareOut, Briefcase, CurrencyDollar,
+  TrendDown, X,
+} from "@phosphor-icons/react";
 
 // ── Static data ────────────────────────────────────────────────────────────────
 
@@ -517,7 +517,7 @@ function PlayerModal({ player, onClose }: { player: SquadPlayer; onClose: () => 
           )}
           <div className="flex-1 min-w-0">
             <p className="font-black text-sm truncate" style={{ color: isInj ? "#f97316" : "#e8edf5" }}>
-              {isInj && <AlertTriangle size={11} className="inline mr-1 text-orange-400" />}
+              {isInj && <Warning size={11} className="inline mr-1 text-orange-400" />}
               {player.name}
             </p>
             <div className="flex items-center gap-1.5 mt-0.5">
@@ -675,7 +675,7 @@ function BuzzMethodology({ buzz }: { buzz: BuzzData }) {
         className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-white/[0.02] transition-colors">
         <Info size={11} style={{ color: "#6b7c96", flexShrink: 0 }} />
         <span className="text-xs flex-1" style={{ color: "#6b7c96" }}>Comment ce score est-il calculé ?</span>
-        <ChevronDown size={11} style={{ color: "#6b7c96" }} className={`flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+        <CaretDown size={11} style={{ color: "#6b7c96" }} className={`flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
         <div className="px-3 pb-3 space-y-3" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
@@ -917,7 +917,7 @@ function ClubSection({
         <span style={{ color: iconColor, flexShrink: 0 }}>{icon}</span>
         <span className="font-bold text-sm" style={{ color: "#e8edf5" }}>{title}</span>
         {badge && <span className="ml-1">{badge}</span>}
-        <ChevronDown size={12} style={{ color: "#6b7c96", marginLeft: "auto", flexShrink: 0 }}
+        <CaretDown size={12} style={{ color: "#6b7c96", marginLeft: "auto", flexShrink: 0 }}
           className={`transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && <>{children}</>}
@@ -1198,10 +1198,10 @@ export default function ClubPage() {
               <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.06)" }}>
                 <button onClick={() => setEconOpen(o => !o)}
                   className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-white/[0.02] transition-colors">
-                  <DollarSign size={11} style={{ color: "#f59e0b", flexShrink: 0 }} />
+                  <CurrencyDollar size={11} style={{ color: "#f59e0b", flexShrink: 0 }} />
                   <p className="text-[10px] font-bold uppercase tracking-widest flex-1" style={{ color: "#6b7c96" }}>Économie du club</p>
                   {admin.legalNote && <Chip color="#f59e0b">{admin.legalNote}</Chip>}
-                  <ChevronDown size={11} style={{ color: "#6b7c96" }} className={`flex-shrink-0 transition-transform ${econOpen ? "rotate-180" : ""}`} />
+                  <CaretDown size={11} style={{ color: "#6b7c96" }} className={`flex-shrink-0 transition-transform ${econOpen ? "rotate-180" : ""}`} />
                 </button>
                 {econOpen && (
                   <div className="px-3 pb-3" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
@@ -1258,7 +1258,7 @@ export default function ClubPage() {
                           <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer"
                             className="text-[10px] flex items-center gap-0.5 hover:opacity-70 transition-opacity"
                             style={{ color: "#00d4ff" }}>
-                            {s.label} <ExternalLink size={9} />
+                            {s.label} <ArrowSquareOut size={9} />
                           </a>
                         ))}
                       </div>
@@ -1276,7 +1276,7 @@ export default function ClubPage() {
           const departures = transfers.filter(t => t.type === "departure");
           const rumors = transfers.filter(t => t.type === "rumor");
           return (
-            <ClubSection title="Mercato" icon={<ArrowLeftRight size={13} />} iconColor="#f59e0b" defaultOpen={false}
+            <ClubSection title="Mercato" icon={<ArrowsLeftRight size={13} />} iconColor="#f59e0b" defaultOpen={false}
               badge={
                 <div className="flex items-center gap-2 text-xs">
                   {arrivals.length > 0 && <span style={{ color: "#22c55e" }}>🟢 {arrivals.length}</span>}
@@ -1327,7 +1327,7 @@ export default function ClubPage() {
                       <p className="flex-1 text-xs leading-snug" style={{ color: "#cbd5e1" }}>{item.title}</p>
                       <div className="flex items-center gap-1 flex-shrink-0 opacity-50 group-hover:opacity-100">
                         <span className="text-[9px]" style={{ color: "#6b7c96" }}>{item.source}</span>
-                        <ExternalLink size={9} style={{ color: "#6b7c96" }} />
+                        <ArrowSquareOut size={9} style={{ color: "#6b7c96" }} />
                       </div>
                     </a>
                   );
@@ -1354,9 +1354,9 @@ export default function ClubPage() {
               <div className="flex items-start gap-2 mb-2.5 px-3 py-2.5 rounded-xl"
                 style={{ background: `${buzzColor}10`, border: `1px solid ${buzzColor}25` }}>
                 {buzz.score >= 55
-                  ? <TrendingUp size={14} style={{ color: buzzColor, flexShrink: 0, marginTop: 1 }} />
+                  ? <TrendUp size={14} style={{ color: buzzColor, flexShrink: 0, marginTop: 1 }} />
                   : buzz.score <= 44
-                  ? <TrendingDown size={14} style={{ color: buzzColor, flexShrink: 0, marginTop: 1 }} />
+                  ? <TrendDown size={14} style={{ color: buzzColor, flexShrink: 0, marginTop: 1 }} />
                   : <Info size={14} style={{ color: buzzColor, flexShrink: 0, marginTop: 1 }} />
                 }
                 <div>
@@ -1522,7 +1522,7 @@ export default function ClubPage() {
 
                         {/* Joueur */}
                         <div className="flex items-center gap-1.5 min-w-0">
-                          {inj && <AlertTriangle size={9} style={{ color: "#f97316", flexShrink: 0 }} />}
+                          {inj && <Warning size={9} style={{ color: "#f97316", flexShrink: 0 }} />}
                           {p.imageUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={p.imageUrl} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0"
