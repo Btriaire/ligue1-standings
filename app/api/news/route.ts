@@ -1,14 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Cache: 20 minutes (news freshness vs. API quota balance)
-export const revalidate = 1200;
+// Cache: 10 minutes
+export const revalidate = 600;
 
 export interface NewsItem {
   title: string;
   pubDate: string; // ISO
-  url: string;     // Google News redirect URL → resolved at article-fetch time
-  source?: string; // news outlet name extracted from RSS <source> tag
-  description?: string; // cleaned snippet if available (not Google boilerplate)
+  url: string;     // article URL
+  source?: string; // news outlet name
+  description?: string; // related context if available
+}
+
+/* ─── Decode HTML entities ───────────────────────────────────── */
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)));
+}
+
+/* ─── Extract CDATA or plain text ────────────────────────────── */
+function extractText(tag: string, xml: string): string {
+  const cdata = xml.match(new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>`));
+  if (cdata?.[1]) return decodeEntities(cdata[1].trim());
+  const plain = xml.match(new RegExp(`<${tag}[^>]*>([^<]*)<\\/${tag}>`));
+  if (plain?.[1]) return decodeEntities(plain[1].trim());
+  return "";
 }
 
 /* ─── RSS fetcher + parser ───────────────────────────────────── */
@@ -16,74 +37,81 @@ async function fetchRSS(url: string): Promise<NewsItem[]> {
   try {
     const res = await fetch(url, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; FootPredictom/1.0)",
-        "Accept": "application/rss+xml, application/xml, text/xml",
+        "User-Agent": "Mozilla/5.0 (compatible; FootInsider/1.0)",
+        "Accept": "application/rss+xml, application/xml, text/xml, */*",
       },
-      next: { revalidate: 1200 },
+      next: { revalidate: 600 },
     });
     if (!res.ok) return [];
     const xml = await res.text();
 
-    // Parse <item> blocks
+    // Extract only the <channel> content (skip root-level stuff)
+    // Find all <item> blocks — use a greedy-safe approach
     const items: NewsItem[] = [];
-    const itemBlocks = xml.match(/<item[\s\S]*?<\/item>/g) ?? [];
-    for (const block of itemBlocks.slice(0, 10)) {
-      const titleMatch = block.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/) ??
-                         block.match(/<title>([\s\S]*?)<\/title>/);
-      const dateMatch  = block.match(/<pubDate>([\s\S]*?)<\/pubDate>/);
-      // Google News RSS: <link> sits between </guid> and <pubDate>, may be empty tag variant
-      const linkMatch  = block.match(/<link>([^<]+)<\/link>/) ??
-                         block.match(/<link\s+href="([^"]+)"/) ??
-                         block.match(/<guid[^>]*>([^<]+)<\/guid>/);  // fallback: guid IS the url
-      const descMatch  = block.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/) ??
-                         block.match(/<description>([\s\S]*?)<\/description>/);
-      if (!titleMatch?.[1]) continue;
+    let pos = 0;
 
-      // Strip source suffix " - Site Name" that Google News appends
-      const rawTitle = titleMatch[1].trim();
-      const title = rawTitle.replace(/\s[-–]\s[^-–]{3,40}$/, "").trim();
+    while (pos < xml.length) {
+      const start = xml.indexOf("<item>", pos);
+      if (start === -1) break;
+      const end = xml.indexOf("</item>", start);
+      if (end === -1) break;
+      const block = xml.slice(start, end + 7);
+      pos = end + 7;
 
-      // Skip Google News boilerplate channel descriptions
+      // ── Title ─────────────────────────────────────────────────
+      const rawTitle = extractText("title", block);
+      if (!rawTitle || rawTitle.length < 8) continue;
+
+      // Strip " - Source Name" suffix Google News appends
+      const title = rawTitle.replace(/\s[-–]\s[^-–]{3,50}$/, "").trim();
+
+      // Skip channel-level boilerplate that leaks into items
       if (/comprehensive.*news|aggregated from sources|google news/i.test(title)) continue;
+      if (title.length < 8) continue;
 
-      const pubDate = dateMatch?.[1]
-        ? new Date(dateMatch[1]).toISOString()
-        : new Date().toISOString();
+      // ── Publication date ──────────────────────────────────────
+      const dateRaw = extractText("pubDate", block);
+      const pubDate = dateRaw ? new Date(dateRaw).toISOString() : new Date().toISOString();
 
-      const url = linkMatch?.[1]?.trim() ?? "";
+      // ── URL — Google RSS is tricky: <link> is often empty ─────
+      // Priority: <link> content → <guid> (which IS the article URL)
+      let articleUrl = "";
+      const linkMatch = block.match(/<link>([^<\s]+)<\/link>/);
+      if (linkMatch?.[1]) {
+        articleUrl = linkMatch[1].trim();
+      }
+      if (!articleUrl) {
+        const guidMatch = block.match(/<guid[^>]*>([^<]+)<\/guid>/);
+        if (guidMatch?.[1]) articleUrl = guidMatch[1].trim();
+      }
 
-      // ── Extract source outlet from <source> tag ────────────────
-      const sourceTagMatch = block.match(/<source[^>]*>([^<]+)<\/source>/);
-      const source = sourceTagMatch?.[1]?.trim() || undefined;
+      // ── Source outlet ─────────────────────────────────────────
+      const sourceMatch = block.match(/<source[^>]*>([^<]+)<\/source>/);
+      const source = sourceMatch?.[1]?.trim() || undefined;
 
-      // ── Extract description ────────────────────────────────────
-      // Google News RSS <description> is HTML with a list of related articles.
-      // We extract the source from the first <font> (after vert bar) if <source> missing,
-      // and any text after the first <li> that isn't just the main title.
+      // ── Description: extract from <source url="..."> attribute ─
+      // OR from second <li> in the HTML description block
       let description: string | undefined;
-      if (descMatch?.[1]) {
-        const raw = descMatch[1];
-        // Try to get text from second+ <li> items (related context)
-        const liItems = [...raw.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)];
+      const descRaw = extractText("description", block);
+      if (descRaw) {
+        // Try to extract source from description's first <li> if source tag missing
+        const liItems = [...descRaw.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)];
         if (liItems.length >= 2) {
-          // Second li often has a real related headline
-          const secondLi = liItems[1][1].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
-          // Only use if it looks like real content (not boilerplate)
-          if (secondLi.length > 15 && !/comprehensive|aggregated|google news/i.test(secondLi)) {
-            description = secondLi.slice(0, 120);
-          }
-        }
-        // Fallback: strip all HTML and check it's not boilerplate
-        if (!description) {
-          const stripped = raw.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 200);
-          if (stripped.length > 20 && !/comprehensive.*news|aggregated from sources|google news/i.test(stripped)) {
-            description = stripped.slice(0, 140);
+          const secondLi = liItems[1][1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+          if (
+            secondLi.length > 20 &&
+            !/comprehensive|aggregated|google news/i.test(secondLi) &&
+            secondLi.toLowerCase() !== title.toLowerCase()
+          ) {
+            description = decodeEntities(secondLi).slice(0, 120);
           }
         }
       }
 
-      if (title.length > 8) items.push({ title, pubDate, url, source, description });
+      items.push({ title, pubDate, url: articleUrl, source, description });
+      if (items.length >= 10) break;
     }
+
     return items;
   } catch {
     return [];
@@ -99,14 +127,13 @@ const QUERIES: Record<string, string> = {
 };
 
 function clubQuery(clubName: string) {
-  // Use encodeURIComponent for the full query to handle accents/special chars
   return encodeURIComponent(clubName + " football ligue 1");
 }
 
 /* ─── Handler ────────────────────────────────────────────────── */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const topic = searchParams.get("topic") ?? "l1"; // l1 | mondial | club
+  const topic = searchParams.get("topic") ?? "l1";
   const clubName = searchParams.get("club") ?? "";
 
   let rssUrl: string;
@@ -122,7 +149,7 @@ export async function GET(req: NextRequest) {
     { items },
     {
       headers: {
-        "Cache-Control": "public, s-maxage=1200, stale-while-revalidate=300",
+        "Cache-Control": "public, s-maxage=600, stale-while-revalidate=120",
       },
     }
   );

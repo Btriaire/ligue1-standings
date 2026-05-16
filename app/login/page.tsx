@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   signInWithEmailAndPassword,
@@ -47,7 +47,6 @@ function Field({ label, name, type = "text", placeholder, value, onChange }: {
 function LoginForm() {
   const params = useSearchParams();
   const from = params.get("from") ?? "/";
-  const router = useRouter();
   const [tab, setTab] = useState<"login" | "register">("login");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -91,12 +90,12 @@ function LoginForm() {
       const clientAuth = getClientAuth();
       const cred = await signInWithEmailAndPassword(clientAuth, loginEmail, loginPass);
       await exchangeToken(await cred.user.getIdToken());
-      router.push(from);
+      window.location.href = from;
     } catch (firebaseErr: unknown) {
       // 2. Firebase failed — try direct owner bypass (no Firebase dependency)
       const bypassed = await tryBypass(loginEmail, loginPass);
       if (bypassed) {
-        router.push(from);
+        window.location.href = from;
         return;
       }
       // 3. Both failed — show error
@@ -123,7 +122,7 @@ function LoginForm() {
       const cred = await createUserWithEmailAndPassword(clientAuth, regEmail, regPass);
       await updateProfile(cred.user, { displayName: regName });
       await exchangeToken(await cred.user.getIdToken(true));
-      router.push(from);
+      window.location.href = from;
     } catch (err: unknown) {
       const code = (err as { code?: string }).code ?? "";
       setError(

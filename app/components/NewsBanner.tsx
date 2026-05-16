@@ -137,9 +137,11 @@ export default function NewsBanner({ standings }: { standings: Standing[] }) {
     fetch("/api/news?topic=l1")
       .then(r => r.json())
       .then(({ items }: { items: NewsItem[] }) => {
-        if (!items?.length) return;
-        setCols(prev => prev.map((c, i) => i === 0 ? { ...c, items, loaded: true } : c));
-      }).catch(() => {});
+        const validItems = items?.length ? items : [{ title: "Actualités Ligue 1 indisponibles", pubDate: new Date().toISOString(), url: "" }];
+        setCols(prev => prev.map((c, i) => i === 0 ? { ...c, items: validItems, loaded: true } : c));
+      }).catch(() => {
+        setCols(prev => prev.map((c, i) => i === 0 ? { ...c, items: [{ title: "Actualités indisponibles", pubDate: new Date().toISOString(), url: "" }], loaded: true } : c));
+      });
   }, []);
 
   // Fetch Mondial news
@@ -147,9 +149,11 @@ export default function NewsBanner({ standings }: { standings: Standing[] }) {
     fetch("/api/news?topic=mondial")
       .then(r => r.json())
       .then(({ items }: { items: NewsItem[] }) => {
-        if (!items?.length) return;
-        setCols(prev => prev.map((c, i) => i === 1 ? { ...c, items, loaded: true } : c));
-      }).catch(() => {});
+        const validItems = items?.length ? items : [{ title: "Actualités Mondial 2026 indisponibles", pubDate: new Date().toISOString(), url: "" }];
+        setCols(prev => prev.map((c, i) => i === 1 ? { ...c, items: validItems, loaded: true } : c));
+      }).catch(() => {
+        setCols(prev => prev.map((c, i) => i === 1 ? { ...c, items: [{ title: "Actualités indisponibles", pubDate: new Date().toISOString(), url: "" }], loaded: true } : c));
+      });
   }, []);
 
   // Fetch club news
@@ -182,9 +186,11 @@ export default function NewsBanner({ standings }: { standings: Standing[] }) {
     fetch(`/api/news?topic=club&club=${encodeURIComponent(meta.searchName)}`)
       .then(r => r.json())
       .then(({ items }: { items: NewsItem[] }) => {
-        if (!items?.length) return;
-        setCols(prev => prev.map((c, i) => i === 2 ? { ...c, items, loaded: true } : c));
-      }).catch(() => {});
+        const validItems = items?.length ? items : [{ title: `Pas d'actualités récentes pour ${meta.shortName}`, pubDate: new Date().toISOString(), url: "" }];
+        setCols(prev => prev.map((c, i) => i === 2 ? { ...c, items: validItems, loaded: true } : c));
+      }).catch(() => {
+        setCols(prev => prev.map((c, i) => i === 2 ? { ...c, items: [{ title: "Actualités indisponibles", pubDate: new Date().toISOString(), url: "" }], loaded: true } : c));
+      });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monClubId, standings.length]);
 
