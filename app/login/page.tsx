@@ -69,20 +69,44 @@ function LoginForm() {
     if (!res.ok) throw new Error("Session error");
   }
 
+  /** Bypass: direct email+password without Firebase (owner login) */
+  async function tryBypass(email: string, password: string): Promise<boolean> {
+    try {
+      const res = await fetch("/api/auth/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setError(""); setPending(true);
     try {
+      // 1. Try Firebase auth
       const clientAuth = getClientAuth();
       const cred = await signInWithEmailAndPassword(clientAuth, loginEmail, loginPass);
       await exchangeToken(await cred.user.getIdToken());
       router.push(from);
-    } catch (err: unknown) {
-      const code = (err as { code?: string }).code ?? "";
+    } catch (firebaseErr: unknown) {
+      // 2. Firebase failed — try direct owner bypass (no Firebase dependency)
+      const bypassed = await tryBypass(loginEmail, loginPass);
+      if (bypassed) {
+        router.push(from);
+        return;
+      }
+      // 3. Both failed — show error
+      const code = (firebaseErr as { code?: string }).code ?? "";
       setError(
-        code === "auth/invalid-credential" || code === "auth/user-not-found"
+        code === "auth/invalid-credential" || code === "auth/user-not-found" || code === "auth/wrong-password"
           ? "Email ou mot de passe incorrect."
-          : "Erreur de connexion. Réessayez."
+          : code === "auth/too-many-requests"
+          ? "Trop de tentatives. Réessayez dans quelques minutes."
+          : "Erreur de connexion. Vérifiez vos identifiants."
       );
     } finally {
       setPending(false);

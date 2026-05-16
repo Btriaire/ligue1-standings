@@ -28,6 +28,24 @@ export async function getSession(): Promise<SessionPayload | null> {
     const store = await cookies();
     const cookie = store.get(COOKIE)?.value;
     if (!cookie) return null;
+
+    // ── Bypass token (owner login without Firebase) ────────────
+    // Format: base64(JSON {type:"bypass", email, ts})
+    try {
+      const raw = Buffer.from(cookie, "base64").toString("utf-8");
+      if (raw.startsWith("{")) {
+        const p = JSON.parse(raw) as { type?: string; email?: string; ts?: number };
+        if (p.type === "bypass" && p.email && p.ts) {
+          const ownerEmail = process.env.ADMIN_EMAIL ?? "";
+          if (p.email === ownerEmail && Date.now() - p.ts < TTL_MS) {
+            return { userId: "owner", email: p.email, name: "Admin" };
+          }
+          return null; // expired or email mismatch
+        }
+      }
+    } catch { /* not a bypass token — fall through to Firebase */ }
+
+    // ── Normal Firebase session cookie ─────────────────────────
     const adminAuth = getAdminAuth();
     const decoded = await adminAuth.verifySessionCookie(cookie, true);
     return { userId: decoded.uid, email: decoded.email ?? "", name: (decoded.name as string) ?? "" };
@@ -41,9 +59,13 @@ export async function deleteSession() {
   try {
     const cookie = store.get(COOKIE)?.value;
     if (cookie) {
-      const adminAuth = getAdminAuth();
-      const decoded = await adminAuth.verifySessionCookie(cookie);
-      await adminAuth.revokeRefreshTokens(decoded.sub);
+      // Only try Firebase revoke for non-bypass tokens
+      const raw = Buffer.from(cookie, "base64").toString("utf-8");
+      if (!raw.startsWith("{")) {
+        const adminAuth = getAdminAuth();
+        const decoded = await adminAuth.verifySessionCookie(cookie);
+        await adminAuth.revokeRefreshTokens(decoded.sub);
+      }
     }
   } catch { /* ignore */ }
   store.delete(COOKIE);
