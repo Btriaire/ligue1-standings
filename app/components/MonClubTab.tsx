@@ -536,9 +536,9 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
     return ()=>{cancelled=true;};
   },[club.id,ficheMatchLoaded]);
 
-  // Load opponent data lazily when fiche section is active
+  // Pre-fetch opponent data as soon as opponentId is known (background, not gated on tab click)
   useEffect(()=>{
-    if(section!=="fiche"||ficheOpponentId===null||ficheTeamData!==null||ficheLoading) return;
+    if(ficheOpponentId===null||ficheTeamData!==null||ficheLoading) return;
     let cancelled=false;
     setFicheLoading(true);
     (async()=>{
@@ -554,7 +554,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
       if(!cancelled) setFicheLoading(false);
     })();
     return ()=>{cancelled=true;};
-  },[section,ficheOpponentId,ficheTeamData,ficheLoading]);
+  },[ficheOpponentId,ficheTeamData,ficheLoading]);
 
   const zone    = standing?getZone(standing.position):null;
   const formFR  = (standing?.form.split(",").filter(Boolean).slice(-5)??[]).map(r=>r==="W"?"V":r==="L"?"D":"N") as ("V"|"N"|"D")[];
