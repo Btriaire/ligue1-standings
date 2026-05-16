@@ -13,9 +13,11 @@ const TTL_S = 7 * 24 * 3600; // 7 days
 // (wrong env vars, email verification, project misconfigured), it
 // falls back to this endpoint automatically.
 async function tryOwnerBypass(email: string, password: string): Promise<boolean> {
-  const ownerEmail = process.env.ADMIN_EMAIL ?? "";
-  const ownerPass  = process.env.ADMIN_PASS  ?? "";
-  if (!ownerEmail || email !== ownerEmail || password !== ownerPass) return false;
+  // Accept ADMIN_EMAIL if set, otherwise fall back to ADMIN_USER (same as /admin panel)
+  const ownerEmail = process.env.ADMIN_EMAIL || process.env.ADMIN_USER || "Admin";
+  const ownerPass  = process.env.ADMIN_PASS  || "admin";
+  // Case-insensitive email/username comparison
+  if (email.toLowerCase() !== ownerEmail.toLowerCase() || password !== ownerPass) return false;
 
   const payload = JSON.stringify({ type: "bypass", email, ts: Date.now() });
   const token = Buffer.from(payload).toString("base64");

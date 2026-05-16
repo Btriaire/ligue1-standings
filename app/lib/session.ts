@@ -36,8 +36,8 @@ export async function getSession(): Promise<SessionPayload | null> {
       if (raw.startsWith("{")) {
         const p = JSON.parse(raw) as { type?: string; email?: string; ts?: number };
         if (p.type === "bypass" && p.email && p.ts) {
-          const ownerEmail = process.env.ADMIN_EMAIL ?? "";
-          if (p.email === ownerEmail && Date.now() - p.ts < TTL_MS) {
+          const ownerEmail = process.env.ADMIN_EMAIL || process.env.ADMIN_USER || "Admin";
+          if (p.email.toLowerCase() === ownerEmail.toLowerCase() && Date.now() - p.ts < TTL_MS) {
             return { userId: "owner", email: p.email, name: "Admin" };
           }
           return null; // expired or email mismatch
