@@ -281,12 +281,282 @@ const CAT_CFG: Record<CatType, { label: string; color: string; icon: string }> =
   danger:     { label: "Danger",      color: "#f97316", icon: "⚡" },
 };
 
+// ─── Bracket tab ─────────────────────────────────────────────────────────────
+
+// Layout constants (px)
+const MH = 46;   // match card height
+const GAP = 8;   // vertical gap between cards in same round
+const SLOT = MH + GAP; // 54
+
+// For 8 R16 matches per side:
+// R16 tops:  i * SLOT
+// QF tops:   i * (2*SLOT) + SLOT/2 - MH/2  = i*108 + 27 - 23 = i*108 + 4
+// SF tops:   i * (4*SLOT) + 1.5*SLOT - MH/2 = i*216 + 81 - 23 = i*216 + 58
+// Final top: 3.5*SLOT - MH/2 = 189 - 23 = 166
+const R16_TOP = (i: number) => i * SLOT;
+const QF_TOP  = (i: number) => i * 2 * SLOT + SLOT / 2 - MH / 2;
+const SF_TOP  = (i: number) => i * 4 * SLOT + 1.5 * SLOT - MH / 2;
+const FIN_TOP = 3.5 * SLOT - MH / 2;
+const TOTAL_H = 8 * SLOT; // 432
+
+interface BMatch { id: string; t1: string; t2: string }
+
+function BMatchCard({ m, picks, onPick }: {
+  m: BMatch; picks: Record<string, 0|1>; onPick: (id: string, s: 0|1) => void;
+}) {
+  const p = picks[m.id];
+  const isEmpty = (t: string) => t === "?" || t === "";
+  return (
+    <div className="flex flex-col overflow-hidden"
+      style={{ height: MH, border: "1px solid #1e3050", borderRadius: 6, background: "#0a1220", width: "100%" }}>
+      {([0, 1] as const).map(side => {
+        const t = side === 0 ? m.t1 : m.t2;
+        const won = p === side;
+        const lost = p !== undefined && !won;
+        return (
+          <button key={side} onClick={() => !isEmpty(t) && onPick(m.id, side)}
+            style={{
+              flex: 1, textAlign: "left", padding: "2px 6px", fontSize: 9, fontWeight: won ? 700 : 400,
+              background: won ? "rgba(34,197,94,0.15)" : "transparent",
+              color: isEmpty(t) ? "#2a3a50" : won ? "#22c55e" : lost ? "#334155" : "#94a3b8",
+              borderBottom: side === 0 ? "1px solid #1a2840" : "none",
+              cursor: isEmpty(t) ? "default" : "pointer",
+              whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+              lineHeight: 1.2,
+            }}>
+            {won && <span style={{ marginRight: 2, fontSize: 7 }}>✓</span>}
+            {isEmpty(t) ? "—" : t}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function BracketColumn({ matches, tops, picks, onPick, style }: {
+  matches: BMatch[]; tops: number[]; picks: Record<string, 0|1>;
+  onPick: (id: string, s: 0|1) => void; style?: React.CSSProperties;
+}) {
+  return (
+    <div style={{ position: "relative", width: 90, flexShrink: 0, height: TOTAL_H, ...style }}>
+      {matches.map((m, i) => (
+        <div key={m.id} style={{ position: "absolute", top: tops[i], left: 0, right: 0 }}>
+          <BMatchCard m={m} picks={picks} onPick={onPick} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Vertical connector: a small SVG that draws the "⊏" shape between 2 R16 → 1 QF
+function Connector({ top1, top2, color = "#1e3050" }: { top1: number; top2: number; color?: string }) {
+  const c1 = top1 + MH / 2;
+  const c2 = top2 + MH / 2;
+  const mid = (c1 + c2) / 2;
+  return (
+    <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
+      <path d={`M 0 ${c1} H 50% V ${mid}`} fill="none" stroke={color} strokeWidth={1} />
+      <path d={`M 0 ${c2} H 50% V ${mid}`} fill="none" stroke={color} strokeWidth={1} />
+      <path d={`M 50% ${mid} H 100%`} fill="none" stroke={color} strokeWidth={1} />
+    </svg>
+  );
+}
+
+function BracketTab() {
+  const [picks, setPicks] = useState<Record<string, 0|1>>({});
+
+  const setPick = (id: string, side: 0|1) =>
+    setPicks(p => { const n = { ...p }; if (n[id] === side) delete n[id]; else n[id] = side; return n; });
+
+  const w = (id: string, t1: string, t2: string) =>
+    picks[id] === 0 ? t1 : picks[id] === 1 ? t2 : "?";
+
+  // ── Seeds: 8 left-side 1/8 matches (Groups A-F + best 3e) ──────────────────
+  const L16: BMatch[] = [
+    { id:"L1", t1:"🇦🇷 Argentine",  t2:"🇪🇨 Équateur"  }, // 1A vs 2B
+    { id:"L2", t1:"🇺🇸 USA",         t2:"🇺🇾 Uruguay"   }, // 1C vs 2D
+    { id:"L3", t1:"🇪🇸 Espagne",     t2:"🇩🇿 Algérie"   }, // 1E vs Mel.3
+    { id:"L4", t1:"🇫🇷 France",      t2:"🇧🇪 Belgique"  }, // 1F vs 2E
+    { id:"L5", t1:"🇲🇽 Mexique",     t2:"🇨🇱 Chili"     }, // 1B vs 2A
+    { id:"L6", t1:"🇨🇦 Canada",      t2:"🇵🇹 Portugal"  }, // 1D vs 2D'
+    { id:"L7", t1:"🇲🇦 Maroc",       t2:"🇯🇵 Japon"     }, // Mel.3 E vs Mel.3 F
+    { id:"L8", t1:"🇨🇭 Suisse",      t2:"🇵🇪 Pérou"     }, // 2F vs Mel.3
+  ];
+
+  // ── Seeds: 8 right-side 1/8 matches (Groups G-L + best 3e) ────────────────
+  const R16: BMatch[] = [
+    { id:"R1", t1:"🇧🇷 Brésil",      t2:"🇨🇲 Cameroun"  }, // 1G vs Mel.3
+    { id:"R2", t1:"🇩🇪 Allemagne",   t2:"🇷🇸 Serbie"    }, // 1H vs 2H
+    { id:"R3", t1:"🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre", t2:"🇬🇭 Ghana"     }, // 1I vs Mel.3
+    { id:"R4", t1:"🇮🇹 Italie",       t2:"🇷🇴 Roumanie"  }, // 1J vs Mel.3
+    { id:"R5", t1:"🇨🇴 Colombie",    t2:"🇵🇾 Paraguay"  }, // 2G vs Mel.3
+    { id:"R6", t1:"🇳🇱 Pays-Bas",    t2:"🇵🇱 Pologne"   }, // 2H vs Mel.3
+    { id:"R7", t1:"🇸🇳 Sénégal",     t2:"🇹🇳 Tunisie"   }, // 2I vs Mel.3
+    { id:"R8", t1:"🇭🇷 Croatie",     t2:"🇰🇷 Corée du S"}, // 2J vs 1L
+  ];
+
+  // ── Left QF ────────────────────────────────────────────────────────────────
+  const LQF: BMatch[] = Array.from({ length: 4 }, (_, i) => ({
+    id: `LQ${i}`,
+    t1: w(L16[i*2].id,   L16[i*2].t1,   L16[i*2].t2),
+    t2: w(L16[i*2+1].id, L16[i*2+1].t1, L16[i*2+1].t2),
+  }));
+
+  // ── Left SF ────────────────────────────────────────────────────────────────
+  const LSF: BMatch[] = Array.from({ length: 2 }, (_, i) => ({
+    id: `LS${i}`,
+    t1: w(LQF[i*2].id,   LQF[i*2].t1,   LQF[i*2].t2),
+    t2: w(LQF[i*2+1].id, LQF[i*2+1].t1, LQF[i*2+1].t2),
+  }));
+
+  // ── Right QF ───────────────────────────────────────────────────────────────
+  const RQF: BMatch[] = Array.from({ length: 4 }, (_, i) => ({
+    id: `RQ${i}`,
+    t1: w(R16[i*2].id,   R16[i*2].t1,   R16[i*2].t2),
+    t2: w(R16[i*2+1].id, R16[i*2+1].t1, R16[i*2+1].t2),
+  }));
+
+  // ── Right SF ───────────────────────────────────────────────────────────────
+  const RSF: BMatch[] = Array.from({ length: 2 }, (_, i) => ({
+    id: `RS${i}`,
+    t1: w(RQF[i*2].id,   RQF[i*2].t1,   RQF[i*2].t2),
+    t2: w(RQF[i*2+1].id, RQF[i*2+1].t1, RQF[i*2+1].t2),
+  }));
+
+  // ── Final ──────────────────────────────────────────────────────────────────
+  const finalT1 = w(LSF[0].id, LSF[0].t1, LSF[0].t2);
+  const finalT2 = w(RSF[0].id, RSF[0].t1, RSF[0].t2);
+  const finalMatch: BMatch = { id: "FIN", t1: finalT1, t2: finalT2 };
+  const champion = picks["FIN"] === 0 ? finalT1 : picks["FIN"] === 1 ? finalT2 : null;
+
+  const CONN_W = 14; // connector column width
+
+  return (
+    <div>
+      {/* Legend + reset */}
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[10px]" style={{ color: "#475569" }}>
+          🖱 Clique sur une équipe pour la faire avancer au tour suivant
+        </p>
+        <button onClick={() => setPicks({})}
+          className="text-[9px] px-2 py-1 rounded hover:opacity-80"
+          style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#f87171" }}>
+          Reset
+        </button>
+      </div>
+
+      {/* Bracket — horizontal scroll */}
+      <div className="overflow-x-auto pb-3">
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 0, minWidth: 700, position: "relative" }}>
+
+          {/* ── LEFT: 1/8 ── */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 0, alignItems: "center" }}>
+            <p className="text-[8px] font-black uppercase tracking-widest mb-1" style={{ color: "#1e3a5f" }}>1/8 Finale</p>
+            <BracketColumn matches={L16} tops={L16.map((_, i) => R16_TOP(i))} picks={picks} onPick={setPick} />
+          </div>
+
+          {/* connector L16→LQF */}
+          <div style={{ width: CONN_W, flexShrink: 0, position: "relative", height: TOTAL_H, marginTop: 18 }}>
+            {[0,1,2,3].map(i => (
+              <Connector key={i} top1={R16_TOP(i*2)} top2={R16_TOP(i*2+1)} />
+            ))}
+          </div>
+
+          {/* ── LEFT: QF ── */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 0, alignItems: "center" }}>
+            <p className="text-[8px] font-black uppercase tracking-widest mb-1" style={{ color: "#1e3a5f" }}>Quarts</p>
+            <BracketColumn matches={LQF} tops={LQF.map((_, i) => QF_TOP(i))} picks={picks} onPick={setPick} />
+          </div>
+
+          {/* connector LQF→LSF */}
+          <div style={{ width: CONN_W, flexShrink: 0, position: "relative", height: TOTAL_H, marginTop: 18 }}>
+            {[0,1].map(i => (
+              <Connector key={i} top1={QF_TOP(i*2)} top2={QF_TOP(i*2+1)} />
+            ))}
+          </div>
+
+          {/* ── LEFT: SF ── */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 0, alignItems: "center" }}>
+            <p className="text-[8px] font-black uppercase tracking-widest mb-1" style={{ color: "#1e3a5f" }}>Demis</p>
+            <BracketColumn matches={LSF} tops={LSF.map((_, i) => SF_TOP(i))} picks={picks} onPick={setPick} />
+          </div>
+
+          {/* connector LSF→Final */}
+          <div style={{ width: CONN_W, flexShrink: 0, position: "relative", height: TOTAL_H, marginTop: 18 }}>
+            <Connector top1={SF_TOP(0)} top2={SF_TOP(1)} color="#f59e0b" />
+          </div>
+
+          {/* ── FINALE ── */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 0, alignItems: "center" }}>
+            <p className="text-[8px] font-black uppercase tracking-widest mb-1" style={{ color: "#f59e0b" }}>🏆 Finale</p>
+            <div style={{ position: "relative", height: TOTAL_H }}>
+              <div style={{ position: "absolute", top: FIN_TOP, width: 100 }}>
+                <BMatchCard m={finalMatch} picks={picks} onPick={setPick} />
+                {champion && champion !== "?" && (
+                  <div className="text-center mt-1 px-1 py-0.5 rounded"
+                    style={{ background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)" }}>
+                    <span style={{ fontSize: 8, color: "#f59e0b", fontWeight: 700 }}>🥇 {champion}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* connector Final←RSF */}
+          <div style={{ width: CONN_W, flexShrink: 0, position: "relative", height: TOTAL_H, marginTop: 18 }}>
+            <Connector top1={SF_TOP(0)} top2={SF_TOP(1)} color="#f59e0b" />
+          </div>
+
+          {/* ── RIGHT: SF ── */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 0, alignItems: "center" }}>
+            <p className="text-[8px] font-black uppercase tracking-widest mb-1" style={{ color: "#1e3a5f" }}>Demis</p>
+            <BracketColumn matches={RSF} tops={RSF.map((_, i) => SF_TOP(i))} picks={picks} onPick={setPick} />
+          </div>
+
+          {/* connector RSF←RQF */}
+          <div style={{ width: CONN_W, flexShrink: 0, position: "relative", height: TOTAL_H, marginTop: 18 }}>
+            {[0,1].map(i => (
+              <Connector key={i} top1={QF_TOP(i*2)} top2={QF_TOP(i*2+1)} />
+            ))}
+          </div>
+
+          {/* ── RIGHT: QF ── */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 0, alignItems: "center" }}>
+            <p className="text-[8px] font-black uppercase tracking-widest mb-1" style={{ color: "#1e3a5f" }}>Quarts</p>
+            <BracketColumn matches={RQF} tops={RQF.map((_, i) => QF_TOP(i))} picks={picks} onPick={setPick} />
+          </div>
+
+          {/* connector RQF←R16 */}
+          <div style={{ width: CONN_W, flexShrink: 0, position: "relative", height: TOTAL_H, marginTop: 18 }}>
+            {[0,1,2,3].map(i => (
+              <Connector key={i} top1={R16_TOP(i*2)} top2={R16_TOP(i*2+1)} />
+            ))}
+          </div>
+
+          {/* ── RIGHT: 1/8 ── */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 0, alignItems: "center" }}>
+            <p className="text-[8px] font-black uppercase tracking-widest mb-1" style={{ color: "#1e3a5f" }}>1/8 Finale</p>
+            <BracketColumn matches={R16} tops={R16.map((_, i) => R16_TOP(i))} picks={picks} onPick={setPick} />
+          </div>
+        </div>
+      </div>
+
+      {/* 3rd place note */}
+      <div className="mt-2 px-3 py-1.5 rounded-xl text-[9px]"
+        style={{ background: "#0d1421", border: "1px solid #1e2d42", color: "#475569" }}>
+        🥉 Match pour la 3e place · 18 juillet 2026 · entre les 2 perdants des demi-finales
+      </div>
+    </div>
+  );
+}
+
 // ─── Sub-tabs ────────────────────────────────────────────────────────────────
 
-type SubTab = "groupes" | "calendrier" | "joueurs" | "france" | "favoris";
+type SubTab = "groupes" | "calendrier" | "joueurs" | "france" | "favoris" | "tableau";
 
 const SUB_TABS: { id: SubTab; label: string }[] = [
   { id: "groupes",    label: "Groupes" },
+  { id: "tableau",    label: "🏆 Tableau" },
   { id: "calendrier", label: "Calendrier" },
   { id: "joueurs",    label: "⭐ Joueurs" },
   { id: "france",     label: "🇫🇷 France" },
@@ -796,6 +1066,7 @@ export default function WorldCupTab() {
 
       {/* Content */}
       {activeTab === "groupes"    && <GroupesTab />}
+      {activeTab === "tableau"    && <BracketTab />}
       {activeTab === "calendrier" && <CalendrierTab />}
       {activeTab === "joueurs"    && <JoueursTab />}
       {activeTab === "france"     && <FranceTab />}
