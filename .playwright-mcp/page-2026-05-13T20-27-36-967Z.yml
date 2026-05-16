@@ -1,0 +1,509 @@
+- generic [ref=e2]:
+  - banner:
+    - navigation [ref=e3]:
+      - generic [ref=e4]:
+        - link "1vs1 Logo":
+          - /url: https://one-versus-one.com/fr
+          - img "1vs1 Logo"
+        - generic [ref=e5]:
+          - link "Comparaisons" [ref=e6] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/football-stats-comparaisons
+            - generic [ref=e7]: Comparaisons
+          - link "Joueurs" [ref=e8] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/joueurs
+            - generic [ref=e9]: Joueurs
+          - link "Équipes" [ref=e10] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/%C3%A9quipes
+            - generic [ref=e11]: Équipes
+          - link "Classement" [ref=e12] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements
+            - generic [ref=e13]: Classement
+          - link "Pronostics" [ref=e14] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/pr%C3%A9dictions
+            - generic [ref=e15]: Pronostics
+          - link "Résultats" [ref=e16] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/r%C3%A9sultats-de-football
+            - generic [ref=e17]: Résultats
+          - link "Compare-toi" [ref=e18] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/compare-toi
+            - generic [ref=e19]: Compare-toi
+          - link "Statistiques des ligues" [ref=e20] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/ligues
+            - generic [ref=e21]: Statistiques des ligues
+          - link "Tarification" [ref=e22] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/plans
+            - generic [ref=e23]: Tarification
+          - link "Scout Pro" [ref=e24] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/scout-pro
+            - generic [ref=e25]: Scout Pro
+      - generic [ref=e26]:
+        - img "Search icon" [ref=e27] [cursor=pointer]
+        - generic [ref=e29] [cursor=pointer]:
+          - img "Globe icon" [ref=e30]
+          - generic [ref=e31]: fr
+        - img "Account icon" [ref=e35] [cursor=pointer]
+        - combobox [ref=e39] [cursor=pointer]:
+          - option "2025 / 2026" [selected]
+          - option "2024 / 2025"
+          - option "2023 / 2024"
+  - main [ref=e41]:
+    - generic [ref=e42]:
+      - generic [ref=e44]:
+        - link "Domicile" [ref=e45] [cursor=pointer]:
+          - /url: https://one-versus-one.com/fr
+        - generic [ref=e46]: ">"
+        - link "Classement" [ref=e47] [cursor=pointer]:
+          - /url: https://one-versus-one.com/fr/classements
+        - generic [ref=e48]: ">"
+        - link "Ligue 1" [ref=e49] [cursor=pointer]:
+          - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/indice-1vs1
+        - generic [ref=e50]: ">"
+        - link "Joueurs" [ref=e51] [cursor=pointer]:
+          - /url: https://one-versus-one.com/fr/classements
+        - generic [ref=e52]: ">"
+        - generic [ref=e53] [cursor=pointer]: Indice 1vs1
+      - generic [ref=e55]:
+        - img "1vs1 Logo Backgorund" [ref=e56]
+        - generic [ref=e57]:
+          - heading "Indice 1vs1 Classement" [level=1] [ref=e58]
+          - paragraph [ref=e59]: Le joueur avec le plus grand Indice 1vs1 en Top 5 Leagues est Ansu Fati (AS Monaco) avec une valeur Indice 1vs1 de 95.05, suivi de près par Désiré Doué (FC Paris Saint-Germain) avec une valeur Indice 1vs1 de 86.64. Statistiques football mises à jour quotidiennement.
+        - generic [ref=e60]:
+          - link "Tableau de bord" [ref=e61] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements
+            - generic [ref=e62]: Tableau de bord
+          - link "Classement des joueurs" [ref=e63] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/joueurs/indice-1vs1
+            - generic [ref=e64]: Classement des joueurs
+          - link "Classements d'équipe" [ref=e65] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/%C3%A9quipes/indice-1vs1
+            - generic [ref=e66]: Classements d'équipe
+        - generic:
+          - link "Tableau de bord":
+            - /url: https://one-versus-one.com/fr/classements
+            - generic: Tableau de bord
+          - link "Classement des joueurs":
+            - /url: https://one-versus-one.com/fr/classements/joueurs/indice-1vs1
+            - generic: Classement des joueurs
+          - link "Classements d'équipe":
+            - /url: https://one-versus-one.com/fr/classements/%C3%A9quipes/indice-1vs1
+            - generic: Classements d'équipe
+      - generic [ref=e68]:
+        - generic [ref=e69]:
+          - generic [ref=e70] [cursor=pointer]:
+            - generic [ref=e71]: Filtrer par modèles
+            - generic [ref=e73]: Indice 1vs1
+          - generic [ref=e75] [cursor=pointer]:
+            - generic [ref=e76]: Filtrer par ligues
+            - generic [ref=e78]: Ligue 1
+          - generic [ref=e80] [cursor=pointer]:
+            - generic [ref=e81]: Filtrer par postes
+            - generic [ref=e83]: Toutes les positions
+        - generic [ref=e85]:
+          - generic [ref=e87]:
+            - img "Search icon" [ref=e88]
+            - textbox "Recherche" [ref=e89]
+          - generic [ref=e93] [cursor=pointer]:
+            - img "Reset icon" [ref=e94]
+            - generic [ref=e95]: Réinitialiser les filtres
+      - generic [ref=e96]:
+        - table [ref=e97]:
+          - rowgroup [ref=e98]:
+            - row "Rang Joueur Club Salaire annuel Évaluation" [ref=e99]:
+              - columnheader "Rang" [ref=e100]
+              - columnheader "Joueur" [ref=e101]
+              - columnheader "Club" [ref=e102]
+              - columnheader "Salaire annuel" [ref=e103]
+              - columnheader "Évaluation" [ref=e104]
+          - rowgroup [ref=e105]:
+            - row "1 Image of Ansu Fati Ansu Fati Image of Monaco MON 14.0 M 95" [ref=e106]:
+              - cell "1" [ref=e107]
+              - cell "Image of Ansu Fati Ansu Fati" [ref=e108] [cursor=pointer]:
+                - generic [ref=e109]:
+                  - img "Image of Ansu Fati" [ref=e110]
+                  - generic [ref=e111]: Ansu Fati
+              - cell "Image of Monaco MON" [ref=e112] [cursor=pointer]:
+                - generic [ref=e113]:
+                  - img "Image of Monaco" [ref=e114]
+                  - generic [ref=e115]: MON
+              - cell "14.0 M" [ref=e116]
+              - cell "95" [ref=e117]:
+                - generic [ref=e119]: "95"
+            - row "2 Image of Désiré Doué Désiré Doué Image of Paris Saint-Germain PSG 2.7 M 87" [ref=e121]:
+              - cell "2" [ref=e122]
+              - cell "Image of Désiré Doué Désiré Doué" [ref=e123] [cursor=pointer]:
+                - generic [ref=e124]:
+                  - img "Image of Désiré Doué" [ref=e125]
+                  - generic [ref=e126]: Désiré Doué
+              - cell "Image of Paris Saint-Germain PSG" [ref=e127] [cursor=pointer]:
+                - generic [ref=e128]:
+                  - img "Image of Paris Saint-Germain" [ref=e129]
+                  - generic [ref=e130]: PSG
+              - cell "2.7 M" [ref=e131]
+              - cell "87" [ref=e132]:
+                - generic [ref=e134]: "87"
+            - row "3 Image of Bradley Barcola Bradley Barcola Image of Paris Saint-Germain PSG 6.6 M 86" [ref=e136]:
+              - cell "3" [ref=e137]
+              - cell "Image of Bradley Barcola Bradley Barcola" [ref=e138] [cursor=pointer]:
+                - generic [ref=e139]:
+                  - img "Image of Bradley Barcola" [ref=e140]
+                  - generic [ref=e141]: Bradley Barcola
+              - cell "Image of Paris Saint-Germain PSG" [ref=e142] [cursor=pointer]:
+                - generic [ref=e143]:
+                  - img "Image of Paris Saint-Germain" [ref=e144]
+                  - generic [ref=e145]: PSG
+              - cell "6.6 M" [ref=e146]
+              - cell "86" [ref=e147]:
+                - generic [ref=e149]: "86"
+            - row "4 Image of Mason Greenwood Mason Greenwood Image of Olympique de Marseille MAR 4.6 M 83" [ref=e151]:
+              - cell "4" [ref=e152]
+              - cell "Image of Mason Greenwood Mason Greenwood" [ref=e153] [cursor=pointer]:
+                - generic [ref=e154]:
+                  - img "Image of Mason Greenwood" [ref=e155]
+                  - generic [ref=e156]: Mason Greenwood
+              - cell "Image of Olympique de Marseille MAR" [ref=e157] [cursor=pointer]:
+                - generic [ref=e158]:
+                  - img "Image of Olympique de Marseille" [ref=e159]
+                  - generic [ref=e160]: MAR
+              - cell "4.6 M" [ref=e161]
+              - cell "83" [ref=e162]:
+                - generic [ref=e164]: "83"
+            - row "5 Image of Bamba Dieng Bamba Dieng Image of Lorient LOR 0 80" [ref=e166]:
+              - cell "5" [ref=e167]
+              - cell "Image of Bamba Dieng Bamba Dieng" [ref=e168] [cursor=pointer]:
+                - generic [ref=e169]:
+                  - img "Image of Bamba Dieng" [ref=e170]
+                  - generic [ref=e171]: Bamba Dieng
+              - cell "Image of Lorient LOR" [ref=e172] [cursor=pointer]:
+                - generic [ref=e173]:
+                  - img "Image of Lorient" [ref=e174]
+                  - generic [ref=e175]: LOR
+              - cell "0" [ref=e176]
+              - cell "80" [ref=e177]:
+                - generic [ref=e179]: "80"
+            - row "6 Image of Esteban Lepaul Esteban Lepaul Image of Stade Rennais REN 270.0 K 79" [ref=e181]:
+              - cell "6" [ref=e182]
+              - cell "Image of Esteban Lepaul Esteban Lepaul" [ref=e183] [cursor=pointer]:
+                - generic [ref=e184]:
+                  - img "Image of Esteban Lepaul" [ref=e185]
+                  - generic [ref=e186]: Esteban Lepaul
+              - cell "Image of Stade Rennais REN" [ref=e187] [cursor=pointer]:
+                - generic [ref=e188]:
+                  - img "Image of Stade Rennais" [ref=e189]
+                  - generic [ref=e190]: REN
+              - cell "270.0 K" [ref=e191]
+              - cell "79" [ref=e192]:
+                - generic [ref=e194]: "79"
+            - row "7 Image of Khvicha Kvaratskhelia Khvicha Kvaratskhelia Image of Paris Saint-Germain PSG 1.5 M 78" [ref=e196]:
+              - cell "7" [ref=e197]
+              - cell "Image of Khvicha Kvaratskhelia Khvicha Kvaratskhelia" [ref=e198] [cursor=pointer]:
+                - generic [ref=e199]:
+                  - img "Image of Khvicha Kvaratskhelia" [ref=e200]
+                  - generic [ref=e201]: Khvicha Kvaratskhelia
+              - cell "Image of Paris Saint-Germain PSG" [ref=e202] [cursor=pointer]:
+                - generic [ref=e203]:
+                  - img "Image of Paris Saint-Germain" [ref=e204]
+                  - generic [ref=e205]: PSG
+              - cell "1.5 M" [ref=e206]
+              - cell "78" [ref=e207]:
+                - generic [ref=e209]: "78"
+            - row "8 Image of Ilan Kebbal Ilan Kebbal Image of Paris FC PAR 0 78" [ref=e211]:
+              - cell "8" [ref=e212]
+              - cell "Image of Ilan Kebbal Ilan Kebbal" [ref=e213] [cursor=pointer]:
+                - generic [ref=e214]:
+                  - img "Image of Ilan Kebbal" [ref=e215]
+                  - generic [ref=e216]: Ilan Kebbal
+              - cell "Image of Paris FC PAR" [ref=e217] [cursor=pointer]:
+                - generic [ref=e218]:
+                  - img "Image of Paris FC" [ref=e219]
+                  - generic [ref=e220]: PAR
+              - cell "0" [ref=e221]
+              - cell "78" [ref=e222]:
+                - generic [ref=e224]: "78"
+            - row "9 Image of Pavel Sulc Pavel Sulc Image of Olympique Lyonnais LYO 0 78" [ref=e226]:
+              - cell "9" [ref=e227]
+              - cell "Image of Pavel Sulc Pavel Sulc" [ref=e228] [cursor=pointer]:
+                - generic [ref=e229]:
+                  - img "Image of Pavel Sulc" [ref=e230]
+                  - generic [ref=e231]: Pavel Sulc
+              - cell "Image of Olympique Lyonnais LYO" [ref=e232] [cursor=pointer]:
+                - generic [ref=e233]:
+                  - img "Image of Olympique Lyonnais" [ref=e234]
+                  - generic [ref=e235]: LYO
+              - cell "0" [ref=e236]
+              - cell "78" [ref=e237]:
+                - generic [ref=e239]: "78"
+            - row "10 Image of Endrick Endrick Image of Olympique Lyonnais LYO 4.2 M 78" [ref=e241]:
+              - cell "10" [ref=e242]
+              - cell "Image of Endrick Endrick" [ref=e243] [cursor=pointer]:
+                - generic [ref=e244]:
+                  - img "Image of Endrick" [ref=e245]
+                  - generic [ref=e246]: Endrick
+              - cell "Image of Olympique Lyonnais LYO" [ref=e247] [cursor=pointer]:
+                - generic [ref=e248]:
+                  - img "Image of Olympique Lyonnais" [ref=e249]
+                  - generic [ref=e250]: LYO
+              - cell "4.2 M" [ref=e251]
+              - cell "78" [ref=e252]:
+                - generic [ref=e254]: "78"
+            - row "11 Image of Joaquín Panichelli Joaquín Panichelli Image of RC Strasbourg STR 0 78" [ref=e256]:
+              - cell "11" [ref=e257]
+              - cell "Image of Joaquín Panichelli Joaquín Panichelli" [ref=e258] [cursor=pointer]:
+                - generic [ref=e259]:
+                  - img "Image of Joaquín Panichelli" [ref=e260]
+                  - generic [ref=e261]: Joaquín Panichelli
+              - cell "Image of RC Strasbourg STR" [ref=e262] [cursor=pointer]:
+                - generic [ref=e263]:
+                  - img "Image of RC Strasbourg" [ref=e264]
+                  - generic [ref=e265]: STR
+              - cell "0" [ref=e266]
+              - cell "78" [ref=e267]:
+                - generic [ref=e269]: "78"
+            - row "12 Image of Amine Gouiri Amine Gouiri Image of Olympique de Marseille MAR 1.2 M 78" [ref=e271]:
+              - cell "12" [ref=e272]
+              - cell "Image of Amine Gouiri Amine Gouiri" [ref=e273] [cursor=pointer]:
+                - generic [ref=e274]:
+                  - img "Image of Amine Gouiri" [ref=e275]
+                  - generic [ref=e276]: Amine Gouiri
+              - cell "Image of Olympique de Marseille MAR" [ref=e277] [cursor=pointer]:
+                - generic [ref=e278]:
+                  - img "Image of Olympique de Marseille" [ref=e279]
+                  - generic [ref=e280]: MAR
+              - cell "1.2 M" [ref=e281]
+              - cell "78" [ref=e282]:
+                - generic [ref=e284]: "78"
+            - row "13 Image of Florian Thauvin Florian Thauvin Image of Lens LEN 2.3 M 77" [ref=e286]:
+              - cell "13" [ref=e287]
+              - cell "Image of Florian Thauvin Florian Thauvin" [ref=e288] [cursor=pointer]:
+                - generic [ref=e289]:
+                  - img "Image of Florian Thauvin" [ref=e290]
+                  - generic [ref=e291]: Florian Thauvin
+              - cell "Image of Lens LEN" [ref=e292] [cursor=pointer]:
+                - generic [ref=e293]:
+                  - img "Image of Lens" [ref=e294]
+                  - generic [ref=e295]: LEN
+              - cell "2.3 M" [ref=e296]
+              - cell "77" [ref=e297]:
+                - generic [ref=e299]: "77"
+            - row "14 Image of Pablo Pagis Pablo Pagis Image of Lorient LOR 180.0 K 77" [ref=e301]:
+              - cell "14" [ref=e302]
+              - cell "Image of Pablo Pagis Pablo Pagis" [ref=e303] [cursor=pointer]:
+                - generic [ref=e304]:
+                  - img "Image of Pablo Pagis" [ref=e305]
+                  - generic [ref=e306]: Pablo Pagis
+              - cell "Image of Lorient LOR" [ref=e307] [cursor=pointer]:
+                - generic [ref=e308]:
+                  - img "Image of Lorient" [ref=e309]
+                  - generic [ref=e310]: LOR
+              - cell "180.0 K" [ref=e311]
+              - cell "77" [ref=e312]:
+                - generic [ref=e314]: "77"
+            - row "15 Image of Corentin Tolisso Corentin Tolisso Image of Olympique Lyonnais LYO 4.8 M 77" [ref=e316]:
+              - cell "15" [ref=e317]
+              - cell "Image of Corentin Tolisso Corentin Tolisso" [ref=e318] [cursor=pointer]:
+                - generic [ref=e319]:
+                  - img "Image of Corentin Tolisso" [ref=e320]
+                  - generic [ref=e321]: Corentin Tolisso
+              - cell "Image of Olympique Lyonnais LYO" [ref=e322] [cursor=pointer]:
+                - generic [ref=e323]:
+                  - img "Image of Olympique Lyonnais" [ref=e324]
+                  - generic [ref=e325]: LYO
+              - cell "4.8 M" [ref=e326]
+              - cell "77" [ref=e327]:
+                - generic [ref=e329]: "77"
+            - row "16 Image of Ludovic Blas Ludovic Blas Image of Stade Rennais REN 2.6 M 76" [ref=e331]:
+              - cell "16" [ref=e332]
+              - cell "Image of Ludovic Blas Ludovic Blas" [ref=e333] [cursor=pointer]:
+                - generic [ref=e334]:
+                  - img "Image of Ludovic Blas" [ref=e335]
+                  - generic [ref=e336]: Ludovic Blas
+              - cell "Image of Stade Rennais REN" [ref=e337] [cursor=pointer]:
+                - generic [ref=e338]:
+                  - img "Image of Stade Rennais" [ref=e339]
+                  - generic [ref=e340]: REN
+              - cell "2.6 M" [ref=e341]
+              - cell "76" [ref=e342]:
+                - generic [ref=e344]: "76"
+            - row "17 Image of Odsonne Edouard Odsonne Edouard Image of Lens LEN 5.4 M 75" [ref=e346]:
+              - cell "17" [ref=e347]
+              - cell "Image of Odsonne Edouard Odsonne Edouard" [ref=e348] [cursor=pointer]:
+                - generic [ref=e349]:
+                  - img "Image of Odsonne Edouard" [ref=e350]
+                  - generic [ref=e351]: Odsonne Edouard
+              - cell "Image of Lens LEN" [ref=e352] [cursor=pointer]:
+                - generic [ref=e353]:
+                  - img "Image of Lens" [ref=e354]
+                  - generic [ref=e355]: LEN
+              - cell "5.4 M" [ref=e356]
+              - cell "75" [ref=e357]:
+                - generic [ref=e359]: "75"
+            - row "18 Image of Gauthier Hein Gauthier Hein Image of FC Metz MET 0 75" [ref=e361]:
+              - cell "18" [ref=e362]
+              - cell "Image of Gauthier Hein Gauthier Hein" [ref=e363] [cursor=pointer]:
+                - generic [ref=e364]:
+                  - img "Image of Gauthier Hein" [ref=e365]
+                  - generic [ref=e366]: Gauthier Hein
+              - cell "Image of FC Metz MET" [ref=e367] [cursor=pointer]:
+                - generic [ref=e368]:
+                  - img "Image of FC Metz" [ref=e369]
+                  - generic [ref=e370]: MET
+              - cell "0" [ref=e371]
+              - cell "75" [ref=e372]:
+                - generic [ref=e374]: "75"
+            - row "19 Image of Folarin Balogun Folarin Balogun Image of Monaco MON 5.8 M 75" [ref=e376]:
+              - cell "19" [ref=e377]
+              - cell "Image of Folarin Balogun Folarin Balogun" [ref=e378] [cursor=pointer]:
+                - generic [ref=e379]:
+                  - img "Image of Folarin Balogun" [ref=e380]
+                  - generic [ref=e381]: Folarin Balogun
+              - cell "Image of Monaco MON" [ref=e382] [cursor=pointer]:
+                - generic [ref=e383]:
+                  - img "Image of Monaco" [ref=e384]
+                  - generic [ref=e385]: MON
+              - cell "5.8 M" [ref=e386]
+              - cell "75" [ref=e387]:
+                - generic [ref=e389]: "75"
+            - row "20 Image of Martial Godo Martial Godo Image of RC Strasbourg STR 0 75" [ref=e391]:
+              - cell "20" [ref=e392]
+              - cell "Image of Martial Godo Martial Godo" [ref=e393] [cursor=pointer]:
+                - generic [ref=e394]:
+                  - img "Image of Martial Godo" [ref=e395]
+                  - generic [ref=e396]: Martial Godo
+              - cell "Image of RC Strasbourg STR" [ref=e397] [cursor=pointer]:
+                - generic [ref=e398]:
+                  - img "Image of RC Strasbourg" [ref=e399]
+                  - generic [ref=e400]: STR
+              - cell "0" [ref=e401]
+              - cell "75" [ref=e402]:
+                - generic [ref=e404]: "75"
+        - navigation "Navigation par pagination" [ref=e407]:
+          - generic [ref=e410]:
+            - generic "&laquo; Previous" [ref=e411]:
+              - img [ref=e413]
+            - generic [ref=e416]: "1"
+            - link "Go to page 2" [ref=e417] [cursor=pointer]:
+              - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/indice-1vs1?page=2
+              - text: "2"
+            - generic [ref=e419]: ...
+            - link "Go to page 28" [ref=e420] [cursor=pointer]:
+              - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/indice-1vs1?page=28
+              - text: "28"
+            - link "Next &raquo;" [ref=e421] [cursor=pointer]:
+              - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/indice-1vs1?page=2
+              - img [ref=e422]
+      - generic [ref=e424]:
+        - heading "Scores" [level=2] [ref=e426]
+        - generic [ref=e427]:
+          - link "Indice 1vs1 Arrow icon" [ref=e428] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/indice-1vs1
+            - generic [ref=e429]: Indice 1vs1
+            - img "Arrow icon" [ref=e430]
+          - link "Indice défensif 1vs1 Arrow icon" [ref=e432] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/indice-d%C3%A9fensif-1vs1
+            - generic [ref=e433]: Indice défensif 1vs1
+            - img "Arrow icon" [ref=e434]
+          - link "Indice offensif 1vs1 Arrow icon" [ref=e436] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/indice-offensif-1vs1
+            - generic [ref=e437]: Indice offensif 1vs1
+            - img "Arrow icon" [ref=e438]
+          - link "Interventions offensives Arrow icon" [ref=e440] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/interventions-offensives
+            - generic [ref=e441]: Interventions offensives
+            - img "Arrow icon" [ref=e442]
+          - link "Pression offensive Arrow icon" [ref=e444] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/pression-offensive
+            - generic [ref=e445]: Pression offensive
+            - img "Arrow icon" [ref=e446]
+    - insertion [ref=e448]:
+      - generic [ref=e451]:
+        - heading "Voici des thèmes associés à l'article qui pourraient vous intéresser" [level=2] [ref=e453]: Voir plus
+        - link "Football" [ref=e454] [cursor=pointer]:
+          - generic "Football" [ref=e455]
+          - img [ref=e457]
+        - link "football" [ref=e459] [cursor=pointer]:
+          - generic "football" [ref=e460]
+          - img [ref=e462]
+        - link "statistics" [ref=e464] [cursor=pointer]:
+          - generic "statistics" [ref=e465]
+          - img [ref=e467]
+  - contentinfo [ref=e469]:
+    - generic [ref=e470]:
+      - link "1vs1 Logo" [ref=e471] [cursor=pointer]:
+        - /url: https://one-versus-one.com/fr
+        - img "1vs1 Logo" [ref=e472]
+      - generic [ref=e473]:
+        - link "Instagram" [ref=e474] [cursor=pointer]:
+          - /url: https://www.instagram.com/1vs1_football_lovers/
+          - img "Instagram" [ref=e475]
+        - link "Facebook" [ref=e476] [cursor=pointer]:
+          - /url: https://www.facebook.com/1vs1.football.lovers/
+          - img "Facebook" [ref=e477]
+        - link "Twitter" [ref=e478] [cursor=pointer]:
+          - /url: https://x.com/OneVsOneLive
+          - img "Twitter" [ref=e479]
+    - generic [ref=e480]:
+      - generic [ref=e481]:
+        - generic [ref=e482]:
+          - generic [ref=e483]: Explore
+          - link "Comparaisons" [ref=e484] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/football-stats-comparaisons
+          - link "Joueurs" [ref=e485] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/joueurs
+          - link "Équipes" [ref=e486] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/%C3%A9quipes
+          - link "Classement" [ref=e487] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements
+          - link "Pronostics" [ref=e488] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/pr%C3%A9dictions
+          - link "Résultats" [ref=e489] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/r%C3%A9sultats-de-football
+          - link "Compare-toi" [ref=e490] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/compare-toi
+          - link "Statistiques des ligues" [ref=e491] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/ligues
+          - link "Tarification" [ref=e492] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/plans
+          - link "Scout Pro" [ref=e493] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/scout-pro
+        - generic [ref=e494]:
+          - generic [ref=e495]: Languages
+          - link "English" [ref=e496] [cursor=pointer]:
+            - /url: /change-language/en
+          - link "Deutsch" [ref=e497] [cursor=pointer]:
+            - /url: /change-language/de
+          - link "Español" [ref=e498] [cursor=pointer]:
+            - /url: /change-language/es
+          - link "Français" [ref=e499] [cursor=pointer]:
+            - /url: /change-language/fr
+          - link "Português" [ref=e500] [cursor=pointer]:
+            - /url: /change-language/pt
+          - link "العربية" [ref=e501] [cursor=pointer]:
+            - /url: /change-language/ar
+          - link "Русский" [ref=e502] [cursor=pointer]:
+            - /url: /change-language/ru
+          - link "中文" [ref=e503] [cursor=pointer]:
+            - /url: /change-language/zh
+          - link "Italiano" [ref=e504] [cursor=pointer]:
+            - /url: /change-language/it
+          - link "Türkçe" [ref=e505] [cursor=pointer]:
+            - /url: /change-language/tr
+        - generic [ref=e506]:
+          - generic [ref=e507]: Docs
+          - link "Legal" [ref=e508] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/legal
+          - link "Privacy Policy" [ref=e509] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/privacy-policy
+          - link "About" [ref=e510] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/about
+      - generic [ref=e512]:
+        - link "Impressum" [ref=e513] [cursor=pointer]:
+          - /url: https://one-versus-one.com/fr/impressum
+        - generic [ref=e514]: ONE-VERSUS-ONE AG
+        - generic [ref=e515]: Hintergasse 6,
+        - generic [ref=e516]: 8803 Rüschlikon, Switzerland
+        - generic [ref=e517]: "Person in Charge: Peter Zombori"
+    - generic [ref=e518]:
+      - paragraph [ref=e519]: © 2026 One-Versus-One AG, all rights reserved
+      - link "E-mail icon Send us a feedback" [ref=e520] [cursor=pointer]:
+        - /url: mailto:members@one-versus-one.com
+        - img "E-mail icon" [ref=e521]
+        - generic [ref=e522]: Send us a feedback

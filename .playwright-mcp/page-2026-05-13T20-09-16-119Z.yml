@@ -1,0 +1,650 @@
+- generic [ref=e2]:
+  - banner:
+    - navigation [ref=e3]:
+      - generic [ref=e4]:
+        - link "1vs1 Logo":
+          - /url: https://one-versus-one.com/fr
+          - img "1vs1 Logo"
+        - generic [ref=e5]:
+          - link "Comparaisons" [ref=e6] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/football-stats-comparaisons
+            - generic [ref=e7]: Comparaisons
+          - link "Joueurs" [ref=e8] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/joueurs
+            - generic [ref=e9]: Joueurs
+          - link "Équipes" [ref=e10] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/%C3%A9quipes
+            - generic [ref=e11]: Équipes
+          - link "Classement" [ref=e12] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements
+            - generic [ref=e13]: Classement
+          - link "Pronostics" [ref=e14] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/pr%C3%A9dictions
+            - generic [ref=e15]: Pronostics
+          - link "Résultats" [ref=e16] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/r%C3%A9sultats-de-football
+            - generic [ref=e17]: Résultats
+          - link "Compare-toi" [ref=e18] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/compare-toi
+            - generic [ref=e19]: Compare-toi
+          - link "Statistiques des ligues" [ref=e20] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/ligues
+            - generic [ref=e21]: Statistiques des ligues
+          - link "Tarification" [ref=e22] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/plans
+            - generic [ref=e23]: Tarification
+          - link "Scout Pro" [ref=e24] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/scout-pro
+            - generic [ref=e25]: Scout Pro
+      - generic [ref=e26]:
+        - img "Search icon" [ref=e27] [cursor=pointer]
+        - generic [ref=e29] [cursor=pointer]:
+          - img "Globe icon" [ref=e30]
+          - generic [ref=e31]: fr
+        - img "Account icon" [ref=e35] [cursor=pointer]
+        - combobox [ref=e39] [cursor=pointer]:
+          - option "2025 / 2026" [selected]
+          - option "2024 / 2025"
+          - option "2023 / 2024"
+  - main [ref=e41]:
+    - generic [ref=e42]:
+      - generic [ref=e44]:
+        - link "Domicile" [ref=e45] [cursor=pointer]:
+          - /url: https://one-versus-one.com/fr
+        - generic [ref=e46]: ">"
+        - link "Classement" [ref=e47] [cursor=pointer]:
+          - /url: https://one-versus-one.com/fr/classements
+        - generic [ref=e48]: ">"
+        - link "Ligue 1" [ref=e49] [cursor=pointer]:
+          - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/indice-1vs1
+        - generic [ref=e50]: ">"
+        - link "Joueurs" [ref=e51] [cursor=pointer]:
+          - /url: https://one-versus-one.com/fr/classements
+        - generic [ref=e52]: ">"
+        - generic [ref=e53] [cursor=pointer]: Buts
+      - generic [ref=e55]:
+        - img "1vs1 Logo Backgorund" [ref=e56]
+        - generic [ref=e57]:
+          - heading "Buts Classement" [level=1] [ref=e58]
+          - paragraph [ref=e59]: Le joueur avec le plus grand Buts en Top 5 Leagues est Estéban Lepaul (FC Stade Rennes) avec une valeur Buts de 20, suivi de près par Mason Greenwood (Olympique Marseille) avec une valeur Buts de 16. Statistiques football mises à jour quotidiennement.
+        - generic [ref=e60]:
+          - link "Tableau de bord" [ref=e61] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements
+            - generic [ref=e62]: Tableau de bord
+          - link "Classement des joueurs" [ref=e63] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/joueurs/indice-1vs1
+            - generic [ref=e64]: Classement des joueurs
+          - link "Classements d'équipe" [ref=e65] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/%C3%A9quipes/indice-1vs1
+            - generic [ref=e66]: Classements d'équipe
+        - generic:
+          - link "Tableau de bord":
+            - /url: https://one-versus-one.com/fr/classements
+            - generic: Tableau de bord
+          - link "Classement des joueurs":
+            - /url: https://one-versus-one.com/fr/classements/joueurs/indice-1vs1
+            - generic: Classement des joueurs
+          - link "Classements d'équipe":
+            - /url: https://one-versus-one.com/fr/classements/%C3%A9quipes/indice-1vs1
+            - generic: Classements d'équipe
+      - generic [ref=e68]:
+        - generic [ref=e69]:
+          - generic [ref=e70] [cursor=pointer]:
+            - generic [ref=e71]: Filtrer par modèles
+            - generic [ref=e73]: Buts
+          - generic [ref=e75] [cursor=pointer]:
+            - generic [ref=e76]: Filtrer par ligues
+            - generic [ref=e78]: Ligue 1
+          - generic [ref=e80] [cursor=pointer]:
+            - generic [ref=e81]: Filtrer par postes
+            - generic [ref=e83]: Toutes les positions
+        - generic [ref=e85]:
+          - generic [ref=e87]:
+            - img "Search icon" [ref=e88]
+            - textbox "Recherche" [ref=e89]
+          - generic [ref=e93] [cursor=pointer]:
+            - img "Reset icon" [ref=e94]
+            - generic [ref=e95]: Réinitialiser les filtres
+      - generic [ref=e96]:
+        - table [ref=e97]:
+          - rowgroup [ref=e98]:
+            - row "Rang Joueur Club Salaire annuel Évaluation" [ref=e99]:
+              - columnheader "Rang" [ref=e100]
+              - columnheader "Joueur" [ref=e101]
+              - columnheader "Club" [ref=e102]
+              - columnheader "Salaire annuel" [ref=e103]
+              - columnheader "Évaluation" [ref=e104]
+          - rowgroup [ref=e105]:
+            - row "1 Image of Esteban Lepaul Esteban Lepaul Image of Stade Rennais REN 270.0 K 20" [ref=e106]:
+              - cell "1" [ref=e107]
+              - cell "Image of Esteban Lepaul Esteban Lepaul" [ref=e108] [cursor=pointer]:
+                - generic [ref=e109]:
+                  - img "Image of Esteban Lepaul" [ref=e110]
+                  - generic [ref=e111]: Esteban Lepaul
+              - cell "Image of Stade Rennais REN" [ref=e112] [cursor=pointer]:
+                - generic [ref=e113]:
+                  - img "Image of Stade Rennais" [ref=e114]
+                  - generic [ref=e115]: REN
+              - cell "270.0 K" [ref=e116]
+              - cell "20" [ref=e117]:
+                - generic [ref=e119]: "20"
+            - row "2 Image of Mason Greenwood Mason Greenwood Image of Olympique de Marseille MAR 4.6 M 16" [ref=e121]:
+              - cell "2" [ref=e122]
+              - cell "Image of Mason Greenwood Mason Greenwood" [ref=e123] [cursor=pointer]:
+                - generic [ref=e124]:
+                  - img "Image of Mason Greenwood" [ref=e125]
+                  - generic [ref=e126]: Mason Greenwood
+              - cell "Image of Olympique de Marseille MAR" [ref=e127] [cursor=pointer]:
+                - generic [ref=e128]:
+                  - img "Image of Olympique de Marseille" [ref=e129]
+                  - generic [ref=e130]: MAR
+              - cell "4.6 M" [ref=e131]
+              - cell "16" [ref=e132]:
+                - generic [ref=e134]: "16"
+            - row "3 Image of Joaquín Panichelli Joaquín Panichelli Image of RC Strasbourg STR 0 16" [ref=e136]:
+              - cell "3" [ref=e137]
+              - cell "Image of Joaquín Panichelli Joaquín Panichelli" [ref=e138] [cursor=pointer]:
+                - generic [ref=e139]:
+                  - img "Image of Joaquín Panichelli" [ref=e140]
+                  - generic [ref=e141]: Joaquín Panichelli
+              - cell "Image of RC Strasbourg STR" [ref=e142] [cursor=pointer]:
+                - generic [ref=e143]:
+                  - img "Image of RC Strasbourg" [ref=e144]
+                  - generic [ref=e145]: STR
+              - cell "0" [ref=e146]
+              - cell "16" [ref=e147]:
+                - generic [ref=e149]: "16"
+            - row "4 Image of Folarin Balogun Folarin Balogun Image of Monaco MON 5.8 M 13" [ref=e151]:
+              - cell "4" [ref=e152]
+              - cell "Image of Folarin Balogun Folarin Balogun" [ref=e153] [cursor=pointer]:
+                - generic [ref=e154]:
+                  - img "Image of Folarin Balogun" [ref=e155]
+                  - generic [ref=e156]: Folarin Balogun
+              - cell "Image of Monaco MON" [ref=e157] [cursor=pointer]:
+                - generic [ref=e158]:
+                  - img "Image of Monaco" [ref=e159]
+                  - generic [ref=e160]: MON
+              - cell "5.8 M" [ref=e161]
+              - cell "13" [ref=e162]:
+                - generic [ref=e164]: "13"
+            - row "5 Image of Odsonne Edouard Odsonne Edouard Image of Lens LEN 5.4 M 12" [ref=e166]:
+              - cell "5" [ref=e167]
+              - cell "Image of Odsonne Edouard Odsonne Edouard" [ref=e168] [cursor=pointer]:
+                - generic [ref=e169]:
+                  - img "Image of Odsonne Edouard" [ref=e170]
+                  - generic [ref=e171]: Odsonne Edouard
+              - cell "Image of Lens LEN" [ref=e172] [cursor=pointer]:
+                - generic [ref=e173]:
+                  - img "Image of Lens" [ref=e174]
+                  - generic [ref=e175]: LEN
+              - cell "5.4 M" [ref=e176]
+              - cell "12" [ref=e177]:
+                - generic [ref=e179]: "12"
+            - row "6 Image of Ansu Fati Ansu Fati Image of Monaco MON 14.0 M 12" [ref=e181]:
+              - cell "6" [ref=e182]
+              - cell "Image of Ansu Fati Ansu Fati" [ref=e183] [cursor=pointer]:
+                - generic [ref=e184]:
+                  - img "Image of Ansu Fati" [ref=e185]
+                  - generic [ref=e186]: Ansu Fati
+              - cell "Image of Monaco MON" [ref=e187] [cursor=pointer]:
+                - generic [ref=e188]:
+                  - img "Image of Monaco" [ref=e189]
+                  - generic [ref=e190]: MON
+              - cell "14.0 M" [ref=e191]
+              - cell "12" [ref=e192]:
+                - generic [ref=e194]: "12"
+            - row "7 Image of Corentin Tolisso Corentin Tolisso Image of Olympique Lyonnais LYO 4.8 M 11" [ref=e196]:
+              - cell "7" [ref=e197]
+              - cell "Image of Corentin Tolisso Corentin Tolisso" [ref=e198] [cursor=pointer]:
+                - generic [ref=e199]:
+                  - img "Image of Corentin Tolisso" [ref=e200]
+                  - generic [ref=e201]: Corentin Tolisso
+              - cell "Image of Olympique Lyonnais LYO" [ref=e202] [cursor=pointer]:
+                - generic [ref=e203]:
+                  - img "Image of Olympique Lyonnais" [ref=e204]
+                  - generic [ref=e205]: LYO
+              - cell "4.8 M" [ref=e206]
+              - cell "11" [ref=e207]:
+                - generic [ref=e209]: "11"
+            - row "8 Image of Pablo Pagis Pablo Pagis Image of Lorient LOR 180.0 K 10" [ref=e211]:
+              - cell "8" [ref=e212]
+              - cell "Image of Pablo Pagis Pablo Pagis" [ref=e213] [cursor=pointer]:
+                - generic [ref=e214]:
+                  - img "Image of Pablo Pagis" [ref=e215]
+                  - generic [ref=e216]: Pablo Pagis
+              - cell "Image of Lorient LOR" [ref=e217] [cursor=pointer]:
+                - generic [ref=e218]:
+                  - img "Image of Lorient" [ref=e219]
+                  - generic [ref=e220]: LOR
+              - cell "180.0 K" [ref=e221]
+              - cell "10" [ref=e222]:
+                - generic [ref=e224]: "10"
+            - row "9 Image of Wesley Saïd Wesley Saïd Image of Lens LEN 540.0 K 10" [ref=e226]:
+              - cell "9" [ref=e227]
+              - cell "Image of Wesley Saïd Wesley Saïd" [ref=e228] [cursor=pointer]:
+                - generic [ref=e229]:
+                  - img "Image of Wesley Saïd" [ref=e230]
+                  - generic [ref=e231]: Wesley Saïd
+              - cell "Image of Lens LEN" [ref=e232] [cursor=pointer]:
+                - generic [ref=e233]:
+                  - img "Image of Lens" [ref=e234]
+                  - generic [ref=e235]: LEN
+              - cell "540.0 K" [ref=e236]
+              - cell "10" [ref=e237]:
+                - generic [ref=e239]: "10"
+            - row "10 Image of Florian Thauvin Florian Thauvin Image of Lens LEN 2.3 M 10" [ref=e241]:
+              - cell "10" [ref=e242]
+              - cell "Image of Florian Thauvin Florian Thauvin" [ref=e243] [cursor=pointer]:
+                - generic [ref=e244]:
+                  - img "Image of Florian Thauvin" [ref=e245]
+                  - generic [ref=e246]: Florian Thauvin
+              - cell "Image of Lens LEN" [ref=e247] [cursor=pointer]:
+                - generic [ref=e248]:
+                  - img "Image of Lens" [ref=e249]
+                  - generic [ref=e250]: LEN
+              - cell "2.3 M" [ref=e251]
+              - cell "10" [ref=e252]:
+                - generic [ref=e254]: "10"
+            - row "11 Image of Pavel Sulc Pavel Sulc Image of Olympique Lyonnais LYO 0 10" [ref=e256]:
+              - cell "11" [ref=e257]
+              - cell "Image of Pavel Sulc Pavel Sulc" [ref=e258] [cursor=pointer]:
+                - generic [ref=e259]:
+                  - img "Image of Pavel Sulc" [ref=e260]
+                  - generic [ref=e261]: Pavel Sulc
+              - cell "Image of Olympique Lyonnais LYO" [ref=e262] [cursor=pointer]:
+                - generic [ref=e263]:
+                  - img "Image of Olympique Lyonnais" [ref=e264]
+                  - generic [ref=e265]: LYO
+              - cell "0" [ref=e266]
+              - cell "10" [ref=e267]:
+                - generic [ref=e269]: "10"
+            - row "12 Image of Bradley Barcola Bradley Barcola Image of Paris Saint-Germain PSG 6.6 M 10" [ref=e271]:
+              - cell "12" [ref=e272]
+              - cell "Image of Bradley Barcola Bradley Barcola" [ref=e273] [cursor=pointer]:
+                - generic [ref=e274]:
+                  - img "Image of Bradley Barcola" [ref=e275]
+                  - generic [ref=e276]: Bradley Barcola
+              - cell "Image of Paris Saint-Germain PSG" [ref=e277] [cursor=pointer]:
+                - generic [ref=e278]:
+                  - img "Image of Paris Saint-Germain" [ref=e279]
+                  - generic [ref=e280]: PSG
+              - cell "6.6 M" [ref=e281]
+              - cell "10" [ref=e282]:
+                - generic [ref=e284]: "10"
+            - row "13 Image of Ousmane Dembele Ousmane Dembele Image of Paris Saint-Germain PSG 20.0 M 10" [ref=e286]:
+              - cell "13" [ref=e287]
+              - cell "Image of Ousmane Dembele Ousmane Dembele" [ref=e288] [cursor=pointer]:
+                - generic [ref=e289]:
+                  - img "Image of Ousmane Dembele" [ref=e290]
+                  - generic [ref=e291]: Ousmane Dembele
+              - cell "Image of Paris Saint-Germain PSG" [ref=e292] [cursor=pointer]:
+                - generic [ref=e293]:
+                  - img "Image of Paris Saint-Germain" [ref=e294]
+                  - generic [ref=e295]: PSG
+              - cell "20.0 M" [ref=e296]
+              - cell "10" [ref=e297]:
+                - generic [ref=e299]: "10"
+            - row "14 Image of Bamba Dieng Bamba Dieng Image of Lorient LOR 0 10" [ref=e301]:
+              - cell "14" [ref=e302]
+              - cell "Image of Bamba Dieng Bamba Dieng" [ref=e303] [cursor=pointer]:
+                - generic [ref=e304]:
+                  - img "Image of Bamba Dieng" [ref=e305]
+                  - generic [ref=e306]: Bamba Dieng
+              - cell "Image of Lorient LOR" [ref=e307] [cursor=pointer]:
+                - generic [ref=e308]:
+                  - img "Image of Lorient" [ref=e309]
+                  - generic [ref=e310]: LOR
+              - cell "0" [ref=e311]
+              - cell "10" [ref=e312]:
+                - generic [ref=e314]: "10"
+            - row "15 Image of Pierre-Emerick Aubameyang Pierre-Emerick Aubameyang Image of Olympique de Marseille MAR 8.4 M 9" [ref=e316]:
+              - cell "15" [ref=e317]
+              - cell "Image of Pierre-Emerick Aubameyang Pierre-Emerick Aubameyang" [ref=e318] [cursor=pointer]:
+                - generic [ref=e319]:
+                  - img "Image of Pierre-Emerick Aubameyang" [ref=e320]
+                  - generic [ref=e321]: Pierre-Emerick Aubameyang
+              - cell "Image of Olympique de Marseille MAR" [ref=e322] [cursor=pointer]:
+                - generic [ref=e323]:
+                  - img "Image of Olympique de Marseille" [ref=e324]
+                  - generic [ref=e325]: MAR
+              - cell "8.4 M" [ref=e326]
+              - cell "9" [ref=e327]:
+                - generic [ref=e329]: "9"
+            - row "16 Image of Lassine Sinayoko Lassine Sinayoko Image of Auxerre AUX 60.0 K 9" [ref=e331]:
+              - cell "16" [ref=e332]
+              - cell "Image of Lassine Sinayoko Lassine Sinayoko" [ref=e333] [cursor=pointer]:
+                - generic [ref=e334]:
+                  - img "Image of Lassine Sinayoko" [ref=e335]
+                  - generic [ref=e336]: Lassine Sinayoko
+              - cell "Image of Auxerre AUX" [ref=e337] [cursor=pointer]:
+                - generic [ref=e338]:
+                  - img "Image of Auxerre" [ref=e339]
+                  - generic [ref=e340]: AUX
+              - cell "60.0 K" [ref=e341]
+              - cell "9" [ref=e342]:
+                - generic [ref=e344]: "9"
+            - row "17 Image of Ilan Kebbal Ilan Kebbal Image of Paris FC PAR 0 9" [ref=e346]:
+              - cell "17" [ref=e347]
+              - cell "Image of Ilan Kebbal Ilan Kebbal" [ref=e348] [cursor=pointer]:
+                - generic [ref=e349]:
+                  - img "Image of Ilan Kebbal" [ref=e350]
+                  - generic [ref=e351]: Ilan Kebbal
+              - cell "Image of Paris FC PAR" [ref=e352] [cursor=pointer]:
+                - generic [ref=e353]:
+                  - img "Image of Paris FC" [ref=e354]
+                  - generic [ref=e355]: PAR
+              - cell "0" [ref=e356]
+              - cell "9" [ref=e357]:
+                - generic [ref=e359]: "9"
+            - row "18 Image of Breel Embolo Breel Embolo Image of Stade Rennais REN 0 9" [ref=e361]:
+              - cell "18" [ref=e362]
+              - cell "Image of Breel Embolo Breel Embolo" [ref=e363] [cursor=pointer]:
+                - generic [ref=e364]:
+                  - img "Image of Breel Embolo" [ref=e365]
+                  - generic [ref=e366]: Breel Embolo
+              - cell "Image of Stade Rennais REN" [ref=e367] [cursor=pointer]:
+                - generic [ref=e368]:
+                  - img "Image of Stade Rennais" [ref=e369]
+                  - generic [ref=e370]: REN
+              - cell "0" [ref=e371]
+              - cell "9" [ref=e372]:
+                - generic [ref=e374]: "9"
+            - row "19 Image of Matias Fernandez-Pardo Matias Fernandez-Pardo Image of LOSC Lille LIL 720.0 K 8" [ref=e376]:
+              - cell "19" [ref=e377]
+              - cell "Image of Matias Fernandez-Pardo Matias Fernandez-Pardo" [ref=e378] [cursor=pointer]:
+                - generic [ref=e379]:
+                  - img "Image of Matias Fernandez-Pardo" [ref=e380]
+                  - generic [ref=e381]: Matias Fernandez-Pardo
+              - cell "Image of LOSC Lille LIL" [ref=e382] [cursor=pointer]:
+                - generic [ref=e383]:
+                  - img "Image of LOSC Lille" [ref=e384]
+                  - generic [ref=e385]: LIL
+              - cell "720.0 K" [ref=e386]
+              - cell "8" [ref=e387]:
+                - generic [ref=e389]: "8"
+            - row "20 Image of Hákon Haraldsson Hákon Haraldsson Image of LOSC Lille LIL 1.0 M 8" [ref=e391]:
+              - cell "20" [ref=e392]
+              - cell "Image of Hákon Haraldsson Hákon Haraldsson" [ref=e393] [cursor=pointer]:
+                - generic [ref=e394]:
+                  - img "Image of Hákon Haraldsson" [ref=e395]
+                  - generic [ref=e396]: Hákon Haraldsson
+              - cell "Image of LOSC Lille LIL" [ref=e397] [cursor=pointer]:
+                - generic [ref=e398]:
+                  - img "Image of LOSC Lille" [ref=e399]
+                  - generic [ref=e400]: LIL
+              - cell "1.0 M" [ref=e401]
+              - cell "8" [ref=e402]:
+                - generic [ref=e404]: "8"
+        - navigation "Navigation par pagination" [ref=e407]:
+          - generic [ref=e410]:
+            - generic "&laquo; Previous" [ref=e411]:
+              - img [ref=e413]
+            - generic [ref=e416]: "1"
+            - link "Go to page 2" [ref=e417] [cursor=pointer]:
+              - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/buts?page=2
+              - text: "2"
+            - generic [ref=e419]: ...
+            - link "Go to page 28" [ref=e420] [cursor=pointer]:
+              - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/buts?page=28
+              - text: "28"
+            - link "Next &raquo;" [ref=e421] [cursor=pointer]:
+              - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/buts?page=2
+              - img [ref=e422]
+      - generic [ref=e424]:
+        - heading "Buts & Passes décisives" [level=2] [ref=e426]
+        - generic [ref=e427]:
+          - link "Buts Arrow icon" [ref=e428] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/buts
+            - generic [ref=e429]: Buts
+            - img "Arrow icon" [ref=e430]
+          - link "Passes Décisives Arrow icon" [ref=e432] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/passes-d%C3%A9cisives
+            - generic [ref=e433]: Passes Décisives
+            - img "Arrow icon" [ref=e434]
+          - link "Nombre de tirs au but Arrow icon" [ref=e436] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/nombre-de-tirs-au-but
+            - generic [ref=e437]: Nombre de tirs au but
+            - img "Arrow icon" [ref=e438]
+          - link "Nombre de tirs au but manqués Arrow icon" [ref=e440] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/nombre-de-tirs-au-but-manqu%C3%A9s
+            - generic [ref=e441]: Nombre de tirs au but manqués
+            - img "Arrow icon" [ref=e442]
+          - link "Buts les plus lointains Arrow icon" [ref=e444] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/buts-les-plus-lointains
+            - generic [ref=e445]: Buts les plus lointains
+            - img "Arrow icon" [ref=e446]
+          - link "Buts par tir à distance moyenne Arrow icon" [ref=e448] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/buts-par-tir-%C3%A0-distance-moyenne
+            - generic [ref=e449]: Buts par tir à distance moyenne
+            - img "Arrow icon" [ref=e450]
+          - link "Buts par tir à courte distance Arrow icon" [ref=e452] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/buts-par-tir-%C3%A0-courte-distance
+            - generic [ref=e453]: Buts par tir à courte distance
+            - img "Arrow icon" [ref=e454]
+          - link "Buts par tir en un contre un face au gardien Arrow icon" [ref=e456] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/buts-par-tir-en-un-contre-un-face-au-gardien
+            - generic [ref=e457]: Buts par tir en un contre un face au gardien
+            - img "Arrow icon" [ref=e458]
+          - link "Buts par tir dans les cages vides Arrow icon" [ref=e460] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/buts-par-tir-dans-les-cages-vides
+            - generic [ref=e461]: Buts par tir dans les cages vides
+            - img "Arrow icon" [ref=e462]
+          - link "Buts de la tête Arrow icon" [ref=e464] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/buts-de-la-t%C3%AAte
+            - generic [ref=e465]: Buts de la tête
+            - img "Arrow icon" [ref=e466]
+          - link "Buts sur Penalty Arrow icon" [ref=e468] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/buts-sur-penalty
+            - generic [ref=e469]: Buts sur Penalty
+            - img "Arrow icon" [ref=e470]
+          - link "Buts sur coup franc Arrow icon" [ref=e472] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/buts-sur-coup-franc
+            - generic [ref=e473]: Buts sur coup franc
+            - img "Arrow icon" [ref=e474]
+          - link "Buts par corner Arrow icon" [ref=e476] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/buts-par-corner
+            - generic [ref=e477]: Buts par corner
+            - img "Arrow icon" [ref=e478]
+          - link "Buts du pied Arrow icon" [ref=e480] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/buts-du-pied
+            - generic [ref=e481]: Buts du pied
+            - img "Arrow icon" [ref=e482]
+          - link "Tirs cadrés Arrow icon" [ref=e484] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/tirs-cadr%C3%A9s
+            - generic [ref=e485]: Tirs cadrés
+            - img "Arrow icon" [ref=e486]
+          - link "Ratio Tirs Cadrés / Buts Arrow icon" [ref=e488] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/ratio-tirs-cadr%C3%A9s-buts
+            - generic [ref=e489]: Ratio Tirs Cadrés / Buts
+            - img "Arrow icon" [ref=e490]
+          - link "Pré-assistance Arrow icon" [ref=e492] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/pr%C3%A9-assistance
+            - generic [ref=e493]: Pré-assistance
+            - img "Arrow icon" [ref=e494]
+          - link "But le plus rapide Arrow icon" [ref=e496] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/but-le-plus-rapide
+            - generic [ref=e497]: But le plus rapide
+            - img "Arrow icon" [ref=e498]
+          - link "Dernier but Arrow icon" [ref=e500] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/dernier-but
+            - generic [ref=e501]: Dernier but
+            - img "Arrow icon" [ref=e502]
+          - link "Plus grand nombre de buts Arrow icon" [ref=e504] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/plus-grand-nombre-de-buts
+            - generic [ref=e505]: Plus grand nombre de buts
+            - img "Arrow icon" [ref=e506]
+          - link "Plus de buts dans la surface de réparation Arrow icon" [ref=e508] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/plus-de-buts-dans-la-surface-de-r%C3%A9paration
+            - generic [ref=e509]: Plus de buts dans la surface de réparation
+            - img "Arrow icon" [ref=e510]
+          - link "Plus grand nombre de hat tricks Arrow icon" [ref=e512] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/plus-grand-nombre-de-hat-tricks
+            - generic [ref=e513]: Plus grand nombre de hat tricks
+            - img "Arrow icon" [ref=e514]
+          - link "Buteur le plus âgé Arrow icon" [ref=e516] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/buteur-le-plus-%C3%A2g%C3%A9
+            - generic [ref=e517]: Buteur le plus âgé
+            - img "Arrow icon" [ref=e518]
+          - link "Buteur le plus jeune Arrow icon" [ref=e520] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/buteur-le-plus-jeune
+            - generic [ref=e521]: Buteur le plus jeune
+            - img "Arrow icon" [ref=e522]
+          - link "Plus grand nombre de buts, plus de 30 ans Arrow icon" [ref=e524] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/plus-grand-nombre-de-buts,-plus-de-30-ans
+            - generic [ref=e525]: Plus grand nombre de buts, plus de 30 ans
+            - img "Arrow icon" [ref=e526]
+          - link "Plus grand nombre de buts, moins de 20 ans Arrow icon" [ref=e528] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/plus-grand-nombre-de-buts,-moins-de-20-ans
+            - generic [ref=e529]: Plus grand nombre de buts, moins de 20 ans
+            - img "Arrow icon" [ref=e530]
+          - link "Attaquant avec le meilleur rendement Arrow icon" [ref=e532] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/attaquant-avec-le-meilleur-rendement
+            - generic [ref=e533]: Attaquant avec le meilleur rendement
+            - img "Arrow icon" [ref=e534]
+          - link "But le plus éloigné Arrow icon" [ref=e536] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/but-le-plus-%C3%A9loign%C3%A9
+            - generic [ref=e537]: But le plus éloigné
+            - img "Arrow icon" [ref=e538]
+          - link "Attaquant avec le moins bon rendement Arrow icon" [ref=e540] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/attaquant-avec-le-moins-bon-rendement
+            - generic [ref=e541]: Attaquant avec le moins bon rendement
+            - img "Arrow icon" [ref=e542]
+          - link "Plus grand nombre de tirs sans but Arrow icon" [ref=e544] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/plus-grand-nombre-de-tirs-sans-but
+            - generic [ref=e545]: Plus grand nombre de tirs sans but
+            - img "Arrow icon" [ref=e546]
+          - link "Plus grand nombre de pénaltys ratés Arrow icon" [ref=e548] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/plus-grand-nombre-de-p%C3%A9naltys-rat%C3%A9s
+            - generic [ref=e549]: Plus grand nombre de pénaltys ratés
+            - img "Arrow icon" [ref=e550]
+          - link "Plus grand nombre d'occasions manquées Arrow icon" [ref=e552] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/plus-grand-nombre-d%27occasions-manqu%C3%A9es
+            - generic [ref=e553]: Plus grand nombre d'occasions manquées
+            - img "Arrow icon" [ref=e554]
+          - link "Plus de pré-assistances en 90 minutes Arrow icon" [ref=e556] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/plus-de-pr%C3%A9-assistances-en-90-minutes
+            - generic [ref=e557]: Plus de pré-assistances en 90 minutes
+            - img "Arrow icon" [ref=e558]
+          - link "Plus grand nombre de passes décisives par match Arrow icon" [ref=e560] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/plus-grand-nombre-de-passes-d%C3%A9cisives-par-match
+            - generic [ref=e561]: Plus grand nombre de passes décisives par match
+            - img "Arrow icon" [ref=e562]
+          - link "Plus grand nombre de points de buteur par match Arrow icon" [ref=e564] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/plus-grand-nombre-de-points-de-buteur-par-match
+            - generic [ref=e565]: Plus grand nombre de points de buteur par match
+            - img "Arrow icon" [ref=e566]
+          - link "Plus grand nombre de points de buteur au total Arrow icon" [ref=e568] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/plus-grand-nombre-de-points-de-buteur-au-total
+            - generic [ref=e569]: Plus grand nombre de points de buteur au total
+            - img "Arrow icon" [ref=e570]
+          - link "Plus de buts dans la surface de réparation Arrow icon" [ref=e572] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/plus-de-buts-dans-la-surface-de-r%C3%A9paration
+            - generic [ref=e573]: Plus de buts dans la surface de réparation
+            - img "Arrow icon" [ref=e574]
+          - link "Plus grand nombre de buts concédés Arrow icon" [ref=e576] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/plus-grand-nombre-de-buts-conc%C3%A9d%C3%A9s
+            - generic [ref=e577]: Plus grand nombre de buts concédés
+            - img "Arrow icon" [ref=e578]
+          - link "Le moins de tirs cadrés Arrow icon" [ref=e580] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/le-moins-de-tirs-cadr%C3%A9s
+            - generic [ref=e581]: Le moins de tirs cadrés
+            - img "Arrow icon" [ref=e582]
+          - link "Le moins de buts Arrow icon" [ref=e584] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/le-moins-de-buts
+            - generic [ref=e585]: Le moins de buts
+            - img "Arrow icon" [ref=e586]
+          - link "Occasion créées Arrow icon" [ref=e588] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/occasion-cr%C3%A9%C3%A9es
+            - generic [ref=e589]: Occasion créées
+            - img "Arrow icon" [ref=e590]
+          - link "Grosses occasions Arrow icon" [ref=e592] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/grosses-occasions
+            - generic [ref=e593]: Grosses occasions
+            - img "Arrow icon" [ref=e594]
+          - link "Buts Arrow icon" [ref=e596] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements/ligue-1/joueurs/bubuts-avec-ses-propres-butsts
+            - generic [ref=e597]: Buts
+            - img "Arrow icon" [ref=e598]
+    - insertion [ref=e600]
+  - contentinfo [ref=e602]:
+    - generic [ref=e603]:
+      - link "1vs1 Logo" [ref=e604] [cursor=pointer]:
+        - /url: https://one-versus-one.com/fr
+        - img "1vs1 Logo" [ref=e605]
+      - generic [ref=e606]:
+        - link "Instagram" [ref=e607] [cursor=pointer]:
+          - /url: https://www.instagram.com/1vs1_football_lovers/
+          - img "Instagram" [ref=e608]
+        - link "Facebook" [ref=e609] [cursor=pointer]:
+          - /url: https://www.facebook.com/1vs1.football.lovers/
+          - img "Facebook" [ref=e610]
+        - link "Twitter" [ref=e611] [cursor=pointer]:
+          - /url: https://x.com/OneVsOneLive
+          - img "Twitter" [ref=e612]
+    - generic [ref=e613]:
+      - generic [ref=e614]:
+        - generic [ref=e615]:
+          - generic [ref=e616]: Explore
+          - link "Comparaisons" [ref=e617] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/football-stats-comparaisons
+          - link "Joueurs" [ref=e618] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/joueurs
+          - link "Équipes" [ref=e619] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/%C3%A9quipes
+          - link "Classement" [ref=e620] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements
+          - link "Pronostics" [ref=e621] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/pr%C3%A9dictions
+          - link "Résultats" [ref=e622] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/r%C3%A9sultats-de-football
+          - link "Compare-toi" [ref=e623] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/compare-toi
+          - link "Statistiques des ligues" [ref=e624] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/ligues
+          - link "Tarification" [ref=e625] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/plans
+          - link "Scout Pro" [ref=e626] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/scout-pro
+        - generic [ref=e627]:
+          - generic [ref=e628]: Languages
+          - link "English" [ref=e629] [cursor=pointer]:
+            - /url: /change-language/en
+          - link "Deutsch" [ref=e630] [cursor=pointer]:
+            - /url: /change-language/de
+          - link "Español" [ref=e631] [cursor=pointer]:
+            - /url: /change-language/es
+          - link "Français" [ref=e632] [cursor=pointer]:
+            - /url: /change-language/fr
+          - link "Português" [ref=e633] [cursor=pointer]:
+            - /url: /change-language/pt
+          - link "العربية" [ref=e634] [cursor=pointer]:
+            - /url: /change-language/ar
+          - link "Русский" [ref=e635] [cursor=pointer]:
+            - /url: /change-language/ru
+          - link "中文" [ref=e636] [cursor=pointer]:
+            - /url: /change-language/zh
+          - link "Italiano" [ref=e637] [cursor=pointer]:
+            - /url: /change-language/it
+          - link "Türkçe" [ref=e638] [cursor=pointer]:
+            - /url: /change-language/tr
+        - generic [ref=e639]:
+          - generic [ref=e640]: Docs
+          - link "Legal" [ref=e641] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/legal
+          - link "Privacy Policy" [ref=e642] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/privacy-policy
+          - link "About" [ref=e643] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/about
+      - generic [ref=e645]:
+        - link "Impressum" [ref=e646] [cursor=pointer]:
+          - /url: https://one-versus-one.com/fr/impressum
+        - generic [ref=e647]: ONE-VERSUS-ONE AG
+        - generic [ref=e648]: Hintergasse 6,
+        - generic [ref=e649]: 8803 Rüschlikon, Switzerland
+        - generic [ref=e650]: "Person in Charge: Peter Zombori"
+    - generic [ref=e651]:
+      - paragraph [ref=e652]: © 2026 One-Versus-One AG, all rights reserved
+      - link "E-mail icon Send us a feedback" [ref=e653] [cursor=pointer]:
+        - /url: mailto:members@one-versus-one.com
+        - img "E-mail icon" [ref=e654]
+        - generic [ref=e655]: Send us a feedback

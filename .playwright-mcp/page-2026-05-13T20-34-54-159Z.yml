@@ -1,0 +1,751 @@
+- generic [ref=e2]:
+  - banner:
+    - navigation [ref=e3]:
+      - generic [ref=e4]:
+        - link "1vs1 Logo":
+          - /url: https://one-versus-one.com/fr
+          - img "1vs1 Logo"
+        - generic [ref=e5]:
+          - link "Comparaisons" [ref=e6] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/football-stats-comparaisons
+            - generic [ref=e7]: Comparaisons
+          - link "Joueurs" [ref=e8] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/joueurs
+            - generic [ref=e9]: Joueurs
+          - link "Équipes" [ref=e10] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/%C3%A9quipes
+            - generic [ref=e11]: Équipes
+          - link "Classement" [ref=e12] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements
+            - generic [ref=e13]: Classement
+          - link "Pronostics" [ref=e14] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/pr%C3%A9dictions
+            - generic [ref=e15]: Pronostics
+          - link "Résultats" [ref=e16] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/r%C3%A9sultats-de-football
+            - generic [ref=e17]: Résultats
+          - link "Compare-toi" [ref=e18] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/compare-toi
+            - generic [ref=e19]: Compare-toi
+          - link "Statistiques des ligues" [ref=e20] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/ligues
+            - generic [ref=e21]: Statistiques des ligues
+          - link "Tarification" [ref=e22] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/plans
+            - generic [ref=e23]: Tarification
+          - link "Scout Pro" [ref=e24] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/scout-pro
+            - generic [ref=e25]: Scout Pro
+      - generic [ref=e26]:
+        - img "Search icon" [ref=e27] [cursor=pointer]
+        - generic [ref=e29] [cursor=pointer]:
+          - img "Globe icon" [ref=e30]
+          - generic [ref=e31]: fr
+        - img "Account icon" [ref=e35] [cursor=pointer]
+        - combobox [ref=e39] [cursor=pointer]:
+          - option "2023 / 2024"
+          - option "2024 / 2025"
+          - option "2025 / 2026" [selected]
+  - main [ref=e41]:
+    - generic [ref=e42]:
+      - generic [ref=e43]:
+        - generic [ref=e45]:
+          - link "Domicile" [ref=e46] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr
+          - generic [ref=e47]: ">"
+          - link "Équipes" [ref=e48] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/%C3%A9quipes
+          - generic [ref=e49]: ">"
+          - generic [ref=e50] [cursor=pointer]: Paris Saint-Germain
+        - generic [ref=e51]:
+          - img "1vs1 big logo shape" [ref=e53]
+          - generic [ref=e56] [cursor=pointer]: Suivre
+          - generic [ref=e58]:
+            - img "Paris Saint-Germain" [ref=e59]
+            - generic [ref=e60]:
+              - 'heading "Paris Saint-Germain : Statistiques de l''équipe et des joueurs" [level=1] [ref=e61]'
+              - generic [ref=e62] [cursor=pointer]:
+                - img "Ligue 1" [ref=e63]
+                - generic [ref=e64]: Ligue 1
+          - generic [ref=e65]:
+            - generic [ref=e66]:
+              - generic [ref=e67]:
+                - generic [ref=e68]: Pays
+                - generic [ref=e69]:
+                  - img "France" [ref=e70]
+                  - generic [ref=e71]: France
+              - generic [ref=e72]:
+                - generic [ref=e73]: No. Joueurs
+                - generic [ref=e75]: "27"
+            - generic [ref=e76]:
+              - link "Ligue 1 Statistiques de la Ligue" [ref=e77] [cursor=pointer]:
+                - /url: https://one-versus-one.com/fr/ligues/ligue-1
+                - img "Ligue 1" [ref=e78]
+                - generic [ref=e79]: Statistiques de la Ligue
+              - link "Paris Saint-Germain on Wikipedia Wikipédia" [ref=e80] [cursor=pointer]:
+                - /url: https://en.wikipedia.org/wiki/Paris_Saint-Germain_F.C.
+                - img "Paris Saint-Germain on Wikipedia" [ref=e81]
+                - generic [ref=e82]: Wikipédia
+              - link "Paris Saint-Germain on Instagram Instagram" [ref=e83] [cursor=pointer]:
+                - /url: https://www.instagram.com/psg/
+                - img "Paris Saint-Germain on Instagram" [ref=e84]
+                - generic [ref=e85]: Instagram
+              - link "Paris Saint-Germain on Website Site web" [ref=e86] [cursor=pointer]:
+                - /url: https://en.psg.fr/
+                - img "Paris Saint-Germain on Website" [ref=e87]
+                - generic [ref=e88]: Site web
+          - generic [ref=e89]:
+            - generic [ref=e91] [cursor=pointer]: Vue d'ensemble
+            - generic [ref=e92] [cursor=pointer]:
+              - img "Analyse icon" [ref=e93]
+              - generic [ref=e94]: Analyse
+            - generic [ref=e96] [cursor=pointer]: Classement
+            - generic [ref=e98] [cursor=pointer]: Salaire
+            - generic [ref=e100] [cursor=pointer]: Classement
+            - generic [ref=e102] [cursor=pointer]: Historique
+          - generic:
+            - generic:
+              - generic: Vue d'ensemble
+            - generic:
+              - img "Analyse icon"
+              - generic: Analyse
+            - generic:
+              - generic: Classement
+            - generic:
+              - generic: Salaire
+            - generic:
+              - generic: Classement
+            - generic:
+              - generic: Historique
+      - generic [ref=e103]:
+        - generic [ref=e104]:
+          - generic [ref=e105]:
+            - heading "Derniers matchs" [level=2] [ref=e109]
+            - generic [ref=e110]:
+              - generic [ref=e111]:
+                - generic [ref=e112]: 1 - 0
+                - generic [ref=e113]:
+                  - img "Brest" [ref=e114]
+                  - generic [ref=e115]: BRE
+              - generic [ref=e116]:
+                - generic [ref=e117]: 2 - 2
+                - generic [ref=e118]:
+                  - img "Lorient" [ref=e119]
+                  - generic [ref=e120]: LOR
+              - generic [ref=e121]:
+                - generic [ref=e122]: 0 - 3
+                - generic [ref=e123]:
+                  - img "Angers SCO" [ref=e124]
+                  - generic [ref=e125]: ANG
+              - generic [ref=e126]:
+                - generic [ref=e127]: 1 - 2
+                - generic [ref=e128]:
+                  - img "Olympique Lyonnais" [ref=e129]
+                  - generic [ref=e130]: LYO
+              - generic [ref=e131]:
+                - generic [ref=e132]: 3 - 1
+                - generic [ref=e133]:
+                  - img "Toulouse" [ref=e134]
+                  - generic [ref=e135]: TOU
+          - generic [ref=e136]:
+            - heading "Prédiction du prochain match" [level=2] [ref=e140]
+            - link "Paris FC Paris FC 19:00 17th May Paris Saint-Germain Paris Saint-Germain 16% 17% 68%" [ref=e141] [cursor=pointer]:
+              - /url: https://one-versus-one.com/fr/%C3%A9quipes/Paris-Fc-vs-paris-saint-germain#predictions
+              - generic [ref=e142]:
+                - generic [ref=e143]:
+                  - img "Paris FC" [ref=e144]
+                  - generic [ref=e145]: Paris FC
+                - generic [ref=e146]:
+                  - generic [ref=e147]: 19:00
+                  - generic [ref=e148]: 17th May
+                - generic [ref=e149]:
+                  - img "Paris Saint-Germain" [ref=e150]
+                  - generic [ref=e151]: Paris Saint-Germain
+              - generic [ref=e152]:
+                - generic [ref=e154]: 16%
+                - generic [ref=e156]: 17%
+                - generic [ref=e158]: 68%
+        - generic [ref=e159]:
+          - heading "Statistiques d'équipe tendance pour Paris Saint-Germain" [level=2] [ref=e163]
+          - generic [ref=e166]:
+            - generic [ref=e167]:
+              - img "Bullet point icon" [ref=e168]
+              - paragraph [ref=e170]:
+                - text: Paris Saint-Germain a réussi 21023 passes, ce qui les place 1 du championnat.
+                - link "Voir le classement des passes réussies" [ref=e171] [cursor=pointer]:
+                  - /url: https://one-versus-one.com/fr/classements/ligue-1/%C3%A9quipes/passes-r%C3%A9ussies?page=1#51
+            - generic [ref=e172]:
+              - img "Bullet point icon" [ref=e173]
+              - paragraph [ref=e175]:
+                - text: Paris Saint-Germain a gagné 801 duels au sol, ils sont 18 dans ce secteur.
+                - link "Voir le classement des duels au sol" [ref=e176] [cursor=pointer]:
+                  - /url: https://one-versus-one.com/fr/classements/ligue-1/%C3%A9quipes/duels-au-sol-gagn%C3%A9s?page=1#51
+            - generic [ref=e177]:
+              - img "Bullet point icon" [ref=e178]
+              - paragraph [ref=e180]:
+                - text: Paris Saint-Germain concède 29.87 xG, ils sont 1 au classement des xG concédés.
+                - link "Voir le classement des xG concédés" [ref=e181] [cursor=pointer]:
+                  - /url: https://one-versus-one.com/fr/classements/ligue-1/%C3%A9quipes/xg-total-conc%C3%A9d%C3%A9?page=1#51
+        - insertion [ref=e183]:
+          - generic [ref=e186]:
+            - heading "Voici des thèmes associés à l'article qui pourraient vous intéresser" [level=2] [ref=e188]: Voir plus
+            - link "Soccer" [ref=e189] [cursor=pointer]:
+              - generic "Soccer" [ref=e190]
+              - img [ref=e192]
+            - link "stats" [ref=e194] [cursor=pointer]:
+              - generic "stats" [ref=e195]
+              - img [ref=e197]
+            - link "statistics" [ref=e199] [cursor=pointer]:
+              - generic "statistics" [ref=e200]
+              - img [ref=e202]
+        - generic [ref=e204]:
+          - heading "Meilleurs Joueurs par Catégorie de Statistiques" [level=2] [ref=e208]
+          - generic [ref=e209]:
+            - generic [ref=e212]:
+              - 'link "1vs1 big logo shape Buts #1 Bradley Barcola 10" [ref=e213] [cursor=pointer]':
+                - /url: https://one-versus-one.com/fr/joueurs/bradley-barcola
+                - generic [ref=e214]:
+                  - img "1vs1 big logo shape" [ref=e216]
+                  - generic [ref=e217]: Buts
+                  - generic [ref=e218]:
+                    - paragraph [ref=e219]: "#1"
+                    - paragraph [ref=e221]: Bradley Barcola
+                    - paragraph [ref=e222]: "10"
+              - generic [ref=e223]:
+                - link "#2 Ousmane Dembele 10" [ref=e224] [cursor=pointer]:
+                  - /url: https://one-versus-one.com/fr/joueurs/Ousmane-Dembele
+                  - generic [ref=e225]:
+                    - paragraph [ref=e226]: "#2"
+                    - paragraph [ref=e228]: Ousmane Dembele
+                    - paragraph [ref=e229]: "10"
+                - link "#3 Désiré Doué 6" [ref=e230] [cursor=pointer]:
+                  - /url: https://one-versus-one.com/fr/joueurs/Desire-Doue
+                  - generic [ref=e231]:
+                    - paragraph [ref=e232]: "#3"
+                    - paragraph [ref=e234]: Désiré Doué
+                    - paragraph [ref=e235]: "6"
+                - link "#4 Gonçalo Ramos 6" [ref=e236] [cursor=pointer]:
+                  - /url: https://one-versus-one.com/fr/joueurs/Goncalo-Ramos
+                  - generic [ref=e237]:
+                    - paragraph [ref=e238]: "#4"
+                    - paragraph [ref=e240]: Gonçalo Ramos
+                    - paragraph [ref=e241]: "6"
+                - generic [ref=e242] [cursor=pointer]:
+                  - generic [ref=e243]: Voir le classement complet de Buts.
+                  - img "Arrow icon" [ref=e244]
+            - generic [ref=e247]:
+              - 'link "1vs1 big logo shape Passes Décisives #1 Vitor Machado Ferreira 7" [ref=e248] [cursor=pointer]':
+                - /url: https://one-versus-one.com/fr/joueurs/vitor-machado-ferreira
+                - generic [ref=e249]:
+                  - img "1vs1 big logo shape" [ref=e251]
+                  - generic [ref=e252]: Passes Décisives
+                  - generic [ref=e253]:
+                    - paragraph [ref=e254]: "#1"
+                    - paragraph [ref=e256]: Vitor Machado Ferreira
+                    - paragraph [ref=e257]: "7"
+              - generic [ref=e258]:
+                - link "#2 Désiré Doué 6" [ref=e259] [cursor=pointer]:
+                  - /url: https://one-versus-one.com/fr/joueurs/Desire-Doue
+                  - generic [ref=e260]:
+                    - paragraph [ref=e261]: "#2"
+                    - paragraph [ref=e263]: Désiré Doué
+                    - paragraph [ref=e264]: "6"
+                - link "#3 Achraf Hakimi 5" [ref=e265] [cursor=pointer]:
+                  - /url: https://one-versus-one.com/fr/joueurs/Achraf-Hakimi
+                  - generic [ref=e266]:
+                    - paragraph [ref=e267]: "#3"
+                    - paragraph [ref=e269]: Achraf Hakimi
+                    - paragraph [ref=e270]: "5"
+                - link "#4 Nuno Mendes 5" [ref=e271] [cursor=pointer]:
+                  - /url: https://one-versus-one.com/fr/joueurs/Nuno-Mendes
+                  - generic [ref=e272]:
+                    - paragraph [ref=e273]: "#4"
+                    - paragraph [ref=e275]: Nuno Mendes
+                    - paragraph [ref=e276]: "5"
+                - generic [ref=e277] [cursor=pointer]:
+                  - generic [ref=e278]: Voir le classement complet de Passes Décisives.
+                  - img "Arrow icon" [ref=e279]
+            - generic [ref=e282]:
+              - 'link "1vs1 big logo shape Tirs cadrés #1 Khvicha Kvaratskhelia 39" [ref=e283] [cursor=pointer]':
+                - /url: https://one-versus-one.com/fr/joueurs/khvicha-kvaratskhelia
+                - generic [ref=e284]:
+                  - img "1vs1 big logo shape" [ref=e286]
+                  - generic [ref=e287]: Tirs cadrés
+                  - generic [ref=e288]:
+                    - paragraph [ref=e289]: "#1"
+                    - paragraph [ref=e291]: Khvicha Kvaratskhelia
+                    - paragraph [ref=e292]: "39"
+              - generic [ref=e293]:
+                - link "#2 Gonçalo Ramos 35" [ref=e294] [cursor=pointer]:
+                  - /url: https://one-versus-one.com/fr/joueurs/Goncalo-Ramos
+                  - generic [ref=e295]:
+                    - paragraph [ref=e296]: "#2"
+                    - paragraph [ref=e298]: Gonçalo Ramos
+                    - paragraph [ref=e299]: "35"
+                - link "#3 Bradley Barcola 35" [ref=e300] [cursor=pointer]:
+                  - /url: https://one-versus-one.com/fr/joueurs/bradley-barcola
+                  - generic [ref=e301]:
+                    - paragraph [ref=e302]: "#3"
+                    - paragraph [ref=e304]: Bradley Barcola
+                    - paragraph [ref=e305]: "35"
+                - link "#4 Désiré Doué 30" [ref=e306] [cursor=pointer]:
+                  - /url: https://one-versus-one.com/fr/joueurs/Desire-Doue
+                  - generic [ref=e307]:
+                    - paragraph [ref=e308]: "#4"
+                    - paragraph [ref=e310]: Désiré Doué
+                    - paragraph [ref=e311]: "30"
+                - generic [ref=e312] [cursor=pointer]:
+                  - generic [ref=e313]: Voir le classement complet de Tirs cadrés.
+                  - img "Arrow icon" [ref=e314]
+            - generic [ref=e317]:
+              - 'link "1vs1 big logo shape Conduites de balle progressives (Progressive carries, PrgC) #1 Vitor Machado Ferreira 229" [ref=e318] [cursor=pointer]':
+                - /url: https://one-versus-one.com/fr/joueurs/vitor-machado-ferreira
+                - generic [ref=e319]:
+                  - img "1vs1 big logo shape" [ref=e321]
+                  - generic [ref=e322]: Conduites de balle progressives (Progressive carries, PrgC)
+                  - generic [ref=e323]:
+                    - paragraph [ref=e324]: "#1"
+                    - paragraph [ref=e326]: Vitor Machado Ferreira
+                    - paragraph [ref=e327]: "229"
+              - generic [ref=e328]:
+                - link "#2 Warren Zaire-Emery 192" [ref=e329] [cursor=pointer]:
+                  - /url: https://one-versus-one.com/fr/joueurs/warren-zaire-emery
+                  - generic [ref=e330]:
+                    - paragraph [ref=e331]: "#2"
+                    - paragraph [ref=e333]: Warren Zaire-Emery
+                    - paragraph [ref=e334]: "192"
+                - link "#3 Achraf Hakimi 126" [ref=e335] [cursor=pointer]:
+                  - /url: https://one-versus-one.com/fr/joueurs/Achraf-Hakimi
+                  - generic [ref=e336]:
+                    - paragraph [ref=e337]: "#3"
+                    - paragraph [ref=e339]: Achraf Hakimi
+                    - paragraph [ref=e340]: "126"
+                - link "#4 Nuno Mendes 112" [ref=e341] [cursor=pointer]:
+                  - /url: https://one-versus-one.com/fr/joueurs/Nuno-Mendes
+                  - generic [ref=e342]:
+                    - paragraph [ref=e343]: "#4"
+                    - paragraph [ref=e345]: Nuno Mendes
+                    - paragraph [ref=e346]: "112"
+                - generic [ref=e347] [cursor=pointer]:
+                  - generic [ref=e348]: Voir le classement complet de Conduites de balle progressives (Progressive carries, PrgC).
+                  - img "Arrow icon" [ref=e349]
+        - generic [ref=e350]:
+          - heading "Scores" [level=2] [ref=e354]
+          - generic [ref=e356]:
+            - generic [ref=e357]:
+              - generic [ref=e358]:
+                - generic [ref=e359]:
+                  - generic [ref=e360]: Indice 1vs1 -
+                  - generic [ref=e361]:
+                    - generic [ref=e362]: Ligue 1
+                    - img "Help icon" [ref=e364]
+                - generic [ref=e365]: "Se classe #1 en Ligue 1."
+              - generic [ref=e373]: "93"
+            - generic [ref=e374]:
+              - generic [ref=e375]:
+                - generic [ref=e376]:
+                  - generic [ref=e377]: Puissance offensive -
+                  - generic [ref=e378]:
+                    - generic [ref=e379]: Ligue 1
+                    - img "Help icon" [ref=e381]
+                - generic [ref=e382]: "Se classe #1 en Ligue 1."
+              - generic [ref=e390]: "81"
+            - generic [ref=e391]:
+              - generic [ref=e392]:
+                - generic [ref=e393]:
+                  - generic [ref=e394]: Puissance défensive -
+                  - generic [ref=e395]:
+                    - generic [ref=e396]: Ligue 1
+                    - img "Help icon" [ref=e398]
+                - generic [ref=e399]: "Se classe #1 en Ligue 1."
+              - generic [ref=e407]: "92"
+            - generic [ref=e408]:
+              - generic [ref=e409]:
+                - generic [ref=e410]:
+                  - generic [ref=e411]: Pression offensive -
+                  - generic [ref=e412]:
+                    - generic [ref=e413]: Ligue 1
+                    - img "Help icon" [ref=e415]
+                - generic [ref=e416]: "Se classe #1 en Ligue 1."
+              - generic [ref=e417]:
+                - generic [ref=e418]:
+                  - img "Locked" [ref=e419]
+                  - img "Info" [ref=e420] [cursor=pointer]
+                - generic [ref=e427]: XX
+        - heading "Forme récente de l'équipe" [level=2] [ref=e432]
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - heading "Données de tir et analyse xG" [level=2]
+                - img "Loading spinner"
+          - generic:
+            - generic:
+              - generic:
+                - img
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - img "Arrow right"
+                    - generic:
+                      - img "Team placeholder 1"
+                      - generic: ___
+                      - generic: "-"
+                      - generic: ___
+                      - img "Team placeholder 1"
+                    - generic:
+                      - img "Arrow right"
+                  - generic:
+                    - generic: __.__.____
+                    - generic: (Ronde _)
+                - generic:
+                  - paragraph: "Tous les tirs de Paris Saint-Germain dans ce match :"
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic: Type d'événement
+                      - generic: "-"
+                    - generic:
+                      - generic: Minute
+                      - generic: "-"
+                    - generic:
+                      - generic: xG pour cet événement
+                      - generic: "-"
+                  - generic:
+                    - generic: Jouer toute la chaîne de passes.
+        - generic [ref=e439]:
+          - generic [ref=e440]:
+            - heading "Forces & Faiblesses" [level=2] [ref=e444]
+            - generic [ref=e445]:
+              - generic [ref=e446]:
+                - generic [ref=e447]:
+                  - generic [ref=e448]: Profil du graphique
+                  - generic [ref=e449]:
+                    - generic [ref=e452] [cursor=pointer]: Profil complet
+                    - generic [ref=e454]:
+                      - img "Locked" [ref=e455]
+                      - generic [ref=e456]: Offense
+                      - img "Info" [ref=e457] [cursor=pointer]
+                    - generic [ref=e459]:
+                      - img "Locked" [ref=e460]
+                      - generic [ref=e461]: Défense
+                      - img "Info" [ref=e462] [cursor=pointer]
+                - generic [ref=e463]:
+                  - generic [ref=e464]: Compare to
+                  - generic [ref=e467] [cursor=pointer]: Par ligue
+              - img "loading animation" [ref=e472]
+              - generic [ref=e481]:
+                - generic [ref=e482]:
+                  - generic [ref=e483] [cursor=pointer]:
+                    - img "Check icon" [ref=e484]
+                    - generic [ref=e485]: additionné
+                  - generic [ref=e487] [cursor=pointer]: 90 minutes
+                - generic [ref=e488] [cursor=pointer]:
+                  - generic [ref=e489]: Voir les données en chiffres
+                  - img "Arrow icon" [ref=e490]
+              - generic [ref=e491]:
+                - generic [ref=e498] [cursor=pointer]: Ajoute la meilleure équipe
+                - generic [ref=e505]:
+                  - img "Locked" [ref=e506]
+                  - generic [ref=e507]: Ajoute l'équipe moyenne
+                  - img "Info" [ref=e508] [cursor=pointer]
+          - generic [ref=e509]:
+            - heading "Statistiques à Jour" [level=2] [ref=e513]
+            - generic [ref=e516]:
+              - generic [ref=e517]:
+                - img "Bullet point icon" [ref=e518]
+                - paragraph [ref=e520]: Paris Saint-Germain a enregistré 1188 touches défensives sans possession contre 17441 touches offensives en phase de possession, ce qui montre leur participation dans les deux phases.
+              - generic [ref=e521]:
+                - img "Bullet point icon" [ref=e522]
+                - paragraph [ref=e524]: Paris Saint-Germain a marqué 11 buts à courte portée mais seulement 7 de loin, ce qui illustre leurs zones de tir préférées.
+              - generic [ref=e525]:
+                - img "Bullet point icon" [ref=e526]
+                - paragraph [ref=e528]: Paris Saint-Germain a remporté 51.14% des duels aériens (224 gagnés, 214 perdus), ce qui démontre le résultat de leurs duels aériens.
+        - generic [ref=e529]:
+          - heading "Statistiques & Analytique Avancées" [level=2] [ref=e533]
+          - generic [ref=e535]:
+            - generic [ref=e536]: Type
+            - generic [ref=e537]:
+              - generic [ref=e540] [cursor=pointer]: Total
+              - generic [ref=e543] [cursor=pointer]: Par 90 min
+          - generic [ref=e544]:
+            - table [ref=e545]:
+              - rowgroup [ref=e546]:
+                - row "Métrique Valeur" [ref=e547]:
+                  - columnheader "Métrique" [ref=e548]
+                  - columnheader "Valeur" [ref=e549]
+                - row "Buts CTA icon 68" [ref=e550]:
+                  - cell "Buts CTA icon" [ref=e551]:
+                    - generic [ref=e553]:
+                      - generic [ref=e555]: Buts
+                      - img "CTA icon" [ref=e557] [cursor=pointer]
+                  - cell "68" [ref=e560]:
+                    - generic [ref=e563]: "68"
+                - row "Précision des passes % CTA icon 89.38" [ref=e564]:
+                  - cell "Précision des passes % CTA icon" [ref=e565]:
+                    - generic [ref=e567]:
+                      - generic [ref=e569]: Précision des passes %
+                      - img "CTA icon" [ref=e571] [cursor=pointer]
+                  - cell "89.38" [ref=e574]:
+                    - generic [ref=e577]: "89.38"
+                - row "Buts concédés CTA icon 27" [ref=e578]:
+                  - cell "Buts concédés CTA icon" [ref=e579]:
+                    - generic [ref=e581]:
+                      - generic [ref=e583]: Buts concédés
+                      - img "CTA icon" [ref=e585] [cursor=pointer]
+                  - cell "27" [ref=e588]:
+                    - generic [ref=e591]: "27"
+                - row "Tacles CTA icon 1679" [ref=e592]:
+                  - cell "Tacles CTA icon" [ref=e593]:
+                    - generic [ref=e595]:
+                      - generic [ref=e597]: Tacles
+                      - img "CTA icon" [ref=e599] [cursor=pointer]
+                  - cell "1679" [ref=e602]:
+                    - generic [ref=e605]: "1679"
+            - generic [ref=e606]:
+              - generic [ref=e607] [cursor=pointer]: Tout Voir
+              - generic [ref=e608]: 3 de plus
+        - generic [ref=e609]:
+          - heading "Compare-toi" [level=2] [ref=e613]
+          - generic [ref=e614]:
+            - img "Shape 1vs1 logo" [ref=e615]
+            - generic [ref=e616] [cursor=pointer]: Comparer
+            - generic [ref=e617]:
+              - generic [ref=e618]:
+                - generic [ref=e621]: You
+                - img "You" [ref=e622]
+              - generic [ref=e623]:
+                - img "Doué" [ref=e625]
+                - generic [ref=e627]:
+                  - generic [ref=e628]: Désiré
+                  - generic [ref=e629]: Doué
+                  - generic [ref=e630]:
+                    - img "Paris Saint-Germain image" [ref=e631]
+                    - generic [ref=e632]: Paris Saint-Germain
+        - generic [ref=e633]:
+          - heading "Comparer Désiré Doué" [level=2] [ref=e637]
+          - generic [ref=e638]:
+            - img "Shape 1vs1 logo" [ref=e639]
+            - generic: Comparer
+            - generic [ref=e640]:
+              - generic [ref=e641]:
+                - generic [ref=e644]:
+                  - generic [ref=e645]: Désiré
+                  - generic [ref=e646]: Doué
+                  - generic [ref=e647]:
+                    - img "Paris Saint-Germain image" [ref=e648]
+                    - generic [ref=e649]: Paris Saint-Germain
+                - img "Doué" [ref=e650]
+              - generic [ref=e651]:
+                - img "Player Placeholder" [ref=e652]
+                - generic [ref=e653]:
+                  - generic [ref=e654]:
+                    - generic [ref=e655]: Choisir
+                    - generic [ref=e656]: Joueur
+                  - generic [ref=e657] [cursor=pointer]:
+                    - img "Search icon" [ref=e658]
+                    - generic [ref=e659]: Rechercher un joueur
+        - generic [ref=e660]:
+          - heading "Autres équipes" [level=2] [ref=e664]
+          - generic [ref=e666]:
+            - link "Lens Lens 1vs1 Index icon 83.06" [ref=e667] [cursor=pointer]:
+              - /url: https://one-versus-one.com/fr/%C3%A9quipes/lens
+              - generic [ref=e668]:
+                - generic [ref=e673]: Lens
+                - img "Lens" [ref=e675]
+                - generic [ref=e676]:
+                  - img "1vs1 Index icon" [ref=e677]
+                  - generic [ref=e678]: "83.06"
+            - link "LOSC Lille LOSC Lille 1vs1 Index icon 82.26" [ref=e679] [cursor=pointer]:
+              - /url: https://one-versus-one.com/fr/%C3%A9quipes/losc-lille
+              - generic [ref=e680]:
+                - generic [ref=e684]:
+                  - generic [ref=e685]: LOSC
+                  - generic [ref=e686]: Lille
+                - img "LOSC Lille" [ref=e688]
+                - generic [ref=e689]:
+                  - img "1vs1 Index icon" [ref=e690]
+                  - generic [ref=e691]: "82.26"
+            - link "Olympique de Marseille Olympique de Marseille 1vs1 Index icon 79.72" [ref=e692] [cursor=pointer]:
+              - /url: https://one-versus-one.com/fr/%C3%A9quipes/olympique-de-marseille
+              - generic [ref=e693]:
+                - generic [ref=e697]:
+                  - generic [ref=e698]: Olympique
+                  - generic [ref=e699]: de Marseille
+                - img "Olympique de Marseille" [ref=e701]
+                - generic [ref=e702]:
+                  - img "1vs1 Index icon" [ref=e703]
+                  - generic [ref=e704]: "79.72"
+            - link "Olympique Lyonnais Olympique Lyonnais 1vs1 Index icon 77.25" [ref=e705] [cursor=pointer]:
+              - /url: https://one-versus-one.com/fr/%C3%A9quipes/olympique-lyonnais
+              - generic [ref=e706]:
+                - generic [ref=e710]:
+                  - generic [ref=e711]: Olympique
+                  - generic [ref=e712]: Lyonnais
+                - img "Olympique Lyonnais" [ref=e714]
+                - generic [ref=e715]:
+                  - img "1vs1 Index icon" [ref=e716]
+                  - generic [ref=e717]: "77.25"
+            - link "RC Strasbourg RC Strasbourg 1vs1 Index icon 75.67" [ref=e718] [cursor=pointer]:
+              - /url: https://one-versus-one.com/fr/%C3%A9quipes/rc-strasbourg
+              - generic [ref=e719]:
+                - generic [ref=e723]:
+                  - generic [ref=e724]: RC
+                  - generic [ref=e725]: Strasbourg
+                - img "RC Strasbourg" [ref=e727]
+                - generic [ref=e728]:
+                  - img "1vs1 Index icon" [ref=e729]
+                  - generic [ref=e730]: "75.67"
+            - link "Monaco Monaco 1vs1 Index icon 74.78" [ref=e731] [cursor=pointer]:
+              - /url: https://one-versus-one.com/fr/%C3%A9quipes/monaco
+              - generic [ref=e732]:
+                - generic [ref=e737]: Monaco
+                - img "Monaco" [ref=e739]
+                - generic [ref=e740]:
+                  - img "1vs1 Index icon" [ref=e741]
+                  - generic [ref=e742]: "74.78"
+        - generic [ref=e743]:
+          - heading "Comparaisons Directes avec d'Autres Équipes" [level=2] [ref=e747]
+          - generic [ref=e748]:
+            - generic [ref=e750]:
+              - generic [ref=e751]:
+                - generic [ref=e752]:
+                  - img "Bayern Munich" [ref=e754]
+                  - generic [ref=e756]:
+                    - generic [ref=e757]: Bayern
+                    - generic [ref=e758]: Munich
+                - generic [ref=e759]:
+                  - img "Bayern Munich" [ref=e761]
+                  - generic [ref=e763]:
+                    - generic [ref=e764]: Paris
+                    - generic [ref=e765]: Saint-Germain
+                - img "1vs1 big logo shape" [ref=e766]
+              - link "Comparer Munich et Saint-Germain." [ref=e768] [cursor=pointer]:
+                - /url: https://one-versus-one.com/fr/%C3%A9quipes/bayern-munich-vs-paris-saint-germain
+                - generic [ref=e769]: Comparer Munich et Saint-Germain.
+            - generic [ref=e771]:
+              - generic [ref=e772]:
+                - generic [ref=e773]:
+                  - img "Paris Saint-Germain" [ref=e775]
+                  - generic [ref=e777]:
+                    - generic [ref=e778]: Paris
+                    - generic [ref=e779]: Saint-Germain
+                - generic [ref=e780]:
+                  - img "Paris Saint-Germain" [ref=e782]
+                  - generic [ref=e784]:
+                    - generic [ref=e785]: Liverpool
+                    - generic [ref=e786]: FC
+                - img "1vs1 big logo shape" [ref=e787]
+              - link "Comparer Saint-Germain et FC." [ref=e789] [cursor=pointer]:
+                - /url: https://one-versus-one.com/fr/%C3%A9quipes/paris-saint-germain-vs-liverpool-fc
+                - generic [ref=e790]: Comparer Saint-Germain et FC.
+            - generic [ref=e792]:
+              - generic [ref=e793]:
+                - generic [ref=e794]:
+                  - img "Paris Saint-Germain" [ref=e796]
+                  - generic [ref=e798]:
+                    - generic [ref=e799]: Paris
+                    - generic [ref=e800]: Saint-Germain
+                - generic [ref=e801]:
+                  - img "Paris Saint-Germain" [ref=e803]
+                  - generic [ref=e807]: Lens
+                - img "1vs1 big logo shape" [ref=e808]
+              - link "Comparer Saint-Germain et Lens." [ref=e810] [cursor=pointer]:
+                - /url: https://one-versus-one.com/fr/%C3%A9quipes/paris-saint-germain-vs-lens
+                - generic [ref=e811]: Comparer Saint-Germain et Lens.
+        - generic [ref=e812]:
+          - heading "Commentaires (0)" [level=2] [ref=e816]
+          - generic [ref=e819]:
+            - textbox "Prénom" [ref=e821]
+            - textbox "Nom de famille" [ref=e823]
+            - textbox "Écrivez votre réponse" [ref=e825]
+            - generic [ref=e826]:
+              - generic [ref=e827]: Gardez-moi dans la boucle.
+              - generic [ref=e828]: Il vous suffit d'entrer votre adresse e-mail ci-dessous si vous souhaitez recevoir des notifications concernant cette discussion.
+            - textbox "E-mail" [ref=e830]
+            - generic [ref=e832]: Soumettre
+    - insertion [ref=e834]
+  - contentinfo [ref=e836]:
+    - generic [ref=e837]:
+      - link "1vs1 Logo" [ref=e838] [cursor=pointer]:
+        - /url: https://one-versus-one.com/fr
+        - img "1vs1 Logo" [ref=e839]
+      - generic [ref=e840]:
+        - link "Instagram" [ref=e841] [cursor=pointer]:
+          - /url: https://www.instagram.com/1vs1_football_lovers/
+          - img "Instagram" [ref=e842]
+        - link "Facebook" [ref=e843] [cursor=pointer]:
+          - /url: https://www.facebook.com/1vs1.football.lovers/
+          - img "Facebook" [ref=e844]
+        - link "Twitter" [ref=e845] [cursor=pointer]:
+          - /url: https://x.com/OneVsOneLive
+          - img "Twitter" [ref=e846]
+    - generic [ref=e847]:
+      - generic [ref=e848]:
+        - generic [ref=e849]:
+          - generic [ref=e850]: Explore
+          - link "Comparaisons" [ref=e851] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/football-stats-comparaisons
+          - link "Joueurs" [ref=e852] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/joueurs
+          - link "Équipes" [ref=e853] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/%C3%A9quipes
+          - link "Classement" [ref=e854] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements
+          - link "Pronostics" [ref=e855] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/pr%C3%A9dictions
+          - link "Résultats" [ref=e856] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/r%C3%A9sultats-de-football
+          - link "Compare-toi" [ref=e857] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/compare-toi
+          - link "Statistiques des ligues" [ref=e858] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/ligues
+          - link "Tarification" [ref=e859] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/plans
+          - link "Scout Pro" [ref=e860] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/scout-pro
+        - generic [ref=e861]:
+          - generic [ref=e862]: Languages
+          - link "English" [ref=e863] [cursor=pointer]:
+            - /url: /change-language/en
+          - link "Deutsch" [ref=e864] [cursor=pointer]:
+            - /url: /change-language/de
+          - link "Español" [ref=e865] [cursor=pointer]:
+            - /url: /change-language/es
+          - link "Français" [ref=e866] [cursor=pointer]:
+            - /url: /change-language/fr
+          - link "Português" [ref=e867] [cursor=pointer]:
+            - /url: /change-language/pt
+          - link "العربية" [ref=e868] [cursor=pointer]:
+            - /url: /change-language/ar
+          - link "Русский" [ref=e869] [cursor=pointer]:
+            - /url: /change-language/ru
+          - link "中文" [ref=e870] [cursor=pointer]:
+            - /url: /change-language/zh
+          - link "Italiano" [ref=e871] [cursor=pointer]:
+            - /url: /change-language/it
+          - link "Türkçe" [ref=e872] [cursor=pointer]:
+            - /url: /change-language/tr
+        - generic [ref=e873]:
+          - generic [ref=e874]: Docs
+          - link "Legal" [ref=e875] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/legal
+          - link "Privacy Policy" [ref=e876] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/privacy-policy
+          - link "About" [ref=e877] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/about
+      - generic [ref=e879]:
+        - link "Impressum" [ref=e880] [cursor=pointer]:
+          - /url: https://one-versus-one.com/fr/impressum
+        - generic [ref=e881]: ONE-VERSUS-ONE AG
+        - generic [ref=e882]: Hintergasse 6,
+        - generic [ref=e883]: 8803 Rüschlikon, Switzerland
+        - generic [ref=e884]: "Person in Charge: Peter Zombori"
+    - generic [ref=e885]:
+      - paragraph [ref=e886]: © 2026 One-Versus-One AG, all rights reserved
+      - link "E-mail icon Send us a feedback" [ref=e887] [cursor=pointer]:
+        - /url: mailto:members@one-versus-one.com
+        - img "E-mail icon" [ref=e888]
+        - generic [ref=e889]: Send us a feedback

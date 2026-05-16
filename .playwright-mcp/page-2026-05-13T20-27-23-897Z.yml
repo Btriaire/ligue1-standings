@@ -1,0 +1,138 @@
+- generic [ref=e2]:
+  - banner:
+    - navigation [ref=e3]:
+      - generic [ref=e4]:
+        - link "1vs1 Logo":
+          - /url: https://one-versus-one.com/fr
+          - img "1vs1 Logo"
+        - generic [ref=e5]:
+          - link "Comparaisons" [ref=e6] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/football-stats-comparaisons
+            - generic [ref=e7]: Comparaisons
+          - link "Joueurs" [ref=e8] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/joueurs
+            - generic [ref=e9]: Joueurs
+          - link "Équipes" [ref=e10] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/%C3%A9quipes
+            - generic [ref=e11]: Équipes
+          - link "Classement" [ref=e12] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements
+            - generic [ref=e13]: Classement
+          - link "Pronostics" [ref=e14] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/pr%C3%A9dictions
+            - generic [ref=e15]: Pronostics
+          - link "Résultats" [ref=e16] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/r%C3%A9sultats-de-football
+            - generic [ref=e17]: Résultats
+          - link "Compare-toi" [ref=e18] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/compare-toi
+            - generic [ref=e19]: Compare-toi
+          - link "Statistiques des ligues" [ref=e20] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/ligues
+            - generic [ref=e21]: Statistiques des ligues
+          - link "Tarification" [ref=e22] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/plans
+            - generic [ref=e23]: Tarification
+          - link "Scout Pro" [ref=e24] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/scout-pro
+            - generic [ref=e25]: Scout Pro
+      - generic [ref=e26]:
+        - img "Search icon" [ref=e27] [cursor=pointer]
+        - generic [ref=e29] [cursor=pointer]:
+          - img "Globe icon" [ref=e30]
+          - generic [ref=e31]: fr
+        - img "Account icon" [ref=e35] [cursor=pointer]
+        - combobox [ref=e39] [cursor=pointer]:
+          - option "2025 / 2026" [selected]
+          - option "2024 / 2025"
+          - option "2023 / 2024"
+  - main [ref=e41]:
+    - generic [ref=e47]:
+      - heading "404" [level=1] [ref=e48]
+      - generic [ref=e49]: Non trouvé
+      - generic [ref=e50]:
+        - text: Go back to
+        - link "Home" [ref=e51] [cursor=pointer]:
+          - /url: https://one-versus-one.com/fr
+  - contentinfo [ref=e52]:
+    - generic [ref=e53]:
+      - link "1vs1 Logo" [ref=e54] [cursor=pointer]:
+        - /url: https://one-versus-one.com/fr
+        - img "1vs1 Logo" [ref=e55]
+      - generic [ref=e56]:
+        - link "Instagram" [ref=e57] [cursor=pointer]:
+          - /url: https://www.instagram.com/1vs1_football_lovers/
+          - img "Instagram" [ref=e58]
+        - link "Facebook" [ref=e59] [cursor=pointer]:
+          - /url: https://www.facebook.com/1vs1.football.lovers/
+          - img "Facebook" [ref=e60]
+        - link "Twitter" [ref=e61] [cursor=pointer]:
+          - /url: https://x.com/OneVsOneLive
+          - img "Twitter" [ref=e62]
+    - generic [ref=e63]:
+      - generic [ref=e64]:
+        - generic [ref=e65]:
+          - generic [ref=e66]: Explore
+          - link "Comparaisons" [ref=e67] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/football-stats-comparaisons
+          - link "Joueurs" [ref=e68] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/joueurs
+          - link "Équipes" [ref=e69] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/%C3%A9quipes
+          - link "Classement" [ref=e70] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/classements
+          - link "Pronostics" [ref=e71] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/pr%C3%A9dictions
+          - link "Résultats" [ref=e72] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/r%C3%A9sultats-de-football
+          - link "Compare-toi" [ref=e73] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/compare-toi
+          - link "Statistiques des ligues" [ref=e74] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/ligues
+          - link "Tarification" [ref=e75] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/plans
+          - link "Scout Pro" [ref=e76] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/scout-pro
+        - generic [ref=e77]:
+          - generic [ref=e78]: Languages
+          - link "English" [ref=e79] [cursor=pointer]:
+            - /url: /change-language/en
+          - link "Deutsch" [ref=e80] [cursor=pointer]:
+            - /url: /change-language/de
+          - link "Español" [ref=e81] [cursor=pointer]:
+            - /url: /change-language/es
+          - link "Français" [ref=e82] [cursor=pointer]:
+            - /url: /change-language/fr
+          - link "Português" [ref=e83] [cursor=pointer]:
+            - /url: /change-language/pt
+          - link "العربية" [ref=e84] [cursor=pointer]:
+            - /url: /change-language/ar
+          - link "Русский" [ref=e85] [cursor=pointer]:
+            - /url: /change-language/ru
+          - link "中文" [ref=e86] [cursor=pointer]:
+            - /url: /change-language/zh
+          - link "Italiano" [ref=e87] [cursor=pointer]:
+            - /url: /change-language/it
+          - link "Türkçe" [ref=e88] [cursor=pointer]:
+            - /url: /change-language/tr
+        - generic [ref=e89]:
+          - generic [ref=e90]: Docs
+          - link "Legal" [ref=e91] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/legal
+          - link "Privacy Policy" [ref=e92] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/privacy-policy
+          - link "About" [ref=e93] [cursor=pointer]:
+            - /url: https://one-versus-one.com/fr/about
+      - generic [ref=e95]:
+        - link "Impressum" [ref=e96] [cursor=pointer]:
+          - /url: https://one-versus-one.com/fr/impressum
+        - generic [ref=e97]: ONE-VERSUS-ONE AG
+        - generic [ref=e98]: Hintergasse 6,
+        - generic [ref=e99]: 8803 Rüschlikon, Switzerland
+        - generic [ref=e100]: "Person in Charge: Peter Zombori"
+    - generic [ref=e101]:
+      - paragraph [ref=e102]: © 2026 One-Versus-One AG, all rights reserved
+      - link "E-mail icon Send us a feedback" [ref=e103] [cursor=pointer]:
+        - /url: mailto:members@one-versus-one.com
+        - img "E-mail icon" [ref=e104]
+        - generic [ref=e105]: Send us a feedback

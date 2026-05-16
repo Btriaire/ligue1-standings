@@ -1,0 +1,51 @@
+[    2042ms] [LOG] Attempting to add a component:  [Nav] @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2044ms] [LOG] Init page called for (0.02):  TeamsSingle @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2100ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ https://one-versus-one.com/fr/%C3%A9quipes/paris-saint-germain:0
+[    2106ms] [LOG] Component loaded:  Nav @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2106ms] [LOG] Attempting to add a component:  [Input, Dropdown, DropdownOutline, CheckButtons, DateRange, PersonalInfo, SearchNew] @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2111ms] [LOG] break:  332 @ https://one-versus-one.com/js/new/4352.dc133d9b1c9dea62.js:0
+[    2114ms] [LOG] Attempting to add a component:  [Table, Filters, RadarChart, RaceChart, Hero, Comments, ComparePlayers, VotingElement, FollowSystem, IndexScale, FormChart, OtherEntities, HalfCircle, KeyStats, Videos, AllStatsTable, PersonalRankingsTable, SvgShotPitch, BestPlayers, PerformancePerCoachChart, HistoricalStandings, SalaryHistory, KeyPerformanceChart, KPIDashboard, Bottomsheet, SvgPitchMap] @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2119ms] [LOG] Component loaded:  Dropdown @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2119ms] [LOG] Component loaded:  DropdownOutline @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2119ms] [LOG] Component loaded:  PersonalInfo @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2121ms] [LOG] Component loaded:  Input @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2121ms] [LOG] Component loaded:  DateRange @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2137ms] [LOG] Component loaded:  CheckButtons @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2137ms] [LOG] Component loaded:  Filters @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2137ms] [LOG] Component loaded:  FollowSystem @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2138ms] [LOG] Component loaded:  SearchNew @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2138ms] [LOG] Component loaded:  RadarChart @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2139ms] [LOG] Component loaded:  IndexScale @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2141ms] [LOG] Component loaded:  Bottomsheet @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2159ms] [LOG] Component loaded:  Table @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2160ms] [LOG] Component loaded:  HalfCircle @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2162ms] [LOG] CLVR-67730: v2.65.3 @ https://scripts.cleverwebserver.com/3ff0854b97d5114a408ffe770c02fefc.js:0
+[    2162ms] [LOG] CLVR-67730: 67730 @ https://scripts.cleverwebserver.com/3ff0854b97d5114a408ffe770c02fefc.js:0
+[    2162ms] [LOG] CLVR-67730: 2026-05-13 18:06:04 @ https://scripts.cleverwebserver.com/3ff0854b97d5114a408ffe770c02fefc.js:0
+[    2163ms] [LOG] Component loaded:  VotingElement @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2163ms] [LOG] Component loaded:  AllStatsTable @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2190ms] [LOG] Component loaded:  OtherEntities @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2199ms] [LOG] Component loaded:  PersonalRankingsTable @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2199ms] [LOG] Component loaded:  Hero @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2200ms] [LOG] Component loaded:  HistoricalStandings @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2201ms] [LOG] Component loaded:  Videos @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2229ms] [LOG] Component loaded:  RaceChart @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2236ms] [LOG] Component loaded:  Comments @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2245ms] [LOG] Component loaded:  ComparePlayers @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2260ms] [LOG] Component loaded:  FormChart @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2267ms] [LOG] Component loaded:  KeyStats @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2274ms] [LOG] Component loaded:  SvgShotPitch @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2279ms] [LOG] Component loaded:  BestPlayers @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2282ms] [LOG] CLVR-67730: UI Loaded @ https://scripts.cleverwebserver.com/3ff0854b97d5114a408ffe770c02fefc.js:0
+[    2284ms] [WARNING] Tracker ID not found @ https://scripts.cleverwebserver.com/3ff0854b97d5114a408ffe770c02fefc.js:0
+[    2299ms] [LOG] Component loaded:  PerformancePerCoachChart @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2314ms] [LOG] Component loaded:  SalaryHistory @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2323ms] [LOG] Component loaded:  KeyPerformanceChart @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2331ms] [LOG] Component loaded:  KPIDashboard @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[    2338ms] [LOG] Component loaded:  SvgPitchMap @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[ 1573543ms] [WARNING] WebSocket connection to 'wss://ws-eu.pusher.com/app/3b0bd54e057433a217ba?protocol=7&client=js&version=8.5.0&flash=false' failed: WebSocket is closed before the connection is established. @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[ 1575837ms] [WARNING] WebSocket connection to 'wss://ws-eu.pusher.com/app/3b0bd54e057433a217ba?protocol=7&client=js&version=8.5.0&flash=false' failed: WebSocket is closed before the connection is established. @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[10909085ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ https://sockjs-eu.pusher.com/pusher/app/3b0bd54e057433a217ba/152/20a32qvs/xhr_streaming?protocol=7&client=js&version=8.5.0&t=1778706066762&n=1:0
+[125187585ms] [ERROR] WebSocket connection to 'wss://ws-eu.pusher.com/app/3b0bd54e057433a217ba?protocol=7&client=js&version=8.5.0&flash=false' failed: Error during WebSocket handshake: Unexpected response code: 502 @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[125187696ms] [ERROR] WebSocket connection to 'wss://ws-eu.pusher.com/app/3b0bd54e057433a217ba?protocol=7&client=js&version=8.5.0&flash=false' failed: Error during WebSocket handshake: Unexpected response code: 502 @ https://one-versus-one.com/js/new/app.js?id=f3de0903224d98acc86203a96d46fa27:1
+[125972231ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://sockjs-eu.pusher.com/pusher/app/3b0bd54e057433a217ba/800/k70v2vgf/xhr_streaming?protocol=7&client=js&version=8.5.0&t=1778829680812&n=374:0

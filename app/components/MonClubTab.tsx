@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import {
-  Trophy, Heart, ChevronDown, ChevronUp, X, TrendingUp, TrendingDown,
+  Trophy, ChevronDown, ChevronUp, X, TrendingUp, TrendingDown,
   Users, Calendar, Zap, RefreshCw, Shield, MapPin, Target,
   Star, Activity, BarChart2, Save, CheckCircle2, Share2, Globe2, Swords,
 } from "lucide-react";
@@ -342,8 +342,8 @@ function ClubSelector({onSelect}:{onSelect:(c:Club)=>void}) {
     <div>
       <div className="text-center mb-6">
         <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-3"
-          style={{background:"rgba(248,113,113,0.1)",border:"1px solid rgba(248,113,113,0.2)"}}>
-          <Heart size={26} style={{color:"#f87171"}}/>
+          style={{background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.2)"}}>
+          <Shield size={26} style={{color:"#60a5fa"}}/>
         </div>
         <h2 className="text-xl font-black mb-1" style={{color:"#e8edf5"}}>Choisissez votre club de cœur</h2>
         <p className="text-xs" style={{color:"#6b7c96"}}>Aperçu · Effectif · Résultats · Prédictions AI · Ma Compo</p>

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { RefreshCw, TrendingUp, TrendingDown, Minus, Trophy, Wifi, WifiOff, Clock, Zap, BarChart2, Heart, Globe, Settings, Target, ArrowLeftRight, ChevronRight, Users, Lock, LogIn, LogOut } from "lucide-react";
+import { RefreshCw, TrendingUp, TrendingDown, Minus, Trophy, Wifi, WifiOff, Clock, Zap, BarChart2, Shield, Activity, Globe, Settings, Target, ArrowLeftRight, ChevronRight, Users, Lock, LogIn, LogOut } from "lucide-react";
 import dynamic from "next/dynamic";
 const TeamPanel = dynamic(() => import("./components/TeamPanel"), { ssr: false });
 import { TipText } from "./components/Tooltip";
@@ -394,10 +394,10 @@ const L1_SUBTABS: { id: L1SubTab; label: string; icon: React.ReactNode }[] = [
 const TABS: { id: TabId; label: string; icon: React.ReactNode; shortLabel?: string }[] = [
   { id: "ligue1",      label: "Ligue 1",            icon: <Trophy size={14} />,          shortLabel: "L1" },
   { id: "worldcup",    label: "Coupe du Monde",      icon: <Globe size={14} />,           shortLabel: "CdM" },
-  { id: "monclub",     label: "Mon Club",            icon: <Heart size={14} />,           shortLabel: "❤️ Club" },
+  { id: "monclub",     label: "Mon Club",            icon: <Shield size={14} />,          shortLabel: "Mon Club" },
   { id: "predictions", label: "AI FootPredictom",   icon: <Zap size={14} />,             shortLabel: "AI Foot" },
   { id: "results",     label: "Résultats",           icon: <Target size={14} /> },
-  { id: "emotional",   label: "Facteur additionnel", icon: <Heart size={14} />,           shortLabel: "Fact. add." },
+  { id: "emotional",   label: "Facteur additionnel", icon: <Activity size={14} />,        shortLabel: "Fact. add." },
   { id: "config",      label: "Configuration",       icon: <Settings size={14} />,        shortLabel: "Config" },
 ];
 
@@ -643,7 +643,7 @@ export default function Home() {
         {tab === "monclub" && <MonClubTab />}
         {tab === "predictions" && (user ? <PredictionsTab /> : <AuthGate label="AI FootPredictom" icon={<Zap size={16} className="inline" style={{ color: "#3b82f6" }} />} />)}
         {tab === "results" && <ResultsTab />}
-        {tab === "emotional" && (user ? <EmotionalScoreTab /> : <AuthGate label="Facteur additionnel" icon={<Heart size={16} className="inline" style={{ color: "#a78bfa" }} />} />)}
+        {tab === "emotional" && (user ? <EmotionalScoreTab /> : <AuthGate label="Facteur additionnel" icon={<Activity size={16} className="inline" style={{ color: "#a78bfa" }} />} />)}
         {tab === "config" && <ConfigTab />}
 
         {/* Footer */}

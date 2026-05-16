@@ -30,8 +30,10 @@ async function fetchRSS(url: string): Promise<NewsItem[]> {
       const titleMatch = block.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/) ??
                          block.match(/<title>([\s\S]*?)<\/title>/);
       const dateMatch  = block.match(/<pubDate>([\s\S]*?)<\/pubDate>/);
-      const linkMatch  = block.match(/<link>([\s\S]*?)<\/link>/) ??
-                         block.match(/<link\s+href="([^"]+)"/);
+      // Google News RSS: <link> sits between </guid> and <pubDate>, may be empty tag variant
+      const linkMatch  = block.match(/<link>([^<]+)<\/link>/) ??
+                         block.match(/<link\s+href="([^"]+)"/) ??
+                         block.match(/<guid[^>]*>([^<]+)<\/guid>/);  // fallback: guid IS the url
       const descMatch  = block.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/) ??
                          block.match(/<description>([\s\S]*?)<\/description>/);
       if (!titleMatch?.[1]) continue;
@@ -65,13 +67,13 @@ async function fetchRSS(url: string): Promise<NewsItem[]> {
 const GN_BASE = "https://news.google.com/rss/search?hl=fr&gl=FR&ceid=FR:fr&q=";
 
 const QUERIES: Record<string, string> = {
-  l1:      "ligue+1+football+mercato+OR+résultat+OR+transfert",
-  mondial: "coupe+du+monde+2026+FIFA+OR+équipe+france+mondial",
+  l1:      "ligue+1+football+OR+mercato+OR+transfert+OR+match",
+  mondial: "coupe+du+monde+2026+FIFA+OR+france+mondial+football",
 };
 
 function clubQuery(clubName: string) {
-  // encode club name for URL
-  return encodeURIComponent(clubName) + "+ligue+1";
+  // Use encodeURIComponent for the full query to handle accents/special chars
+  return encodeURIComponent(clubName + " football ligue 1");
 }
 
 /* ─── Handler ────────────────────────────────────────────────── */

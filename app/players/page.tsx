@@ -333,7 +333,6 @@ export default function PlayersPage() {
           <div className="mt-8 pt-4 flex flex-wrap gap-x-4 gap-y-1 text-[10px]"
             style={{ borderTop: "1px solid #1e2d42", color: "#4b5a72" }}>
             <span>Sources : <span style={{ color: "#6b7c96" }}>Datamb.football</span> (per 90 · +140 stats)</span>
-            <span>· <span style={{ color: "#6b7c96" }}>Understat</span> (totaux saison)</span>
             <span>· <span style={{ color: "#6b7c96" }}>Football-Data.org</span> (effectif)</span>
             <span>· <span style={{ color: "#6b7c96" }}>Wikidata/Commons</span> (photos publiques)</span>
             <span className="ml-auto">{loadedCount}/{TEAM_IDS.length} clubs</span>

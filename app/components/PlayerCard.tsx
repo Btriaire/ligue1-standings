@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  ChevronDown, ChevronUp, AlertTriangle, ExternalLink, Camera,
+  ChevronDown, ChevronUp, AlertTriangle, Camera,
 } from "lucide-react";
 import Tooltip, { GLOSSARY } from "./Tooltip";
 
@@ -308,9 +308,9 @@ export function PlayerDetail({ p }: { p: PlayerEntry }) {
           {p.contract && <span style={{ color: "#94a3b8" }}><span style={{ color: "#6b7c96" }}>Contrat → </span>{p.contract}</span>}
         </div>
 
-        {/* Understat saison */}
+        {/* Stats saison */}
         {hasUnderstat && (
-          <StatSection title={`Understat — Saison · ${p.games} matchs · ${p.minutes} min`}>
+          <StatSection title={`Statistiques saison · ${p.games} matchs · ${p.minutes} min`}>
             <StatBox label="Buts"      value={p.usGoals ?? 0}                           color="#f59e0b" />
             <StatBox label="Passes D." value={p.usAssists ?? 0}                         color="#00d4ff" />
             <StatBox label="xG"        value={(p.xG ?? 0).toFixed(1)}                   color="#22c55e" />
@@ -472,17 +472,6 @@ export function PlayerDetail({ p }: { p: PlayerEntry }) {
             {p.club.crest && <img src={p.club.crest} alt="" className="w-3.5 h-3.5 object-contain" />} {/* eslint-disable-line @next/next/no-img-element */}
             Voir {p.club.shortName ?? p.club.name ?? "Club"}
           </Link>
-          <a href={`https://understat.com/player/${p.id}`} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-1 text-[10px] px-2.5 py-1.5 rounded-lg hover:opacity-80 transition-all"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#6b7c96" }}>
-            Understat <ExternalLink size={8} />
-          </a>
-          <a href={`https://www.wikidata.org/w/index.php?search=${encodeURIComponent(`${p.name} ${p.club.shortName ?? p.club.name ?? ""} footballer`)}`}
-            target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-1 text-[10px] px-2.5 py-1.5 rounded-lg hover:opacity-80 transition-all"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#6b7c96" }}>
-            Photo/Wikidata <ExternalLink size={8} />
-          </a>
         </div>
       </div>
     </div>

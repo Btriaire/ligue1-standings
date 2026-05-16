@@ -813,7 +813,7 @@ export default function EmotionalScoreTab() {
           <div className="text-center py-6">
             <Heart size={24} className="text-pink-400 mx-auto mb-3 animate-pulse" />
             <p className="text-sm font-medium" style={{ color: "#e8edf5" }}>Analyse en cours…</p>
-            <p className="text-xs mt-1" style={{ color: "#6b7c96" }}>Collecte : RMC, Figaro, Google News, Transfermarkt</p>
+            <p className="text-xs mt-1" style={{ color: "#6b7c96" }}>Collecte : RMC, Figaro, Google News</p>
           </div>
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="h-20 rounded-2xl animate-pulse" style={{ background: "#0d1421", border: "1px solid #1e2d42" }} />

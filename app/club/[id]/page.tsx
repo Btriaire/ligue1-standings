@@ -661,14 +661,6 @@ function PlayerModal({ player, onClose }: { player: SquadPlayer; onClose: () => 
             <p className="text-xs py-2" style={{ color: "#6b7c96" }}>Statistiques non disponibles.</p>
           )}
 
-          {/* Footer link */}
-          <div className="pt-2">
-            <a href={tmUrl} target="_blank" rel="noopener noreferrer"
-              className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold hover:opacity-80 transition-all"
-              style={{ background: "rgba(0,212,255,0.07)", border: "1px solid rgba(0,212,255,0.18)", color: "#00d4ff" }}>
-              <ExternalLink size={12} /> Voir sur Transfermarkt
-            </a>
-          </div>
         </div>
       </div>
     </div>
@@ -1478,10 +1470,6 @@ export default function ClubPage() {
           {squadStats.playerCount === 0 ? (
             <div className="py-6 text-center">
               <p className="text-xs" style={{ color: "#6b7c96" }}>Données joueurs indisponibles.</p>
-              <a href="https://www.transfermarkt.fr/" target="_blank" rel="noopener noreferrer"
-                className="text-xs mt-1 inline-flex items-center gap-1 hover:opacity-70" style={{ color: "#00d4ff" }}>
-                Voir sur Transfermarkt <ExternalLink size={10} />
-              </a>
             </div>
           ) : (
             <div>
@@ -1628,7 +1616,7 @@ export default function ClubPage() {
             <ArrowLeft size={12} />Foot Predictom
           </Link>
           <p className="text-[10px]" style={{ color: "#6b7c96" }}>
-            Sources : football-data.org · Transfermarkt · L&apos;Équipe
+            Sources : football-data.org · Datamb · L&apos;Équipe
           </p>
         </div>
       </div>
