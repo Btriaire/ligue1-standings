@@ -1,6 +1,10 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
+import dynamic from "next/dynamic";
+
+// Lazy-load modal to keep banner bundle small
+const NewsModal = dynamic(() => import("./NewsModal"), { ssr: false });
 
 interface Standing {
   position: number;
@@ -10,10 +14,11 @@ interface Standing {
   points: number; goalsFor: number; goalsAgainst: number;
   goalDifference: number; form: string;
 }
-interface NewsItem { title: string; pubDate: string }
-type Col = { label: string; color: string; items: string[]; loaded: boolean };
+interface NewsItem { title: string; pubDate: string; url: string; description?: string }
+interface SelectedNews { title: string; url: string; pubDate: string }
+type Col = { label: string; color: string; items: NewsItem[]; loaded: boolean };
 
-/* ─── Club meta (shortName + color for header) ──────────────── */
+/* ─── Club meta ─────────────────────────────────────────────── */
 const CLUB_META: Record<number, { shortName: string; color: string; searchName: string }> = {
   524:  { shortName: "PSG",        color: "#0050a0", searchName: "Paris Saint-Germain" },
   548:  { shortName: "Monaco",     color: "#e10600", searchName: "AS Monaco"           },
@@ -35,15 +40,17 @@ const CLUB_META: Record<number, { shortName: string; color: string; searchName: 
   1045: { shortName: "Paris FC",   color: "#003090", searchName: "Paris FC"            },
 };
 
-/* ─── Rotating column ───────────────────────────────────────── */
+/* ─── Rotating column ────────────────────────────────────────── */
 function NewsColumn({
-  title, color, items, loaded,
-}: { title: string; color: string; items: string[]; loaded: boolean }) {
+  title, color, items, loaded, onSelect,
+}: {
+  title: string; color: string; items: NewsItem[]; loaded: boolean;
+  onSelect: (item: NewsItem) => void;
+}) {
   const [idx, setIdx] = useState(0);
   const [visible, setVisible] = useState(true);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Reset when items change
   useEffect(() => { setIdx(0); setVisible(true); }, [items]);
 
   useEffect(() => {
@@ -55,7 +62,7 @@ function NewsColumn({
     return () => { if (timer.current) clearInterval(timer.current); };
   }, [items.length]);
 
-  const text = items[idx] ?? "Chargement…";
+  const item = items[idx];
   const dots = Math.min(items.length, 6);
 
   return (
@@ -74,12 +81,21 @@ function NewsColumn({
           </div>
         )}
       </div>
-      {/* Text */}
-      <p className="text-[11px] font-medium leading-snug line-clamp-2"
-        style={{ color: loaded ? "#c8d4e0" : "#6b7c96",
-          opacity: visible ? 1 : 0, transition: "opacity 0.35s ease", minHeight: 30 }}>
-        {!loaded ? "Chargement des actualités…" : text}
-      </p>
+
+      {/* News text — clickable */}
+      <button
+        onClick={() => item?.url && onSelect(item)}
+        className="text-left group"
+        style={{ opacity: visible ? 1 : 0, transition: "opacity 0.35s ease", minHeight: 30,
+          cursor: item?.url ? "pointer" : "default" }}
+        disabled={!loaded || !item?.url}
+      >
+        <p className="text-[11px] font-medium leading-snug line-clamp-2 group-hover:underline decoration-dotted underline-offset-2"
+          style={{ color: loaded ? "#c8d4e0" : "#6b7c96",
+            textDecorationColor: color }}>
+          {!loaded ? "Chargement des actualités…" : (item?.title ?? "")}
+        </p>
+      </button>
     </div>
   );
 }
@@ -92,6 +108,7 @@ export default function NewsBanner({ standings }: { standings: Standing[] }) {
     { label: "Mondial 2026", color: "#f59e0b", items: [], loaded: false },
     { label: "Mon Club",     color: "#a78bfa", items: [], loaded: false },
   ]);
+  const [selected, setSelected] = useState<SelectedNews | null>(null);
 
   // Read club from localStorage
   useEffect(() => {
@@ -109,11 +126,9 @@ export default function NewsBanner({ standings }: { standings: Standing[] }) {
     fetch("/api/news?topic=l1")
       .then(r => r.json())
       .then(({ items }: { items: NewsItem[] }) => {
-        const titles = items.map(i => i.title).filter(Boolean);
-        if (!titles.length) return;
-        setCols(prev => prev.map((c, i) => i === 0 ? { ...c, items: titles, loaded: true } : c));
-      })
-      .catch(() => {});
+        if (!items?.length) return;
+        setCols(prev => prev.map((c, i) => i === 0 ? { ...c, items, loaded: true } : c));
+      }).catch(() => {});
   }, []);
 
   // Fetch Mondial news
@@ -121,63 +136,79 @@ export default function NewsBanner({ standings }: { standings: Standing[] }) {
     fetch("/api/news?topic=mondial")
       .then(r => r.json())
       .then(({ items }: { items: NewsItem[] }) => {
-        const titles = items.map(i => i.title).filter(Boolean);
-        if (!titles.length) return;
-        setCols(prev => prev.map((c, i) => i === 1 ? { ...c, items: titles, loaded: true } : c));
-      })
-      .catch(() => {});
+        if (!items?.length) return;
+        setCols(prev => prev.map((c, i) => i === 1 ? { ...c, items, loaded: true } : c));
+      }).catch(() => {});
   }, []);
 
-  // Fetch club news whenever monClubId changes
+  // Fetch club news
   useEffect(() => {
     const meta = monClubId ? CLUB_META[monClubId] : null;
-
-    // Update column label + color immediately
     setCols(prev => prev.map((c, i) => i === 2
-      ? { ...c,
-          label: meta ? `❤️ ${meta.shortName}` : "Mon Club",
-          color: meta?.color ?? "#a78bfa",
-          items: [], loaded: false }
+      ? { ...c, label: meta ? `❤️ ${meta.shortName}` : "Mon Club",
+          color: meta?.color ?? "#a78bfa", items: [], loaded: false }
       : c));
 
     if (!meta) {
-      // No club selected — generate a few items from standings
-      const fallback = standings.length
-        ? [
-            "Sélectionne ton club dans l'onglet Mon Club pour ses actus",
-            standings[0] ? `Leader : ${standings[0].team.shortName} · ${standings[0].points} pts` : "",
-            standings.slice(-3).map(s => s.team.shortName).join(" · ") + " en zone de relégation",
-          ].filter(Boolean)
-        : ["Sélectionne ton club dans l'onglet Mon Club pour ses actus"];
-      setCols(prev => prev.map((c, i) => i === 2 ? { ...c, items: fallback, loaded: true } : c));
+      const fallbackItem: NewsItem = {
+        title: "Sélectionne ton club dans l'onglet Mon Club pour ses actus",
+        pubDate: new Date().toISOString(),
+        url: "",
+      };
+      if (standings[0]) {
+        const leader: NewsItem = {
+          title: `Leader : ${standings[0].team.shortName} · ${standings[0].points} pts`,
+          pubDate: new Date().toISOString(),
+          url: "",
+        };
+        setCols(prev => prev.map((c, i) => i === 2 ? { ...c, items: [fallbackItem, leader], loaded: true } : c));
+      } else {
+        setCols(prev => prev.map((c, i) => i === 2 ? { ...c, items: [fallbackItem], loaded: true } : c));
+      }
       return;
     }
 
     fetch(`/api/news?topic=club&club=${encodeURIComponent(meta.searchName)}`)
       .then(r => r.json())
       .then(({ items }: { items: NewsItem[] }) => {
-        const titles = items.map(i => i.title).filter(Boolean);
-        if (!titles.length) return;
-        setCols(prev => prev.map((c, i) => i === 2 ? { ...c, items: titles, loaded: true } : c));
-      })
-      .catch(() => {});
+        if (!items?.length) return;
+        setCols(prev => prev.map((c, i) => i === 2 ? { ...c, items, loaded: true } : c));
+      }).catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monClubId, standings.length]);
 
-  const div = <div className="hidden sm:block flex-shrink-0" style={{ width: 1, background: "#1e2d42" }} />;
+  const handleSelect = (item: NewsItem) => {
+    setSelected({ title: item.title, url: item.url, pubDate: item.pubDate });
+  };
+
+  const div = (
+    <div className="hidden sm:block flex-shrink-0" style={{ width: 1, background: "#1e2d42" }} />
+  );
 
   return (
-    <div style={{ borderBottom: "1px solid #1e2d42", background: "#090e1a" }}>
-      <div className="max-w-[1300px] mx-auto">
-        <div className="flex" style={{ minHeight: 56 }}>
-          <NewsColumn {...cols[0]} title={cols[0].label} />
-          {div}
-          <NewsColumn {...cols[1]} title={cols[1].label} />
-          <div className="hidden md:flex flex-1 min-w-0" style={{ borderLeft: "1px solid #1e2d42" }}>
-            <NewsColumn {...cols[2]} title={cols[2].label} />
+    <>
+      <div style={{ borderBottom: "1px solid #1e2d42", background: "#090e1a" }}>
+        <div className="max-w-[1300px] mx-auto">
+          <div className="flex" style={{ minHeight: 56 }}>
+            <NewsColumn {...cols[0]} title={cols[0].label} onSelect={handleSelect} />
+            {div}
+            <NewsColumn {...cols[1]} title={cols[1].label} onSelect={handleSelect} />
+            <div className="hidden md:flex flex-1 min-w-0" style={{ borderLeft: "1px solid #1e2d42" }}>
+              <NewsColumn {...cols[2]} title={cols[2].label} onSelect={handleSelect} />
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Modal — mounts outside banner so scroll restore works correctly */}
+      {selected && (
+        <NewsModal
+          title={selected.title}
+          url={selected.url}
+          pubDate={selected.pubDate}
+          onClose={() => setSelected(null)}
+        />
+      )}
+    </>
   );
 }
