@@ -140,7 +140,10 @@ interface SquadPlayer {
   dm_savePct?:number; dm_gcPer90?:number; dm_cleanSheets?:number;
   dm_shots90?:number; dm_keyPasses90?:number; dm_minutes?:number;
   formBadge?:"hot"|"good"|"neutral"|"cold"; foot?:string; contract?:string;
+  status?:string;
 }
+const isUnavailable = (p:SquadPlayer) =>
+  !!p.status && /injur|suspen|bless/i.test(p.status);
 interface RecentResult {
   id:number; date:string;
   homeTeam:{ name:string; shortName:string; tla:string; crest:string };
@@ -440,6 +443,23 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
   };
 
   const clearCompo = () => { setPlayers11(Array(11).fill(null)); setSelSlot(null); };
+
+  const randomCompo = () => {
+    // Only pick players who are fit (no injury/suspension status)
+    const pool = squad.filter(p => !isUnavailable(p));
+    // Shuffle (Fisher-Yates)
+    const shuffled = [...pool];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    // Fill 11 slots
+    const arr: (string|null)[] = Array(11).fill(null);
+    for (let i = 0; i < 11 && i < shuffled.length; i++) arr[i] = shuffled[i].name;
+    setPlayers11(arr);
+    setSelSlot(null);
+    setCompoSaved(false);
+  };
   const changeFormation = (f:FKey) => { setFormation(f); setPlayers11(Array(11).fill(null)); setSelSlot(null); };
   const assignPlayer = (idx:number, name:string) => {
     const arr=[...players11].map(p=>p===name?null:p);
@@ -979,6 +999,11 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
               const name=players11[selSlot];
               const used=new Set(players11.filter((p,i)=>p!==null&&i!==selSlot));
               const available=squad.filter(p=>!used.has(p.name));
+              // Fit players first, then unavailable (greyed)
+              const sorted=[
+                ...available.filter(p=>!isUnavailable(p)).sort((a,b)=>((b.xG??0)+(b.xA??0))-((a.xG??0)+(a.xA??0))),
+                ...available.filter(p=>isUnavailable(p)),
+              ];
               return (
                 <div className="rounded-xl overflow-hidden" style={{border:`1px solid ${club.color}55`,background:"#0d1421"}}>
                   <div className="flex items-center justify-between px-3 py-2" style={{background:"#0a0f1c",borderBottom:"1px solid #1e2d42"}}>
@@ -987,20 +1012,27 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                     </span>
                     <button onClick={()=>setSelSlot(null)} className="hover:opacity-70" style={{color:"#6b7c96"}}><X size={12}/></button>
                   </div>
-                  <div style={{maxHeight:200,overflowY:"auto"}}>
-                    {available.length===0
+                  <div style={{maxHeight:220,overflowY:"auto"}}>
+                    {sorted.length===0
                       ?<p className="px-3 py-3 text-[11px]" style={{color:"#6b7c96"}}>Tous les joueurs sont placés</p>
-                      :available.sort((a,b)=>((b.xG??0)+(b.xA??0))-((a.xG??0)+(a.xA??0))).map(p=>(
-                        <button key={p.id} onClick={()=>assignPlayer(selSlot,p.name)}
-                          className="w-full text-left flex items-center gap-2 px-3 py-2 hover:bg-white/[0.06] transition-colors"
-                          style={{borderTop:"1px solid rgba(30,45,66,0.35)"}}>
-                          <span className="text-[8px] font-black px-1 py-0.5 rounded flex-shrink-0"
-                            style={{background:`${POS_COLOR[p.position]??club.color}22`,color:POS_COLOR[p.position]??club.color}}>{POS_CODE[p.position]??"?"}</span>
-                          {p.formBadge==="hot"&&<span className="text-[10px]">🔥</span>}
-                          <span className="flex-1 text-sm font-semibold truncate" style={{color:"#e8edf5"}}>{p.name}</span>
-                          {(p.usGoals??0)>0&&<span className="text-[9px] font-black flex-shrink-0" style={{color:"#22c55e"}}>{p.usGoals}B</span>}
-                        </button>
-                      ))}
+                      :sorted.map(p=>{
+                        const unavail=isUnavailable(p);
+                        return (
+                          <button key={p.id} onClick={()=>assignPlayer(selSlot,p.name)}
+                            className="w-full text-left flex items-center gap-2 px-3 py-2 hover:bg-white/[0.06] transition-colors"
+                            style={{borderTop:"1px solid rgba(30,45,66,0.35)",opacity:unavail?0.45:1}}>
+                            <span className="text-[8px] font-black px-1 py-0.5 rounded flex-shrink-0"
+                              style={{background:`${POS_COLOR[p.position]??club.color}22`,color:POS_COLOR[p.position]??club.color}}>{POS_CODE[p.position]??"?"}</span>
+                            {unavail
+                              ?<span className="text-[10px]" title={p.status}>🚫</span>
+                              :p.formBadge==="hot"?<span className="text-[10px]">🔥</span>:null}
+                            <span className="flex-1 text-sm font-semibold truncate" style={{color:unavail?"#6b7c96":"#e8edf5"}}>{p.name}</span>
+                            {unavail
+                              ?<span className="text-[8px] flex-shrink-0" style={{color:"#f87171"}}>Indispo</span>
+                              :(p.usGoals??0)>0?<span className="text-[9px] font-black flex-shrink-0" style={{color:"#22c55e"}}>{p.usGoals}B</span>:null}
+                          </button>
+                        );
+                      })}
                     {name&&(
                       <button onClick={()=>{const a=[...players11];a[selSlot]=null;setPlayers11(a);setSelSlot(null);}}
                         className="w-full text-left flex items-center gap-2 px-3 py-2 hover:bg-white/[0.04]"
@@ -1014,8 +1046,14 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
             })()}
 
             {/* Actions bar */}
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-2 items-center flex-wrap">
               <span className="text-xs font-semibold" style={{color:"#6b7c96"}}>{filledCount}/11</span>
+              {/* RANDOM button */}
+              <button onClick={randomCompo} disabled={squad.filter(p=>!isUnavailable(p)).length<11}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black hover:opacity-80 disabled:opacity-40"
+                style={{background:"rgba(168,85,247,0.12)",border:"1px solid rgba(168,85,247,0.35)",color:"#a855f7"}}>
+                🎲 Random
+              </button>
               <div className="flex-1"/>
               <button onClick={clearCompo} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-80"
                 style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",color:"#f87171"}}>
