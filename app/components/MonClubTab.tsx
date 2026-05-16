@@ -445,17 +445,24 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
   const clearCompo = () => { setPlayers11(Array(11).fill(null)); setSelSlot(null); };
 
   const randomCompo = () => {
-    // Only pick players who are fit (no injury/suspension status)
-    const pool = squad.filter(p => !isUnavailable(p));
+    // Keep already-placed players, only fill empty slots
+    const arr = [...players11];
+    const alreadyUsed = new Set(arr.filter(Boolean) as string[]);
+    const emptySlots = arr.map((v, i) => v === null ? i : -1).filter(i => i >= 0);
+    if (emptySlots.length === 0) return; // nothing to fill
+
+    // Pool: fit players not already on the pitch
+    const pool = squad.filter(p => !isUnavailable(p) && !alreadyUsed.has(p.name));
     // Shuffle (Fisher-Yates)
     const shuffled = [...pool];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-    // Fill 11 slots
-    const arr: (string|null)[] = Array(11).fill(null);
-    for (let i = 0; i < 11 && i < shuffled.length; i++) arr[i] = shuffled[i].name;
+    // Fill only empty slots
+    emptySlots.forEach((slotIdx, pick) => {
+      if (shuffled[pick]) arr[slotIdx] = shuffled[pick].name;
+    });
     setPlayers11(arr);
     setSelSlot(null);
     setCompoSaved(false);
