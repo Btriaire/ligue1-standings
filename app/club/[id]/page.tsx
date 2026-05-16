@@ -490,7 +490,6 @@ function PlayerModal({ player, onClose }: { player: SquadPlayer; onClose: () => 
   const isMid = player.position === "Midfielder";
   const isWing = player.position === "Winger";
   const isFwd = player.position === "Centre-Forward";
-  const tmUrl = `https://www.transfermarkt.fr/profil/spieler/${player.id}`;
   const hasUnderstat = (player.games ?? 0) > 0;
   const hasDatamb = (player.dm_minutes ?? 0) > 0 || (player.dm_xg90 ?? 0) > 0 || (player.dm_savePct ?? 0) > 0;
   const dmCtx = hasDatamb ? `${player.dm_matches ?? "?"} matchs · ${player.dm_minutes ?? player.minutes ?? "?"} min` : "";
@@ -1615,9 +1614,6 @@ export default function ClubPage() {
             style={{ background: "rgba(0,212,255,0.07)", border: "1px solid rgba(0,212,255,0.18)", color: "#00d4ff" }}>
             <ArrowLeft size={12} />Foot Predictom
           </Link>
-          <p className="text-[10px]" style={{ color: "#6b7c96" }}>
-            Sources : football-data.org · Datamb · L&apos;Équipe
-          </p>
         </div>
       </div>
     </main>

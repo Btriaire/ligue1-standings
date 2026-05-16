@@ -651,7 +651,7 @@ export default function Home() {
           <div className="flex items-center gap-1.5">
             {error
               ? <><WifiOff size={11} className="text-red-400" /><span className="text-red-400 ml-1">Hors ligne</span></>
-              : <><Wifi size={11} /><span className="ml-1">Source : football-data.org · Transfermarkt · The Odds API</span></>
+              : <><Wifi size={11} /><span className="ml-1">Données en direct · Ligue 1</span></>
             }
           </div>
           {data?.season && <span>Saison {data.season}</span>}

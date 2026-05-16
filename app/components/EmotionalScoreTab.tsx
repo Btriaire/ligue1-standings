@@ -192,7 +192,7 @@ function Methodology({ sources }: { sources: EmotionalData["sources"] }) {
         <div className="flex-1 text-left">
           <p className="text-sm font-bold" style={{ color: "#e8edf5" }}>Comment est calculé le Facteur additionnel ?</p>
           <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>
-            {sources.media.join(" · ")} · Buzz Supporters · Transfermarkt · Données économiques publiques
+            {sources.media.join(" · ")} · Buzz Supporters · Données économiques publiques
           </p>
         </div>
         <ChevronDown size={15} style={{ color: "#6b7c96" }} className={`flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />

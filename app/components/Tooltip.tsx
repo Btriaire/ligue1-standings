@@ -122,7 +122,7 @@ export const GLOSSARY: Record<string, string> = {
 
   // Méta
   "Forme":        "Score de forme sur 100 — calculé d'après xG, xA et résultats récents",
-  "Valeur":       "Valeur marchande estimée (Transfermarkt)",
+  "Valeur":       "Valeur marchande estimée du joueur",
   "min/match":    "Minutes jouées en moyenne par match",
 };
 
