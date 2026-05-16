@@ -13,7 +13,7 @@ interface Standing {
   points: number; goalsFor: number; goalsAgainst: number;
   goalDifference: number; form: string;
 }
-interface NewsItem { title: string; pubDate: string; url: string; source?: string }
+interface NewsItem { title: string; pubDate: string; url: string }
 interface SelectedNews { title: string; url: string; pubDate: string }
 type Col = { label: string; color: string; items: NewsItem[]; loaded: boolean };
 
@@ -78,15 +78,15 @@ function NewsColumn({ title, color, items, loaded, onSelect }: {
   const dots = Math.min(items.length, 6);
 
   return (
-    <div className="flex-1 min-w-0 flex flex-col justify-center gap-1 px-3 py-2.5">
+    <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5 px-3 py-1.5">
       <div className="flex items-center gap-1.5">
-        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: color }} />
-        <span className="text-[9px] font-black uppercase tracking-widest" style={{ color }}>{title}</span>
+        <span className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: color }} />
+        <span className="text-[8px] font-black uppercase tracking-widest" style={{ color }}>{title}</span>
         {loaded && items.length > 1 && (
           <div className="flex gap-0.5 ml-auto">
             {Array.from({ length: dots }).map((_, i) => (
               <span key={i} className="rounded-full transition-all duration-300"
-                style={{ width: i === idx % dots ? 10 : 4, height: 4,
+                style={{ width: i === idx % dots ? 8 : 3, height: 3,
                   background: i === idx % dots ? color : "rgba(255,255,255,0.15)" }} />
             ))}
           </div>
@@ -96,19 +96,14 @@ function NewsColumn({ title, color, items, loaded, onSelect }: {
       <button
         onClick={() => item?.url && onSelect(item)}
         className="text-left group"
-        style={{ opacity: visible ? 1 : 0, transition: "opacity 0.35s ease", minHeight: 32,
+        style={{ opacity: visible ? 1 : 0, transition: "opacity 0.35s ease",
           cursor: item?.url ? "pointer" : "default" }}
         disabled={!loaded || !item?.url}
       >
-        <p className="text-[11px] font-medium leading-snug line-clamp-2 group-hover:underline decoration-dotted underline-offset-2"
+        <p className="text-[10px] font-medium leading-snug line-clamp-2 group-hover:underline decoration-dotted underline-offset-2"
           style={{ color: loaded ? "#c8d4e0" : "#6b7c96", textDecorationColor: color }}>
           {!loaded ? "Chargement…" : (item?.title ?? "")}
         </p>
-        {loaded && item?.source && (
-          <p className="text-[9px] mt-0.5 truncate" style={{ color: "#475569" }}>
-            {item.source}
-          </p>
-        )}
       </button>
     </div>
   );
@@ -181,7 +176,7 @@ export default function NewsBanner({ standings }: { standings: Standing[] }) {
     <>
       <div style={{ borderBottom: "1px solid #1e2d42", background: "#090e1a" }}>
         <div className="max-w-[1300px] mx-auto">
-          <div className="flex" style={{ minHeight: 64 }}>
+          <div className="flex" style={{ minHeight: 44 }}>
             <NewsColumn {...cols[0]} title={cols[0].label} onSelect={handleSelect} />
             {div}
             <NewsColumn {...cols[1]} title={cols[1].label} onSelect={handleSelect} />
