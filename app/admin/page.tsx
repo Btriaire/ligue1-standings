@@ -120,7 +120,10 @@ export default function AdminPage() {
 
   // Check admin session
   useEffect(() => {
-    fetch("/api/admin/auth").then(r => r.json()).then(d => setAuthed(d.admin));
+    fetch("/api/admin/auth")
+      .then(r => r.ok ? r.json() : { admin: false })
+      .then(d => setAuthed(d.admin === true))
+      .catch(() => setAuthed(false));
   }, []);
 
   const loadStatus = useCallback(async () => {
