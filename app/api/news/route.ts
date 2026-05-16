@@ -1,128 +1,129 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// No ISR cache — let the HTTP Cache-Control header handle caching
 export const dynamic = "force-dynamic";
 
 export interface NewsItem {
   title: string;
-  pubDate: string; // ISO
-  url: string;     // article URL (Google redirect or direct)
-  source?: string; // news outlet name
-  description?: string; // related context if available
+  pubDate: string;
+  url: string;
+  source?: string;
+  description?: string;
 }
 
-/* ─── Decode HTML entities ───────────────────────────────────── */
-function decodeEntities(s: string): string {
+/* ─── HTML entity decoder ────────────────────────────────────── */
+function de(s: string): string {
   return s
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/g, "'")
     .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)));
 }
 
-/* ─── Extract text content of a tag (CDATA or plain) ─────────── */
-function extractText(tag: string, xml: string): string {
-  // CDATA variant: <tag><![CDATA[...]]></tag>
-  const cdataRe = new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>`, "i");
-  const cdata = xml.match(cdataRe);
-  if (cdata?.[1]) return decodeEntities(cdata[1].trim());
-  // Plain text variant: <tag>text here</tag>  (content may include &amp; entities)
-  const plainRe = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i");
-  const plain = xml.match(plainRe);
-  if (plain?.[1]) return decodeEntities(plain[1].trim());
-  return "";
-}
+/* ─── Parse raw RSS XML string → NewsItem[] ─────────────────── */
+function parseRSS(xml: string): NewsItem[] {
+  const items: NewsItem[] = [];
+  let pos = 0;
 
-/* ─── RSS fetcher + parser ───────────────────────────────────── */
-async function fetchRSS(url: string): Promise<NewsItem[]> {
-  try {
-    const res = await fetch(url, {
-      cache: "no-store",
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; FootInsider/1.0)",
-        "Accept": "application/rss+xml, application/xml, text/xml, */*",
-      },
-    });
-    if (!res.ok) return [];
-    const xml = await res.text();
+  while (items.length < 10) {
+    const s = xml.indexOf("<item>", pos);
+    if (s === -1) break;
+    const e = xml.indexOf("</item>", s);
+    if (e === -1) break;
+    const b = xml.slice(s, e + 7);
+    pos = e + 7;
 
-    const items: NewsItem[] = [];
-    let pos = 0;
+    // Title: try CDATA first, then plain text
+    const titleCdata = b.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/);
+    const titlePlain = b.match(/<title>([\s\S]*?)<\/title>/);
+    const rawTitle = de((titleCdata?.[1] ?? titlePlain?.[1] ?? "").trim());
+    if (!rawTitle || rawTitle.length < 8) continue;
 
-    while (pos < xml.length) {
-      const start = xml.indexOf("<item>", pos);
-      if (start === -1) break;
-      const end = xml.indexOf("</item>", start);
-      if (end === -1) break;
-      const block = xml.slice(start, end + 7);
-      pos = end + 7;
+    // Strip " - Source Name" suffix Google News appends
+    const title = rawTitle.replace(/\s[-–]\s[^-–]{2,50}$/, "").trim();
+    if (/comprehensive.*news|aggregated from sources|google news/i.test(title)) continue;
 
-      // ── Title ─────────────────────────────────────────────────
-      const rawTitle = extractText("title", block);
-      if (!rawTitle || rawTitle.length < 8) continue;
+    // Date
+    const dateM = b.match(/<pubDate>([\s\S]*?)<\/pubDate>/);
+    const pubDate = dateM ? new Date(de(dateM[1])).toISOString() : new Date().toISOString();
 
-      // Strip " - Source Name" suffix Google News appends to titles
-      const title = rawTitle.replace(/\s[-–]\s[^-–]{3,50}$/, "").trim();
+    // URL — <link> contains Google redirect URL (works fine for opening articles)
+    const linkM = b.match(/<link>([^<]+)<\/link>/);
+    const url = linkM ? de(linkM[1]).trim() : "";
 
-      // Skip boilerplate
-      if (/comprehensive.*news|aggregated from sources|google news/i.test(title)) continue;
-      if (title.length < 8) continue;
+    // Source — from <source> tag
+    const srcM = b.match(/<source[^>]*>([\s\S]*?)<\/source>/);
+    const source = srcM ? de(srcM[1]).trim() : undefined;
 
-      // ── Publication date ──────────────────────────────────────
-      const dateRaw = extractText("pubDate", block);
-      const pubDate = dateRaw ? new Date(dateRaw).toISOString() : new Date().toISOString();
-
-      // ── URL ───────────────────────────────────────────────────
-      // Google News RSS: <link> contains a news.google.com redirect URL — usable as-is
-      let articleUrl = "";
-      const linkMatch = block.match(/<link>\s*([^\s<]+)\s*<\/link>/);
-      if (linkMatch?.[1]) articleUrl = linkMatch[1].trim();
-
-      // Fallback: extract from <description> <a href="...">
-      if (!articleUrl) {
-        const descContent = extractText("description", block);
-        if (descContent) {
-          const hrefMatch = descContent.match(/<a\s[^>]*href=["']([^"']+)["']/i);
-          if (hrefMatch?.[1]) articleUrl = hrefMatch[1].trim();
+    // Description — extract 2nd <li> from decoded HTML for related context
+    let description: string | undefined;
+    const descCdata = b.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/);
+    const descPlain = b.match(/<description>([\s\S]*?)<\/description>/);
+    const descHtml = de((descCdata?.[1] ?? descPlain?.[1] ?? "").trim());
+    if (descHtml) {
+      const lis = [...descHtml.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)];
+      if (lis.length >= 2) {
+        const txt = lis[1][1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+        if (txt.length > 20 && !/comprehensive|aggregated|google news/i.test(txt)) {
+          description = txt.slice(0, 120);
         }
       }
-
-      // ── Source outlet ─────────────────────────────────────────
-      // <source url="https://...">Outlet Name</source>
-      const sourceMatch = block.match(/<source[^>]*>([^<]+)<\/source>/);
-      const source = sourceMatch?.[1]?.trim() || undefined;
-
-      // ── Description: extract second article title as context ──
-      let description: string | undefined;
-      const descRaw = extractText("description", block);
-      if (descRaw) {
-        const liItems = [...descRaw.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)];
-        if (liItems.length >= 2) {
-          const secondLi = liItems[1][1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-          if (
-            secondLi.length > 20 &&
-            !/comprehensive|aggregated|google news/i.test(secondLi) &&
-            secondLi.toLowerCase() !== title.toLowerCase()
-          ) {
-            description = decodeEntities(secondLi).slice(0, 120);
-          }
-        }
-      }
-
-      items.push({ title, pubDate, url: articleUrl, source, description });
-      if (items.length >= 10) break;
     }
 
-    return items;
+    items.push({ title, pubDate, url, source, description });
+  }
+  return items;
+}
+
+/* ─── Fetch RSS (primary) ────────────────────────────────────── */
+async function fetchGoogleRSS(rssUrl: string): Promise<{ items: NewsItem[]; error?: string }> {
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    const res = await fetch(rssUrl, {
+      signal: ctrl.signal,
+      cache: "no-store",
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "fr-FR,fr;q=0.9",
+      },
+    });
+    clearTimeout(timer);
+    if (!res.ok) return { items: [], error: `HTTP ${res.status}` };
+    const xml = await res.text();
+    const items = parseRSS(xml);
+    return { items };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "unknown";
+    return { items: [], error: msg };
+  }
+}
+
+/* ─── Fallback: rss2json.com proxy ──────────────────────────── */
+async function fetchViaProxy(rssUrl: string): Promise<NewsItem[]> {
+  try {
+    const proxyUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=10`;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    const res = await fetch(proxyUrl, { signal: ctrl.signal, cache: "no-store" });
+    clearTimeout(timer);
+    if (!res.ok) return [];
+    const json = await res.json() as {
+      status: string;
+      items?: Array<{ title: string; pubDate: string; link: string; author?: string; description?: string }>;
+    };
+    if (json.status !== "ok" || !json.items?.length) return [];
+    return json.items.map(it => ({
+      title: it.title?.replace(/\s[-–]\s[^-–]{2,50}$/, "").trim() ?? "",
+      pubDate: it.pubDate ? new Date(it.pubDate).toISOString() : new Date().toISOString(),
+      url: it.link ?? "",
+      source: it.author || undefined,
+    })).filter(it => it.title.length > 8);
   } catch {
     return [];
   }
 }
 
-/* ─── Google News RSS queries ────────────────────────────────── */
+/* ─── Query config ───────────────────────────────────────────── */
 const GN_BASE = "https://news.google.com/rss/search?hl=fr&gl=FR&ceid=FR:fr&q=";
 
 const QUERIES: Record<string, string> = {
@@ -130,32 +131,42 @@ const QUERIES: Record<string, string> = {
   mondial: "coupe+du+monde+2026+FIFA+OR+france+mondial+football",
 };
 
-function clubQuery(clubName: string) {
-  return encodeURIComponent(clubName + " football ligue 1");
+function clubQuery(name: string) {
+  return encodeURIComponent(`${name} football ligue 1`);
 }
 
 /* ─── Handler ────────────────────────────────────────────────── */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const topic = searchParams.get("topic") ?? "l1";
+  const topic    = searchParams.get("topic") ?? "l1";
   const clubName = searchParams.get("club") ?? "";
+  const debug    = searchParams.get("debug") === "1";
 
-  let rssUrl: string;
-  if (topic === "club" && clubName) {
-    rssUrl = GN_BASE + clubQuery(clubName);
-  } else {
-    rssUrl = GN_BASE + (QUERIES[topic] ?? QUERIES.l1);
+  const rssUrl = topic === "club" && clubName
+    ? GN_BASE + clubQuery(clubName)
+    : GN_BASE + (QUERIES[topic] ?? QUERIES.l1);
+
+  // 1. Try direct Google News RSS
+  const { items: directItems, error: directError } = await fetchGoogleRSS(rssUrl);
+
+  let items = directItems;
+  let source = "direct";
+
+  // 2. If direct fails or returns 0 items, try rss2json proxy
+  if (!items.length) {
+    const proxyItems = await fetchViaProxy(rssUrl);
+    if (proxyItems.length) {
+      items = proxyItems;
+      source = "proxy";
+    }
   }
 
-  const items = await fetchRSS(rssUrl);
+  const body: Record<string, unknown> = { items };
+  if (debug) {
+    body.debug = { rssUrl, directError, source, count: items.length };
+  }
 
-  return NextResponse.json(
-    { items },
-    {
-      headers: {
-        // Cache 10 min at CDN, but serve stale while revalidating
-        "Cache-Control": "public, s-maxage=600, stale-while-revalidate=120",
-      },
-    }
-  );
+  return NextResponse.json(body, {
+    headers: { "Cache-Control": "no-store" },
+  });
 }
