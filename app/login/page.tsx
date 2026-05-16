@@ -172,7 +172,7 @@ function LoginForm() {
 
           {tab === "login" && (
             <form onSubmit={handleLogin} className="space-y-4">
-              <Field label="Email" name="email" type="email" placeholder="vous@exemple.com" value={loginEmail} onChange={setLoginEmail} />
+              <Field label="Identifiant" name="email" type="text" placeholder="Email ou login" value={loginEmail} onChange={setLoginEmail} />
               <Field label="Mot de passe" name="password" type="password" placeholder="••••••••" value={loginPass} onChange={setLoginPass} />
               {error && (
                 <p className="text-xs px-3 py-2 rounded-lg"
