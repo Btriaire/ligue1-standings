@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Cache: 10 minutes
-export const revalidate = 600;
+// No ISR cache — let the HTTP Cache-Control header handle caching
+export const dynamic = "force-dynamic";
 
 export interface NewsItem {
   title: string;
   pubDate: string; // ISO
-  url: string;     // article URL
+  url: string;     // article URL (Google redirect or direct)
   source?: string; // news outlet name
   description?: string; // related context if available
 }
@@ -23,11 +23,15 @@ function decodeEntities(s: string): string {
     .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)));
 }
 
-/* ─── Extract CDATA or plain text ────────────────────────────── */
+/* ─── Extract text content of a tag (CDATA or plain) ─────────── */
 function extractText(tag: string, xml: string): string {
-  const cdata = xml.match(new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>`));
+  // CDATA variant: <tag><![CDATA[...]]></tag>
+  const cdataRe = new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>`, "i");
+  const cdata = xml.match(cdataRe);
   if (cdata?.[1]) return decodeEntities(cdata[1].trim());
-  const plain = xml.match(new RegExp(`<${tag}[^>]*>([^<]*)<\\/${tag}>`));
+  // Plain text variant: <tag>text here</tag>  (content may include &amp; entities)
+  const plainRe = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i");
+  const plain = xml.match(plainRe);
   if (plain?.[1]) return decodeEntities(plain[1].trim());
   return "";
 }
@@ -36,17 +40,15 @@ function extractText(tag: string, xml: string): string {
 async function fetchRSS(url: string): Promise<NewsItem[]> {
   try {
     const res = await fetch(url, {
+      cache: "no-store",
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; FootInsider/1.0)",
         "Accept": "application/rss+xml, application/xml, text/xml, */*",
       },
-      next: { revalidate: 600 },
     });
     if (!res.ok) return [];
     const xml = await res.text();
 
-    // Extract only the <channel> content (skip root-level stuff)
-    // Find all <item> blocks — use a greedy-safe approach
     const items: NewsItem[] = [];
     let pos = 0;
 
@@ -62,10 +64,10 @@ async function fetchRSS(url: string): Promise<NewsItem[]> {
       const rawTitle = extractText("title", block);
       if (!rawTitle || rawTitle.length < 8) continue;
 
-      // Strip " - Source Name" suffix Google News appends
+      // Strip " - Source Name" suffix Google News appends to titles
       const title = rawTitle.replace(/\s[-–]\s[^-–]{3,50}$/, "").trim();
 
-      // Skip channel-level boilerplate that leaks into items
+      // Skip boilerplate
       if (/comprehensive.*news|aggregated from sources|google news/i.test(title)) continue;
       if (title.length < 8) continue;
 
@@ -73,29 +75,31 @@ async function fetchRSS(url: string): Promise<NewsItem[]> {
       const dateRaw = extractText("pubDate", block);
       const pubDate = dateRaw ? new Date(dateRaw).toISOString() : new Date().toISOString();
 
-      // ── URL — Google RSS is tricky: <link> is often empty ─────
-      // Priority: <link> content → <guid> (which IS the article URL)
+      // ── URL ───────────────────────────────────────────────────
+      // Google News RSS: <link> contains a news.google.com redirect URL — usable as-is
       let articleUrl = "";
-      const linkMatch = block.match(/<link>([^<\s]+)<\/link>/);
-      if (linkMatch?.[1]) {
-        articleUrl = linkMatch[1].trim();
-      }
+      const linkMatch = block.match(/<link>\s*([^\s<]+)\s*<\/link>/);
+      if (linkMatch?.[1]) articleUrl = linkMatch[1].trim();
+
+      // Fallback: extract from <description> <a href="...">
       if (!articleUrl) {
-        const guidMatch = block.match(/<guid[^>]*>([^<]+)<\/guid>/);
-        if (guidMatch?.[1]) articleUrl = guidMatch[1].trim();
+        const descContent = extractText("description", block);
+        if (descContent) {
+          const hrefMatch = descContent.match(/<a\s[^>]*href=["']([^"']+)["']/i);
+          if (hrefMatch?.[1]) articleUrl = hrefMatch[1].trim();
+        }
       }
 
       // ── Source outlet ─────────────────────────────────────────
+      // <source url="https://...">Outlet Name</source>
       const sourceMatch = block.match(/<source[^>]*>([^<]+)<\/source>/);
       const source = sourceMatch?.[1]?.trim() || undefined;
 
-      // ── Description: extract from <source url="..."> attribute ─
-      // OR from second <li> in the HTML description block
+      // ── Description: extract second article title as context ──
       let description: string | undefined;
       const descRaw = extractText("description", block);
       if (descRaw) {
-        // Try to extract source from description's first <li> if source tag missing
-        const liItems = [...descRaw.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)];
+        const liItems = [...descRaw.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)];
         if (liItems.length >= 2) {
           const secondLi = liItems[1][1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
           if (
@@ -149,6 +153,7 @@ export async function GET(req: NextRequest) {
     { items },
     {
       headers: {
+        // Cache 10 min at CDN, but serve stale while revalidating
         "Cache-Control": "public, s-maxage=600, stale-while-revalidate=120",
       },
     }

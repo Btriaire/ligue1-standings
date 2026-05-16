@@ -5,24 +5,22 @@ import { createSession } from "@/app/lib/session";
 export const dynamic = "force-dynamic";
 
 const SESSION_COOKIE = "session";
-const TTL_S = 7 * 24 * 3600; // 7 days
+const ADMIN_COOKIE   = "fp_admin";
+const TTL_S  = 7 * 24 * 3600; // 7 days
+const ADMIN_TTL_S = 7 * 24 * 3600; // 7 days
 
 // ── Direct owner bypass — no Firebase required ────────────────
 // Set ADMIN_EMAIL + ADMIN_PASS in Vercel env vars.
-// The login page tries Firebase first; if that fails for any reason
-// (wrong env vars, email verification, project misconfigured), it
-// falls back to this endpoint automatically.
 async function tryOwnerBypass(email: string, password: string): Promise<boolean> {
-  // Accept ADMIN_EMAIL if set, otherwise fall back to ADMIN_USER (same as /admin panel)
   const ownerEmail = process.env.ADMIN_EMAIL || process.env.ADMIN_USER || "Admin";
   const ownerPass  = process.env.ADMIN_PASS  || "admin";
-  // Case-insensitive email/username comparison
   if (email.toLowerCase() !== ownerEmail.toLowerCase() || password !== ownerPass) return false;
 
+  const store = await cookies();
+
+  // ── Set regular session cookie (unlocks predictions / emotional tabs) ──
   const payload = JSON.stringify({ type: "bypass", email, ts: Date.now() });
   const token = Buffer.from(payload).toString("base64");
-
-  const store = await cookies();
   store.set(SESSION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -30,6 +28,18 @@ async function tryOwnerBypass(email: string, password: string): Promise<boolean>
     maxAge: TTL_S,
     path: "/",
   });
+
+  // ── ALSO set admin cookie (unlocks /admin dashboard) ─────────
+  const adminUser = process.env.ADMIN_USER ?? "Admin";
+  const adminToken = Buffer.from(`${adminUser}:${Date.now()}`).toString("base64");
+  store.set(ADMIN_COOKIE, adminToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: ADMIN_TTL_S,
+    path: "/",
+  });
+
   return true;
 }
 

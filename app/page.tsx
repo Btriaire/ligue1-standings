@@ -523,6 +523,14 @@ export default function Home() {
                   style={{ background: "rgba(255,255,255,0.05)", border: "1px solid #1e2d42", color: "#e2e8f0" }}>
                   {user.name}
                 </span>
+                {user.id === "owner" && (
+                  <Link href="/admin" title="Panel Admin"
+                    className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs hover:opacity-80 transition-all"
+                    style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#ef4444" }}>
+                    <Shield size={12} />
+                    <span className="hidden sm:inline">Admin</span>
+                  </Link>
+                )}
                 <form action="/api/auth/logout" method="POST">
                   <button type="submit" title="Déconnexion"
                     className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs hover:opacity-80 transition-all"
