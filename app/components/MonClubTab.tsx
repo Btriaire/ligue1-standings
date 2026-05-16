@@ -1369,12 +1369,13 @@ function HeatmapPitch({oppSquad, oppColor, riskPlayers}:{
             { fill:"rgba(96,165,250,0.70)", label:"#60a5fa" };
 
   // ── Zone ellipses (cx,cy,rx,ry) — opponent attacks from top ──
+  // labelX/labelY: score placed at EDGE of zone, away from player dot positions
   const heatZones = [
-    { id:"lw", cx:18,  cy:42, rx:24, ry:28, score:lwScore,  tag:"AIL G" },
-    { id:"cf", cx:60,  cy:28, rx:20, ry:18, score:cfScore,  tag:"ATT"   },
-    { id:"rw", cx:102, cy:42, rx:24, ry:28, score:rwScore,  tag:"AIL D" },
-    { id:"mi", cx:60,  cy:90, rx:36, ry:22, score:midScore, tag:"MIL"   },
-    { id:"de", cx:60,  cy:144,rx:38, ry:26, score:defScore, tag:"DEF"   },
+    { id:"lw", cx:18,  cy:42, rx:24, ry:28, score:lwScore,  tag:"AIL G", labelX:5,   labelY:20  },
+    { id:"cf", cx:60,  cy:28, rx:20, ry:18, score:cfScore,  tag:"ATT",   labelX:92,  labelY:24  },
+    { id:"rw", cx:102, cy:42, rx:24, ry:28, score:rwScore,  tag:"AIL D", labelX:115, labelY:20  },
+    { id:"mi", cx:60,  cy:90, rx:36, ry:22, score:midScore, tag:"MIL",   labelX:7,   labelY:78  },
+    { id:"de", cx:60,  cy:144,rx:38, ry:26, score:defScore, tag:"DEF",   labelX:7,   labelY:132 },
   ];
 
   // ── Place risk players at their pitch position ─────────────
@@ -1432,17 +1433,21 @@ function HeatmapPitch({oppSquad, oppColor, riskPlayers}:{
           <rect x="42" y="165" width="36" height="11" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="0.6"/>
           <rect x="46" y="175" width="28" height="4"  fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="0.8"/>
 
-          {/* ── Zone score labels ── */}
+          {/* ── Zone score labels — positioned at zone edges, away from player dots ── */}
           {heatZones.map(z => {
             const {label} = heatColor(z.score);
+            const anchor = z.labelX <= 10 ? "start" : z.labelX >= 110 ? "end" : "middle";
             return (
               <g key={z.id+"l"}>
-                <text x={z.cx} y={z.cy} textAnchor="middle" dominantBaseline="central"
-                  stroke="rgba(0,0,0,0.7)" strokeWidth="2.5" paintOrder="stroke"
-                  fill="white" fontSize="8" fontWeight="900">{z.score}</text>
-                <text x={z.cx} y={z.cy+9} textAnchor="middle"
-                  stroke="rgba(0,0,0,0.6)" strokeWidth="2" paintOrder="stroke"
-                  fill={label} fontSize="5" fontWeight="700">{z.tag}</text>
+                {/* small bg pill for readability */}
+                <rect x={z.labelX - (anchor==="start"?0:anchor==="end"?20:10)} y={z.labelY-5.5}
+                  width="20" height="10" rx="3" fill="rgba(0,0,0,0.45)"/>
+                <text x={z.labelX + (anchor==="start"?10:anchor==="end"?-10:0)} y={z.labelY-0.5}
+                  textAnchor="middle" dominantBaseline="central"
+                  fill="white" fontSize="5.5" fontWeight="900">{z.score}</text>
+                <text x={z.labelX + (anchor==="start"?10:anchor==="end"?-10:0)} y={z.labelY+5}
+                  textAnchor="middle"
+                  fill={label} fontSize="3.5" fontWeight="700">{z.tag}</text>
               </g>
             );
           })}
@@ -1466,10 +1471,10 @@ function HeatmapPitch({oppSquad, oppColor, riskPlayers}:{
                 {/* Risk indicator (⚠ small) */}
                 <text x={p.cx} y={p.cy+0.5} textAnchor="middle" dominantBaseline="central"
                   fill="white" fontSize="4.5" fontWeight="900">!</text>
-                {/* Name below dot */}
-                <text x={p.cx} y={p.cy+13} textAnchor="middle"
-                  stroke="rgba(0,0,0,0.85)" strokeWidth="2.5" paintOrder="stroke"
-                  fill="white" fontSize="4.5" fontWeight="700">{shortName}</text>
+                {/* Name above dot */}
+                <text x={p.cx} y={p.cy-8} textAnchor="middle"
+                  stroke="rgba(0,0,0,0.9)" strokeWidth="2.5" paintOrder="stroke"
+                  fill="white" fontSize="4" fontWeight="700">{shortName}</text>
               </g>
             );
           })}
