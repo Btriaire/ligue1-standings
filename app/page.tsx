@@ -11,6 +11,7 @@ import ConfigTab from "./components/ConfigTab";
 import TransfersTab from "./components/TransfersTab";
 import WorldCupTab from "./components/WorldCupTab";
 import MonClubTab from "./components/MonClubTab";
+import NewsBanner from "./components/NewsBanner";
 
 interface Team {
   id: number;
@@ -526,23 +527,8 @@ export default function Home() {
         </div>
       </header>
 
-      {/* ── HERO BANNER ── */}
-      <div style={{ borderBottom: "1px solid #1e2d42", background: "#0a0f1c" }}>
-        <div className="max-w-[1300px] mx-auto px-4 py-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold" style={{ color: "#e8edf5" }}>
-              Analyse prédictive Ligue 1 —{" "}
-              <span style={{ color: "#64748b", fontWeight: 400 }}>
-                classement, stats joueurs, facteur additionnel et buteurs potentiels par match.
-              </span>
-            </p>
-          </div>
-          <div className="flex items-center gap-1.5 flex-shrink-0 text-[11px] font-medium" style={{ color: "#475569" }}>
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#34d399" }} />
-            Saison 2025–26
-          </div>
-        </div>
-      </div>
+      {/* ── NEWS BANNER ── */}
+      <NewsBanner standings={data?.standings ?? []} />
 
       <div className="max-w-[1300px] mx-auto px-4 py-6">
         <div className="lg:grid lg:gap-5 lg:items-start" style={{ gridTemplateColumns: "1fr 196px" }}>
