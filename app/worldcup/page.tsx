@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CaretLeft } from "@phosphor-icons/react";
+import { CaretLeft } from "@phosphor-icons/react/dist/ssr";
 import WorldCupTab from "@/app/components/WorldCupTab";
 
 export const metadata: Metadata = {

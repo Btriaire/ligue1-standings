@@ -1330,79 +1330,157 @@ function SectorBar({label,myVal,oppVal,myColor,oppColor}:{label:string;myVal:num
   );
 }
 
-function HeatmapPitch({oppSquad, oppColor}:{oppSquad:SquadPlayer[];oppColor:string}) {
-  // Portrait pitch: viewBox "0 0 120 180"
-  // Opponent attacks from top → ATT zones at top, DEF zones at bottom
-  const attackScore = (p: SquadPlayer) => clamp((p.dm_xg90??0)*50 + (p.dm_shots90??0)*15, 0, 100);
-  const midScore    = (p: SquadPlayer) => clamp((p.dm_keyPasses90??0)*20 + (p.dm_dribbles90??0)*8 + (p.dm_passPct??0)*0.4, 0, 100);
-  const defScore    = (p: SquadPlayer) => clamp((p.dm_defDuelPct??0)*0.55 + (p.dm_interceptions90??0)*18, 0, 100);
+const POS_COLORS: Record<string,string> = {
+  "Goalkeeper":     "#f59e0b",
+  "Defender":       "#3b82f6",
+  "Midfielder":     "#a78bfa",
+  "Winger":         "#34d399",
+  "Centre-Forward": "#ef4444",
+};
 
-  const attackZone = sectorScore(oppSquad, ["Centre-Forward","Winger"], attackScore);
-  const midZone    = sectorScore(oppSquad, ["Midfielder"], midScore);
-  const defZone    = sectorScore(oppSquad, ["Defender"], defScore);
+/** Organic diffuse heatmap — blob zones + risk players on the pitch */
+function HeatmapPitch({oppSquad, oppColor, riskPlayers}:{
+  oppSquad: SquadPlayer[];
+  oppColor: string;
+  riskPlayers: SquadPlayer[];
+}) {
+  // ── Sector scoring functions ──────────────────────────────────
+  const cfFn   = (p: SquadPlayer) => clamp((p.dm_xg90??0)*55 + (p.dm_shots90??0)*12 + (p.dm_xgxa90??0)*25, 0, 100);
+  const wingFn = (p: SquadPlayer) => clamp((p.dm_xgxa90??0)*35 + (p.dm_dribbles90??0)*12 + (p.dm_keyPasses90??0)*18 + (p.dm_xg90??0)*20, 0, 100);
+  const midFn  = (p: SquadPlayer) => clamp((p.dm_keyPasses90??0)*22 + (p.dm_dribbles90??0)*8 + (p.dm_passPct??0)*0.45 + (p.dm_xgxa90??0)*20, 0, 100);
+  const defFn  = (p: SquadPlayer) => clamp((p.dm_defDuelPct??0)*0.6 + (p.dm_interceptions90??0)*20, 0, 100);
 
-  // Portrait 120×180 — 3 rows × 2 cols, all fitting within viewBox
-  // Row heights: 50 / 48 / 50  gaps: 6  side margins: 5  centre gap: 10
-  const CX = 5, CW = 50, RX = 65, RW = 50;
-  const zones = [
-    { id:"TL", x:CX, y:5,   w:CW, h:50, score:attackZone, label:"ATT G" },
-    { id:"TR", x:RX, y:5,   w:RW, h:50, score:attackZone, label:"ATT D" },
-    { id:"ML", x:CX, y:61,  w:CW, h:48, score:midZone,    label:"MIL G" },
-    { id:"MR", x:RX, y:61,  w:RW, h:48, score:midZone,    label:"MIL D" },
-    { id:"BL", x:CX, y:115, w:CW, h:60, score:defZone,    label:"DEF G" },
-    { id:"BR", x:RX, y:115, w:RW, h:60, score:defZone,    label:"DEF D" },
+  // ── Per-position zone scores (left/right split for wingers) ──
+  const cfScore  = sectorScore(oppSquad, ["Centre-Forward"], cfFn);
+  const wings    = oppSquad.filter(p => p.position === "Winger");
+  const lwScore  = wings.length >= 2
+    ? clamp(Math.round(avg(wings.filter((_,i)=>i%2===0).map(wingFn).filter(v=>v>0))||50), 0, 100)
+    : sectorScore(oppSquad, ["Winger"], wingFn);
+  const rwScore  = wings.length >= 2
+    ? clamp(Math.round(avg(wings.filter((_,i)=>i%2===1).map(wingFn).filter(v=>v>0))||50), 0, 100)
+    : sectorScore(oppSquad, ["Winger"], wingFn);
+  const midScore = sectorScore(oppSquad, ["Midfielder"], midFn);
+  const defScore = sectorScore(oppSquad, ["Defender"],   defFn);
+
+  // ── Heat color by score ───────────────────────────────────────
+  const heatColor = (s: number) =>
+    s>=70 ? { fill:"rgba(239,68,68,0.82)",  label:"#ef4444" } :
+    s>=45 ? { fill:"rgba(249,115,22,0.75)", label:"#f97316" } :
+            { fill:"rgba(96,165,250,0.70)", label:"#60a5fa" };
+
+  // ── Zone ellipses (cx,cy,rx,ry) — opponent attacks from top ──
+  const heatZones = [
+    { id:"lw", cx:18,  cy:42, rx:24, ry:28, score:lwScore,  tag:"AIL G" },
+    { id:"cf", cx:60,  cy:28, rx:20, ry:18, score:cfScore,  tag:"ATT"   },
+    { id:"rw", cx:102, cy:42, rx:24, ry:28, score:rwScore,  tag:"AIL D" },
+    { id:"mi", cx:60,  cy:90, rx:36, ry:22, score:midScore, tag:"MIL"   },
+    { id:"de", cx:60,  cy:144,rx:38, ry:26, score:defScore, tag:"DEF"   },
   ];
+
+  // ── Place risk players at their pitch position ─────────────
+  const posSlots: Record<string,{cx:number; cy:number}[]> = {
+    "Centre-Forward": [{cx:60, cy:28}],
+    "Winger":         [{cx:18, cy:45},{cx:102,cy:45}],
+    "Midfielder":     [{cx:38, cy:88},{cx:60, cy:82},{cx:82,cy:88}],
+    "Defender":       [{cx:28,cy:142},{cx:60,cy:148},{cx:92,cy:142}],
+    "Goalkeeper":     [{cx:60, cy:163}],
+  };
+  const slotIdx: Record<string,number> = {};
+  const placedPlayers = riskPlayers.slice(0,5).map(p => {
+    const slots = posSlots[p.position] ?? [{cx:60,cy:90}];
+    const i = slotIdx[p.position] ?? 0;
+    slotIdx[p.position] = i+1;
+    return {...p, ...(slots[Math.min(i,slots.length-1)])};
+  });
 
   return (
     <div>
-      {/* SVG sized by viewBox — width:100% height:auto is the only reliable approach */}
-      <div className="rounded-xl overflow-hidden mx-auto" style={{width:"68%",border:"2px solid #1e2d42"}}>
+      {/* Pitch: 50% wide so it stays compact */}
+      <div className="rounded-xl overflow-hidden mx-auto" style={{width:"50%", border:"2px solid #1e2d42"}}>
         <svg viewBox="0 0 120 180" xmlns="http://www.w3.org/2000/svg"
           style={{display:"block",width:"100%",height:"auto"}}>
-          {/* Pitch background — brighter green so it's visible on dark theme */}
+          <defs>
+            {/* Gaussian blur for organic blob effect */}
+            <filter id="fp-blob" x="-100%" y="-100%" width="300%" height="300%">
+              <feGaussianBlur stdDeviation="9"/>
+            </filter>
+          </defs>
+
+          {/* ── Pitch background stripes ── */}
           <rect width="120" height="180" fill="#2d6a2d"/>
-          {[0,1,2,3,4].map(i=><rect key={i} y={i*36} width="120" height="36" fill={i%2===0?"#2d6a2d":"#265a26"}/>)}
-          {/* Pitch outline */}
+          {[0,1,2,3,4].map(i=><rect key={i} y={i*36} width="120" height="36"
+            fill={i%2===0?"#2d6a2d":"#265a26"}/>)}
+
+          {/* ── Heat blobs (UNDER pitch lines) ── */}
+          {heatZones.map(z => {
+            const {fill} = heatColor(z.score);
+            return <ellipse key={z.id} cx={z.cx} cy={z.cy} rx={z.rx} ry={z.ry}
+              fill={fill} filter="url(#fp-blob)"/>;
+          })}
+
+          {/* ── Pitch markings ── */}
           <rect x="4" y="4" width="112" height="172" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.2"/>
-          {/* Halfway line */}
-          <line x1="4" y1="90" x2="116" y2="90" stroke="rgba(255,255,255,0.5)" strokeWidth="1.2"/>
-          {/* Center circle */}
-          <circle cx="60" cy="90" r="16" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1"/>
-          <circle cx="60" cy="90" r="1.5" fill="rgba(255,255,255,0.55)"/>
-          {/* Top penalty area */}
-          <rect x="30" y="4" width="60" height="28" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1"/>
-          <rect x="42" y="4" width="36" height="12" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="0.7"/>
-          {/* Top goal posts */}
-          <rect x="46" y="2" width="28" height="4" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="0.8"/>
-          {/* Bottom penalty area */}
-          <rect x="30" y="148" width="60" height="28" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1"/>
-          <rect x="42" y="164" width="36" height="12" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="0.7"/>
-          {/* Bottom goal posts */}
-          <rect x="46" y="174" width="28" height="4" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="0.8"/>
-          {/* "Menace adverse" label inside SVG — always visible */}
-          <rect x="25" y="82" width="70" height="16" rx="3" fill="rgba(0,0,0,0.55)"/>
-          <text x="60" y="93" textAnchor="middle" fill={oppColor} fontSize="6" fontWeight="900" letterSpacing="1">MENACE ADVERSE</text>
-          {/* Zone overlays */}
-          {zones.map(z=>{
-            const zc=zoneColor(z.score);
+          <line x1="4" y1="90" x2="116" y2="90" stroke="rgba(255,255,255,0.45)" strokeWidth="1"/>
+          <circle cx="60" cy="90" r="16" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.9"/>
+          <circle cx="60" cy="90" r="1.5" fill="rgba(255,255,255,0.5)"/>
+          {/* Top goal area */}
+          <rect x="30" y="4" width="60" height="26" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.8"/>
+          <rect x="42" y="4" width="36" height="11" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="0.6"/>
+          <rect x="46" y="1" width="28" height="4"  fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="0.8"/>
+          {/* Bottom goal area */}
+          <rect x="30" y="150" width="60" height="26" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.8"/>
+          <rect x="42" y="165" width="36" height="11" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="0.6"/>
+          <rect x="46" y="175" width="28" height="4"  fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="0.8"/>
+
+          {/* ── Zone score labels ── */}
+          {heatZones.map(z => {
+            const {label} = heatColor(z.score);
             return (
-              <g key={z.id}>
-                <rect x={z.x} y={z.y} width={z.w} height={z.h} rx="3"
-                  fill={zc.fill} stroke={zc.stroke} strokeWidth="1.5" strokeOpacity="1"/>
-                <text x={z.x+z.w/2} y={z.y+z.h/2-3} textAnchor="middle"
-                  fill="white" fontSize="10" fontWeight="900" opacity="0.95">{z.score}</text>
-                <text x={z.x+z.w/2} y={z.y+z.h/2+8} textAnchor="middle"
-                  fill="rgba(255,255,255,0.7)" fontSize="6" fontWeight="700">{z.label}</text>
+              <g key={z.id+"l"}>
+                <text x={z.cx} y={z.cy} textAnchor="middle" dominantBaseline="central"
+                  stroke="rgba(0,0,0,0.7)" strokeWidth="2.5" paintOrder="stroke"
+                  fill="white" fontSize="8" fontWeight="900">{z.score}</text>
+                <text x={z.cx} y={z.cy+9} textAnchor="middle"
+                  stroke="rgba(0,0,0,0.6)" strokeWidth="2" paintOrder="stroke"
+                  fill={label} fontSize="5" fontWeight="700">{z.tag}</text>
+              </g>
+            );
+          })}
+
+          {/* ── Direction indicator ── */}
+          <text x="60" y="13" textAnchor="middle"
+            stroke="rgba(0,0,0,0.8)" strokeWidth="2.5" paintOrder="stroke"
+            fill={oppColor} fontSize="5" fontWeight="900" letterSpacing="0.5">▼ ATTAQUE</text>
+
+          {/* ── Risk players on pitch ── */}
+          {placedPlayers.map((p, i) => {
+            const col = POS_COLORS[p.position] ?? oppColor;
+            const shortName = p.name.split(" ").pop()?.slice(0,7) ?? p.name.slice(0,7);
+            return (
+              <g key={p.id??i}>
+                {/* Glow halo */}
+                <circle cx={p.cx} cy={p.cy} r="6.5" fill={col} opacity="0.22"/>
+                {/* Dot */}
+                <circle cx={p.cx} cy={p.cy} r="4.5"
+                  fill={col} stroke="white" strokeWidth="0.8" opacity="0.95"/>
+                {/* Risk indicator (⚠ small) */}
+                <text x={p.cx} y={p.cy+0.5} textAnchor="middle" dominantBaseline="central"
+                  fill="white" fontSize="4.5" fontWeight="900">!</text>
+                {/* Name below dot */}
+                <text x={p.cx} y={p.cy+13} textAnchor="middle"
+                  stroke="rgba(0,0,0,0.85)" strokeWidth="2.5" paintOrder="stroke"
+                  fill="white" fontSize="4.5" fontWeight="700">{shortName}</text>
               </g>
             );
           })}
         </svg>
       </div>
-      {/* Legend */}
-      <div className="flex justify-center gap-4 mt-3">
-        {([["#ef4444","Zone forte"],["#f97316","Modérée"],["#60a5fa","À exploiter"]] as const).map(([c,l])=>(
+
+      {/* ── Legend ── */}
+      <div className="flex justify-center gap-4 mt-2">
+        {([["#ef4444","Danger élevé"],["#f97316","Modéré"],["#60a5fa","Faible"]] as [string,string][]).map(([c,l])=>(
           <div key={l} className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{background:c}}/>
+            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{background:c,boxShadow:`0 0 4px ${c}60`}}/>
             <span className="text-[9px]" style={{color:"#6b7c96"}}>{l}</span>
           </div>
         ))}
@@ -1600,7 +1678,7 @@ function FicheSection({club,nextMatch,opponentId,ficheTeamData,ficheSquad,ficheL
           <span className="text-[9px] font-black uppercase tracking-widest" style={{color:"#6b7c96"}}>Zones de menace adverse</span>
         </div>
         <div className="p-3 relative">
-          <HeatmapPitch oppSquad={ficheSquad} oppColor={OPP_COLOR}/>
+          <HeatmapPitch oppSquad={ficheSquad} oppColor={OPP_COLOR} riskPlayers={keyPlayers}/>
           {ficheLoading && ficheSquad.length === 0 && (
             <div className="absolute inset-3 rounded-xl animate-pulse" style={{background:"#0d1421"}}/>
           )}
