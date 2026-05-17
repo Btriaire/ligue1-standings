@@ -19,24 +19,26 @@ function timeAgo(iso: string): string {
 export default function ActuFootBanner() {
   const [tweets, setTweets] = useState<Tweet[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errored, setErrored] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       try {
         const r = await fetch("/api/twitter-user?handle=ActuFoot_");
-        if (!r.ok) return;
-        const j = await r.json() as { tweets?: Tweet[] };
-        if (!cancelled) setTweets(j.tweets ?? []);
-      } catch { /* swallow */ }
+        if (!r.ok) { if (!cancelled) setErrored(true); return; }
+        const j = await r.json() as { tweets?: Tweet[]; error?: string };
+        if (!cancelled) {
+          setTweets(j.tweets ?? []);
+          setErrored(!!j.error && (j.tweets ?? []).length === 0);
+        }
+      } catch { if (!cancelled) setErrored(true); }
       finally { if (!cancelled) setLoading(false); }
     };
     load();
     const t = setInterval(load, 5 * 60 * 1000);
     return () => { cancelled = true; clearInterval(t); };
   }, []);
-
-  if (!loading && tweets.length === 0) return null;
 
   return (
     <div className="border-b" style={{ background: "#0a0f1c", borderColor: "#1a2235" }}>
@@ -48,8 +50,13 @@ export default function ActuFootBanner() {
         <div className="flex-1 overflow-hidden">
           {loading ? (
             <div className="h-4 rounded animate-pulse" style={{ background: "#0d1421" }}/>
+          ) : errored || tweets.length === 0 ? (
+            <a href="https://x.com/ActuFoot_" target="_blank" rel="noopener noreferrer"
+              className="text-[11px] italic hover:opacity-80" style={{ color: "#64748b" }}>
+              Flux temporairement indisponible — voir sur x.com/ActuFoot_
+            </a>
           ) : (
-            <div className="flex gap-6 overflow-x-auto scrollbar-hide">
+            <div className="flex gap-6 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
               {tweets.slice(0, 8).map(t => (
                 <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer"
                   className="flex items-baseline gap-2 flex-shrink-0 hover:opacity-80 transition-opacity max-w-[420px]">

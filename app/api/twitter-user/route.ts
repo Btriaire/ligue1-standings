@@ -4,14 +4,14 @@ export const dynamic = "force-dynamic";
 
 // Same Nitter pool as /api/twitter. Kept independent so user-added handles
 // don't go through the Firestore lookup or the official-fallback logic.
+// nitter.net is the most reliable today — keep it first so we don't burn
+// the 10s Vercel function budget on dead instances.
 const NITTER_INSTANCES = [
+  "nitter.net",
   "nitter.privacydev.net",
   "nitter.poast.org",
   "nitter.cz",
-  "nitter.nl",
-  "nitter.1d4.us",
   "nitter.kavin.rocks",
-  "nitter.net",
 ];
 
 interface Tweet { id: string; title: string; pubDate: string; url: string; author: string }
@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
     try {
       const res = await fetch(`https://${instance}/${handle}/rss`, {
         headers: { "User-Agent": "Mozilla/5.0 (compatible; FootPredictom/1.0)" },
-        signal: AbortSignal.timeout(4000),
+        signal: AbortSignal.timeout(2500),
       } as RequestInit);
       if (!res.ok) continue;
       const xml = await res.text();
