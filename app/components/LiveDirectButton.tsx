@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 
 interface LiveMatch {
@@ -23,10 +24,13 @@ const POLL_CLOSED_MS = 30_000;
 
 export default function LiveDirectButton() {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [matches, setMatches] = useState<LiveMatch[]>([]);
   const [liveCount, setLiveCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [fetchedAt, setFetchedAt] = useState<string | null>(null);
+
+  useEffect(() => { setMounted(true); }, []);
 
   const load = useCallback(async () => {
     try {
@@ -101,7 +105,7 @@ export default function LiveDirectButton() {
         }
       `}</style>
 
-      {open && (
+      {open && mounted && createPortal(
         <div
           className="fixed inset-0 z-[100] flex items-start justify-center p-4 sm:p-8 overflow-y-auto"
           style={{ background: "rgba(0,0,0,0.72)", backdropFilter: "blur(6px)" }}
@@ -230,7 +234,8 @@ export default function LiveDirectButton() {
               </span>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
