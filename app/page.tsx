@@ -47,7 +47,7 @@ interface StandingsData {
   updatedAt: string;
 }
 
-type TabId = "ligue1" | "worldcup" | "monclub" | "predictions" | "results" | "emotional" | "config";
+type TabId = "ligue1" | "ligue2" | "worldcup" | "monclub" | "predictions" | "results" | "emotional" | "config";
 type L1SubTab = "classement" | "mercato" | "joueurs" | "transfert" | "arbitres";
 
 const ZONE_CONFIG = [
@@ -398,6 +398,7 @@ const L1_SUBTABS: { id: L1SubTab; label: string; icon: React.ReactNode }[] = [
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode; shortLabel?: string }[] = [
   { id: "ligue1",      label: "Ligue 1",            icon: <Trophy size={14} />,          shortLabel: "L1" },
+  { id: "ligue2",      label: "Ligue 2",            icon: <Trophy size={14} />,          shortLabel: "L2" },
   { id: "worldcup",    label: "Coupe du Monde",      icon: <Globe size={14} />,           shortLabel: "CdM" },
   { id: "monclub",     label: "Mon Club",            icon: <Shield size={14} />,          shortLabel: "Mon Club" },
   { id: "predictions", label: "AI FootPredictom",   icon: <Lightning size={14} />,             shortLabel: "AI Foot" },
@@ -443,7 +444,11 @@ function AuthGate({ label, icon }: { label: string; icon: React.ReactNode }) {
 export default function Home() {
   const [tab, setTab] = useState<TabId>("ligue1");
   const [l1SubTab, setL1SubTab] = useState<L1SubTab>("classement");
+  const [l2SubTab, setL2SubTab] = useState<L1SubTab>("classement");
   const [data, setData] = useState<StandingsData | null>(null);
+  const [dataL2, setDataL2] = useState<StandingsData | null>(null);
+  const [errorL2, setErrorL2] = useState<string | null>(null);
+  const [loadingL2, setLoadingL2] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -475,6 +480,30 @@ export default function Home() {
     const interval = setInterval(() => fetchStandings(), 60_000);
     return () => clearInterval(interval);
   }, [fetchStandings]);
+
+  // Fetch Ligue 2 standings lazily when the tab is opened.
+  const fetchL2 = useCallback(async () => {
+    setLoadingL2(true);
+    try {
+      const res = await fetch("/api/standings?competition=FL2&t=" + Date.now());
+      const json = await res.json();
+      if (json.error && (!json.standings || json.standings.length === 0)) {
+        setErrorL2(json.error);
+        setDataL2(null);
+      } else {
+        setDataL2(json);
+        setErrorL2(null);
+      }
+    } catch (e: unknown) {
+      setErrorL2(e instanceof Error ? e.message : "Erreur inconnue");
+    } finally {
+      setLoadingL2(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (tab === "ligue2" && !dataL2 && !errorL2) fetchL2();
+  }, [tab, dataL2, errorL2, fetchL2]);
 
   useEffect(() => {
     fetch("/api/auth/me").then(r => r.json()).then(d => setUser(d.user ?? null)).catch(() => setUser(null));
@@ -660,6 +689,60 @@ export default function Home() {
 
             {/* Arbitres */}
             {l1SubTab === "arbitres" && <RefereesL1Tab />}
+          </div>
+        )}
+
+        {/* Ligue 2 tab — same layout, only Classement is wired today.
+            Mercato / Stats Joueurs / Transferts / Arbitres are hard-coded
+            on L1 clubs and show a "bientôt" placeholder for L2. */}
+        {tab === "ligue2" && (
+          <div>
+            <div className="flex gap-1 mb-5 p-1 rounded-xl overflow-x-auto" style={{ background: "#0a0f1c", border: "1px solid #1a2235" }}>
+              {L1_SUBTABS.map((st) => {
+                const active = l2SubTab === st.id;
+                return (
+                  <button key={st.id} onClick={() => setL2SubTab(st.id)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex-shrink-0"
+                    style={{
+                      background: active ? "rgba(255,255,255,0.07)" : "transparent",
+                      color: active ? "#e2e8f0" : "#64748b",
+                      border: active ? "1px solid rgba(255,255,255,0.08)" : "1px solid transparent",
+                    }}>
+                    {st.icon}
+                    <span>{st.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {l2SubTab === "classement" && (
+              <div>
+                <div className="flex flex-wrap gap-x-5 gap-y-1.5 mb-3 px-1">
+                  {ZONE_CONFIG.map((z) => (
+                    <div key={z.label} className="flex items-center gap-1.5 text-xs">
+                      <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: z.color, opacity: 0.8 }} />
+                      <span style={{ color: z.color }}>{z.label}</span>
+                    </div>
+                  ))}
+                </div>
+                {loadingL2 && !dataL2 ? (
+                  <LoadingSkeleton />
+                ) : errorL2 && !dataL2 ? (
+                  <ErrorState error={errorL2} onRetry={fetchL2} />
+                ) : dataL2 ? (
+                  <StandingsTable standings={dataL2.standings} />
+                ) : null}
+              </div>
+            )}
+
+            {l2SubTab !== "classement" && (
+              <div className="rounded-2xl p-10 text-center" style={{ border: "1px solid #1e2d42", background: "rgba(13,20,33,0.6)" }}>
+                <p className="text-sm font-bold mb-1" style={{ color: "#e8edf5" }}>Bientôt disponible</p>
+                <p className="text-xs" style={{ color: "#6b7c96" }}>
+                  Cette section sera étendue à la Ligue 2 dans une prochaine mise à jour.
+                </p>
+              </div>
+            )}
           </div>
         )}
 

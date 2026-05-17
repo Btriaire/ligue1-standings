@@ -1,9 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 export const revalidate = 60; // revalidate every 60s
 
 const API_KEY = process.env.FOOTBALL_DATA_API_KEY;
-const COMPETITION = "FL1"; // Ligue 1
+// Default is Ligue 1; callers can pass ?competition=FL2 (or any other
+// football-data.org competition code).
+const DEFAULT_COMPETITION = "FL1";
+const ALLOWED_COMPETITIONS = new Set(["FL1", "FL2"]);
 
 interface FootballEntry {
   position: number;
@@ -64,24 +67,38 @@ function computeForm(matches: FdMatch[]): Map<number, string> {
   return formMap;
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   if (!API_KEY) {
     return NextResponse.json({ error: "API key not configured" }, { status: 500 });
   }
 
+  const { searchParams } = new URL(req.url);
+  const requested = (searchParams.get("competition") ?? DEFAULT_COMPETITION).toUpperCase();
+  const competition = ALLOWED_COMPETITIONS.has(requested) ? requested : DEFAULT_COMPETITION;
+
   try {
     const [standingsRes, matchesRes] = await Promise.all([
       fetch(
-        `https://api.football-data.org/v4/competitions/${COMPETITION}/standings`,
+        `https://api.football-data.org/v4/competitions/${competition}/standings`,
         { headers: { "X-Auth-Token": API_KEY }, next: { revalidate: 60 } }
       ),
       fetch(
-        `https://api.football-data.org/v4/competitions/${COMPETITION}/matches?status=FINISHED`,
+        `https://api.football-data.org/v4/competitions/${competition}/matches?status=FINISHED`,
         { headers: { "X-Auth-Token": API_KEY }, next: { revalidate: 60 } }
       ).catch(() => null),
     ]);
 
     if (!standingsRes.ok) {
+      // Ligue 2 is a paid-tier competition on football-data.org. Surface a
+      // user-readable message rather than the bare status code.
+      if (standingsRes.status === 403 || standingsRes.status === 429) {
+        return NextResponse.json({
+          standings: [], season: null, competition,
+          error: competition === "FL2"
+            ? "Le classement Ligue 2 nécessite un plan football-data.org payant."
+            : "Football-data.org refuse la requête (quota atteint ou plan insuffisant).",
+        }, { status: 200 });
+      }
       throw new Error(`Football API error: ${standingsRes.status}`);
     }
 
@@ -119,6 +136,7 @@ export async function GET() {
     return NextResponse.json({
       standings,
       season: data.season?.currentMatchday ?? null,
+      competition,
       updatedAt: new Date().toISOString(),
     });
   } catch (err) {
