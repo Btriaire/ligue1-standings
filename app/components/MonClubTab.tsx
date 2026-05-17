@@ -442,6 +442,10 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
     if (!h || extraHandles.includes(h)) { setNewHandleInput(""); return; }
     persistExtraHandles([...extraHandles, h]);
     setNewHandleInput("");
+    // Auto-expand the newly added handle and kick off the fetch immediately
+    // so the user sees the loading state without having to click anywhere.
+    setExpandedHandles(p => ({ ...p, [h]: true }));
+    loadExtraHandle(h);
   };
 
   const removeExtraHandle = (h: string) => {
