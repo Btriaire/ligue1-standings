@@ -44,6 +44,16 @@ export default function ActuFootBanner() {
     return () => { cancelled = true; clearInterval(t); };
   }, []);
 
+  // Ticker only shows posts from the last 7 days — older feels stale.
+  const SEVEN_DAYS_MS = 7 * 24 * 3600 * 1000;
+  const nowMs = Date.now();
+  const recentTweets = tweets.filter(t => nowMs - new Date(t.pubDate).getTime() < SEVEN_DAYS_MS);
+
+  // If there are zero recent posts and we're not in an error state, hide the
+  // bar entirely rather than show a "indisponible" banner for what is just
+  // a dormant feed.
+  if (!loading && recentTweets.length === 0 && !errored) return null;
+
   return (
     <div className="border-b" style={{ background: "#0a0f1c", borderColor: "#1a2235" }}>
       <div className="max-w-[1300px] mx-auto px-4 py-2 flex items-center gap-3">
@@ -54,14 +64,14 @@ export default function ActuFootBanner() {
         <div className="flex-1 overflow-hidden">
           {loading ? (
             <div className="h-4 rounded animate-pulse" style={{ background: "#0d1421" }}/>
-          ) : errored || tweets.length === 0 ? (
+          ) : errored || recentTweets.length === 0 ? (
             <a href="https://x.com/ActuFoot_" target="_blank" rel="noopener noreferrer"
               className="text-[11px] italic hover:opacity-80" style={{ color: "#64748b" }}>
               Flux temporairement indisponible — voir sur x.com/ActuFoot_
             </a>
           ) : (
             <div className="flex gap-6 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-              {tweets.slice(0, 8).map(t => (
+              {recentTweets.slice(0, 8).map(t => (
                 <button key={t.id} type="button"
                   onClick={() => setSelected(t)}
                   className="flex items-baseline gap-2 flex-shrink-0 hover:opacity-80 transition-opacity max-w-[420px] text-left">
