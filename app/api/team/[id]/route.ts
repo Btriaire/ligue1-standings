@@ -8,12 +8,19 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
 
   try {
-    const [finishedRes, scheduledRes] = await Promise.all([
+    // Three lists: FINISHED (recap), LIVE (currently in play / halftime),
+    // SCHEDULED (upcoming). The live list is short-cached because the
+    // score keeps moving — we don't want La Fiche to skip an ongoing match.
+    const [finishedRes, liveRes, scheduledRes] = await Promise.all([
       fetch(`https://api.football-data.org/v4/teams/${id}/matches?status=FINISHED&limit=5&competitions=FL1`, {
         headers: { "X-Auth-Token": API_KEY },
         next: { revalidate: 120 },
       }),
-      fetch(`https://api.football-data.org/v4/teams/${id}/matches?status=SCHEDULED&limit=3&competitions=FL1`, {
+      fetch(`https://api.football-data.org/v4/teams/${id}/matches?status=IN_PLAY,PAUSED&competitions=FL1`, {
+        headers: { "X-Auth-Token": API_KEY },
+        next: { revalidate: 20 },
+      }),
+      fetch(`https://api.football-data.org/v4/teams/${id}/matches?status=SCHEDULED,TIMED&limit=3&competitions=FL1`, {
         headers: { "X-Auth-Token": API_KEY },
         next: { revalidate: 120 },
       }),
@@ -21,8 +28,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
     if (!finishedRes.ok || !scheduledRes.ok) throw new Error("API error");
 
-    const [finishedData, scheduledData] = await Promise.all([
+    const [finishedData, liveData, scheduledData] = await Promise.all([
       finishedRes.json(),
+      liveRes.ok ? liveRes.json() : Promise.resolve({ matches: [] }),
       scheduledRes.json(),
     ]);
 
@@ -54,9 +62,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       refereeNationality: (m.referees ?? []).find(r => r.type === "REFEREE")?.nationality ?? null,
     });
 
+    // Put any live match at the FRONT of `upcoming` so consumers that pick
+    // `upcoming[0]` get the ongoing match instead of jumping to the next one.
+    const liveMatches    = (liveData.matches ?? []).map(mapMatch);
+    const scheduledList  = (scheduledData.matches ?? []).map(mapMatch);
+
     return NextResponse.json({
       recent: (finishedData.matches ?? []).reverse().map(mapMatch),
-      upcoming: (scheduledData.matches ?? []).map(mapMatch),
+      upcoming: [...liveMatches, ...scheduledList],
+      live: liveMatches,
     });
   } catch (err) {
     console.error(err);

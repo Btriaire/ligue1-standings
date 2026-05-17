@@ -497,7 +497,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
 
   // La Fiche state
   const [ficheOpponentId, setFicheOpponentId] = useState<number|null>(null);
-  const [ficheNextMatch, setFicheNextMatch] = useState<{id:number;date:string;matchday:number;homeTeam:{id:number;name:string;crest:string};awayTeam:{id:number;name:string;crest:string}}|null>(null);
+  const [ficheNextMatch, setFicheNextMatch] = useState<FicheMatch|null>(null);
   const [ficheTeamData, setFicheTeamData] = useState<{recent:{date:string;homeTeam:{id:number;name:string;crest:string};awayTeam:{id:number;name:string;crest:string};score:{home:number|null;away:number|null}}[];upcoming:{date:string;homeTeam:{id:number;name:string;crest:string};awayTeam:{id:number;name:string;crest:string};score:{home:number|null;away:number|null}}[]}|null>(null);
   const [ficheSquad, setFicheSquad] = useState<SquadPlayer[]>([]);
   const [ficheLoading, setFicheLoading] = useState(false);
@@ -1730,6 +1730,8 @@ interface FicheMatch {
   id: number;
   date: string;
   matchday: number;
+  status?: string;
+  score?: { home: number | null; away: number | null };
   homeTeam: { id: number; name: string; crest: string };
   awayTeam: { id: number; name: string; crest: string };
   referee?: string | null;
@@ -2054,8 +2056,9 @@ function FicheSection({club,nextMatch,opponentId,ficheTeamData,ficheSquad,mySqua
   const oppTeamRaw= nextMatch ? (isHome ? nextMatch.awayTeam : nextMatch.homeTeam) : null;
   const oppStandingTeam = allStandings.find(s=>s.team.id===opponentId)?.team??null;
   const oppTeam   = oppTeamRaw ?? (oppStandingTeam ? { id: oppStandingTeam.id, name: oppStandingTeam.name, crest: oppStandingTeam.crest } : { id: opponentId??0, name:"Adversaire", crest:"" });
-  // Is this match in the future?
-  const isUpcoming = nextMatch ? new Date(nextMatch.date) > new Date() : false;
+  // Match state: live (IN_PLAY / PAUSED), upcoming (kickoff in future), or past recap.
+  const isLive     = nextMatch ? (nextMatch.status === "IN_PLAY" || nextMatch.status === "PAUSED") : false;
+  const isUpcoming = nextMatch ? !isLive && new Date(nextMatch.date) > new Date() : false;
 
   // Standings
   const myStanding  = allStandings.find(s=>s.team.id===club.id)??null;
@@ -2105,8 +2108,20 @@ function FicheSection({club,nextMatch,opponentId,ficheTeamData,ficheSquad,mySqua
                   <span className="text-xs font-black text-center" style={{color:"#e8edf5",maxWidth:80}}>{club.shortName}</span>
                 </div>
                 <div className="flex flex-col items-center gap-1">
-                  <span className="text-2xl font-black" style={{color:"#475569"}}>vs</span>
-                  {isUpcoming ? (
+                  {isLive && nextMatch.score && nextMatch.score.home !== null && nextMatch.score.away !== null ? (
+                    <span className="text-2xl font-black tabular-nums" style={{color:"#e8edf5"}}>
+                      {nextMatch.score.home}<span style={{color:"#475569"}}> - </span>{nextMatch.score.away}
+                    </span>
+                  ) : (
+                    <span className="text-2xl font-black" style={{color:"#475569"}}>vs</span>
+                  )}
+                  {isLive ? (
+                    <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg"
+                      style={{background:"rgba(239,68,68,0.12)",color:"#ef4444",border:"1px solid rgba(239,68,68,0.35)"}}>
+                      <span className="w-1.5 h-1.5 rounded-full live-blink" style={{background:"#ef4444",boxShadow:"0 0 6px #ef4444"}}/>
+                      En direct
+                    </span>
+                  ) : isUpcoming ? (
                     <span className="text-[9px] font-bold px-2 py-0.5 rounded-lg" style={{background:isHome?"rgba(34,197,94,0.1)":"rgba(239,68,68,0.1)",color:isHome?"#22c55e":"#f87171",border:`1px solid ${isHome?"rgba(34,197,94,0.2)":"rgba(239,68,68,0.2)"}`}}>
                       {isHome?"Domicile":"Extérieur"}
                     </span>
