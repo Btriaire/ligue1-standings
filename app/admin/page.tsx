@@ -85,6 +85,7 @@ const DEFAULT_TWITTER_HANDLES: Record<string, string> = {
 interface PingResult {
   ok: boolean; status: number; ms: number;
   hint?: string; fixPath?: string; fixLabel?: string;
+  knownBlocked?: boolean;
 }
 
 // Map source name → sourceId for ping route
@@ -300,10 +301,16 @@ export default function AdminPage() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ handles: twitterHandles }),
       });
-      const d = await res.json() as { ok: boolean; saved: number };
-      setTwitterLog(d.ok ? `✅ ${d.saved} handle(s) sauvegardé(s)` : "❌ Erreur");
-    } catch {
-      setTwitterLog("❌ Erreur réseau");
+      const d = await res.json() as { ok: boolean; saved: number; error?: string };
+      if (d.ok) {
+        setTwitterLog(`✅ ${d.saved} handle(s) sauvegardé(s) à ${new Date().toLocaleTimeString("fr-FR")}`);
+        // Re-read from Firestore so the UI reflects what's actually stored
+        loadTwitterConfig();
+      } else {
+        setTwitterLog(`❌ ${d.error ?? "Erreur inconnue"}`);
+      }
+    } catch (e) {
+      setTwitterLog(`❌ ${String(e)}`);
     } finally {
       setTwitterSaving(false);
     }
@@ -593,14 +600,14 @@ export default function AdminPage() {
                   const result = typeof ping === "object" ? ping : null;
                   return (
                     <div key={src.name} className="rounded-xl p-2.5"
-                      style={{ background: "#0d1421", border: `1px solid ${result ? (result.ok ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)") : "#1e2d42"}` }}>
+                      style={{ background: "#0d1421", border: `1px solid ${result ? (result.ok ? "rgba(34,197,94,0.25)" : result.knownBlocked ? "rgba(251,146,60,0.25)" : "rgba(239,68,68,0.25)") : "#1e2d42"}` }}>
                       {/* Row 1: name + status + link */}
                       <div className="flex items-center gap-2">
-                        <StatusDot status={result ? (result.ok ? "ok" : "error") : src.status} />
+                        <StatusDot status={result ? (result.ok ? "ok" : result.knownBlocked ? "blocked" : "error") : src.status} />
                         <span className="text-[10px] font-semibold flex-1 truncate" style={{ color: "#e2e8f0" }}>{src.name}</span>
                         {result && (
-                          <span className="text-[9px] font-mono flex-shrink-0" style={{ color: result.ok ? "#22c55e" : "#ef4444" }}>
-                            {result.ok ? `${result.ms}ms` : `HTTP ${result.status || "ERR"}`}
+                          <span className="text-[9px] font-mono flex-shrink-0" style={{ color: result.ok ? "#22c55e" : result.knownBlocked ? "#fb923c" : "#ef4444" }}>
+                            {result.ok ? `${result.ms}ms` : result.knownBlocked ? "BLOQUÉ" : `HTTP ${result.status || "ERR"}`}
                           </span>
                         )}
                         {!result && src.latencyMs != null && (
@@ -612,11 +619,14 @@ export default function AdminPage() {
                       </div>
                       {/* Row 2: role */}
                       <p className="text-[8.5px] mt-0.5 truncate" style={{ color: "#475569" }}>{src.role}</p>
-                      {/* Row 3: hint if error */}
+                      {/* Row 3: hint if error or known block */}
                       {result && !result.ok && result.hint && (
-                        <p className="text-[8px] mt-1 font-mono truncate px-1.5 py-0.5 rounded"
-                          style={{ background: "rgba(239,68,68,0.08)", color: "#f87171" }}>
-                          {result.hint}
+                        <p className="text-[8px] mt-1 font-mono px-1.5 py-0.5 rounded"
+                          style={{
+                            background: result.knownBlocked ? "rgba(251,146,60,0.08)" : "rgba(239,68,68,0.08)",
+                            color: result.knownBlocked ? "#fb923c" : "#f87171",
+                          }}>
+                          {result.knownBlocked ? "ⓘ " : ""}{result.hint}
                         </p>
                       )}
                       {/* Row 4: action buttons */}

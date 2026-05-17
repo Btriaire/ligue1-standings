@@ -17,13 +17,23 @@ function checkAdmin(req: NextRequest): boolean {
   } catch { return false; }
 }
 
+// Strip meta keys (those starting with "_") so they don't leak into UI as handles
+function stripMeta(data: Record<string, unknown>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(data)) {
+    if (!k.startsWith("_") && typeof v === "string") out[k] = v;
+  }
+  return out;
+}
+
 // ── GET — read current handles config ────────────────────────────────────────
 export async function GET(req: NextRequest) {
   if (!checkAdmin(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const db = getAdminFirestore();
     const doc = await db.collection("twitterConfig").doc("handles").get();
-    const handles: Record<string, string> = doc.exists ? (doc.data() ?? {}) : {};
+    const raw = doc.exists ? (doc.data() ?? {}) : {};
+    const handles = stripMeta(raw as Record<string, unknown>);
     return NextResponse.json({ handles });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
@@ -31,6 +41,8 @@ export async function GET(req: NextRequest) {
 }
 
 // ── POST — save handles config ────────────────────────────────────────────────
+// Empty strings are kept as explicit "disable this club" markers so cleared
+// values persist on reload (otherwise DEFAULT_HANDLES would repopulate them).
 export async function POST(req: NextRequest) {
   if (!checkAdmin(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
@@ -38,14 +50,13 @@ export async function POST(req: NextRequest) {
     if (!body.handles || typeof body.handles !== "object") {
       return NextResponse.json({ error: "Missing handles object" }, { status: 400 });
     }
-    // Sanitize: only keep non-empty string values, strip @ prefix
     const cleaned: Record<string, string> = {};
     for (const [clubId, handle] of Object.entries(body.handles)) {
-      if (handle && typeof handle === "string") {
-        cleaned[clubId] = handle.replace(/^@/, "").trim();
-      }
+      if (typeof handle !== "string") continue;
+      cleaned[clubId] = handle.replace(/^@/, "").trim();
     }
     const db = getAdminFirestore();
+    // Full overwrite (no merge) so removed keys are actually dropped.
     await db.collection("twitterConfig").doc("handles").set({
       ...cleaned,
       _updatedAt: new Date().toISOString(),

@@ -83,8 +83,14 @@ const CONF_CONFIG: Record<string, { color: string; label: string }> = {
   OFC:      { color: "#06b6d4", label: "OFC" },
 };
 
+function wcAvatarUrl(name: string, hex: string): string {
+  const bg = hex.replace("#", "");
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&size=96&background=${bg}&color=fff&bold=true&format=svg`;
+}
+
 function WCRefereeCard({ ref: r }: { ref: WCReferee }) {
   const [open, setOpen] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const conf = CONF_CONFIG[r.confederation];
   const isFrench = r.nationality === "France";
 
@@ -94,7 +100,22 @@ function WCRefereeCard({ ref: r }: { ref: WCReferee }) {
         onClick={() => setOpen(v => !v)}
         className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:brightness-125 transition-all"
       >
-        <span className="text-xl flex-shrink-0">{r.flag}</span>
+        {/* Avatar with flag badge overlay */}
+        <div className="relative flex-shrink-0">
+          {imgError ? (
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center text-lg font-black"
+              style={{ background: `${conf.color}15`, border: `1.5px solid ${conf.color}30`, color: conf.color }}>
+              {r.name.split(" ").map(p => p[0]).join("").slice(0, 2)}
+            </div>
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={wcAvatarUrl(r.name, conf.color)} alt={r.name}
+              className="w-10 h-10 rounded-lg object-cover"
+              style={{ border: `1.5px solid ${conf.color}40` }}
+              onError={() => setImgError(true)} loading="lazy" />
+          )}
+          <span className="absolute -bottom-1 -right-1 text-base leading-none">{r.flag}</span>
+        </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">

@@ -285,8 +285,16 @@ function YellowBar({ avg }: { avg: number }) {
   );
 }
 
+// Generated avatar URL from ui-avatars.com (no API key, returns SVG/PNG by name).
+// Colour comes from reputation palette — strips '#' for the API.
+function avatarUrl(name: string, hex: string): string {
+  const bg = hex.replace("#", "");
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&size=128&background=${bg}&color=fff&bold=true&format=svg`;
+}
+
 function RefereeCard({ ref: r }: { ref: Referee }) {
   const [open, setOpen] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const repCfg = REPUTATION_CONFIG[r.reputation] ?? { color: "#94a3b8", emoji: "⚪" };
   const wc2026 = r.id === "turpin" || r.id === "letexier";
 
@@ -297,11 +305,19 @@ function RefereeCard({ ref: r }: { ref: Referee }) {
         onClick={() => setOpen(v => !v)}
         className="w-full flex items-center gap-3 px-4 py-3 text-left hover:brightness-125 transition-all"
       >
-        {/* Avatar initials */}
-        <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0"
-          style={{ background: `${repCfg.color}15`, border: `1.5px solid ${repCfg.color}30`, color: repCfg.color }}>
-          {r.name.split(" ").map(p => p[0]).join("").slice(0, 2)}
-        </div>
+        {/* Avatar — generated photo or fallback to initials */}
+        {imgError ? (
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0"
+            style={{ background: `${repCfg.color}15`, border: `1.5px solid ${repCfg.color}30`, color: repCfg.color }}>
+            {r.name.split(" ").map(p => p[0]).join("").slice(0, 2)}
+          </div>
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={avatarUrl(r.name, repCfg.color)} alt={r.name}
+            className="w-10 h-10 rounded-xl flex-shrink-0 object-cover"
+            style={{ border: `1.5px solid ${repCfg.color}40` }}
+            onError={() => setImgError(true)} loading="lazy" />
+        )}
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">

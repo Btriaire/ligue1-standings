@@ -37,6 +37,28 @@ const OFFICIAL_HANDLES: Record<string, string> = {
   "1045": "ParisFC",
 };
 
+// ── Club hashtags — fetched via Nitter search RSS ─────────────────────────────
+const CLUB_HASHTAGS: Record<string, string> = {
+  "524":  "TeamPSG",
+  "548":  "DaghePrincipe",
+  "516":  "TeamOM",
+  "521":  "TeamLOSC",
+  "529":  "TeamSRFC",
+  "522":  "TeamOGCN",
+  "546":  "RCLens",
+  "523":  "TeamOL",
+  "576":  "RCSA",
+  "511":  "TeamTFC",
+  "512":  "TeamSB29",
+  "532":  "TeamSCO",
+  "533":  "TeamHAC",
+  "519":  "TeamAJA",
+  "543":  "FCNantes",
+  "545":  "FCMetz",
+  "525":  "FCLorient",
+  "1045": "ParisFC",
+};
+
 // ── Default fan accounts ──────────────────────────────────────────────────────
 const DEFAULT_HANDLES: Record<string, string> = {
   "524":  "LMDPSG",           // Le Meilleur du PSG — 161K
@@ -112,6 +134,24 @@ async function tryNitter(handle: string): Promise<Tweet[]> {
   return [];
 }
 
+async function tryNitterHashtag(hashtag: string): Promise<Tweet[]> {
+  const q = encodeURIComponent(`#${hashtag}`);
+  for (const instance of NITTER_INSTANCES) {
+    try {
+      const url = `https://${instance}/search/rss?f=tweets&q=${q}`;
+      const res = await fetch(url, {
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; FootPredictom/1.0)" },
+        signal: AbortSignal.timeout(4000),
+      } as RequestInit);
+      if (!res.ok) continue;
+      const xml = await res.text();
+      if (!xml.includes("<item>")) continue;
+      return parseNitterRSS(xml, `#${hashtag}`);
+    } catch { /* try next */ }
+  }
+  return [];
+}
+
 // ── GET — fetch tweets for a club ─────────────────────────────────────────────
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -143,7 +183,18 @@ export async function GET(req: NextRequest) {
       if (tweets.length > 0) { usedHandle = official; isFallback = true; }
     }
 
-    return NextResponse.json({ tweets, handle: usedHandle, fanHandle: handle, isFallback }, {
+    // Also fetch hashtag tweets (e.g. #TeamOM) in parallel — best effort
+    const hashtag = CLUB_HASHTAGS[clubId] ?? null;
+    const hashtagTweets = hashtag ? await tryNitterHashtag(hashtag) : [];
+
+    return NextResponse.json({
+      tweets,
+      handle: usedHandle,
+      fanHandle: handle,
+      isFallback,
+      hashtag,
+      hashtagTweets,
+    }, {
       headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=60" },
     });
   } catch (e) {

@@ -16,12 +16,19 @@ function checkAdmin(req: NextRequest): boolean {
   } catch { return false; }
 }
 
+// Realistic browser UA — many anti-bot services accept this on first hit.
+const BROWSER_UA =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
+  "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+
 const SOURCE_CONFIGS: Record<string, {
   url: string;
   method?: string;
   headers?: Record<string, string>;
   fixPath?: string;   // API route to call to attempt a fix
   fixLabel?: string;
+  knownBlocked?: boolean; // server-side scraping permanently blocked (Cloudflare etc.)
+  note?: string;
 }> = {
   "football-data": {
     url: "https://api.football-data.org/v4/competitions/FL1",
@@ -31,19 +38,25 @@ const SOURCE_CONFIGS: Record<string, {
   },
   "understat": {
     url: "https://understat.com/league/Ligue_1/2025",
-    headers: { "User-Agent": "Mozilla/5.0 (compatible; FootInsider/1.0)" },
+    headers: { "User-Agent": BROWSER_UA },
     fixPath: "/api/cron/warm-players",
     fixLabel: "Warm cache joueurs",
   },
   "sofascore": {
     url: "https://api.sofascore.com/api/v1/team/1644/players",
-    headers: { "Referer": "https://www.sofascore.com/", "User-Agent": "Mozilla/5.0" },
+    headers: {
+      "Referer": "https://www.sofascore.com/",
+      "Origin": "https://www.sofascore.com",
+      "User-Agent": BROWSER_UA,
+      "Accept": "application/json",
+    },
     fixPath: "/api/cron/sofascore",
     fixLabel: "Relancer scrape SofaScore",
+    note: "Cloudflare — peut renvoyer 403 selon l'IP serveur",
   },
   "sofoot": {
     url: "https://www.sofoot.com/rss/",
-    headers: { "User-Agent": "Mozilla/5.0 (compatible; FootInsider/1.0)" },
+    headers: { "User-Agent": BROWSER_UA },
     fixPath: "/api/news?topic=l1",
     fixLabel: "Purge cache news",
   },
@@ -51,11 +64,13 @@ const SOURCE_CONFIGS: Record<string, {
     url: "https://transfermarkt-api.fly.dev/competitions/FR1/clubs?season_id=2024",
     fixPath: "/api/cron/warm-players",
     fixLabel: "Warm cache joueurs",
+    note: "API tierce fly.dev — disponibilité variable",
   },
   "fbref": {
     url: "https://fbref.com/en/comps/13/Ligue-1-Stats",
-    headers: { "User-Agent": "Mozilla/5.0 (compatible; FootInsider/1.0)" },
-    // no fix — permanently blocked
+    headers: { "User-Agent": BROWSER_UA },
+    knownBlocked: true,
+    note: "FBref bloque toute requête serveur (Cloudflare 403) — données non utilisées",
   },
 };
 
@@ -92,7 +107,8 @@ export async function POST(req: NextRequest) {
       ok,
       status,
       ms,
-      hint: hint || undefined,
+      hint: hint || cfg.note,
+      knownBlocked: cfg.knownBlocked ?? false,
       fixPath: cfg.fixPath,
       fixLabel: cfg.fixLabel,
     });
@@ -103,7 +119,8 @@ export async function POST(req: NextRequest) {
       ok: false,
       status: 0,
       ms,
-      hint: msg,
+      hint: cfg.note ?? msg,
+      knownBlocked: cfg.knownBlocked ?? false,
       fixPath: cfg.fixPath,
       fixLabel: cfg.fixLabel,
     });

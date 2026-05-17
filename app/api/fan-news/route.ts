@@ -20,16 +20,62 @@ export interface FanArticle {
   pubDate: string;
   description: string;
   site: string;
+  image: string | null;
 }
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, " ").replace(/&[a-z]+;/gi, " ").replace(/\s+/g, " ").trim();
 }
 
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&#8217;/g, "’")
+    .replace(/&#8216;/g, "‘")
+    .replace(/&#8220;/g, "“")
+    .replace(/&#8221;/g, "”")
+    .replace(/&#8230;/g, "…")
+    .replace(/&laquo;/g, "«")
+    .replace(/&raquo;/g, "»")
+    .replace(/&nbsp;/g, " ");
+}
+
+// Try several common RSS image patterns: media:content, enclosure, <img> in description, content:encoded
+function extractImage(block: string): string | null {
+  // 1) <media:content url="...">
+  const media = block.match(/<media:(?:content|thumbnail)[^>]*url=["']([^"']+)["']/i);
+  if (media?.[1]) return media[1];
+
+  // 2) <enclosure url="..." type="image/...">
+  const enc = block.match(/<enclosure[^>]*url=["']([^"']+)["'][^>]*type=["']image\//i);
+  if (enc?.[1]) return enc[1];
+
+  // 3) <content:encoded>...<img src="...">
+  const contentEnc = block.match(/<content:encoded>([\s\S]*?)<\/content:encoded>/);
+  if (contentEnc?.[1]) {
+    const img = contentEnc[1].match(/<img[^>]+src=["']([^"']+)["']/i);
+    if (img?.[1]) return img[1];
+  }
+
+  // 4) <img src="..."> inside description
+  const desc = block.match(/<description>([\s\S]*?)<\/description>/);
+  if (desc?.[1]) {
+    const img = desc[1].match(/<img[^>]+src=["']([^"']+)["']/i);
+    if (img?.[1]) return img[1];
+  }
+
+  return null;
+}
+
 function parseFanRSS(xml: string, site: string): FanArticle[] {
   const articles: FanArticle[] = [];
   let pos = 0;
-  while (articles.length < 8) {
+  while (articles.length < 12) {
     const s = xml.indexOf("<item>", pos);
     if (s === -1) break;
     const e = xml.indexOf("</item>", s);
@@ -48,8 +94,9 @@ function parseFanRSS(xml: string, site: string): FanArticle[] {
 
     if (!title || title.length < 3 || !link) continue;
 
-    const cleanTitle = stripHtml(title);
-    const cleanDesc  = stripHtml(rawDesc).slice(0, 160);
+    const cleanTitle = decodeEntities(stripHtml(title));
+    const cleanDesc  = decodeEntities(stripHtml(rawDesc)).slice(0, 220);
+    const image      = extractImage(b);
 
     articles.push({
       id: guid.split("/").pop() ?? String(Date.now() + articles.length),
@@ -58,6 +105,7 @@ function parseFanRSS(xml: string, site: string): FanArticle[] {
       pubDate: date ? new Date(date).toISOString() : new Date().toISOString(),
       description: cleanDesc,
       site,
+      image,
     });
   }
   return articles;

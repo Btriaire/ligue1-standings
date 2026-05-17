@@ -392,17 +392,54 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
   const [communityLoading, setCommunityLoading] = useState(false);
 
   // Fans section state
-  const [fansTab, setFansTab] = useState<"tweets"|"articles">("tweets");
+  const [fansTab, setFansTab] = useState<"tweets"|"hashtag"|"articles">("tweets");
   // Tweets
-  const [tweets, setTweets] = useState<{id:string;title:string;pubDate:string;url:string;author:string}[]>([]);
+  type Tweet = {id:string;title:string;pubDate:string;url:string;author:string};
+  const [tweets, setTweets] = useState<Tweet[]>([]);
   const [tweetsLoading, setTweetsLoading] = useState(false);
   const [tweetHandle, setTweetHandle] = useState<string|null>(null);
   const [tweetFanHandle, setTweetFanHandle] = useState<string|null>(null);
   const [tweetIsFallback, setTweetIsFallback] = useState(false);
+  // Hashtag tweets
+  const [hashtag, setHashtag] = useState<string|null>(null);
+  const [hashtagTweets, setHashtagTweets] = useState<Tweet[]>([]);
+  // Extra user-added handles (per club, localStorage)
+  const EXTRA_HANDLES_KEY = `fp_extra_handles_${club.id}`;
+  const [extraHandles, setExtraHandles] = useState<string[]>([]);
+  const [newHandleInput, setNewHandleInput] = useState("");
+  const [extraTweets, setExtraTweets] = useState<Record<string, Tweet[]>>({});
+  const [extraLoading, setExtraLoading] = useState<Record<string, boolean>>({});
   // Fan articles
-  const [fanArticles, setFanArticles] = useState<{id:string;title:string;link:string;pubDate:string;description:string;site:string}[]>([]);
+  type FanArt = {id:string;title:string;link:string;pubDate:string;description:string;site:string;image:string|null};
+  const [fanArticles, setFanArticles] = useState<FanArt[]>([]);
   const [fanArticlesLoading, setFanArticlesLoading] = useState(false);
   const [fanArticlesSite, setFanArticlesSite] = useState<string|null>(null);
+
+  // Load extra handles from localStorage when club changes
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(EXTRA_HANDLES_KEY);
+      if (raw) setExtraHandles(JSON.parse(raw));
+      else setExtraHandles([]);
+    } catch { setExtraHandles([]); }
+  }, [EXTRA_HANDLES_KEY]);
+
+  const persistExtraHandles = (list: string[]) => {
+    setExtraHandles(list);
+    try { localStorage.setItem(EXTRA_HANDLES_KEY, JSON.stringify(list)); } catch { /**/ }
+  };
+
+  const addExtraHandle = () => {
+    const h = newHandleInput.replace(/^@/, "").trim();
+    if (!h || extraHandles.includes(h)) { setNewHandleInput(""); return; }
+    persistExtraHandles([...extraHandles, h]);
+    setNewHandleInput("");
+  };
+
+  const removeExtraHandle = (h: string) => {
+    persistExtraHandles(extraHandles.filter(x => x !== h));
+    setExtraTweets(t => { const n = {...t}; delete n[h]; return n; });
+  };
 
   const loadTweets = useCallback(async () => {
     setTweetsLoading(true);
@@ -410,26 +447,38 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
       const res = await fetch(`/api/twitter?clubId=${club.id}`);
       if (res.ok) {
         const d = await res.json() as {
-          tweets: {id:string;title:string;pubDate:string;url:string;author:string}[];
+          tweets: Tweet[];
           handle: string|null; fanHandle: string|null; isFallback: boolean;
+          hashtag: string|null; hashtagTweets: Tweet[];
         };
         setTweets(d.tweets ?? []);
         setTweetHandle(d.handle);
         setTweetFanHandle(d.fanHandle);
         setTweetIsFallback(d.isFallback ?? false);
+        setHashtag(d.hashtag ?? null);
+        setHashtagTweets(d.hashtagTweets ?? []);
       }
     } catch { /**/ } finally { setTweetsLoading(false); }
   }, [club.id]);
+
+  // Load tweets for a user-added extra handle (via /api/twitter-user proxy)
+  const loadExtraHandle = useCallback(async (h: string) => {
+    setExtraLoading(l => ({ ...l, [h]: true }));
+    try {
+      const res = await fetch(`/api/twitter-user?handle=${encodeURIComponent(h)}`);
+      if (res.ok) {
+        const d = await res.json() as { tweets: Tweet[] };
+        setExtraTweets(t => ({ ...t, [h]: d.tweets ?? [] }));
+      }
+    } catch { /**/ } finally { setExtraLoading(l => ({ ...l, [h]: false })); }
+  }, []);
 
   const loadFanArticles = useCallback(async () => {
     setFanArticlesLoading(true);
     try {
       const res = await fetch(`/api/fan-news?clubId=${club.id}`);
       if (res.ok) {
-        const d = await res.json() as {
-          articles: {id:string;title:string;link:string;pubDate:string;description:string;site:string}[];
-          site: string|null;
-        };
+        const d = await res.json() as { articles: FanArt[]; site: string|null };
         setFanArticles(d.articles ?? []);
         setFanArticlesSite(d.site);
       }
@@ -440,8 +489,11 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
     if (section === "fans") {
       loadTweets();
       loadFanArticles();
+      // Load all extra handles
+      extraHandles.forEach(h => { if (!extraTweets[h]) loadExtraHandle(h); });
     }
-  }, [section, loadTweets, loadFanArticles]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [section, loadTweets, loadFanArticles, extraHandles.length]);
 
   // La Fiche state
   const [ficheOpponentId, setFicheOpponentId] = useState<number|null>(null);
@@ -1319,17 +1371,23 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
       {section==="fans"&&(
         <div className="space-y-3">
 
-          {/* Sub-tabs Tweets / Articles */}
+          {/* Sub-tabs Tweets / Hashtag / Articles */}
           <div className="flex gap-1 p-1 rounded-xl" style={{background:"#0a0f1c",border:"1px solid #1a2235"}}>
             <button onClick={()=>setFansTab("tweets")}
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all flex-1 justify-center"
               style={{background:fansTab==="tweets"?"rgba(29,161,242,0.12)":"transparent",color:fansTab==="tweets"?"#1da1f2":"#64748b",border:fansTab==="tweets"?"1px solid rgba(29,161,242,0.2)":"1px solid transparent"}}>
-              <TwitterLogo size={11}/> Tweets fans
+              <TwitterLogo size={11}/> Tweets
+            </button>
+            <button onClick={()=>setFansTab("hashtag")}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all flex-1 justify-center"
+              style={{background:fansTab==="hashtag"?"rgba(168,85,247,0.12)":"transparent",color:fansTab==="hashtag"?"#a855f7":"#64748b",border:fansTab==="hashtag"?"1px solid rgba(168,85,247,0.2)":"1px solid transparent"}}>
+              <span>#</span> {hashtag ?? "Hashtag"}
+              {hashtagTweets.length>0&&<span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{background:"rgba(168,85,247,0.15)",color:"#a855f7"}}>{hashtagTweets.length}</span>}
             </button>
             <button onClick={()=>setFansTab("articles")}
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all flex-1 justify-center"
               style={{background:fansTab==="articles"?"rgba(251,191,36,0.1)":"transparent",color:fansTab==="articles"?"#fbbf24":"#64748b",border:fansTab==="articles"?"1px solid rgba(251,191,36,0.2)":"1px solid transparent"}}>
-              📰 Articles fans
+              📰 Articles
               {fanArticles.length>0&&<span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{background:"rgba(251,191,36,0.15)",color:"#fbbf24"}}>{fanArticles.length}</span>}
             </button>
           </div>
@@ -1416,6 +1474,125 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                   )}
                 </>
               )}
+
+              {/* ── Custom user-added handles ── */}
+              <div className="rounded-xl p-3 mt-3" style={{background:"#0a0f1c",border:"1px dashed #1e2d42"}}>
+                <p className="text-[9px] font-black uppercase tracking-widest mb-2" style={{color:"#475569"}}>
+                  ➕ Mes comptes 𝕏 favoris
+                </p>
+                <div className="flex gap-1.5 mb-2">
+                  <input
+                    type="text"
+                    value={newHandleInput}
+                    onChange={e=>setNewHandleInput(e.target.value)}
+                    onKeyDown={e=>{if(e.key==="Enter") addExtraHandle();}}
+                    placeholder="@handle (ex: kyliemb10)"
+                    className="flex-1 text-[10px] px-2.5 py-1.5 rounded-lg outline-none min-w-0"
+                    style={{background:"rgba(255,255,255,0.04)",border:"1px solid #1e2d42",color:"#e8edf5"}}
+                  />
+                  <button onClick={addExtraHandle}
+                    className="px-2.5 py-1.5 rounded-lg text-[10px] font-semibold hover:opacity-80"
+                    style={{background:"rgba(29,161,242,0.1)",border:"1px solid rgba(29,161,242,0.25)",color:"#1da1f2"}}>
+                    Ajouter
+                  </button>
+                </div>
+                {extraHandles.length===0&&(
+                  <p className="text-[9px]" style={{color:"#334155"}}>Ajoute tes comptes 𝕏 préférés (joueurs, journalistes…) — stocké localement.</p>
+                )}
+                {extraHandles.length>0&&(
+                  <div className="space-y-2">
+                    {extraHandles.map(h=>{
+                      const tws=extraTweets[h]??[];
+                      const loading=extraLoading[h];
+                      return (
+                        <div key={h} className="rounded-lg p-2" style={{background:"#0d1421",border:"1px solid #1e2d42"}}>
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <TwitterLogo size={10} style={{color:"#1da1f2"}}/>
+                            <a href={`https://x.com/${h}`} target="_blank" rel="noopener noreferrer"
+                              className="text-[10px] font-bold hover:underline" style={{color:"#1da1f2"}}>@{h}</a>
+                            <span className="text-[9px] ml-auto" style={{color:"#334155"}}>{tws.length} tweets</span>
+                            <button onClick={()=>loadExtraHandle(h)} disabled={loading}
+                              className="text-[9px] px-1.5 py-0.5 rounded hover:opacity-80"
+                              style={{background:"rgba(255,255,255,0.04)",border:"1px solid #1e2d42",color:"#6b7c96"}}>
+                              <ArrowsClockwise size={8} className={loading?"animate-spin":""}/>
+                            </button>
+                            <button onClick={()=>removeExtraHandle(h)}
+                              className="text-[9px] px-1.5 py-0.5 rounded hover:opacity-80"
+                              style={{background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.15)",color:"#ef4444"}}>
+                              ✕
+                            </button>
+                          </div>
+                          {tws.slice(0,3).map(t=>{
+                            const dt=new Date(t.pubDate);
+                            const ago=Date.now()-dt.getTime();
+                            const agoStr=ago<3600000?`${Math.round(ago/60000)}min`:ago<86400000?`${Math.round(ago/3600000)}h`:dt.toLocaleDateString("fr-FR",{day:"2-digit",month:"short"});
+                            return (
+                              <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer"
+                                className="block p-1.5 rounded mb-1 hover:brightness-125" style={{background:"rgba(255,255,255,0.02)",textDecoration:"none"}}>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[9px]" style={{color:"#334155"}}>{agoStr}</span>
+                                </div>
+                                <p className="text-[10px] leading-snug" style={{color:"#94a3b8"}}>{t.title}</p>
+                              </a>
+                            );
+                          })}
+                          {tws.length===0&&!loading&&<p className="text-[9px]" style={{color:"#334155"}}>Aucun tweet récupéré.</p>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── HASHTAG ── */}
+          {fansTab==="hashtag"&&(
+            <div className="space-y-2">
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-base font-black" style={{color:"#a855f7"}}>#</span>
+                  {hashtag
+                    ? <a href={`https://x.com/hashtag/${hashtag}`} target="_blank" rel="noopener noreferrer"
+                        className="text-[11px] font-bold hover:underline truncate" style={{color:"#a855f7"}}>#{hashtag}</a>
+                    : <span className="text-[10px]" style={{color:"#475569"}}>Pas de hashtag défini</span>}
+                </div>
+                <button onClick={loadTweets} disabled={tweetsLoading}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] hover:opacity-80 flex-shrink-0"
+                  style={{background:"rgba(255,255,255,0.04)",border:"1px solid #1e2d42",color:"#6b7c96"}}>
+                  <ArrowsClockwise size={9} className={tweetsLoading?"animate-spin":""}/>
+                </button>
+              </div>
+              {!tweetsLoading&&hashtagTweets.length===0&&(
+                <div className="rounded-xl p-5 text-center" style={{background:"#0d1421",border:"1px solid #1e2d42"}}>
+                  <p className="text-sm" style={{color:"#475569"}}>Aucun tweet récent pour #{hashtag ?? "—"}.</p>
+                  <p className="text-xs mt-0.5" style={{color:"#334155"}}>Les Nitter de recherche sont souvent rate-limités.</p>
+                </div>
+              )}
+              {hashtagTweets.map(tweet=>{
+                const d=new Date(tweet.pubDate);
+                const ago=Date.now()-d.getTime();
+                const agoStr=ago<3600000?`${Math.round(ago/60000)}min`:ago<86400000?`${Math.round(ago/3600000)}h`:d.toLocaleDateString("fr-FR",{day:"2-digit",month:"short"});
+                return (
+                  <a key={tweet.id} href={tweet.url} target="_blank" rel="noopener noreferrer"
+                    className="block rounded-xl p-3 hover:brightness-125 transition-all group"
+                    style={{background:"#0d1421",border:"1px solid rgba(168,85,247,0.12)",textDecoration:"none"}}>
+                    <div className="flex items-start gap-2">
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+                        style={{background:"rgba(168,85,247,0.12)",border:"1px solid rgba(168,85,247,0.2)"}}>
+                        <span className="text-sm font-black" style={{color:"#a855f7"}}>#</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className="text-[9px] font-black" style={{color:"#a855f7"}}>@{tweet.author}</span>
+                          <span className="text-[9px]" style={{color:"#334155"}}>· {agoStr}</span>
+                        </div>
+                        <p className="text-xs leading-relaxed" style={{color:"#94a3b8"}}>{tweet.title}</p>
+                      </div>
+                    </div>
+                  </a>
+                );
+              })}
             </div>
           )}
 
@@ -1463,32 +1640,67 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                 </div>
               )}
 
-              {/* Articles list */}
+              {/* Articles list — hero card + grid */}
               {!fanArticlesLoading&&fanArticles.length>0&&(
                 <>
-                  {fanArticles.map(art=>{
+                  {/* HERO card (most recent article with image) */}
+                  {(()=>{
+                    const hero=fanArticles.find(a=>a.image)??fanArticles[0];
+                    if(!hero) return null;
+                    const d=new Date(hero.pubDate);
+                    const ago=Date.now()-d.getTime();
+                    const agoStr=ago<86400000?`${Math.round(ago/3600000)}h`:ago<604800000?`${Math.round(ago/86400000)}j`:d.toLocaleDateString("fr-FR",{day:"2-digit",month:"short"});
+                    return (
+                      <a href={hero.link} target="_blank" rel="noopener noreferrer"
+                        className="block rounded-2xl overflow-hidden hover:brightness-110 transition-all group"
+                        style={{background:"#0d1421",border:`1px solid ${club.color}30`,textDecoration:"none"}}>
+                        {hero.image&&(
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={hero.image} alt="" className="w-full h-40 object-cover" loading="lazy"
+                            style={{borderBottom:`1px solid ${club.color}30`}}
+                            onError={e=>{(e.currentTarget as HTMLImageElement).style.display="none";}}/>
+                        )}
+                        <div className="p-3">
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <span className="text-[9px] font-black px-2 py-0.5 rounded-full" style={{background:`${club.color}15`,color:club.color,border:`1px solid ${club.color}30`}}>
+                              À LA UNE
+                            </span>
+                            <span className="text-[9px] font-bold truncate" style={{color:"#fbbf24"}}>{hero.site}</span>
+                            <span className="text-[9px]" style={{color:"#334155"}}>· {agoStr}</span>
+                          </div>
+                          <p className="text-sm font-bold leading-tight mb-1" style={{color:"#e8edf5"}}>{hero.title}</p>
+                          {hero.description&&<p className="text-[11px] leading-relaxed line-clamp-2" style={{color:"#94a3b8"}}>{hero.description}</p>}
+                        </div>
+                      </a>
+                    );
+                  })()}
+
+                  {/* OTHER articles — image card grid */}
+                  {fanArticles.filter(a=>a!==(fanArticles.find(x=>x.image)??fanArticles[0])).map(art=>{
                     const d=new Date(art.pubDate);
                     const ago=Date.now()-d.getTime();
-                    const agoStr=ago<86400000?`${Math.round(ago/3600000)}h`
-                      :ago<604800000?`${Math.round(ago/86400000)}j`
-                      :d.toLocaleDateString("fr-FR",{day:"2-digit",month:"short"});
+                    const agoStr=ago<86400000?`${Math.round(ago/3600000)}h`:ago<604800000?`${Math.round(ago/86400000)}j`:d.toLocaleDateString("fr-FR",{day:"2-digit",month:"short"});
                     return (
                       <a key={art.id} href={art.link} target="_blank" rel="noopener noreferrer"
-                        className="block rounded-xl p-3 hover:brightness-125 transition-all group"
-                        style={{background:"#0d1421",border:"1px solid rgba(251,191,36,0.12)",textDecoration:"none"}}>
-                        <div className="flex items-start gap-2">
-                          <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 text-sm"
-                            style={{background:"rgba(251,191,36,0.08)",border:"1px solid rgba(251,191,36,0.15)"}}>
-                            📰
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 mb-0.5">
+                        className="block rounded-xl overflow-hidden hover:brightness-125 transition-all group"
+                        style={{background:"#0d1421",border:"1px solid rgba(251,191,36,0.15)",textDecoration:"none"}}>
+                        <div className="flex items-stretch gap-0">
+                          {art.image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={art.image} alt="" className="w-24 h-24 object-cover flex-shrink-0" loading="lazy"
+                              onError={e=>{(e.currentTarget as HTMLImageElement).style.display="none";}}/>
+                          ) : (
+                            <div className="w-24 h-24 flex items-center justify-center flex-shrink-0 text-2xl"
+                              style={{background:"rgba(251,191,36,0.05)"}}>📰</div>
+                          )}
+                          <div className="flex-1 min-w-0 p-2.5">
+                            <div className="flex items-center gap-1.5 mb-1">
                               <span className="text-[9px] font-black truncate" style={{color:"#fbbf24"}}>{art.site}</span>
                               <span className="text-[9px] flex-shrink-0" style={{color:"#334155"}}>· {agoStr}</span>
                               <ArrowSquareOut size={8} style={{color:"#334155",marginLeft:"auto",flexShrink:0}} className="opacity-0 group-hover:opacity-100 transition-opacity"/>
                             </div>
-                            <p className="text-xs font-semibold leading-tight mb-0.5" style={{color:"#e2e8f0"}}>{art.title}</p>
-                            {art.description&&<p className="text-[10px] leading-relaxed line-clamp-2" style={{color:"#475569"}}>{art.description}</p>}
+                            <p className="text-[11px] font-bold leading-tight mb-1" style={{color:"#e2e8f0"}}>{art.title}</p>
+                            {art.description&&<p className="text-[10px] leading-snug line-clamp-2" style={{color:"#64748b"}}>{art.description}</p>}
                           </div>
                         </div>
                       </a>
