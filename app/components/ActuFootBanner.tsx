@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
+
+const TweetModal = dynamic(() => import("./TweetModal"), { ssr: false });
 
 // Recent French-football posts from @ActuFoot_ (X/Twitter), fetched via our
 // Nitter proxy in /api/twitter-user. Auto-refresh every 5 minutes — the
@@ -20,6 +23,7 @@ export default function ActuFootBanner() {
   const [tweets, setTweets] = useState<Tweet[]>([]);
   const [loading, setLoading] = useState(true);
   const [errored, setErrored] = useState(false);
+  const [selected, setSelected] = useState<Tweet | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,20 +62,23 @@ export default function ActuFootBanner() {
           ) : (
             <div className="flex gap-6 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
               {tweets.slice(0, 8).map(t => (
-                <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer"
-                  className="flex items-baseline gap-2 flex-shrink-0 hover:opacity-80 transition-opacity max-w-[420px]">
+                <button key={t.id} type="button"
+                  onClick={() => setSelected(t)}
+                  className="flex items-baseline gap-2 flex-shrink-0 hover:opacity-80 transition-opacity max-w-[420px] text-left">
                   <span className="text-[10px] font-medium whitespace-nowrap" style={{ color: "#64748b" }}>
                     {timeAgo(t.pubDate)}
                   </span>
                   <span className="text-[11px] truncate" style={{ color: "#cbd5e1" }}>
                     {t.title.replace(/^R to @\w+:\s*/, "").replace(/^RT by @\w+:\s*/, "")}
                   </span>
-                </a>
+                </button>
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {selected && <TweetModal tweet={selected} onClose={() => setSelected(null)}/>}
     </div>
   );
 }
