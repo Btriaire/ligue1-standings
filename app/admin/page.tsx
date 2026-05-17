@@ -226,6 +226,10 @@ export default function AdminPage() {
   const [twitterHandles, setTwitterHandles] = useState<Record<string, string>>({});
   const [twitterSaving, setTwitterSaving] = useState(false);
   const [twitterLog, setTwitterLog] = useState<string>("");
+  // Results archive
+  const [archiveMeta, setArchiveMeta] = useState<{ lastRun?: string; count?: number; windowDays?: number; seasons?: string[] } | null>(null);
+  const [archiveIngesting, setArchiveIngesting] = useState(false);
+  const [archiveLog, setArchiveLog] = useState<string>("");
 
   useEffect(() => {
     fetch("/api/admin/auth")
@@ -264,9 +268,38 @@ export default function AdminPage() {
     }
   }, []);
 
+  const loadArchiveMeta = useCallback(async () => {
+    try {
+      const res = await fetch("/api/results-archive?limit=1");
+      if (res.ok) {
+        const d = await res.json() as { meta?: typeof archiveMeta };
+        setArchiveMeta(d.meta ?? null);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  async function ingestResults(days = 90) {
+    setArchiveIngesting(true);
+    setArchiveLog(`⏳ Ingestion ${days} jours…`);
+    try {
+      const res = await fetch(`/api/cron/ingest-results?days=${days}`);
+      const d = await res.json() as { ok: boolean; ingested?: number; seasons?: string[]; error?: string };
+      if (d.ok) {
+        setArchiveLog(`✅ ${d.ingested} match(s) ingéré(s) — saisons : ${d.seasons?.join(", ") ?? "—"}`);
+        loadArchiveMeta();
+      } else {
+        setArchiveLog(`❌ ${d.error ?? "Erreur inconnue"}`);
+      }
+    } catch (e) {
+      setArchiveLog(`❌ ${String(e)}`);
+    } finally {
+      setArchiveIngesting(false);
+    }
+  }
+
   useEffect(() => {
-    if (authed) { loadStatus(); loadHistorical(); loadTwitterConfig(); }
-  }, [authed, loadStatus, loadHistorical, loadTwitterConfig]);
+    if (authed) { loadStatus(); loadHistorical(); loadTwitterConfig(); loadArchiveMeta(); }
+  }, [authed, loadStatus, loadHistorical, loadTwitterConfig, loadArchiveMeta]);
 
   async function logout() {
     await fetch("/api/admin/auth", { method: "DELETE" });
@@ -550,6 +583,70 @@ export default function AdminPage() {
                   : <CloudArrowDown size={11}/>}
                 {histImporting["__all"] ? "Import en cours…" : "Tout importer (10 saisons)"}
               </button>
+            </section>
+
+            {/* ── Résultats archive ── */}
+            <section>
+              <h2 className="text-[9px] font-black uppercase tracking-widest mb-2 flex items-center gap-1.5"
+                style={{ color: "#475569" }}>
+                <Database size={11}/> Archive résultats (Firestore)
+              </h2>
+              <p className="text-[9px] mb-2" style={{ color: "#475569" }}>
+                Stocke les résultats finalisés de L1 (ESPN) dans Firestore pour les requêter plus tard (stats équipe, saison, etc.).
+                Cron automatique : tous les jours à 04:00 UTC.
+              </p>
+              <div className="rounded-xl p-3 mb-2 space-y-1" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
+                {archiveMeta ? (
+                  <>
+                    <div className="flex justify-between text-[10px]">
+                      <span style={{ color: "#64748b" }}>Dernière ingestion</span>
+                      <span className="font-mono" style={{ color: "#94a3b8" }}>
+                        {archiveMeta.lastRun ? new Date(archiveMeta.lastRun).toLocaleString("fr-FR") : "—"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-[10px]">
+                      <span style={{ color: "#64748b" }}>Matchs stockés</span>
+                      <span className="font-mono font-black" style={{ color: "#22c55e" }}>{archiveMeta.count ?? 0}</span>
+                    </div>
+                    <div className="flex justify-between text-[10px]">
+                      <span style={{ color: "#64748b" }}>Fenêtre</span>
+                      <span className="font-mono" style={{ color: "#94a3b8" }}>{archiveMeta.windowDays ?? 0} jours</span>
+                    </div>
+                    {archiveMeta.seasons && archiveMeta.seasons.length > 0 && (
+                      <div className="flex justify-between text-[10px]">
+                        <span style={{ color: "#64748b" }}>Saisons</span>
+                        <span className="font-mono" style={{ color: "#94a3b8" }}>{archiveMeta.seasons.join(", ")}</span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-[10px]" style={{ color: "#475569" }}>Aucune ingestion encore effectuée.</p>
+                )}
+              </div>
+              {archiveLog && (
+                <p className="text-[9px] font-mono mb-2 px-2 py-1.5 rounded"
+                  style={{ background: "rgba(255,255,255,0.03)", color: archiveLog.startsWith("✅") ? "#22c55e" : archiveLog.startsWith("❌") ? "#ef4444" : "#fbbf24" }}>
+                  {archiveLog}
+                </p>
+              )}
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  onClick={() => ingestResults(28)}
+                  disabled={archiveIngesting}
+                  className="flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[10px] font-semibold hover:opacity-80 disabled:opacity-40"
+                  style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)", color: "#22c55e" }}>
+                  {archiveIngesting ? <ArrowsClockwise size={10} className="animate-spin"/> : <CloudArrowDown size={10}/>}
+                  Ingest 28j
+                </button>
+                <button
+                  onClick={() => ingestResults(90)}
+                  disabled={archiveIngesting}
+                  className="flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[10px] font-semibold hover:opacity-80 disabled:opacity-40"
+                  style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", color: "#22c55e" }}>
+                  {archiveIngesting ? <ArrowsClockwise size={10} className="animate-spin"/> : <CloudArrowDown size={10}/>}
+                  Ingest 90j
+                </button>
+              </div>
             </section>
 
           </div>
