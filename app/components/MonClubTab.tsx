@@ -1361,6 +1361,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
           opponentId={ficheOpponentId}
           ficheTeamData={ficheTeamData}
           ficheSquad={ficheSquad}
+          mySquad={squad}
           ficheLoading={ficheLoading}
           ficheMatchLoaded={ficheMatchLoaded}
           allStandings={allStandings}
@@ -1731,6 +1732,8 @@ interface FicheMatch {
   matchday: number;
   homeTeam: { id: number; name: string; crest: string };
   awayTeam: { id: number; name: string; crest: string };
+  referee?: string | null;
+  refereeNationality?: string | null;
 }
 
 interface FicheTeamMatch {
@@ -1807,11 +1810,14 @@ const POS_COLORS: Record<string,string> = {
 };
 
 /** Organic diffuse heatmap — blob zones + risk players on the pitch */
-function HeatmapPitch({oppSquad, oppColor, riskPlayers}:{
+function HeatmapPitch({oppSquad, oppColor, riskPlayers, mySquad, myColor}:{
   oppSquad: SquadPlayer[];
   oppColor: string;
   riskPlayers: SquadPlayer[];
+  mySquad: SquadPlayer[];
+  myColor: string;
 }) {
+  const [showMyStrengths, setShowMyStrengths] = useState(false);
   // ── Sector scoring functions ──────────────────────────────────
   const cfFn   = (p: SquadPlayer) => clamp((p.dm_xg90??0)*55 + (p.dm_shots90??0)*12 + (p.dm_xgxa90??0)*25, 0, 100);
   const wingFn = (p: SquadPlayer) => clamp((p.dm_xgxa90??0)*35 + (p.dm_dribbles90??0)*12 + (p.dm_keyPasses90??0)*18 + (p.dm_xg90??0)*20, 0, 100);
@@ -1829,6 +1835,36 @@ function HeatmapPitch({oppSquad, oppColor, riskPlayers}:{
     : sectorScore(oppSquad, ["Winger"], wingFn);
   const midScore = sectorScore(oppSquad, ["Midfielder"], midFn);
   const defScore = sectorScore(oppSquad, ["Defender"],   defFn);
+
+  // ── My-club mirrored zones (attacks from BOTTOM → top, Y mirrored) ──
+  const myCfScore  = sectorScore(mySquad, ["Centre-Forward"], cfFn);
+  const myWings    = mySquad.filter(p => p.position === "Winger");
+  const myLwScore  = myWings.length >= 2
+    ? clamp(Math.round(avg(myWings.filter((_,i)=>i%2===0).map(wingFn).filter(v=>v>0))||50), 0, 100)
+    : sectorScore(mySquad, ["Winger"], wingFn);
+  const myRwScore  = myWings.length >= 2
+    ? clamp(Math.round(avg(myWings.filter((_,i)=>i%2===1).map(wingFn).filter(v=>v>0))||50), 0, 100)
+    : sectorScore(mySquad, ["Winger"], wingFn);
+  const myMidScore = sectorScore(mySquad, ["Midfielder"], midFn);
+  const myDefScore = sectorScore(mySquad, ["Defender"],   defFn);
+
+  // Mirror Y axis (180 - cy) so my attack zones are at bottom of pitch
+  const myZones = [
+    { id:"mlw", cx:18,  cy:180-42,  rx:24, ry:28, score:myLwScore,  tag:"AIL G", labelX:5,   labelY:180-20 },
+    { id:"mcf", cx:60,  cy:180-28,  rx:20, ry:18, score:myCfScore,  tag:"ATT",   labelX:92,  labelY:180-24 },
+    { id:"mrw", cx:102, cy:180-42,  rx:24, ry:28, score:myRwScore,  tag:"AIL D", labelX:115, labelY:180-20 },
+    { id:"mmi", cx:60,  cy:180-90,  rx:36, ry:22, score:myMidScore, tag:"MIL",   labelX:7,   labelY:180-78 },
+    { id:"mde", cx:60,  cy:180-144, rx:38, ry:26, score:myDefScore, tag:"DEF",   labelX:7,   labelY:180-132 },
+  ];
+
+  // My-color heat (transparency based on score)
+  const myFill = (s: number) => {
+    const alpha = s>=70 ? 0.72 : s>=45 ? 0.55 : 0.32;
+    // myColor is hex like "#abcdef" → rgba
+    const m = myColor.replace("#","");
+    const r = parseInt(m.slice(0,2),16), g = parseInt(m.slice(2,4),16), b = parseInt(m.slice(4,6),16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  };
 
   // ── Heat color by score ───────────────────────────────────────
   const heatColor = (s: number) =>
@@ -1887,6 +1923,12 @@ function HeatmapPitch({oppSquad, oppColor, riskPlayers}:{
               fill={fill} filter="url(#fp-blob)"/>;
           })}
 
+          {/* ── My-club force blobs (mirrored, in club color) ── */}
+          {showMyStrengths && myZones.map(z => (
+            <ellipse key={z.id} cx={z.cx} cy={z.cy} rx={z.rx} ry={z.ry}
+              fill={myFill(z.score)} filter="url(#fp-blob)"/>
+          ))}
+
           {/* ── Pitch markings ── */}
           <rect x="4" y="4" width="112" height="172" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.2"/>
           <line x1="4" y1="90" x2="116" y2="90" stroke="rgba(255,255,255,0.45)" strokeWidth="1"/>
@@ -1925,6 +1967,12 @@ function HeatmapPitch({oppSquad, oppColor, riskPlayers}:{
             stroke="rgba(0,0,0,0.8)" strokeWidth="2.5" paintOrder="stroke"
             fill={oppColor} fontSize="5" fontWeight="900" letterSpacing="0.5">▼ ATTAQUE</text>
 
+          {showMyStrengths && (
+            <text x="60" y="172" textAnchor="middle"
+              stroke="rgba(0,0,0,0.8)" strokeWidth="2.5" paintOrder="stroke"
+              fill={myColor} fontSize="5" fontWeight="900" letterSpacing="0.5">▲ MES FORCES</text>
+          )}
+
           {/* ── Risk players on pitch ── */}
           {placedPlayers.map((p, i) => {
             const col = POS_COLORS[p.position] ?? oppColor;
@@ -1958,16 +2006,32 @@ function HeatmapPitch({oppSquad, oppColor, riskPlayers}:{
           </div>
         ))}
       </div>
+
+      {/* ── Toggle: show my-club strengths overlay ── */}
+      <div className="flex justify-center mt-2">
+        <button
+          onClick={()=>setShowMyStrengths(v=>!v)}
+          className="px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-all"
+          style={{
+            background: showMyStrengths ? myColor : "#0d1421",
+            color:      showMyStrengths ? "#fff"   : "#6b7c96",
+            border: `1px solid ${showMyStrengths ? myColor : "#1e2d42"}`,
+          }}
+        >
+          {showMyStrengths ? "✓ Mes forces affichées" : "+ Afficher mes forces"}
+        </button>
+      </div>
     </div>
   );
 }
 
-function FicheSection({club,nextMatch,opponentId,ficheTeamData,ficheSquad,ficheLoading,ficheMatchLoaded,allStandings}:{
+function FicheSection({club,nextMatch,opponentId,ficheTeamData,ficheSquad,mySquad,ficheLoading,ficheMatchLoaded,allStandings}:{
   club:Club;
   nextMatch:FicheMatch|null;
   opponentId:number|null;
   ficheTeamData:FicheTeamData|null;
   ficheSquad:SquadPlayer[];
+  mySquad:SquadPlayer[];
   ficheLoading:boolean;
   ficheMatchLoaded:boolean;
   allStandings:Standing[];
@@ -2064,6 +2128,14 @@ function FicheSection({club,nextMatch,opponentId,ficheTeamData,ficheSquad,ficheL
                 <span>{new Date(nextMatch.date).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}</span>
                 {nextMatch.matchday && <><span style={{color:"#1e2d42"}}>·</span><span className="font-bold" style={{color:"#94a3b8"}}>J{nextMatch.matchday}</span></>}
               </div>
+              {/* Referee line — only if assigned by LFP */}
+              <div className="flex items-center justify-center gap-1.5 mt-1.5 text-[10px]">
+                <span className="text-[11px]">🟨</span>
+                <span style={{color:"#475569"}}>Arbitre :</span>
+                {nextMatch.referee
+                  ? <span className="font-bold" style={{color:"#fbbf24"}}>{nextMatch.referee}</span>
+                  : <span className="italic" style={{color:"#475569"}}>désignation à venir</span>}
+              </div>
             </>
           ) : (
             <div className="text-center py-2">
@@ -2151,7 +2223,7 @@ function FicheSection({club,nextMatch,opponentId,ficheTeamData,ficheSquad,ficheL
           <span className="text-[9px] font-black uppercase tracking-widest" style={{color:"#6b7c96"}}>Zones de menace adverse</span>
         </div>
         <div className="p-3 relative">
-          <HeatmapPitch oppSquad={ficheSquad} oppColor={OPP_COLOR} riskPlayers={keyPlayers}/>
+          <HeatmapPitch oppSquad={ficheSquad} oppColor={OPP_COLOR} riskPlayers={keyPlayers} mySquad={mySquad} myColor={club.color}/>
           {ficheLoading && ficheSquad.length === 0 && (
             <div className="absolute inset-3 rounded-xl animate-pulse" style={{background:"#0d1421"}}/>
           )}

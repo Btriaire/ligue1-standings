@@ -15,6 +15,7 @@ import WorldCupTab from "./components/WorldCupTab";
 import MonClubTab from "./components/MonClubTab";
 import RefereesL1Tab from "./components/RefereesL1Tab";
 import NewsBanner from "./components/NewsBanner";
+import ActuFootBanner from "./components/ActuFootBanner";
 import FunFact from "./components/FunFact";
 
 interface Team {
@@ -555,6 +556,9 @@ export default function Home() {
 
       {/* ── NEWS BANNER ── */}
       <NewsBanner standings={data?.standings ?? []} />
+
+      {/* ── @ActuFoot_ live ticker ── */}
+      <ActuFootBanner />
 
       <div className="max-w-[1300px] mx-auto px-4 py-6">
         <div className="lg:grid lg:gap-5 lg:items-start" style={{ gridTemplateColumns: "1fr 196px" }}>

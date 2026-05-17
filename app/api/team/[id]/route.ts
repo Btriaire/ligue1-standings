@@ -46,6 +46,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
         card: b.card,
         teamId: b.teamId,
       })),
+      // Main referee from football-data.org (REFEREE type). May be empty
+      // for matches not yet assigned by the LFP.
+      referee: (m.referees ?? []).find(r => r.type === "REFEREE")?.name
+        ?? m.referees?.[0]?.name
+        ?? null,
+      refereeNationality: (m.referees ?? []).find(r => r.type === "REFEREE")?.nationality ?? null,
     });
 
     return NextResponse.json({
@@ -68,4 +74,5 @@ interface MatchRaw {
   score: { fullTime: { home: number | null; away: number | null } };
   goals?: { minute: number; type: string; team: { id: number } | null; scorer: { id: number; name: string } | null }[];
   bookings?: { minute: number; card: string; teamId: number; playerName: string }[];
+  referees?: { id: number; name: string; type: string; nationality: string | null }[];
 }
