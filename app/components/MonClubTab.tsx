@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 
 const NewsModal = dynamic(() => import("./NewsModal"), { ssr: false });
+const TweetModal = dynamic(() => import("./TweetModal"), { ssr: false });
 import {
   Trophy, CaretDown, CaretUp, X, TrendUp, TrendDown,
   Users, Calendar, Lightning, ArrowsClockwise, Shield, MapPin, Target,
@@ -418,6 +419,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
   const [fanArticlesLoading, setFanArticlesLoading] = useState(false);
   const [fanArticlesSite, setFanArticlesSite] = useState<string|null>(null);
   const [selectedFanArticle, setSelectedFanArticle] = useState<{title:string;url:string;pubDate:string}|null>(null);
+  const [selectedTweet, setSelectedTweet] = useState<{id:string;title:string;pubDate:string;url:string;author:string}|null>(null);
 
   // Load extra handles from localStorage when club changes
   useEffect(() => {
@@ -1450,8 +1452,9 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                       :ago<86400000?`${Math.round(ago/3600000)}h`
                       :`${d.toLocaleDateString("fr-FR",{day:"2-digit",month:"short"})}`;
                     return (
-                      <a key={tweet.id} href={tweet.url} target="_blank" rel="noopener noreferrer"
-                        className="block rounded-xl p-3 hover:brightness-125 transition-all group"
+                      <button key={tweet.id} type="button"
+                        onClick={()=>setSelectedTweet(tweet)}
+                        className="block w-full text-left rounded-xl p-3 hover:brightness-125 transition-all group"
                         style={{background:"#0d1421",border:"1px solid #1e2d42",textDecoration:"none"}}>
                         <div className="flex items-start gap-2">
                           <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
@@ -1467,7 +1470,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                             <p className="text-xs leading-relaxed" style={{color:"#94a3b8"}}>{tweet.title}</p>
                           </div>
                         </div>
-                      </a>
+                      </button>
                     );
                   })}
                   {tweetHandle&&(
@@ -1532,13 +1535,14 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                             const ago=Date.now()-dt.getTime();
                             const agoStr=ago<3600000?`${Math.round(ago/60000)}min`:ago<86400000?`${Math.round(ago/3600000)}h`:dt.toLocaleDateString("fr-FR",{day:"2-digit",month:"short"});
                             return (
-                              <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer"
-                                className="block p-1.5 rounded mb-1 hover:brightness-125" style={{background:"rgba(255,255,255,0.02)",textDecoration:"none"}}>
+                              <button key={t.id} type="button"
+                                onClick={()=>setSelectedTweet({...t, author: t.author ?? h})}
+                                className="block w-full text-left p-1.5 rounded mb-1 hover:brightness-125" style={{background:"rgba(255,255,255,0.02)",textDecoration:"none"}}>
                                 <div className="flex items-center gap-1">
                                   <span className="text-[9px]" style={{color:"#334155"}}>{agoStr}</span>
                                 </div>
                                 <p className="text-[10px] leading-snug" style={{color:"#94a3b8"}}>{t.title}</p>
-                              </a>
+                              </button>
                             );
                           })}
                           {tws.length===0&&!loading&&<p className="text-[9px]" style={{color:"#334155"}}>Aucun tweet récupéré.</p>}
@@ -1579,8 +1583,9 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                 const ago=Date.now()-d.getTime();
                 const agoStr=ago<3600000?`${Math.round(ago/60000)}min`:ago<86400000?`${Math.round(ago/3600000)}h`:d.toLocaleDateString("fr-FR",{day:"2-digit",month:"short"});
                 return (
-                  <a key={tweet.id} href={tweet.url} target="_blank" rel="noopener noreferrer"
-                    className="block rounded-xl p-3 hover:brightness-125 transition-all group"
+                  <button key={tweet.id} type="button"
+                    onClick={()=>setSelectedTweet(tweet)}
+                    className="block w-full text-left rounded-xl p-3 hover:brightness-125 transition-all group"
                     style={{background:"#0d1421",border:"1px solid rgba(168,85,247,0.12)",textDecoration:"none"}}>
                     <div className="flex items-start gap-2">
                       <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
@@ -1595,7 +1600,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                         <p className="text-xs leading-relaxed" style={{color:"#94a3b8"}}>{tweet.title}</p>
                       </div>
                     </div>
-                  </a>
+                  </button>
                 );
               })}
             </div>
@@ -1732,6 +1737,13 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
           url={selectedFanArticle.url}
           pubDate={selectedFanArticle.pubDate}
           onClose={()=>setSelectedFanArticle(null)}
+        />
+      )}
+
+      {selectedTweet && (
+        <TweetModal
+          tweet={selectedTweet}
+          onClose={()=>setSelectedTweet(null)}
         />
       )}
 
