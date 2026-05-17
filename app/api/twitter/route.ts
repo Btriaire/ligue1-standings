@@ -188,9 +188,24 @@ export async function GET(req: NextRequest) {
       if (tweets.length > 0) { usedHandle = official; isFallback = true; }
     }
 
-    // Also fetch hashtag tweets (e.g. #TeamOM) in parallel — best effort
+    // Also fetch hashtag tweets (e.g. #TeamOM) — Nitter search is heavily
+    // rate-limited and almost always empty in practice. As a backup we scan
+    // the fan + official account timelines for the hashtag, which works as
+    // long as those accounts use it. Best-effort — silent on failure.
     const hashtag = CLUB_HASHTAGS[clubId] ?? null;
-    const hashtagTweets = hashtag ? await tryNitterHashtag(hashtag) : [];
+    let hashtagTweets: Tweet[] = [];
+    if (hashtag) {
+      hashtagTweets = await tryNitterHashtag(hashtag);
+      if (hashtagTweets.length === 0) {
+        const tag = `#${hashtag}`.toLowerCase();
+        const pool: Tweet[] = [...tweets];
+        if (OFFICIAL_HANDLES[clubId] && OFFICIAL_HANDLES[clubId] !== usedHandle) {
+          const off = await tryNitter(OFFICIAL_HANDLES[clubId]);
+          pool.push(...off);
+        }
+        hashtagTweets = pool.filter(t => t.title.toLowerCase().includes(tag));
+      }
+    }
 
     return NextResponse.json({
       tweets,

@@ -1402,21 +1402,29 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
           </div>
 
           {/* ── TWEETS ── */}
-          {fansTab==="tweets"&&(
+          {fansTab==="tweets"&&(()=>{
+            const fanOpen = expandedHandles["__fan__"] ?? true;
+            return (
             <div className="space-y-2">
               {/* Handle + refresh */}
               <div className="flex items-center justify-between px-1">
-                <div className="flex items-center gap-2 min-w-0">
+                <button onClick={()=>toggleExpanded("__fan__")}
+                  className="flex items-center gap-2 min-w-0 hover:opacity-80"
+                  style={{background:"transparent",border:"none",padding:0,cursor:"pointer"}}>
+                  <span className="text-[10px] inline-block transition-transform" style={{color:"#64748b",transform:fanOpen?"rotate(90deg)":"rotate(0deg)"}}>▶</span>
                   <TwitterLogo size={12} style={{color:"#1da1f2",flexShrink:0}}/>
                   {tweetHandle&&<span className="text-[10px] font-semibold truncate" style={{color:"#94a3b8"}}>@{tweetFanHandle??tweetHandle}</span>}
+                  {tweets.length>0&&<span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{background:"rgba(29,161,242,0.1)",color:"#1da1f2"}}>{tweets.length}</span>}
                   {tweetIsFallback&&<span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{background:"rgba(245,158,11,0.1)",color:"#f59e0b",border:"1px solid rgba(245,158,11,0.2)"}}>compte officiel</span>}
-                </div>
+                </button>
                 <button onClick={loadTweets} disabled={tweetsLoading}
                   className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] hover:opacity-80 flex-shrink-0"
                   style={{background:"rgba(255,255,255,0.04)",border:"1px solid #1e2d42",color:"#6b7c96"}}>
                   <ArrowsClockwise size={9} className={tweetsLoading?"animate-spin":""}/>
                 </button>
               </div>
+              {fanOpen && <>
+
 
               {/* Loading */}
               {tweetsLoading&&(
@@ -1484,6 +1492,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                   )}
                 </>
               )}
+              </>}
 
               {/* ── Custom user-added handles ── */}
               <div className="rounded-xl p-3 mt-3" style={{background:"#0a0f1c",border:"1px dashed #1e2d42"}}>
@@ -1566,7 +1575,8 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                 )}
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* ── HASHTAG ── */}
           {fansTab==="hashtag"&&(
