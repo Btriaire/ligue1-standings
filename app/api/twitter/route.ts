@@ -5,14 +5,14 @@ export const dynamic = "force-dynamic";
 
 // ── Nitter instances — tried in order, 4 s timeout each ──────────────────────
 // List kept long for resilience; instances rotate availability.
+// Order matters: keep the most reliable host first so we don't burn
+// the 10s Vercel function budget on timeouts before reaching a live one.
 const NITTER_INSTANCES = [
+  "nitter.net",
   "nitter.privacydev.net",
   "nitter.poast.org",
   "nitter.cz",
-  "nitter.nl",
-  "nitter.1d4.us",
   "nitter.kavin.rocks",
-  "nitter.net",
 ];
 
 // ── Official club handles — absolute last resort if fan account fails ─────────
@@ -120,7 +120,7 @@ async function tryNitter(handle: string): Promise<Tweet[]> {
       const url = `https://${instance}/${handle}/rss`;
       const res = await fetch(url, {
         headers: { "User-Agent": "Mozilla/5.0 (compatible; FootPredictom/1.0)" },
-        signal: AbortSignal.timeout(4000),
+        signal: AbortSignal.timeout(2500),
       } as RequestInit);
       if (!res.ok) { errors.push(`${instance}: HTTP ${res.status}`); continue; }
       const xml = await res.text();
@@ -141,7 +141,7 @@ async function tryNitterHashtag(hashtag: string): Promise<Tweet[]> {
       const url = `https://${instance}/search/rss?f=tweets&q=${q}`;
       const res = await fetch(url, {
         headers: { "User-Agent": "Mozilla/5.0 (compatible; FootPredictom/1.0)" },
-        signal: AbortSignal.timeout(4000),
+        signal: AbortSignal.timeout(2500),
       } as RequestInit);
       if (!res.ok) continue;
       const xml = await res.text();

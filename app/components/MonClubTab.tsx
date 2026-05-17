@@ -1523,7 +1523,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                               ✕
                             </button>
                           </div>
-                          {tws.slice(0,3).map(t=>{
+                          {tws.slice(0,5).map(t=>{
                             const dt=new Date(t.pubDate);
                             const ago=Date.now()-dt.getTime();
                             const agoStr=ago<3600000?`${Math.round(ago/60000)}min`:ago<86400000?`${Math.round(ago/3600000)}h`:dt.toLocaleDateString("fr-FR",{day:"2-digit",month:"short"});
