@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Calendar, Trophy, Users, MapPin, Globe, Star, Lightning, TrendUp, Target, Shield } from "@phosphor-icons/react";
+import RefereesWCTab from "./RefereesWCTab";
 
 // ─── Data ──────────────────────────────────────────────────────────────────
 
@@ -777,7 +778,7 @@ function BracketTab() {
 
 // ─── Sub-tabs ────────────────────────────────────────────────────────────────
 
-type SubTab = "groupes" | "calendrier" | "joueurs" | "france" | "favoris" | "tableau";
+type SubTab = "groupes" | "calendrier" | "joueurs" | "france" | "favoris" | "tableau" | "arbitres";
 
 const SUB_TABS: { id: SubTab; label: string }[] = [
   { id: "groupes",    label: "Groupes" },
@@ -786,6 +787,7 @@ const SUB_TABS: { id: SubTab; label: string }[] = [
   { id: "joueurs",    label: "⭐ Joueurs" },
   { id: "france",     label: "🇫🇷 France" },
   { id: "favoris",    label: "Favoris" },
+  { id: "arbitres",   label: "🟨 Arbitres" },
 ];
 
 // ─── Stat bar ────────────────────────────────────────────────────────────────
@@ -1296,6 +1298,7 @@ export default function WorldCupTab() {
       {activeTab === "joueurs"    && <JoueursTab />}
       {activeTab === "france"     && <FranceTab />}
       {activeTab === "favoris"    && <FavorisTab />}
+      {activeTab === "arbitres"   && <RefereesWCTab />}
 
       {/* Footer */}
       <div className="mt-4 flex items-center justify-center gap-1.5">

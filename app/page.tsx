@@ -13,6 +13,7 @@ import ConfigTab from "./components/ConfigTab";
 import TransfersTab from "./components/TransfersTab";
 import WorldCupTab from "./components/WorldCupTab";
 import MonClubTab from "./components/MonClubTab";
+import RefereesL1Tab from "./components/RefereesL1Tab";
 import NewsBanner from "./components/NewsBanner";
 import FunFact from "./components/FunFact";
 
@@ -45,7 +46,7 @@ interface StandingsData {
 }
 
 type TabId = "ligue1" | "worldcup" | "monclub" | "predictions" | "results" | "emotional" | "config";
-type L1SubTab = "classement" | "mercato" | "joueurs" | "transfert";
+type L1SubTab = "classement" | "mercato" | "joueurs" | "transfert" | "arbitres";
 
 const ZONE_CONFIG = [
   { label: "Champion",            positions: [1],          color: "#60a5fa", bg: "rgba(96,165,250,0.05)"  },
@@ -390,6 +391,7 @@ const L1_SUBTABS: { id: L1SubTab; label: string; icon: React.ReactNode }[] = [
   { id: "mercato",    label: "Mercato",      icon: <ArrowsLeftRight size={13} /> },
   { id: "joueurs",    label: "Stats Joueurs",icon: <Users size={13} /> },
   { id: "transfert",  label: "Transferts",   icon: <ArrowsLeftRight size={13} /> },
+  { id: "arbitres",   label: "🟨 Arbitres",  icon: <Target size={13} /> },
 ];
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode; shortLabel?: string }[] = [
@@ -648,6 +650,9 @@ export default function Home() {
 
             {/* Transferts */}
             {l1SubTab === "transfert" && <TransfersTab />}
+
+            {/* Arbitres */}
+            {l1SubTab === "arbitres" && <RefereesL1Tab />}
           </div>
         )}
 
