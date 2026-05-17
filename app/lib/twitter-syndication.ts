@@ -30,6 +30,8 @@ interface SynTweet {
   text?: string;
   permalink?: string;
   user?: { screen_name?: string };
+  retweeted_status?: SynTweet;
+  quoted_tweet?: SynTweet;
 }
 
 interface SynEntry {
@@ -46,7 +48,23 @@ function parseTwitterDate(s: string | undefined): string {
 
 function cleanText(t: string): string {
   // Drop trailing t.co media links — they're noise for a text preview.
-  return t.replace(/\s+https?:\/\/t\.co\/\S+$/g, "").trim();
+  // BUT only when there's actual text before the URL, otherwise we'd
+  // strip everything from media-only tweets.
+  const stripped = t.replace(/\s+https?:\/\/t\.co\/\S+$/g, "").trim();
+  return stripped.length > 0 ? stripped : t.trim();
+}
+
+// Pull text from a tweet, falling back through retweet/quote chain so
+// that retweets and quote-tweets still surface real content. Some
+// accounts (e.g. @ActuFoot_) RT constantly — without this fallback the
+// preview would just be "RT @user:" with no body.
+function tweetText(t: SynTweet): string {
+  const direct = (t.full_text ?? t.text ?? "").trim();
+  const isRtStub = /^RT @\w+:\s*$/.test(direct);
+  if (direct && !isRtStub) return cleanText(direct);
+  if (t.retweeted_status) return cleanText(t.retweeted_status.full_text ?? t.retweeted_status.text ?? direct);
+  if (t.quoted_tweet)     return cleanText(t.quoted_tweet.full_text     ?? t.quoted_tweet.text     ?? direct);
+  return direct;
 }
 
 // Cache config: serve cache hits younger than FRESH; refetch beyond,
@@ -103,11 +121,11 @@ async function fetchFromSyndication(handle: string, max: number): Promise<Tweet[
     const t = e.content.tweet;
     const id = t.id_str ?? t.conversation_id_str;
     const author = t.user?.screen_name ?? handle;
-    const raw = t.full_text ?? t.text ?? "";
+    const raw = tweetText(t);
     if (!id || !raw) continue;
     tweets.push({
       id,
-      title: cleanText(raw),
+      title: raw,
       pubDate: parseTwitterDate(t.created_at),
       url: t.permalink ? `https://x.com${t.permalink}` : `https://x.com/${author}/status/${id}`,
       author,

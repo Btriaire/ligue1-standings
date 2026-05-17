@@ -413,6 +413,8 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
   const [newHandleInput, setNewHandleInput] = useState("");
   const [extraTweets, setExtraTweets] = useState<Record<string, Tweet[]>>({});
   const [extraLoading, setExtraLoading] = useState<Record<string, boolean>>({});
+  const [expandedHandles, setExpandedHandles] = useState<Record<string, boolean>>({});
+  const toggleExpanded = (h: string) => setExpandedHandles(p => ({ ...p, [h]: !p[h] }));
   // Fan articles
   type FanArt = {id:string;title:string;link:string;pubDate:string;description:string;site:string;image:string|null};
   const [fanArticles, setFanArticles] = useState<FanArt[]>([]);
@@ -1512,13 +1514,22 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                     {extraHandles.map(h=>{
                       const tws=extraTweets[h]??[];
                       const loading=extraLoading[h];
+                      const isOpen = expandedHandles[h] ?? false;
                       return (
                         <div key={h} className="rounded-lg p-2" style={{background:"#0d1421",border:"1px solid #1e2d42"}}>
-                          <div className="flex items-center gap-1.5 mb-1.5">
-                            <TwitterLogo size={10} style={{color:"#1da1f2"}}/>
+                          <div className="flex items-center gap-1.5">
+                            <button onClick={()=>toggleExpanded(h)}
+                              className="flex items-center gap-1 hover:opacity-80 flex-1 text-left"
+                              style={{background:"transparent",border:"none",padding:0,cursor:"pointer"}}>
+                              <span className="text-[9px] inline-block transition-transform" style={{color:"#64748b",transform:isOpen?"rotate(90deg)":"rotate(0deg)"}}>▶</span>
+                              <TwitterLogo size={10} style={{color:"#1da1f2"}}/>
+                              <span className="text-[10px] font-bold" style={{color:"#1da1f2"}}>@{h}</span>
+                              <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{background:"rgba(29,161,242,0.1)",color:"#1da1f2"}}>{tws.length}</span>
+                            </button>
                             <a href={`https://x.com/${h}`} target="_blank" rel="noopener noreferrer"
-                              className="text-[10px] font-bold hover:underline" style={{color:"#1da1f2"}}>@{h}</a>
-                            <span className="text-[9px] ml-auto" style={{color:"#334155"}}>{tws.length} tweets</span>
+                              className="text-[9px] px-1.5 py-0.5 rounded hover:opacity-80"
+                              style={{background:"rgba(255,255,255,0.04)",border:"1px solid #1e2d42",color:"#6b7c96",textDecoration:"none"}}
+                              onClick={e=>e.stopPropagation()}>↗</a>
                             <button onClick={()=>loadExtraHandle(h)} disabled={loading}
                               className="text-[9px] px-1.5 py-0.5 rounded hover:opacity-80"
                               style={{background:"rgba(255,255,255,0.04)",border:"1px solid #1e2d42",color:"#6b7c96"}}>
@@ -1530,6 +1541,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                               ✕
                             </button>
                           </div>
+                          {isOpen && <div className="mt-1.5">
                           {tws.slice(0,5).map(t=>{
                             const dt=new Date(t.pubDate);
                             const ago=Date.now()-dt.getTime();
@@ -1546,6 +1558,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                             );
                           })}
                           {tws.length===0&&!loading&&<p className="text-[9px]" style={{color:"#334155"}}>Aucun tweet récupéré.</p>}
+                          </div>}
                         </div>
                       );
                     })}
