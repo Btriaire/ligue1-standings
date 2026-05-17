@@ -14,6 +14,7 @@ import TransfersTab from "./components/TransfersTab";
 import WorldCupTab from "./components/WorldCupTab";
 import MonClubTab from "./components/MonClubTab";
 import NewsBanner from "./components/NewsBanner";
+import FunFact from "./components/FunFact";
 
 interface Team {
   id: number;
@@ -618,6 +619,9 @@ export default function Home() {
                 ) : data ? (
                   <StandingsTable standings={data.standings} />
                 ) : null}
+                <div className="mt-3">
+                  <FunFact section="ligue1" />
+                </div>
               </div>
             )}
 

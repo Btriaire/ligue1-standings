@@ -7,6 +7,7 @@ import {
   Clock, Database, Users, Lightning, Globe, Warning,
   Eye, EyeSlash, HardDrives, Trash, WifiHigh, WifiSlash,
   ArrowSquareOut, Funnel, ToggleLeft, ToggleRight,
+  ChartBar, TwitterLogo, FloppyDisk, CloudArrowDown,
 } from "@phosphor-icons/react";
 
 /* ─── Types ──────────────────────────────────────────────────── */
@@ -27,6 +28,59 @@ interface Status {
   app: { base: string; env: string };
 }
 type LogEntry = { msg: string; ok: boolean; ts: number };
+
+interface HistoricalSeason {
+  totalMatches: number;
+  champion: string;
+  importedAt: string;
+}
+interface HistoricalStatus {
+  seasons: string[];
+  imported: Record<string, HistoricalSeason>;
+}
+
+const L1_CLUBS_ADMIN = [
+  { id: 524,  name: "PSG" },
+  { id: 548,  name: "Monaco" },
+  { id: 516,  name: "Marseille" },
+  { id: 521,  name: "Lille" },
+  { id: 529,  name: "Rennes" },
+  { id: 522,  name: "Nice" },
+  { id: 546,  name: "Lens" },
+  { id: 523,  name: "Lyon" },
+  { id: 576,  name: "Strasbourg" },
+  { id: 511,  name: "Toulouse" },
+  { id: 512,  name: "Brest" },
+  { id: 532,  name: "Angers" },
+  { id: 533,  name: "Le Havre" },
+  { id: 519,  name: "Auxerre" },
+  { id: 543,  name: "Nantes" },
+  { id: 545,  name: "Metz" },
+  { id: 525,  name: "Lorient" },
+  { id: 1045, name: "Paris FC" },
+];
+
+// Default fan/supporter accounts — pre-filled in the admin, admin can override
+const DEFAULT_TWITTER_HANDLES: Record<string, string> = {
+  "524":  "LMDPSG",           // Le Meilleur du PSG — 161K followers
+  "548":  "ASMSUPPORTERSFR",  // ASM Supporters FR — 7.5K followers
+  "516":  "SupporterOfMars",  // Supporter Of Marseille Officiel
+  "521":  "loscfansclub",     // Losc Fans Club — 5K followers
+  "529":  "team_srfc",        // Team SRFC — 5.4K followers
+  "522":  "ogcnsupporter",    // OGC Nice Supporter
+  "546":  "LensoisComLive",   // Lensois.com — 24.7K followers
+  "523":  "oetl",             // Olympique-et-Lyonnais.com — 66.9K followers
+  "576":  "fsrcs",            // Fédération Supporters RCS
+  "511":  "LesVioletsCom",    // LesViolets.com — 22K followers
+  "512":  "SuppBrestois",     // Supporter Brestois
+  "532":  "IncroyableSCO",    // Incroyable SCO — 7.9K followers
+  "533":  "hacfans1872",      // HAC Fans 1872 — 4.7K followers
+  "519":  "TeamAJA89",        // TeamAJA — 3.5K followers
+  "543":  "TribuneNantaise",  // Tribune Nantaise — 100K combined
+  "545":  "FCMetzFans",       // FC Metz Fans
+  "525":  "supp_Lorient",     // Supporters Lorient — 2.8K followers
+  "1045": "PassionParisFC",   // Passion Paris FC
+};
 
 interface PingResult {
   ok: boolean; status: number; ms: number;
@@ -162,6 +216,15 @@ export default function AdminPage() {
   const [logs, setLogs] = useState<Record<string, LogEntry>>({});
   const [features, setFeatures] = useState({ news: true, predictions: true, emotional: true, transfers: true });
   const [pings, setPings] = useState<Record<string, PingResult | "loading">>({});
+  // Historical
+  const [historical, setHistorical] = useState<HistoricalStatus | null>(null);
+  const [histLoading, setHistLoading] = useState(false);
+  const [histImporting, setHistImporting] = useState<Record<string, boolean>>({});
+  const [histLog, setHistLog] = useState<string>("");
+  // Twitter config
+  const [twitterHandles, setTwitterHandles] = useState<Record<string, string>>({});
+  const [twitterSaving, setTwitterSaving] = useState(false);
+  const [twitterLog, setTwitterLog] = useState<string>("");
 
   useEffect(() => {
     fetch("/api/admin/auth")
@@ -177,11 +240,73 @@ export default function AdminPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { if (authed) loadStatus(); }, [authed, loadStatus]);
+  const loadHistorical = useCallback(async () => {
+    setHistLoading(true);
+    try {
+      const res = await fetch("/api/admin/historical");
+      if (res.ok) setHistorical(await res.json());
+    } finally { setHistLoading(false); }
+  }, []);
+
+  const loadTwitterConfig = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/twitter-config");
+      if (res.ok) {
+        const d = await res.json() as { handles: Record<string, string> };
+        // Merge defaults with saved Firestore values (saved values take priority)
+        setTwitterHandles({ ...DEFAULT_TWITTER_HANDLES, ...d.handles });
+      } else {
+        setTwitterHandles({ ...DEFAULT_TWITTER_HANDLES });
+      }
+    } catch {
+      setTwitterHandles({ ...DEFAULT_TWITTER_HANDLES });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (authed) { loadStatus(); loadHistorical(); loadTwitterConfig(); }
+  }, [authed, loadStatus, loadHistorical, loadTwitterConfig]);
 
   async function logout() {
     await fetch("/api/admin/auth", { method: "DELETE" });
     setAuthed(false);
+  }
+
+  async function importSeason(season: string, all = false) {
+    const key = all ? "__all" : season;
+    setHistImporting(h => ({ ...h, [key]: true }));
+    setHistLog(all ? "⏳ Import de toutes les saisons…" : `⏳ Import ${season}…`);
+    try {
+      const res = await fetch("/api/admin/historical", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(all ? { all: true } : { season }),
+      });
+      const d = await res.json() as { results: Record<string, string>; totalFacts: number };
+      const ok = Object.values(d.results ?? {}).filter(v => v.startsWith("OK")).length;
+      setHistLog(`✅ ${ok} saison(s) importée(s) · ${d.totalFacts} faits générés`);
+      loadHistorical();
+    } catch {
+      setHistLog("❌ Erreur réseau");
+    } finally {
+      setHistImporting(h => ({ ...h, [key]: false }));
+    }
+  }
+
+  async function saveTwitterHandles() {
+    setTwitterSaving(true);
+    setTwitterLog("⏳ Sauvegarde…");
+    try {
+      const res = await fetch("/api/admin/twitter-config", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ handles: twitterHandles }),
+      });
+      const d = await res.json() as { ok: boolean; saved: number };
+      setTwitterLog(d.ok ? `✅ ${d.saved} handle(s) sauvegardé(s)` : "❌ Erreur");
+    } catch {
+      setTwitterLog("❌ Erreur réseau");
+    } finally {
+      setTwitterSaving(false);
+    }
   }
 
   async function pingSource(sourceName: string) {
@@ -354,6 +479,72 @@ export default function AdminPage() {
               </div>
             </section>
 
+            {/* ── Historique L1 ── */}
+            <section>
+              <h2 className="text-[9px] font-black uppercase tracking-widest mb-2 flex items-center gap-1.5"
+                style={{ color: "#475569" }}>
+                <ChartBar size={11}/> Historique Ligue 1
+                <button onClick={loadHistorical} disabled={histLoading}
+                  className="ml-auto flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-semibold hover:opacity-80"
+                  style={{ background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.25)", color: "#fbbf24" }}>
+                  <ArrowsClockwise size={9} className={histLoading ? "animate-spin" : ""}/> Refresh
+                </button>
+              </h2>
+              {histLog && (
+                <p className="text-[9px] font-mono mb-2 px-2 py-1 rounded"
+                  style={{ background: "rgba(255,255,255,0.03)", color: histLog.startsWith("✅") ? "#22c55e" : histLog.startsWith("❌") ? "#ef4444" : "#fbbf24" }}>
+                  {histLog}
+                </p>
+              )}
+              <div className="rounded-xl overflow-hidden mb-2" style={{ border: "1px solid #1e2d42" }}>
+                {histLoading && !historical ? (
+                  <div className="px-3 py-6 flex items-center justify-center">
+                    <ArrowsClockwise size={14} className="animate-spin" style={{ color: "#6b7c96" }}/>
+                  </div>
+                ) : (
+                  (historical?.seasons ?? []).map((season, i, arr) => {
+                    const imp = historical?.imported[season];
+                    return (
+                      <div key={season} className="flex items-center gap-3 px-3 py-2"
+                        style={{ background: "#0d1421", borderBottom: i < arr.length - 1 ? "1px solid #1e2d42" : "none" }}>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] font-semibold" style={{ color: "#e8edf5" }}>{season}</p>
+                          {imp ? (
+                            <p className="text-[9px]" style={{ color: "#475569" }}>
+                              🏆 {imp.champion} · {imp.totalMatches} matchs
+                            </p>
+                          ) : (
+                            <p className="text-[9px]" style={{ color: "#334155" }}>Non importé</p>
+                          )}
+                        </div>
+                        {imp && <CheckCircle size={11} style={{ color: "#22c55e", flexShrink: 0 }}/>}
+                        <button
+                          onClick={() => importSeason(season)}
+                          disabled={!!histImporting[season]}
+                          className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-semibold hover:opacity-80 disabled:opacity-40 flex-shrink-0"
+                          style={{ background: imp ? "rgba(34,197,94,0.08)" : "rgba(59,130,246,0.08)", border: `1px solid ${imp ? "rgba(34,197,94,0.2)" : "rgba(59,130,246,0.25)"}`, color: imp ? "#22c55e" : "#60a5fa" }}>
+                          {histImporting[season]
+                            ? <ArrowsClockwise size={8} className="animate-spin"/>
+                            : <CloudArrowDown size={8}/>}
+                          {imp ? "Ré-importer" : "Importer"}
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+              <button
+                onClick={() => importSeason("", true)}
+                disabled={!!histImporting["__all"]}
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold hover:opacity-80 disabled:opacity-40"
+                style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)", color: "#fbbf24" }}>
+                {histImporting["__all"]
+                  ? <ArrowsClockwise size={11} className="animate-spin"/>
+                  : <CloudArrowDown size={11}/>}
+                {histImporting["__all"] ? "Import en cours…" : "Tout importer (10 saisons)"}
+              </button>
+            </section>
+
           </div>
 
           {/* ══ RIGHT COL (1/3) ══ */}
@@ -480,6 +671,46 @@ export default function AdminPage() {
                 className="text-[9px] flex items-center gap-1 hover:underline" style={{ color: "#f97316" }}>
                 Export CSV manuel <ArrowSquareOut size={9}/>
               </a>
+            </section>
+
+            {/* ── Twitter / X fan feed ── */}
+            <section>
+              <h2 className="text-[9px] font-black uppercase tracking-widest mb-2 flex items-center gap-1.5"
+                style={{ color: "#475569" }}>
+                <TwitterLogo size={11}/> Comptes Twitter / X fans
+              </h2>
+              <p className="text-[9px] mb-2" style={{ color: "#475569" }}>
+                Handle Twitter pour chaque club (sans @). Laissez vide pour désactiver.
+              </p>
+              <div className="rounded-xl overflow-hidden mb-2" style={{ border: "1px solid #1e2d42" }}>
+                {L1_CLUBS_ADMIN.map((club, i) => (
+                  <div key={club.id} className="flex items-center gap-2 px-2.5 py-1.5"
+                    style={{ background: "#0d1421", borderBottom: i < L1_CLUBS_ADMIN.length - 1 ? "1px solid #1e2d42" : "none" }}>
+                    <span className="text-[10px] w-20 flex-shrink-0 truncate" style={{ color: "#94a3b8" }}>{club.name}</span>
+                    <input
+                      type="text"
+                      placeholder="handle"
+                      value={twitterHandles[String(club.id)] ?? ""}
+                      onChange={e => setTwitterHandles(h => ({ ...h, [String(club.id)]: e.target.value }))}
+                      className="flex-1 text-[10px] px-2 py-1 rounded-lg outline-none min-w-0"
+                      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid #1e2d42", color: "#e8edf5" }}
+                    />
+                  </div>
+                ))}
+              </div>
+              {twitterLog && (
+                <p className="text-[9px] font-mono mb-2" style={{ color: twitterLog.startsWith("✅") ? "#22c55e" : twitterLog.startsWith("❌") ? "#ef4444" : "#fbbf24" }}>
+                  {twitterLog}
+                </p>
+              )}
+              <button
+                onClick={saveTwitterHandles}
+                disabled={twitterSaving}
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold hover:opacity-80 disabled:opacity-40"
+                style={{ background: "rgba(29,161,242,0.08)", border: "1px solid rgba(29,161,242,0.25)", color: "#1da1f2" }}>
+                {twitterSaving ? <ArrowsClockwise size={11} className="animate-spin"/> : <FloppyDisk size={11}/>}
+                {twitterSaving ? "Sauvegarde…" : "Sauvegarder les handles"}
+              </button>
             </section>
 
             {/* ── Env info ── */}

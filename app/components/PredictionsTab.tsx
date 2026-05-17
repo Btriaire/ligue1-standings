@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { Lightning, TrendUp, Shield, Target, Clock, Heart, Star, CaretDown, CaretUp, DownloadSimple, Fire } from "@phosphor-icons/react";
 import { useConfig } from "@/app/lib/config";
 import { upsertPrediction, downloadCSV, loadPredictions } from "@/app/lib/predictions-store";
+import FunFact from "./FunFact";
 
 interface TeamPred {
   id: number;
@@ -1716,6 +1717,10 @@ export default function PredictionsTab() {
       <p className="mt-6 text-xs text-center" style={{ color: "#6b7c96" }}>
         * Prédictions algorithmiques à titre indicatif — pas de conseil de paris
       </p>
+
+      <div className="mt-4">
+        <FunFact section="predictions" />
+      </div>
     </div>
   );
 }

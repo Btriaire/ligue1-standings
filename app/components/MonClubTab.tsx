@@ -5,6 +5,7 @@ import {
   Trophy, CaretDown, CaretUp, X, TrendUp, TrendDown,
   Users, Calendar, Lightning, ArrowsClockwise, Shield, MapPin, Target,
   Star, Pulse, ChartBar, FloppyDisk, CheckCircle, ShareNetwork, Globe, Sword,
+  TwitterLogo, ArrowSquareOut,
 } from "@phosphor-icons/react";
 import { PlayerRow, PlayerEntry, POS_ORDER, POS_FR as POS_FR_PLURAL, POS_COL } from "./PlayerCard";
 import { PlayerPhoto } from "./PlayerCard";
@@ -374,7 +375,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
   const [results,      setResults]      = useState<RecentResult[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [sqLoading,    setSqLoading]    = useState(true);
-  const [section, setSection] = useState<"apercu"|"effectif"|"resultats"|"compo"|"fiche">("apercu");
+  const [section, setSection] = useState<"apercu"|"effectif"|"resultats"|"compo"|"fiche"|"fans">("apercu");
   const [resTab,  setResTab]  = useState<"resultats"|"predictions">("resultats");
   const [expandedId, setExpandedId] = useState<string|null>(null);
   const [exPred,   setExPred]   = useState<number|null>(null);
@@ -389,6 +390,58 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
   const [compoView,  setCompoView]  = useState<"personal"|"community">("personal");
   const [communityTeam, setCommunityTeam] = useState<{votes:number;formation:FKey;players:(string|null)[];slotDetails:{name:string;count:number}[][];}|null>(null);
   const [communityLoading, setCommunityLoading] = useState(false);
+
+  // Fans section state
+  const [fansTab, setFansTab] = useState<"tweets"|"articles">("tweets");
+  // Tweets
+  const [tweets, setTweets] = useState<{id:string;title:string;pubDate:string;url:string;author:string}[]>([]);
+  const [tweetsLoading, setTweetsLoading] = useState(false);
+  const [tweetHandle, setTweetHandle] = useState<string|null>(null);
+  const [tweetFanHandle, setTweetFanHandle] = useState<string|null>(null);
+  const [tweetIsFallback, setTweetIsFallback] = useState(false);
+  // Fan articles
+  const [fanArticles, setFanArticles] = useState<{id:string;title:string;link:string;pubDate:string;description:string;site:string}[]>([]);
+  const [fanArticlesLoading, setFanArticlesLoading] = useState(false);
+  const [fanArticlesSite, setFanArticlesSite] = useState<string|null>(null);
+
+  const loadTweets = useCallback(async () => {
+    setTweetsLoading(true);
+    try {
+      const res = await fetch(`/api/twitter?clubId=${club.id}`);
+      if (res.ok) {
+        const d = await res.json() as {
+          tweets: {id:string;title:string;pubDate:string;url:string;author:string}[];
+          handle: string|null; fanHandle: string|null; isFallback: boolean;
+        };
+        setTweets(d.tweets ?? []);
+        setTweetHandle(d.handle);
+        setTweetFanHandle(d.fanHandle);
+        setTweetIsFallback(d.isFallback ?? false);
+      }
+    } catch { /**/ } finally { setTweetsLoading(false); }
+  }, [club.id]);
+
+  const loadFanArticles = useCallback(async () => {
+    setFanArticlesLoading(true);
+    try {
+      const res = await fetch(`/api/fan-news?clubId=${club.id}`);
+      if (res.ok) {
+        const d = await res.json() as {
+          articles: {id:string;title:string;link:string;pubDate:string;description:string;site:string}[];
+          site: string|null;
+        };
+        setFanArticles(d.articles ?? []);
+        setFanArticlesSite(d.site);
+      }
+    } catch { /**/ } finally { setFanArticlesLoading(false); }
+  }, [club.id]);
+
+  useEffect(() => {
+    if (section === "fans") {
+      loadTweets();
+      loadFanArticles();
+    }
+  }, [section, loadTweets, loadFanArticles]);
 
   // La Fiche state
   const [ficheOpponentId, setFicheOpponentId] = useState<number|null>(null);
@@ -601,6 +654,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
     {id:"resultats" as const, label:"Résultats",     icon:<Target size={11}/>},
     {id:"compo"     as const, label:"Ma Compo !",    icon:<Star size={11}/>},
     {id:"fiche"     as const, label:"La Fiche",      icon:<Sword size={11}/>},
+    {id:"fans"      as const, label:"Fans 𝕏",        icon:<TwitterLogo size={11}/>},
   ];
 
   return (
@@ -1259,6 +1313,198 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
           ficheMatchLoaded={ficheMatchLoaded}
           allStandings={allStandings}
         />
+      )}
+
+      {/* ══════════ FANS 𝕏 ══════════ */}
+      {section==="fans"&&(
+        <div className="space-y-3">
+
+          {/* Sub-tabs Tweets / Articles */}
+          <div className="flex gap-1 p-1 rounded-xl" style={{background:"#0a0f1c",border:"1px solid #1a2235"}}>
+            <button onClick={()=>setFansTab("tweets")}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all flex-1 justify-center"
+              style={{background:fansTab==="tweets"?"rgba(29,161,242,0.12)":"transparent",color:fansTab==="tweets"?"#1da1f2":"#64748b",border:fansTab==="tweets"?"1px solid rgba(29,161,242,0.2)":"1px solid transparent"}}>
+              <TwitterLogo size={11}/> Tweets fans
+            </button>
+            <button onClick={()=>setFansTab("articles")}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all flex-1 justify-center"
+              style={{background:fansTab==="articles"?"rgba(251,191,36,0.1)":"transparent",color:fansTab==="articles"?"#fbbf24":"#64748b",border:fansTab==="articles"?"1px solid rgba(251,191,36,0.2)":"1px solid transparent"}}>
+              📰 Articles fans
+              {fanArticles.length>0&&<span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{background:"rgba(251,191,36,0.15)",color:"#fbbf24"}}>{fanArticles.length}</span>}
+            </button>
+          </div>
+
+          {/* ── TWEETS ── */}
+          {fansTab==="tweets"&&(
+            <div className="space-y-2">
+              {/* Handle + refresh */}
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-2 min-w-0">
+                  <TwitterLogo size={12} style={{color:"#1da1f2",flexShrink:0}}/>
+                  {tweetHandle&&<span className="text-[10px] font-semibold truncate" style={{color:"#94a3b8"}}>@{tweetFanHandle??tweetHandle}</span>}
+                  {tweetIsFallback&&<span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{background:"rgba(245,158,11,0.1)",color:"#f59e0b",border:"1px solid rgba(245,158,11,0.2)"}}>compte officiel</span>}
+                </div>
+                <button onClick={loadTweets} disabled={tweetsLoading}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] hover:opacity-80 flex-shrink-0"
+                  style={{background:"rgba(255,255,255,0.04)",border:"1px solid #1e2d42",color:"#6b7c96"}}>
+                  <ArrowsClockwise size={9} className={tweetsLoading?"animate-spin":""}/>
+                </button>
+              </div>
+
+              {/* Loading */}
+              {tweetsLoading&&(
+                <div className="space-y-2">
+                  {Array.from({length:4}).map((_,i)=>(
+                    <div key={i} className="h-16 rounded-xl animate-pulse" style={{background:"#0d1421",border:"1px solid #1e2d42"}}/>
+                  ))}
+                </div>
+              )}
+
+              {/* No handle */}
+              {!tweetsLoading&&!tweetHandle&&(
+                <div className="rounded-xl p-6 text-center space-y-1" style={{background:"#0d1421",border:"1px solid #1e2d42"}}>
+                  <TwitterLogo size={22} style={{color:"#334155",margin:"0 auto"}}/>
+                  <p className="text-sm font-semibold" style={{color:"#475569"}}>Aucun compte configuré</p>
+                  <p className="text-xs" style={{color:"#334155"}}>Ajoutez un handle dans l&apos;Admin.</p>
+                </div>
+              )}
+
+              {/* No tweets */}
+              {!tweetsLoading&&tweetHandle&&tweets.length===0&&(
+                <div className="rounded-xl p-5 text-center" style={{background:"#0d1421",border:"1px solid #1e2d42"}}>
+                  <p className="text-sm" style={{color:"#475569"}}>Aucun tweet récupéré.</p>
+                  <p className="text-xs mt-0.5" style={{color:"#334155"}}>Nitter peut être temporairement indisponible.</p>
+                </div>
+              )}
+
+              {/* Tweets list */}
+              {!tweetsLoading&&tweets.length>0&&(
+                <>
+                  {tweets.map(tweet=>{
+                    const d=new Date(tweet.pubDate);
+                    const ago=Date.now()-d.getTime();
+                    const agoStr=ago<3600000?`${Math.round(ago/60000)}min`
+                      :ago<86400000?`${Math.round(ago/3600000)}h`
+                      :`${d.toLocaleDateString("fr-FR",{day:"2-digit",month:"short"})}`;
+                    return (
+                      <a key={tweet.id} href={tweet.url} target="_blank" rel="noopener noreferrer"
+                        className="block rounded-xl p-3 hover:brightness-125 transition-all group"
+                        style={{background:"#0d1421",border:"1px solid #1e2d42",textDecoration:"none"}}>
+                        <div className="flex items-start gap-2">
+                          <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+                            style={{background:"rgba(29,161,242,0.12)",border:"1px solid rgba(29,161,242,0.2)"}}>
+                            <TwitterLogo size={12} style={{color:"#1da1f2"}}/>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <span className="text-[9px] font-black" style={{color:"#1da1f2"}}>@{tweet.author}</span>
+                              <span className="text-[9px]" style={{color:"#334155"}}>· {agoStr}</span>
+                              <ArrowSquareOut size={8} style={{color:"#334155",marginLeft:"auto",flexShrink:0}} className="opacity-0 group-hover:opacity-100 transition-opacity"/>
+                            </div>
+                            <p className="text-xs leading-relaxed" style={{color:"#94a3b8"}}>{tweet.title}</p>
+                          </div>
+                        </div>
+                      </a>
+                    );
+                  })}
+                  {tweetHandle&&(
+                    <a href={`https://x.com/${tweetFanHandle??tweetHandle}`} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs hover:opacity-80"
+                      style={{background:"rgba(29,161,242,0.06)",border:"1px solid rgba(29,161,242,0.15)",color:"#1da1f2",textDecoration:"none"}}>
+                      <TwitterLogo size={11}/> Voir @{tweetFanHandle??tweetHandle} sur 𝕏
+                    </a>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* ── ARTICLES ── */}
+          {fansTab==="articles"&&(
+            <div className="space-y-2">
+              {/* Source + refresh */}
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-[9px]">📰</span>
+                  {fanArticlesSite
+                    ? <span className="text-[10px] font-semibold truncate" style={{color:"#94a3b8"}}>{fanArticlesSite}</span>
+                    : <span className="text-[10px]" style={{color:"#475569"}}>Site fan</span>
+                  }
+                </div>
+                <button onClick={loadFanArticles} disabled={fanArticlesLoading}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] hover:opacity-80 flex-shrink-0"
+                  style={{background:"rgba(255,255,255,0.04)",border:"1px solid #1e2d42",color:"#6b7c96"}}>
+                  <ArrowsClockwise size={9} className={fanArticlesLoading?"animate-spin":""}/>
+                </button>
+              </div>
+
+              {/* Loading */}
+              {fanArticlesLoading&&(
+                <div className="space-y-2">
+                  {Array.from({length:4}).map((_,i)=>(
+                    <div key={i} className="h-20 rounded-xl animate-pulse" style={{background:"#0d1421",border:"1px solid #1e2d42"}}/>
+                  ))}
+                </div>
+              )}
+
+              {/* No RSS for this club */}
+              {!fanArticlesLoading&&!fanArticlesSite&&(
+                <div className="rounded-xl p-6 text-center space-y-1" style={{background:"#0d1421",border:"1px solid #1e2d42"}}>
+                  <span className="text-2xl block">📭</span>
+                  <p className="text-sm font-semibold" style={{color:"#475569"}}>Pas de site fan disponible</p>
+                  <p className="text-xs" style={{color:"#334155"}}>Aucun flux RSS fan n&apos;a été trouvé pour ce club.</p>
+                </div>
+              )}
+
+              {/* No articles */}
+              {!fanArticlesLoading&&fanArticlesSite&&fanArticles.length===0&&(
+                <div className="rounded-xl p-5 text-center" style={{background:"#0d1421",border:"1px solid #1e2d42"}}>
+                  <p className="text-sm" style={{color:"#475569"}}>Aucun article récupéré.</p>
+                </div>
+              )}
+
+              {/* Articles list */}
+              {!fanArticlesLoading&&fanArticles.length>0&&(
+                <>
+                  {fanArticles.map(art=>{
+                    const d=new Date(art.pubDate);
+                    const ago=Date.now()-d.getTime();
+                    const agoStr=ago<86400000?`${Math.round(ago/3600000)}h`
+                      :ago<604800000?`${Math.round(ago/86400000)}j`
+                      :d.toLocaleDateString("fr-FR",{day:"2-digit",month:"short"});
+                    return (
+                      <a key={art.id} href={art.link} target="_blank" rel="noopener noreferrer"
+                        className="block rounded-xl p-3 hover:brightness-125 transition-all group"
+                        style={{background:"#0d1421",border:"1px solid rgba(251,191,36,0.12)",textDecoration:"none"}}>
+                        <div className="flex items-start gap-2">
+                          <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 text-sm"
+                            style={{background:"rgba(251,191,36,0.08)",border:"1px solid rgba(251,191,36,0.15)"}}>
+                            📰
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              <span className="text-[9px] font-black truncate" style={{color:"#fbbf24"}}>{art.site}</span>
+                              <span className="text-[9px] flex-shrink-0" style={{color:"#334155"}}>· {agoStr}</span>
+                              <ArrowSquareOut size={8} style={{color:"#334155",marginLeft:"auto",flexShrink:0}} className="opacity-0 group-hover:opacity-100 transition-opacity"/>
+                            </div>
+                            <p className="text-xs font-semibold leading-tight mb-0.5" style={{color:"#e2e8f0"}}>{art.title}</p>
+                            {art.description&&<p className="text-[10px] leading-relaxed line-clamp-2" style={{color:"#475569"}}>{art.description}</p>}
+                          </div>
+                        </div>
+                      </a>
+                    );
+                  })}
+                  {fanArticlesSite&&(
+                    <div className="text-center pt-1">
+                      <span className="text-[9px]" style={{color:"#334155"}}>Source : {fanArticlesSite}</span>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+        </div>
       )}
 
     </div>
