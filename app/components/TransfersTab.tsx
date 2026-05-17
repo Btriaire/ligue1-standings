@@ -180,8 +180,8 @@ function FilterBar({ active, onChange }: { active: Filter; onChange: (f: Filter)
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export default function TransfersTab() {
-  const [data, setData] = useState<{ clubs: ClubTransfers[]; updatedAt: string; sources: string[] } | null>(null);
+export default function TransfersTab({ league = "FL1" }: { league?: "FL1" | "FL2" } = {}) {
+  const [data, setData] = useState<{ clubs: ClubTransfers[]; updatedAt: string; sources: string[]; error?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
@@ -192,11 +192,13 @@ export default function TransfersTab() {
   const load = async (manual = false) => {
     if (manual) setRefreshing(true);
     try {
-      const res = await fetch("/api/transfers" + (manual ? "?t=" + Date.now() : ""));
+      const qs = new URLSearchParams({ league });
+      if (manual) qs.set("t", String(Date.now()));
+      const res = await fetch("/api/transfers?" + qs.toString());
       if (!res.ok) throw new Error("Erreur de chargement");
       const json = await res.json();
       setData(json);
-      setError(null);
+      setError(json.error ?? null);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Erreur inconnue");
     } finally {
@@ -205,7 +207,7 @@ export default function TransfersTab() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [league]);
 
   // Filter clubs: age filter first, then type filter
   const filteredClubs = data?.clubs.map((club) => {
@@ -264,7 +266,7 @@ export default function TransfersTab() {
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h2 className="text-sm font-bold" style={{ color: "#e8edf5" }}>Mercato Ligue 1</h2>
+          <h2 className="text-sm font-bold" style={{ color: "#e8edf5" }}>Mercato {league === "FL2" ? "Ligue 2" : "Ligue 1"}</h2>
           <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>
             Sources : {data?.sources.join(", ")}
             {data?.updatedAt && <> · Mis à jour à {formatUpdated(data.updatedAt)}</>}

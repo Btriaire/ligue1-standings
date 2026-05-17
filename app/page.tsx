@@ -735,11 +735,32 @@ export default function Home() {
               </div>
             )}
 
-            {l2SubTab !== "classement" && (
+            {l2SubTab === "mercato" && <TransfersTab league="FL2" />}
+
+            {l2SubTab === "joueurs" && (
+              <div>
+                <Link href="/players?league=FL2"
+                  className="flex items-center justify-between px-5 py-4 rounded-2xl hover:opacity-80 transition-opacity"
+                  style={{ background: "rgba(0,212,255,0.06)", border: "1px solid rgba(0,212,255,0.2)" }}>
+                  <div className="flex items-center gap-3">
+                    <Users size={18} style={{ color: "#00d4ff" }} />
+                    <div>
+                      <p className="text-sm font-bold" style={{ color: "#e8edf5" }}>Statistiques joueurs Ligue 2</p>
+                      <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>Top buteurs, passeurs, notation — source FotMob</p>
+                    </div>
+                  </div>
+                  <CaretRight size={16} style={{ color: "#00d4ff" }} />
+                </Link>
+              </div>
+            )}
+
+            {l2SubTab === "transfert" && <TransfersTab league="FL2" />}
+
+            {l2SubTab === "arbitres" && (
               <div className="rounded-2xl p-10 text-center" style={{ border: "1px solid #1e2d42", background: "rgba(13,20,33,0.6)" }}>
                 <p className="text-sm font-bold mb-1" style={{ color: "#e8edf5" }}>Bientôt disponible</p>
                 <p className="text-xs" style={{ color: "#6b7c96" }}>
-                  Cette section sera étendue à la Ligue 2 dans une prochaine mise à jour.
+                  Les statistiques arbitrales Ligue 2 seront ajoutées prochainement.
                 </p>
               </div>
             )}

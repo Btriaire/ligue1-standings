@@ -1,7 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { CLUB_SEARCH_TERMS } from "@/app/lib/teamMapping";
+import { fetchFotMobLigue2, fotmobCrest, type FmTransfer } from "@/app/lib/fotmob";
 
 export const revalidate = 1800; // 30 min
+
+const API_KEY = process.env.FOOTBALL_DATA_API_KEY;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -86,7 +89,11 @@ function filterByClub(items: RSSItem[], searchTerms: string): RSSItem[] {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-const CLUBS = [
+interface ClubRef { id: number; name: string; shortName: string; crest: string }
+
+// Hardcoded Ligue 1 list — IDs, names and crests rarely change in-season
+// and avoiding a standings round-trip keeps Mercato snappy.
+const CLUBS_L1: ClubRef[] = [
   { id: 524,  name: "Paris Saint-Germain", shortName: "PSG",        crest: "https://crests.football-data.org/524.png" },
   { id: 546,  name: "RC Lens",             shortName: "RC Lens",    crest: "https://crests.football-data.org/546.png" },
   { id: 523,  name: "Olympique Lyonnais",  shortName: "Lyon",       crest: "https://crests.football-data.org/523.png" },
@@ -107,7 +114,84 @@ const CLUBS = [
   { id: 545,  name: "FC Metz",             shortName: "Metz",       crest: "https://crests.football-data.org/545.png" },
 ];
 
-export async function GET() {
+// Build a name-based search term when CLUB_SEARCH_TERMS doesn't cover the
+// club (e.g. for Ligue 2 teams fetched dynamically).
+function fallbackSearchTerms(name: string, shortName: string): string {
+  // Plus-join the most meaningful tokens.
+  const tokens = `${name} ${shortName}`
+    .split(/\s+/)
+    .filter(t => t.length > 2)
+    .filter((t, i, a) => a.indexOf(t) === i);
+  return tokens.join("+");
+}
+
+// Fetch Ligue 2 clubs + transfer items from FotMob (public, free).
+async function fetchL2FromFotMob(): Promise<{ clubs: ClubRef[]; transfersByClub: Map<number, FmTransfer[]> }> {
+  try {
+    const fm = await fetchFotMobLigue2();
+    const clubs: ClubRef[] = fm.table.map(t => ({
+      id: t.id,
+      name: t.name,
+      shortName: t.shortName,
+      crest: fotmobCrest(t.id),
+    }));
+    const transfersByClub = new Map<number, FmTransfer[]>();
+    for (const tr of fm.transfers) {
+      const clubId = clubs.find(c => c.id === tr.toClubId)?.id
+        ?? clubs.find(c => c.id === tr.fromClubId)?.id;
+      if (!clubId) continue;
+      const arr = transfersByClub.get(clubId) ?? [];
+      arr.push(tr);
+      transfersByClub.set(clubId, arr);
+    }
+    return { clubs, transfersByClub };
+  } catch (err) {
+    console.error("FotMob L2 transfers fetch error:", err);
+    return { clubs: [], transfersByClub: new Map() };
+  }
+}
+
+function fotmobTransferToItem(tr: FmTransfer, clubId: number): TransferItem {
+  const isArrival = tr.toClubId === clubId;
+  const counterpart = isArrival ? tr.fromClubFullName ?? tr.fromClub : tr.toClubFullName ?? tr.toClub;
+  const verb = tr.onLoan ? (isArrival ? "arrive en prêt de" : "part en prêt à") :
+               tr.contractExtension ? "prolonge avec" :
+               isArrival ? "signe en provenance de" : "rejoint";
+  const title = `${tr.name} ${verb} ${counterpart}`;
+  return {
+    title,
+    pubDate: tr.transferDate,
+    source: "FotMob",
+    url: `https://www.fotmob.com/players/${tr.playerId}/${encodeURIComponent(tr.name.toLowerCase().replace(/\s+/g, "-"))}`,
+    type: tr.contractExtension ? "news" : isArrival ? "arrival" : "departure",
+    player: tr.name,
+  };
+}
+
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const league = (searchParams.get("league") ?? "FL1").toUpperCase();
+
+  let CLUBS: ClubRef[];
+  let fotmobByClub: Map<number, FmTransfer[]> = new Map();
+  if (league === "FL2") {
+    const r = await fetchL2FromFotMob();
+    CLUBS = r.clubs;
+    fotmobByClub = r.transfersByClub;
+  } else {
+    CLUBS = CLUBS_L1;
+  }
+
+  if (CLUBS.length === 0) {
+    return NextResponse.json({
+      clubs: [], updatedAt: new Date().toISOString(),
+      sources: ["Google News", "RMC Sport", "Footmercato", "FotMob"],
+      league,
+      error: league === "FL2"
+        ? "Liste des clubs Ligue 2 indisponible (FotMob injoignable)."
+        : "Aucun club configuré.",
+    });
+  }
   // Fetch shared sources once
   const [rmcXml, footmercatoXml] = await Promise.all([
     safeFetch("https://rmcsport.bfmtv.com/rss/football/"),
@@ -120,7 +204,7 @@ export async function GET() {
   // Fetch Google News per club in parallel (cached 30min each)
   const googleResults = await Promise.all(
     CLUBS.map(async (club) => {
-      const terms = CLUB_SEARCH_TERMS[club.id];
+      const terms = CLUB_SEARCH_TERMS[club.id] ?? fallbackSearchTerms(club.name, club.shortName);
       if (!terms) return [];
       const xml = await safeFetch(
         `https://news.google.com/rss/search?q=${terms}+transfert+mercato&hl=fr&gl=FR&ceid=FR:fr`
@@ -131,7 +215,7 @@ export async function GET() {
 
   // Build per-club transfer data
   const clubs: ClubTransfers[] = CLUBS.map((club, idx) => {
-    const terms = CLUB_SEARCH_TERMS[club.id] ?? club.shortName;
+    const terms = CLUB_SEARCH_TERMS[club.id] ?? fallbackSearchTerms(club.name, club.shortName);
     const clubRMC = filterByClub(rmcItems, terms);
     const clubFoot = filterByClub(footmercatoItems, terms);
     const clubGoogle = googleResults[idx] ?? [];
@@ -139,6 +223,16 @@ export async function GET() {
     // Merge all, deduplicate by title
     const seen = new Set<string>();
     const allItems: TransferItem[] = [];
+
+    // FotMob official transfers come first (highest signal for L2)
+    const fmItems = fotmobByClub.get(club.id) ?? [];
+    for (const tr of fmItems) {
+      const item = fotmobTransferToItem(tr, club.id);
+      const key = item.title.toLowerCase().slice(0, 50);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      allItems.push(item);
+    }
 
     for (const item of [...clubGoogle, ...clubRMC, ...clubFoot]) {
       const key = item.title.toLowerCase().slice(0, 50);
@@ -178,6 +272,9 @@ export async function GET() {
   return NextResponse.json({
     clubs,
     updatedAt: new Date().toISOString(),
-    sources: ["Google News", "RMC Sport", "Footmercato"],
+    sources: league === "FL2"
+      ? ["FotMob", "Google News", "RMC Sport", "Footmercato"]
+      : ["Google News", "RMC Sport", "Footmercato"],
+    league,
   });
 }

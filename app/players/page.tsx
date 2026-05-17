@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   MagnifyingGlass, X, ArrowLeft, Users,
   FunnelSimple, TrendUp,
@@ -14,7 +15,7 @@ import {
 
 // ── Static maps ───────────────────────────────────────────────────────────────
 
-const TEAM_IDS = [524, 548, 523, 521, 529, 516, 576, 525, 511, 1045, 512, 532, 533, 522, 519, 543, 545, 546];
+const TEAM_IDS_L1 = [524, 548, 523, 521, 529, 516, 576, 525, 511, 1045, 512, 532, 533, 522, 519, 543, 545, 546];
 
 const SORT_OPTIONS: { key: string; label: string }[] = [
   { key: "dm_xgxa90",      label: "xG+xA/90" },
@@ -137,9 +138,28 @@ function ClubSection({ clubId, players, sortKey, expandedId, onToggle }: {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function PlayersPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: "100vh", background: "#0a0f1c" }} />}>
+      <PlayersPageInner />
+    </Suspense>
+  );
+}
+
+function PlayersPageInner() {
+  const searchParams = useSearchParams();
+  const league = (searchParams.get("league") ?? "FL1").toUpperCase() === "FL2" ? "FL2" : "FL1";
+
   const [allPlayers, setAllPlayers] = useState<PlayerEntry[]>([]);
   const [loadedCount, setLoadedCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [teamIds, setTeamIds] = useState<number[]>(league === "FL1" ? TEAM_IDS_L1 : []);
+  const [clubLabels, setClubLabels] = useState<Record<number, string>>({});
+
+  // L2-only: FotMob top players (no per-club squad data available)
+  interface L2TopPlayer { id: number; name: string; teamId: number; teamName: string; value: number | string }
+  const [l2Top, setL2Top] = useState<{ byRating: L2TopPlayer[]; byGoals: L2TopPlayer[]; byAssists: L2TopPlayer[] }>({
+    byRating: [], byGoals: [], byAssists: [],
+  });
 
   const [search, setSearch] = useState("");
   const [filterClub, setFilterClub] = useState<number | "">("");
@@ -149,11 +169,48 @@ export default function PlayersPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
+  // For Ligue 2 we don't hardcode team IDs — fetch them dynamically from
+  // our standings endpoint, which already knows the right competition.
   useEffect(() => {
-    let done = 0;
-    const total = TEAM_IDS.length;
+    if (league === "FL1") return;
+    setAllPlayers([]); setLoadedCount(0); setLoading(true);
+    fetch("/api/standings?competition=FL2")
+      .then(r => r.json())
+      .then((d: { standings?: Array<{ team: { id: number; shortName: string; name: string } }> }) => {
+        const ids = (d.standings ?? []).map(s => s.team.id);
+        const labels: Record<number, string> = {};
+        (d.standings ?? []).forEach(s => { labels[s.team.id] = s.team.shortName || s.team.name; });
+        setTeamIds(ids);
+        setClubLabels(labels);
+        if (ids.length === 0) setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [league]);
 
-    TEAM_IDS.forEach(id => {
+  // L2: fetch FotMob top players (squad endpoint doesn't support FotMob IDs)
+  useEffect(() => {
+    if (league !== "FL2") return;
+    fetch("/api/players-l2")
+      .then(r => r.json())
+      .then((d: { topByRating?: L2TopPlayer[]; topByGoals?: L2TopPlayer[]; topByAssists?: L2TopPlayer[] }) => {
+        setL2Top({
+          byRating: d.topByRating ?? [],
+          byGoals: d.topByGoals ?? [],
+          byAssists: d.topByAssists ?? [],
+        });
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [league]);
+
+  useEffect(() => {
+    if (league === "FL2") return; // L2 uses /api/players-l2, not per-club squads
+    if (teamIds.length === 0) return;
+    let done = 0;
+    const total = teamIds.length;
+    setLoadedCount(0);
+
+    teamIds.forEach(id => {
       fetch(`/api/squad/${id}`)
         .then(r => r.json())
         .then(data => {
@@ -171,7 +228,14 @@ export default function PlayersPage() {
           if (done === total) setLoading(false);
         });
     });
-  }, []);
+  }, [teamIds]);
+
+  // Merge static L1 names with any dynamically-fetched (L2) labels so search
+  // and filter dropdowns work regardless of competition.
+  const clubShort: Record<number, string> = useMemo(
+    () => ({ ...CLUB_SHORT, ...clubLabels }),
+    [clubLabels]
+  );
 
   const filtered = useMemo(() => {
     const q = normalize(search.trim());
@@ -179,7 +243,7 @@ export default function PlayersPage() {
       if (q && !normalize(p.name).includes(q) &&
           !normalize(p.club.name ?? "").includes(q) &&
           !normalize(p.club.shortName ?? "").includes(q) &&
-          !normalize(CLUB_SHORT[p.clubId] ?? "").includes(q) &&
+          !normalize(clubShort[p.clubId] ?? "").includes(q) &&
           !normalize(p.nationality?.[0] ?? "").includes(q)) return false;
       if (filterClub !== "" && p.clubId !== filterClub) return false;
       if (filterPos && p.position !== filterPos) return false;
@@ -194,15 +258,15 @@ export default function PlayersPage() {
       return bv - av;
     });
     return list;
-  }, [allPlayers, search, filterClub, filterPos, filterMinMin, sortKey]);
+  }, [allPlayers, search, filterClub, filterPos, filterMinMin, sortKey, clubShort]);
 
   const isFiltered = !!(search.trim() || filterClub !== "" || filterPos || filterMinMin > 0);
 
   const byClub = useMemo(() =>
-    TEAM_IDS
+    teamIds
       .map(id => ({ id, players: filtered.filter(p => p.clubId === id) }))
       .filter(g => g.players.length > 0),
-    [filtered]
+    [filtered, teamIds]
   );
 
   const toggle = useCallback((uid: string) => {
@@ -221,9 +285,9 @@ export default function PlayersPage() {
           </Link>
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
             <Users size={14} style={{ color: "#00d4ff", flexShrink: 0 }} />
-            <span className="font-black text-sm" style={{ color: "#e8edf5" }}>Joueurs Ligue 1</span>
+            <span className="font-black text-sm" style={{ color: "#e8edf5" }}>Joueurs {league === "FL2" ? "Ligue 2" : "Ligue 1"}</span>
             <span className="text-xs" style={{ color: "#6b7c96" }}>
-              {loading ? `Chargement… (${loadedCount}/${TEAM_IDS.length})` : `${filtered.length} / ${allPlayers.length} joueurs`}
+              {loading ? `Chargement… (${loadedCount}/${teamIds.length})` : `${filtered.length} / ${allPlayers.length} joueurs`}
             </span>
           </div>
           <button onClick={() => setShowFilters(v => !v)}
@@ -254,7 +318,7 @@ export default function PlayersPage() {
               className="text-xs px-2.5 py-1.5 rounded-lg outline-none"
               style={{ background: "#0d1421", border: "1px solid #1e2d42", color: "#e8edf5" }}>
               <option value="">Tous les clubs</option>
-              {TEAM_IDS.map(id => <option key={id} value={id}>{CLUB_SHORT[id]}</option>)}
+              {teamIds.map(id => <option key={id} value={id}>{clubShort[id] ?? `#${id}`}</option>)}
             </select>
             <select value={filterPos} onChange={e => setFilterPos(e.target.value)}
               className="text-xs px-2.5 py-1.5 rounded-lg outline-none"
@@ -289,7 +353,48 @@ export default function PlayersPage() {
       </header>
 
       <div className="max-w-5xl mx-auto px-4 py-4">
-        {loading && allPlayers.length === 0 && (
+        {/* Ligue 2 simplified stats view (FotMob top players) */}
+        {league === "FL2" && (
+          <div className="space-y-4">
+            <p className="text-xs" style={{ color: "#6b7c96" }}>
+              Source : <span style={{ color: "#00d4ff" }}>FotMob</span> · Top joueurs de la saison Ligue 2.
+              Les fiches détaillées par club (Datamb / Transfermarkt) ne sont pas disponibles pour la Ligue 2 sur les plans gratuits.
+            </p>
+            {([
+              { title: "Top notation", list: l2Top.byRating, unit: "" },
+              { title: "Top buteurs", list: l2Top.byGoals, unit: " buts" },
+              { title: "Top passeurs", list: l2Top.byAssists, unit: " PD" },
+            ] as const).map(panel => (
+              <div key={panel.title} className="rounded-2xl overflow-hidden"
+                style={{ border: "1px solid #1e2d42", background: "#0d1421" }}>
+                <div className="px-4 py-2.5 text-xs font-black"
+                  style={{ color: "#e8edf5", borderBottom: "1px solid #1e2d42" }}>
+                  {panel.title}
+                </div>
+                <div>
+                  {panel.list.length === 0 && (
+                    <div className="px-4 py-4 text-xs" style={{ color: "#6b7c96" }}>
+                      {loading ? "Chargement…" : "Aucune donnée disponible."}
+                    </div>
+                  )}
+                  {panel.list.map((p, i) => (
+                    <a key={p.id} href={`https://www.fotmob.com/players/${p.id}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-3 px-4 py-2 hover:bg-white/[0.03]"
+                      style={{ borderTop: i === 0 ? "none" : "1px solid #131c2c" }}>
+                      <span className="w-5 text-xs font-mono" style={{ color: "#6b7c96" }}>{i + 1}</span>
+                      <span className="flex-1 text-sm" style={{ color: "#e8edf5" }}>{p.name}</span>
+                      <span className="text-xs" style={{ color: "#6b7c96" }}>{p.teamName}</span>
+                      <span className="text-sm font-bold" style={{ color: "#00d4ff" }}>{p.value}{panel.unit}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {league === "FL1" && loading && allPlayers.length === 0 && (
           <div className="space-y-2">
             {Array.from({ length: 12 }).map((_, i) => (
               <div key={i} className="h-16 rounded-2xl animate-pulse" style={{ background: "#0d1421", border: "1px solid #1e2d42" }} />
@@ -297,14 +402,14 @@ export default function PlayersPage() {
           </div>
         )}
 
-        {!loading && filtered.length === 0 && (
+        {league === "FL1" && !loading && filtered.length === 0 && (
           <div className="py-16 text-center">
             <p className="text-sm" style={{ color: "#6b7c96" }}>Aucun joueur trouvé.</p>
           </div>
         )}
 
         {/* Flat list when filtering */}
-        {isFiltered && filtered.length > 0 && (
+        {league === "FL1" && isFiltered && filtered.length > 0 && (
           <div>
             <p className="text-[10px] mb-2" style={{ color: "#4b5a72" }}>
               {filtered.length} joueur{filtered.length > 1 ? "s" : ""} · Tri : {SORT_OPTIONS.find(o => o.key === sortKey)?.label}
@@ -317,7 +422,7 @@ export default function PlayersPage() {
         )}
 
         {/* Club sections (default) */}
-        {!isFiltered && byClub.length > 0 && (
+        {league === "FL1" && !isFiltered && byClub.length > 0 && (
           <div className="space-y-2">
             <p className="text-[10px] mb-3" style={{ color: "#4b5a72" }}>
               {byClub.length} clubs · {allPlayers.length} joueurs · Tri interne : {SORT_OPTIONS.find(o => o.key === sortKey)?.label}
@@ -335,7 +440,7 @@ export default function PlayersPage() {
             <span>Sources : <span style={{ color: "#6b7c96" }}>Datamb.football</span> (per 90 · +140 stats)</span>
             <span>· <span style={{ color: "#6b7c96" }}>Football-Data.org</span> (effectif)</span>
             <span>· <span style={{ color: "#6b7c96" }}>Wikidata/Commons</span> (photos publiques)</span>
-            <span className="ml-auto">{loadedCount}/{TEAM_IDS.length} clubs</span>
+            <span className="ml-auto">{loadedCount}/{teamIds.length} clubs</span>
           </div>
         )}
       </div>

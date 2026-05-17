@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { fetchFotMobLigue2, fotmobCrest, fotmobFormString } from "@/app/lib/fotmob";
 
 export const revalidate = 60; // revalidate every 60s
 
@@ -68,13 +69,57 @@ function computeForm(matches: FdMatch[]): Map<number, string> {
 }
 
 export async function GET(req: NextRequest) {
-  if (!API_KEY) {
-    return NextResponse.json({ error: "API key not configured" }, { status: 500 });
-  }
-
   const { searchParams } = new URL(req.url);
   const requested = (searchParams.get("competition") ?? DEFAULT_COMPETITION).toUpperCase();
   const competition = ALLOWED_COMPETITIONS.has(requested) ? requested : DEFAULT_COMPETITION;
+
+  // ── Ligue 2 → FotMob (free public source, football-data.org refuses on free plan)
+  if (competition === "FL2") {
+    try {
+      const fm = await fetchFotMobLigue2();
+      const standings = fm.table.map((entry) => {
+        const [gf, ga] = entry.scoresStr.split("-").map((n) => parseInt(n, 10) || 0);
+        return {
+          position: entry.idx,
+          team: {
+            id: entry.id,
+            name: entry.name,
+            shortName: entry.shortName,
+            tla: entry.shortName.slice(0, 3).toUpperCase(),
+            crest: fotmobCrest(entry.id),
+          },
+          playedGames: entry.played,
+          won: entry.wins,
+          draw: entry.draws,
+          lost: entry.losses,
+          points: entry.pts,
+          goalsFor: gf,
+          goalsAgainst: ga,
+          goalDifference: entry.goalConDiff,
+          form: fotmobFormString(fm.teamForm[String(entry.id)]),
+        };
+      });
+      return NextResponse.json({
+        standings,
+        season: null,
+        competition,
+        source: "fotmob",
+        updatedAt: fm.updatedAt,
+      });
+    } catch (err) {
+      console.error("FotMob L2 standings error:", err);
+      return NextResponse.json({
+        standings: [],
+        season: null,
+        competition,
+        error: "Impossible de récupérer le classement Ligue 2 depuis FotMob.",
+      }, { status: 200 });
+    }
+  }
+
+  if (!API_KEY) {
+    return NextResponse.json({ error: "API key not configured" }, { status: 500 });
+  }
 
   try {
     const [standingsRes, matchesRes] = await Promise.all([
