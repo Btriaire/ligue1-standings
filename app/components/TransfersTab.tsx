@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { ArrowsClockwise, ArrowSquareOut, TrendUp, TrendDown, Newspaper, CaretDown } from "@phosphor-icons/react";
 import type { ClubTransfers, TransferItem } from "@/app/api/transfers/route";
 import { useConfig } from "@/app/lib/config";
+
+const NewsModal = dynamic(() => import("./NewsModal"), { ssr: false });
 
 function isWithinDays(pubDate: string, maxDays: number): boolean {
   if (maxDays === 0 || !pubDate) return true;
@@ -56,10 +59,10 @@ function formatDate(raw: string): string {
 
 // ── Single news item ───────────────────────────────────────────────────────────
 
-function NewsItem({ item }: { item: TransferItem }) {
+function NewsItem({ item, onOpen }: { item: TransferItem; onOpen: (i: TransferItem) => void }) {
   return (
-    <a href={item.url || "#"} target="_blank" rel="noopener noreferrer"
-      className="group flex items-start gap-2.5 py-2.5 px-3 rounded-xl transition-all hover:brightness-125"
+    <button type="button" onClick={() => onOpen(item)}
+      className="group w-full text-left flex items-start gap-2.5 py-2.5 px-3 rounded-xl transition-all hover:brightness-125"
       style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)" }}>
       <TypeBadge type={item.type} />
       <p className="flex-1 text-xs leading-relaxed line-clamp-2" style={{ color: "#cbd5e1" }}>
@@ -72,13 +75,13 @@ function NewsItem({ item }: { item: TransferItem }) {
         )}
         <ArrowSquareOut size={10} className="text-white/20 group-hover:text-white/50 transition-colors" />
       </div>
-    </a>
+    </button>
   );
 }
 
 // ── Club row ───────────────────────────────────────────────────────────────────
 
-function ClubRow({ club }: { club: ClubTransfers }) {
+function ClubRow({ club, onOpen }: { club: ClubTransfers; onOpen: (i: TransferItem) => void }) {
   const [expanded, setExpanded] = useState(false);
   const hasNews = club.items.length > 0;
 
@@ -113,7 +116,7 @@ function ClubRow({ club }: { club: ClubTransfers }) {
 
       {expanded && hasNews && (
         <div className="px-3 pb-2.5 flex flex-col gap-1.5" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-          {club.items.map((item, i) => <NewsItem key={i} item={item} />)}
+          {club.items.map((item, i) => <NewsItem key={i} item={item} onOpen={onOpen} />)}
         </div>
       )}
     </div>
@@ -184,6 +187,7 @@ export default function TransfersTab() {
   const [filter, setFilter] = useState<Filter>("all");
   const [refreshing, setRefreshing] = useState(false);
   const [config] = useConfig();
+  const [selected, setSelected] = useState<TransferItem | null>(null);
 
   const load = async (manual = false) => {
     if (manual) setRefreshing(true);
@@ -280,7 +284,7 @@ export default function TransfersTab() {
 
       <div className="space-y-3">
         {filteredClubs.map((club) => (
-          <ClubRow key={club.teamId} club={club} />
+          <ClubRow key={club.teamId} club={club} onOpen={setSelected} />
         ))}
         {filteredClubs.length === 0 && (
           <div className="rounded-2xl py-10 text-center" style={{ border: "1px solid #1e2d42" }}>
@@ -293,6 +297,15 @@ export default function TransfersTab() {
         Données agrégées depuis Google News, RMC Sport et Footmercato. Rafraîchissement toutes les 30 min.
         {config.transfersMaxAgeDays > 0 && <> · Articles des {config.transfersMaxAgeDays} derniers jours</>}
       </p>
+
+      {selected && (
+        <NewsModal
+          title={selected.title}
+          url={selected.url}
+          pubDate={selected.pubDate}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </div>
   );
 }
