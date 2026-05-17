@@ -64,20 +64,38 @@ export async function GET(req: NextRequest) {
     });
   }
 
+  // Nitter fallback — bump timeout, since syndication is unreliable we
+  // really need this to land when it can. Nitter.net cold-fetches can
+  // take ~3s.
+  const triedInstances: string[] = [];
   for (const instance of NITTER_INSTANCES) {
+    triedInstances.push(instance);
     try {
       const res = await fetch(`https://${instance}/${handle}/rss`, {
-        headers: { "User-Agent": "Mozilla/5.0 (compatible; FootPredictom/1.0)" },
-        signal: AbortSignal.timeout(2500),
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+          "Accept": "application/rss+xml, text/xml, */*",
+        },
+        signal: AbortSignal.timeout(4500),
       } as RequestInit);
       if (!res.ok) continue;
       const xml = await res.text();
+      // Nitter sometimes serves an HTML error page with 200 OK — detect.
       if (!xml.includes("<item>")) continue;
-      return NextResponse.json({ tweets: parseNitterRSS(xml, handle), handle }, {
+      const tweets = parseNitterRSS(xml, handle);
+      if (tweets.length === 0) continue;
+      return NextResponse.json({ tweets, handle, source: `nitter:${instance}` }, {
         headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=60" },
       });
     } catch { /* try next */ }
   }
 
-  return NextResponse.json({ tweets: [], handle, error: "All Nitter instances failed" });
+  // Everything failed. Distinguish "rate-limited" (likely real handle) from
+  // "handle probably doesn't exist" so the UI can show useful copy.
+  return NextResponse.json({
+    tweets: [],
+    handle,
+    error: "Aucun tweet trouvé — soit le compte n'existe pas / est privé, soit Twitter et Nitter sont temporairement bloqués.",
+    triedInstances,
+  });
 }

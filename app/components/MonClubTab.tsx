@@ -413,6 +413,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
   const [newHandleInput, setNewHandleInput] = useState("");
   const [extraTweets, setExtraTweets] = useState<Record<string, Tweet[]>>({});
   const [extraLoading, setExtraLoading] = useState<Record<string, boolean>>({});
+  const [extraErrors, setExtraErrors] = useState<Record<string, string>>({});
   const [expandedHandles, setExpandedHandles] = useState<Record<string, boolean>>({});
   const toggleExpanded = (h: string) => setExpandedHandles(p => ({ ...p, [h]: !p[h] }));
   // Fan articles
@@ -476,13 +477,21 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
   // Load tweets for a user-added extra handle (via /api/twitter-user proxy)
   const loadExtraHandle = useCallback(async (h: string) => {
     setExtraLoading(l => ({ ...l, [h]: true }));
+    setExtraErrors(e => { const n = {...e}; delete n[h]; return n; });
     try {
       const res = await fetch(`/api/twitter-user?handle=${encodeURIComponent(h)}`);
       if (res.ok) {
-        const d = await res.json() as { tweets: Tweet[] };
+        const d = await res.json() as { tweets: Tweet[]; error?: string };
         setExtraTweets(t => ({ ...t, [h]: d.tweets ?? [] }));
+        if ((d.tweets ?? []).length === 0 && d.error) {
+          setExtraErrors(e => ({ ...e, [h]: d.error! }));
+        }
+      } else {
+        setExtraErrors(e => ({ ...e, [h]: `Erreur ${res.status}` }));
       }
-    } catch { /**/ } finally { setExtraLoading(l => ({ ...l, [h]: false })); }
+    } catch (err) {
+      setExtraErrors(e => ({ ...e, [h]: "Erreur réseau" }));
+    } finally { setExtraLoading(l => ({ ...l, [h]: false })); }
   }, []);
 
   const loadFanArticles = useCallback(async () => {
@@ -1570,7 +1579,11 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                               </button>
                             );
                           })}
-                          {tws.length===0&&!loading&&<p className="text-[9px]" style={{color:"#334155"}}>Aucun tweet récupéré.</p>}
+                          {tws.length===0&&!loading&&(
+                            <p className="text-[9px] leading-relaxed" style={{color: extraErrors[h] ? "#f59e0b" : "#334155"}}>
+                              {extraErrors[h] ?? "Aucun tweet récupéré."}
+                            </p>
+                          )}
                           </div>}
                         </div>
                       );
