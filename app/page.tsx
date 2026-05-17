@@ -16,6 +16,7 @@ import MonClubTab from "./components/MonClubTab";
 import RefereesL1Tab from "./components/RefereesL1Tab";
 import NewsBanner from "./components/NewsBanner";
 import ActuFootBanner from "./components/ActuFootBanner";
+import LiveDirectButton from "./components/LiveDirectButton";
 import FunFact from "./components/FunFact";
 
 interface Team {
@@ -513,6 +514,8 @@ export default function Home() {
                 <span className="opacity-40">· {countdown}s</span>
               </div>
             )}
+
+            <LiveDirectButton />
 
             <button onClick={() => fetchStandings(true)} disabled={refreshing}
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 active:scale-95"
