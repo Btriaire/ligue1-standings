@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminFirestore } from "@/app/lib/firebase-admin";
+import { fetchSyndicationTimeline } from "@/app/lib/twitter-syndication";
 
 export const dynamic = "force-dynamic";
 
@@ -114,6 +115,10 @@ function parseNitterRSS(xml: string, handle: string): Tweet[] {
 }
 
 async function tryNitter(handle: string): Promise<Tweet[]> {
+  // Primary: Twitter syndication CDN (no auth, much more reliable than Nitter).
+  const syn = await fetchSyndicationTimeline(handle, 10);
+  if (syn.length > 0) return syn;
+
   const errors: string[] = [];
   for (const instance of NITTER_INSTANCES) {
     try {

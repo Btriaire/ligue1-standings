@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
+
+const NewsModal = dynamic(() => import("./NewsModal"), { ssr: false });
 import {
   Trophy, CaretDown, CaretUp, X, TrendUp, TrendDown,
   Users, Calendar, Lightning, ArrowsClockwise, Shield, MapPin, Target,
@@ -414,6 +417,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
   const [fanArticles, setFanArticles] = useState<FanArt[]>([]);
   const [fanArticlesLoading, setFanArticlesLoading] = useState(false);
   const [fanArticlesSite, setFanArticlesSite] = useState<string|null>(null);
+  const [selectedFanArticle, setSelectedFanArticle] = useState<{title:string;url:string;pubDate:string}|null>(null);
 
   // Load extra handles from localStorage when club changes
   useEffect(() => {
@@ -1652,8 +1656,9 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                     const ago=Date.now()-d.getTime();
                     const agoStr=ago<86400000?`${Math.round(ago/3600000)}h`:ago<604800000?`${Math.round(ago/86400000)}j`:d.toLocaleDateString("fr-FR",{day:"2-digit",month:"short"});
                     return (
-                      <a href={hero.link} target="_blank" rel="noopener noreferrer"
-                        className="block rounded-2xl overflow-hidden hover:brightness-110 transition-all group"
+                      <button type="button"
+                        onClick={()=>setSelectedFanArticle({title:hero.title,url:hero.link,pubDate:hero.pubDate})}
+                        className="block w-full text-left rounded-2xl overflow-hidden hover:brightness-110 transition-all group"
                         style={{background:"#0d1421",border:`1px solid ${club.color}30`,textDecoration:"none"}}>
                         {hero.image&&(
                           // eslint-disable-next-line @next/next/no-img-element
@@ -1672,7 +1677,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                           <p className="text-sm font-bold leading-tight mb-1" style={{color:"#e8edf5"}}>{hero.title}</p>
                           {hero.description&&<p className="text-[11px] leading-relaxed line-clamp-2" style={{color:"#94a3b8"}}>{hero.description}</p>}
                         </div>
-                      </a>
+                      </button>
                     );
                   })()}
 
@@ -1682,8 +1687,9 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                     const ago=Date.now()-d.getTime();
                     const agoStr=ago<86400000?`${Math.round(ago/3600000)}h`:ago<604800000?`${Math.round(ago/86400000)}j`:d.toLocaleDateString("fr-FR",{day:"2-digit",month:"short"});
                     return (
-                      <a key={art.id} href={art.link} target="_blank" rel="noopener noreferrer"
-                        className="block rounded-xl overflow-hidden hover:brightness-125 transition-all group"
+                      <button key={art.id} type="button"
+                        onClick={()=>setSelectedFanArticle({title:art.title,url:art.link,pubDate:art.pubDate})}
+                        className="block w-full text-left rounded-xl overflow-hidden hover:brightness-125 transition-all group"
                         style={{background:"#0d1421",border:"1px solid rgba(251,191,36,0.15)",textDecoration:"none"}}>
                         <div className="flex items-stretch gap-0">
                           {art.image ? (
@@ -1704,7 +1710,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                             {art.description&&<p className="text-[10px] leading-snug line-clamp-2" style={{color:"#64748b"}}>{art.description}</p>}
                           </div>
                         </div>
-                      </a>
+                      </button>
                     );
                   })}
                   {fanArticlesSite&&(
@@ -1718,6 +1724,15 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
           )}
 
         </div>
+      )}
+
+      {selectedFanArticle && (
+        <NewsModal
+          title={selectedFanArticle.title}
+          url={selectedFanArticle.url}
+          pubDate={selectedFanArticle.pubDate}
+          onClose={()=>setSelectedFanArticle(null)}
+        />
       )}
 
     </div>

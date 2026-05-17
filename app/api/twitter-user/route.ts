@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { fetchSyndicationTimeline } from "@/app/lib/twitter-syndication";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +54,14 @@ export async function GET(req: NextRequest) {
   // Twitter usernames: 1–15 chars, alphanumeric or underscore
   if (!handle || !/^[A-Za-z0-9_]{1,15}$/.test(handle)) {
     return NextResponse.json({ error: "Invalid handle", tweets: [] }, { status: 400 });
+  }
+
+  // Primary: Twitter's syndication CDN (no auth, very reliable).
+  const synTweets = await fetchSyndicationTimeline(handle, 10);
+  if (synTweets.length > 0) {
+    return NextResponse.json({ tweets: synTweets, handle, source: "syndication" }, {
+      headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=60" },
+    });
   }
 
   for (const instance of NITTER_INSTANCES) {
