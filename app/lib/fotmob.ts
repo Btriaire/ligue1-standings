@@ -159,9 +159,12 @@ export async function fetchFotMobLigue2(): Promise<FotMobLeagueData> {
   };
 }
 
-/** FotMob team logo URL by team id (xsmall / medium variants exist). */
-export function fotmobCrest(teamId: number, size: "xsmall" | "small" | "medium" = "medium"): string {
-  return `https://images.fotmob.com/image_resources/logo/teamlogo/${teamId}_${size}.png`;
+/** FotMob team logo URL by team id.
+ * Note: the "_medium" variant returns 403 on the public CDN. Only the
+ * size-less `{id}.png` (full size) and `_xsmall` variants are reliably public. */
+export function fotmobCrest(teamId: number, size: "xsmall" | "full" = "full"): string {
+  const suffix = size === "xsmall" ? "_xsmall" : "";
+  return `https://images.fotmob.com/image_resources/logo/teamlogo/${teamId}${suffix}.png`;
 }
 
 /** Convert FotMob form list (newest-first) into the "W,D,L,..." comma string the UI expects (oldest-first). */
