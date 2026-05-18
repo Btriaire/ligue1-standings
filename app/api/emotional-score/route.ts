@@ -230,6 +230,7 @@ async function scoreWithGemini(clubName: string, items: { title: string; descrip
   try {
     const model = genai.getGenerativeModel({
       model: "gemini-2.0-flash-lite",
+      generationConfig: { responseMimeType: "application/json", temperature: 0.4 },
       systemInstruction:
         "Tu es un analyste sentiment foot français. Évalue le climat médiatique global d'un club à partir d'une liste d'actualités. " +
         "Considère: résultats sportifs, blessures, transferts, climat interne, comportement des fans, polémiques. " +
