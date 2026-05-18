@@ -151,6 +151,40 @@ async function fetchL2FromFotMob(): Promise<{ clubs: ClubRef[]; transfersByClub:
   }
 }
 
+// Fetch official ligue1.com news for a championship (1 = L1, 4 = L2).
+// Endpoint discovered from their client bundle (ma-api.ligue1.fr).
+interface L1ComArticle {
+  id: string;
+  title: string;
+  slug: string;
+  publishedAt: number;
+  leadParagraph?: string;
+  newsPageChampionshipId?: number;
+}
+async function fetchLigue1ComNews(championshipId: number): Promise<RSSItem[]> {
+  try {
+    const res = await fetch(
+      `https://ma-api.ligue1.fr/articles?newsPageChampionshipId=${championshipId}&size=30`,
+      {
+        headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0" },
+        signal: AbortSignal.timeout(7000),
+        next: { revalidate: 1800 },
+      } as RequestInit
+    );
+    if (!res.ok) return [];
+    const data: { articles?: L1ComArticle[] } = await res.json();
+    const slugRoot = championshipId === 4 ? "ligue2bkt" : "ligue1mcdonalds";
+    return (data.articles ?? []).map((a) => ({
+      title: a.title,
+      pubDate: new Date(a.publishedAt).toUTCString(),
+      link: `https://ligue1.com/fr/competitions/${slugRoot}/news/${a.slug}`,
+      source: "Ligue1.com",
+    }));
+  } catch {
+    return [];
+  }
+}
+
 function fotmobTransferToItem(tr: FmTransfer, clubId: number): TransferItem {
   const isArrival = tr.toClubId === clubId;
   const counterpart = isArrival ? tr.fromClubFullName ?? tr.fromClub : tr.toClubFullName ?? tr.toClub;
@@ -193,9 +227,10 @@ export async function GET(req: NextRequest) {
     });
   }
   // Fetch shared sources once
-  const [rmcXml, footmercatoXml] = await Promise.all([
+  const [rmcXml, footmercatoXml, ligue1ComL2] = await Promise.all([
     safeFetch("https://rmcsport.bfmtv.com/rss/football/"),
     safeFetch("https://www.footmercato.net/rss"),
+    league === "FL2" ? fetchLigue1ComNews(4) : Promise.resolve([] as RSSItem[]),
   ]);
 
   const rmcItems = parseRSS(rmcXml, "RMC Sport");
@@ -218,6 +253,7 @@ export async function GET(req: NextRequest) {
     const terms = CLUB_SEARCH_TERMS[club.id] ?? fallbackSearchTerms(club.name, club.shortName);
     const clubRMC = filterByClub(rmcItems, terms);
     const clubFoot = filterByClub(footmercatoItems, terms);
+    const clubL1Com = filterByClub(ligue1ComL2, terms);
     const clubGoogle = googleResults[idx] ?? [];
 
     // Merge all, deduplicate by title
@@ -234,7 +270,7 @@ export async function GET(req: NextRequest) {
       allItems.push(item);
     }
 
-    for (const item of [...clubGoogle, ...clubRMC, ...clubFoot]) {
+    for (const item of [...clubL1Com, ...clubGoogle, ...clubRMC, ...clubFoot]) {
       const key = item.title.toLowerCase().slice(0, 50);
       if (seen.has(key)) continue;
       seen.add(key);
@@ -273,7 +309,7 @@ export async function GET(req: NextRequest) {
     clubs,
     updatedAt: new Date().toISOString(),
     sources: league === "FL2"
-      ? ["FotMob", "Google News", "RMC Sport", "Footmercato"]
+      ? ["FotMob", "Ligue1.com", "Google News", "RMC Sport", "Footmercato"]
       : ["Google News", "RMC Sport", "Footmercato"],
     league,
   });
