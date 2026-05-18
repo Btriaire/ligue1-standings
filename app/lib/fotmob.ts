@@ -167,6 +167,106 @@ export function fotmobCrest(teamId: number, size: "xsmall" | "full" = "full"): s
   return `https://images.fotmob.com/image_resources/logo/teamlogo/${teamId}${suffix}.png`;
 }
 
+// ── Team page (squad + fixtures) ─────────────────────────────────────────────
+
+export interface FmSquadMember {
+  id: number;
+  name: string;
+  shirtNumber?: number;
+  ccode?: string;
+  cname?: string;
+  role?: { key: string; fallback: string };
+  positionId?: number;
+  positionIdsDesc?: string; // "GK", "CB", "AM" …
+  injury?: { type?: string } | null;
+  rating?: number;
+  goals?: number;
+  assists?: number;
+  penalties?: number;
+  rcards?: number;
+  ycards?: number;
+  height?: number | null;
+  age?: number | null;
+  dateOfBirth?: string;
+  transferValue?: number;
+}
+
+export interface FmSquadSection {
+  title: string; // "coach" | "keepers" | "defenders" | "midfielders" | "attackers"
+  members: FmSquadMember[];
+}
+
+export interface FmFixture {
+  id: number;
+  pageUrl: string;
+  opponent: { id: number; name: string; score: number };
+  home: { id: number; name: string; score: number };
+  away: { id: number; name: string; score: number };
+  result: -1 | 0 | 1 | number; // -1 loss, 0 draw, 1 win
+  notStarted: boolean;
+  tournament: { name: string; stage: string; leagueId: number };
+  status: {
+    utcTime: string;
+    finished: boolean;
+    started: boolean;
+    cancelled: boolean;
+    scoreStr: string;
+    reason?: { short: string; long: string };
+  };
+}
+
+export interface FmTeamData {
+  id: number;
+  name: string;
+  shortName: string;
+  squad: FmSquadSection[];
+  fixtures: FmFixture[];
+  lastMatch?: FmFixture;
+  nextMatch?: FmFixture;
+}
+
+/** Fetch a team's full page (squad + fixtures) from FotMob.
+ *  Slug doesn't matter — FotMob redirects by id. */
+export async function fetchFotMobTeam(teamId: number): Promise<FmTeamData> {
+  const html = await fetchPage(`https://www.fotmob.com/teams/${teamId}/squad/team`);
+  const data = parseNextData(html);
+  if (!data) throw new Error("FotMob: __NEXT_DATA__ not found");
+
+  // The team page wraps everything under fallback["team-<id>"].
+  const fb = (data as unknown as {
+    props: { pageProps: { fallback?: Record<string, unknown> } };
+  }).props.pageProps.fallback;
+  if (!fb) throw new Error(`FotMob: no fallback in team-${teamId}`);
+
+  const teamBlob = fb[`team-${teamId}`] as
+    | {
+        details?: { id: number; name: string; shortName: string };
+        squad?: { squad?: FmSquadSection[] };
+        fixtures?: {
+          allFixtures?: {
+            fixtures?: FmFixture[];
+            lastMatch?: FmFixture;
+            nextMatch?: FmFixture;
+          };
+        };
+      }
+    | undefined;
+  if (!teamBlob) throw new Error(`FotMob: team-${teamId} missing from fallback`);
+
+  const details = teamBlob.details ?? { id: teamId, name: "", shortName: "" };
+  const squad = teamBlob.squad?.squad ?? [];
+  const all = teamBlob.fixtures?.allFixtures;
+  return {
+    id: details.id,
+    name: details.name,
+    shortName: details.shortName,
+    squad,
+    fixtures: all?.fixtures ?? [],
+    lastMatch: all?.lastMatch,
+    nextMatch: all?.nextMatch,
+  };
+}
+
 /** Convert FotMob form list (newest-first) into the "W,D,L,..." comma string the UI expects (oldest-first). */
 export function fotmobFormString(form: FmFormResult[] | undefined): string {
   if (!form || !form.length) return "";

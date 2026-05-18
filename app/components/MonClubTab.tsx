@@ -667,7 +667,9 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
     setLoading(true);
     const [sR,rR]=await Promise.allSettled([
       fetch(`/api/standings?competition=${club.league==="FL2"?"FL2":"FL1"}&t=${Date.now()}`).then(r=>r.json()),
-      fetch("/api/results?limit=40").then(r=>r.json()),
+      (club.league==="FL2"
+        ? fetch(`/api/results-l2/${club.id}`).then(r=>r.json())
+        : fetch("/api/results?limit=40").then(r=>r.json())),
     ]);
     if(sR.status==="fulfilled"&&!sR.value.error){
       const all:Standing[]=sR.value.standings??[];
@@ -683,11 +685,12 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
   const loadSquad = useCallback(async()=>{
     setSqLoading(true);
     try{
-      const r=await fetch(`/api/squad/${club.id}`);
+      const url = club.league === "FL2" ? `/api/squad-l2/${club.id}` : `/api/squad/${club.id}`;
+      const r=await fetch(url);
       if(r.ok){const d=await r.json();setSquad(d.squad??[]);}
     }catch{/**/ }
     setSqLoading(false);
-  },[club.id]);
+  },[club.id, club.league]);
 
   useEffect(()=>{loadData();loadSquad();},[loadData,loadSquad]);
 
