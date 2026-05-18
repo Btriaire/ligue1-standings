@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { TEAM_TM_MAP, ECONOMIC_SCORES, CLUB_SEARCH_TERMS, CLUB_SUBREDDITS } from "@/app/lib/teamMapping";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY ?? "");
 
 const API_KEY = process.env.FOOTBALL_DATA_API_KEY;
 const ODDS_API_KEY = process.env.THE_ODDS_API_KEY;
@@ -44,15 +47,74 @@ function toSentiment(pos: number, neg: number): "positive" | "negative" | "neutr
   return pos > neg ? "positive" : neg > pos ? "negative" : "neutral";
 }
 
+function stripHtml(s: string): string {
+  return s.replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+}
+
 function parseRSS(xml: string, defaultSource: string): RSSItem[] {
   return [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].map((m) => {
     const item = m[1];
     const title = (item.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/)?.[1] ?? "")
       .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").trim();
+    const desc = (item.match(/<description>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/)?.[1] ?? "");
+    const description = stripHtml(desc).slice(0, 500);
     const pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] ?? "";
+    const link = item.match(/<link>(.*?)<\/link>/)?.[1] ?? "";
     const source = item.match(/<source[^>]*>(.*?)<\/source>/)?.[1] ?? defaultSource;
-    return { title, pubDate, source };
+    return { title, pubDate, source, description, link };
   }).filter((i) => i.title.length > 5);
+}
+
+// ─── Article excerpt scraper ─────────────────────────────────────────────────
+// For top articles per club, grab og:description or first <p> for richer text.
+async function fetchArticleExcerpt(url: string): Promise<string> {
+  if (!url) return "";
+  try {
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(3500),
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
+        Accept: "text/html",
+      },
+      next: { revalidate: 3600 },
+    } as RequestInit);
+    if (!res.ok) return "";
+    const html = await res.text();
+    const og = html.match(/<meta\s+property=["']og:description["']\s+content=["']([^"']+)["']/i)?.[1]
+      ?? html.match(/<meta\s+name=["']description["']\s+content=["']([^"']+)["']/i)?.[1];
+    if (og) return stripHtml(og).slice(0, 400);
+    // Fallback: first <p> with at least 80 chars
+    const pMatches = [...html.matchAll(/<p[^>]*>([\s\S]{80,600}?)<\/p>/gi)];
+    for (const m of pMatches) {
+      const text = stripHtml(m[1]);
+      if (text.length >= 80) return text.slice(0, 400);
+    }
+    return "";
+  } catch { return ""; }
+}
+
+// ─── Freshness + source weighting ────────────────────────────────────────────
+function freshnessWeight(pubDate: string): number {
+  const t = pubDate ? new Date(pubDate).getTime() : 0;
+  if (!t) return 0.5;
+  const ageDays = (Date.now() - t) / 86400000;
+  if (ageDays < 1) return 1.0;
+  if (ageDays < 3) return 0.85;
+  if (ageDays < 7) return 0.65;
+  if (ageDays < 14) return 0.40;
+  return 0.20;
+}
+
+const SOURCE_WEIGHTS: Record<string, number> = {
+  "RMC Sport": 1.20,
+  "Le Figaro Sport": 1.10,
+  "Google News": 1.00,
+  "ActuFoot_ (X)": 1.05,
+  "FotMob": 1.15,
+  "Ligue1.com": 1.20,
+};
+function sourceWeight(source: string): number {
+  return SOURCE_WEIGHTS[source] ?? 1.0;
 }
 
 async function safeFetch(url: string, opts?: RequestInit): Promise<string> {
@@ -128,9 +190,90 @@ function filterAndScore(items: RSSItem[], query: string): { pos: number; neg: nu
   return { pos, neg, articles };
 }
 
-async function fetchMediaScore(teamId: number): Promise<{
+// ─── ActuFoot tweets (shared cache) ──────────────────────────────────────────
+interface Tweet { id: string; title: string; pubDate: string }
+let actuFootCache: { tweets: Tweet[]; at: number } | null = null;
+async function fetchActuFootTweets(): Promise<RSSItem[]> {
+  // Reuse our own /api/twitter-user; cache for 10 min in-process.
+  if (actuFootCache && Date.now() - actuFootCache.at < 600_000) {
+    return actuFootCache.tweets.map(t => ({ title: t.title, pubDate: t.pubDate, source: "ActuFoot_ (X)" }));
+  }
+  try {
+    // Direct nitter call to avoid recursive internal URL resolution.
+    const xml = await safeFetch("https://nitter.net/ActuFoot_/rss", {
+      headers: { "User-Agent": "Mozilla/5.0", Accept: "application/rss+xml" },
+      next: { revalidate: 600 },
+    } as RequestInit);
+    if (!xml) { actuFootCache = { tweets: [], at: Date.now() }; return []; }
+    const items = parseRSS(xml, "ActuFoot_ (X)");
+    actuFootCache = { tweets: items.map(i => ({ id: i.link ?? i.title, title: i.title, pubDate: i.pubDate })), at: Date.now() };
+    return items.map(i => ({ ...i, source: "ActuFoot_ (X)" }));
+  } catch {
+    return [];
+  }
+}
+
+// ─── Gemini per-club scorer ──────────────────────────────────────────────────
+interface GeminiResult {
+  score: number;
+  positive: number;
+  negative: number;
+  summary: string;
+  per_item: ("positive" | "negative" | "neutral")[];
+}
+async function scoreWithGemini(clubName: string, items: { title: string; description?: string; source: string; ageLabel: string }[]): Promise<GeminiResult | null> {
+  if (!process.env.GEMINI_API_KEY || items.length === 0) return null;
+  const numbered = items.map((it, i) =>
+    `${i + 1}. [${it.source} · ${it.ageLabel}] ${it.title}${it.description ? ` — ${it.description.slice(0, 240)}` : ""}`
+  ).join("\n");
+  try {
+    const model = genai.getGenerativeModel({
+      model: "gemini-2.0-flash-lite",
+      systemInstruction:
+        "Tu es un analyste sentiment foot français. Évalue le climat médiatique global d'un club à partir d'une liste d'actualités. " +
+        "Considère: résultats sportifs, blessures, transferts, climat interne, comportement des fans, polémiques. " +
+        "Réponds en JSON STRICT: " +
+        `{"score":0-100,"positive":int,"negative":int,"summary":"1 phrase fr","per_item":["positive"|"negative"|"neutral",...]}` +
+        " où per_item a la même longueur que la liste. 50 = neutre, 100 = très positif, 0 = très négatif.",
+    });
+    const result = await model.generateContent(`Club: ${clubName}\n\nActualités:\n${numbered}`);
+    const text = result.response.text();
+    const json = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] ?? "{}");
+    const score = Math.max(0, Math.min(100, Number(json.score) || 50));
+    const positive = Math.max(0, Number(json.positive) || 0);
+    const negative = Math.max(0, Number(json.negative) || 0);
+    const summary = String(json.summary ?? "").slice(0, 240);
+    const per_item = Array.isArray(json.per_item) ? json.per_item.slice(0, items.length) : [];
+    return { score, positive, negative, summary, per_item };
+  } catch {
+    return null;
+  }
+}
+
+// ─── Article excerpts (top N per club, parallel) ─────────────────────────────
+async function enrichWithExcerpts(items: RSSItem[], maxConcurrent = 3): Promise<RSSItem[]> {
+  const top = items.slice(0, maxConcurrent);
+  const enriched = await Promise.all(top.map(async (it) => {
+    if (!it.link || (it.description && it.description.length > 120)) return it;
+    const excerpt = await fetchArticleExcerpt(it.link);
+    return excerpt ? { ...it, description: excerpt } : it;
+  }));
+  return [...enriched, ...items.slice(maxConcurrent)];
+}
+
+function ageLabel(pubDate: string): string {
+  const t = pubDate ? new Date(pubDate).getTime() : 0;
+  if (!t) return "récent";
+  const h = (Date.now() - t) / 3_600_000;
+  if (h < 1) return "il y a moins d'1h";
+  if (h < 24) return `il y a ${Math.round(h)}h`;
+  const d = Math.round(h / 24);
+  return `il y a ${d}j`;
+}
+
+async function fetchMediaScore(teamId: number, clubName: string, actuFootItems: RSSItem[]): Promise<{
   score: number; articles: ArticleItem[]; positive: number; negative: number;
-  total: number; sourceBreakdown: SourceBreakdown[];
+  total: number; sourceBreakdown: SourceBreakdown[]; summary?: string;
 }> {
   const query = CLUB_SEARCH_TERMS[teamId];
   if (!query) return { score: 50, articles: [], positive: 0, negative: 0, total: 0, sourceBreakdown: [] };
@@ -141,26 +284,103 @@ async function fetchMediaScore(teamId: number): Promise<{
     safeFetch("https://www.lefigaro.fr/rss/figaro_sport.xml", { next: { revalidate: 1800 } } as RequestInit),
   ]);
 
-  const sourceBreakdown: SourceBreakdown[] = [];
-  let totalPos = 0, totalNeg = 0;
-  const allArticles: ArticleItem[] = [];
+  const terms = query.toLowerCase().split("+").filter(t => t.length > 2);
+  const matchesClub = (s: string) => {
+    const lower = s.toLowerCase();
+    return terms.some(t => lower.includes(t));
+  };
 
+  // Collect all items from RSS + ActuFoot, filter by club
+  const sourceBreakdown: SourceBreakdown[] = [];
+  const allItems: RSSItem[] = [];
   for (const [xml, label] of [
     [googleXml, "Google News"],
     [rmcXml, "RMC Sport"],
     [figaroXml, "Le Figaro Sport"],
   ] as [string, string][]) {
-    const items = parseRSS(xml, label);
-    const { pos, neg, articles } = filterAndScore(items, query);
-    totalPos += pos; totalNeg += neg;
-    const srcScore = (pos + neg) === 0 ? 50 : Math.max(0, Math.min(100, Math.round(50 + ((pos - neg) / (pos + neg + 2)) * 50)));
-    sourceBreakdown.push({ source: label, articleCount: articles.length, positive: pos, negative: neg, score: srcScore });
-    allArticles.push(...articles.slice(0, 3).map((a) => ({ ...a, source: label })));
+    const items = parseRSS(xml, label).filter(i => matchesClub(i.title) || matchesClub(i.description ?? ""));
+    allItems.push(...items);
+    sourceBreakdown.push({ source: label, articleCount: items.length, positive: 0, negative: 0, score: 50 });
+  }
+  const tweets = actuFootItems.filter(i => matchesClub(i.title));
+  allItems.push(...tweets);
+  if (tweets.length > 0) sourceBreakdown.push({ source: "ActuFoot_ (X)", articleCount: tweets.length, positive: 0, negative: 0, score: 50 });
+
+  if (allItems.length === 0) {
+    return { score: 50, articles: [], positive: 0, negative: 0, total: 0, sourceBreakdown };
   }
 
-  const total = totalPos + totalNeg;
-  const score = total === 0 ? 50 : Math.max(0, Math.min(100, Math.round(50 + ((totalPos - totalNeg) / (total + 3)) * 50)));
-  return { score, articles: allArticles.slice(0, 9), positive: totalPos, negative: totalNeg, total, sourceBreakdown };
+  // Sort by freshness × source weight, take top 12
+  const ranked = [...allItems].sort((a, b) => {
+    const wa = freshnessWeight(a.pubDate) * sourceWeight(a.source);
+    const wb = freshnessWeight(b.pubDate) * sourceWeight(b.source);
+    return wb - wa;
+  }).slice(0, 12);
+
+  // Scrape excerpts for top 3 RSS items (skip tweets which have no usable URL)
+  const rssOnly = ranked.filter(i => i.source !== "ActuFoot_ (X)");
+  const enrichedRss = await enrichWithExcerpts(rssOnly, 3);
+  const enrichedMap = new Map(enrichedRss.map(i => [i.title, i]));
+  const finalItems = ranked.map(i => enrichedMap.get(i.title) ?? i);
+
+  // Build Gemini input
+  const geminiInput = finalItems.map(i => ({
+    title: i.title,
+    description: i.description,
+    source: i.source,
+    ageLabel: ageLabel(i.pubDate),
+  }));
+
+  let score = 50;
+  let positive = 0, negative = 0;
+  let summary = "";
+  const perItem: ("positive" | "negative" | "neutral")[] = new Array(finalItems.length).fill("neutral");
+
+  const g = await scoreWithGemini(clubName, geminiInput);
+  if (g) {
+    score = g.score;
+    positive = g.positive;
+    negative = g.negative;
+    summary = g.summary;
+    for (let i = 0; i < perItem.length && i < g.per_item.length; i++) perItem[i] = g.per_item[i];
+  } else {
+    // Lexicon fallback: weight by freshness × source
+    let posW = 0, negW = 0;
+    finalItems.forEach((item, idx) => {
+      const text = `${item.title} ${item.description ?? ""}`;
+      const s = scoreText(text, "fr");
+      const w = freshnessWeight(item.pubDate) * sourceWeight(item.source);
+      posW += s.pos * w;
+      negW += s.neg * w;
+      perItem[idx] = toSentiment(s.pos, s.neg);
+    });
+    positive = Math.round(posW);
+    negative = Math.round(negW);
+    const total = positive + negative;
+    score = total === 0 ? 50 : Math.max(0, Math.min(100, Math.round(50 + ((positive - negative) / (total + 3)) * 50)));
+  }
+
+  // Build article cards (top 9 for UI)
+  const articles: ArticleItem[] = finalItems.slice(0, 9).map((i, idx) => ({
+    title: i.title,
+    pubDate: i.pubDate,
+    source: i.source,
+    sentiment: perItem[idx] ?? "neutral",
+  }));
+
+  // Update per-source counts from per_item
+  for (const sb of sourceBreakdown) {
+    const idxs = finalItems
+      .map((it, i) => it.source === sb.source ? i : -1)
+      .filter(i => i >= 0);
+    sb.articleCount = idxs.length;
+    sb.positive = idxs.filter(i => perItem[i] === "positive").length;
+    sb.negative = idxs.filter(i => perItem[i] === "negative").length;
+    const t = sb.positive + sb.negative;
+    sb.score = t === 0 ? 50 : Math.round(50 + ((sb.positive - sb.negative) / (t + 1)) * 50);
+  }
+
+  return { score, articles, positive, negative, total: positive + negative, sourceBreakdown, summary };
 }
 
 // ─── Odds API ────────────────────────────────────────────────────────────────
@@ -244,9 +464,11 @@ export async function GET() {
     const teamInfo: Record<number, StandingEntry["team"] & { position: number }> = {};
     for (const e of table) teamInfo[e.team.id] = { ...e.team, position: e.position };
 
+    const actuFoot = await fetchActuFootTweets();
+
     const [humanResults, mediaResults, oddsMap] = await Promise.all([
       Promise.all(teamIds.map(fetchHumanScore)),
-      Promise.all(teamIds.map(fetchMediaScore)),
+      Promise.all(teamIds.map((id) => fetchMediaScore(id, teamInfo[id]?.name ?? "", actuFoot))),
       fetchOddsMarketScore(),
     ]);
 
@@ -303,7 +525,7 @@ export async function GET() {
         predictionDelta,
         components: {
           economic: { score: eco.score, label: eco.label, revenue: eco.revenue, owner: eco.owner, weight: Math.round(weights.eco * 100) },
-          media: { score: media.score, positive: media.positive, negative: media.negative, total: media.total, articles: media.articles, sourceBreakdown: media.sourceBreakdown, weight: Math.round(weights.media * 100) },
+          media: { score: media.score, positive: media.positive, negative: media.negative, total: media.total, articles: media.articles, sourceBreakdown: media.sourceBreakdown, summary: media.summary, weight: Math.round(weights.media * 100) },
           human: { score: humanScore, totalValue: human.totalValue, avgValue: Math.round(human.avgValue), injuryRate: Math.round(human.injuryRate * 100), topPlayer: human.topPlayer, playerCount: human.playerCount, injuredPlayers: human.injuredPlayers, weight: Math.round(weights.human * 100) },
           fan: { score: reddit.score, posts: reddit.posts, positive: reddit.positive, negative: reddit.negative, total: reddit.total, subreddit: reddit.subreddit, weight: Math.round(weights.fan * 100) },
           market: oddsScore !== null ? { score: oddsScore, weight: Math.round(weights.market * 100), source: "The Odds API" } : null,
@@ -314,7 +536,7 @@ export async function GET() {
     return NextResponse.json({
       scores,
       sources: {
-        media: ["Google News", "RMC Sport", "Le Figaro Sport"],
+        media: ["Google News", "RMC Sport", "Le Figaro Sport", "ActuFoot_ (X)"],
         fan: "Reddit (r/[club] + r/ligue1)",
         mercato: "Transfermarkt",
         economic: "Données publiques (UEFA, rapports annuels)",
@@ -332,4 +554,4 @@ interface TmPlayer { marketValue?: number; status?: string; name: string }
 interface StandingEntry { position: number; form?: string; team: { id: number; name: string; shortName: string; tla: string; crest: string } }
 interface ArticleItem { title: string; pubDate: string; source: string; sentiment: "positive" | "negative" | "neutral" }
 interface SourceBreakdown { source: string; articleCount: number; positive: number; negative: number; score: number }
-interface RSSItem { title: string; pubDate: string; source: string }
+interface RSSItem { title: string; pubDate: string; source: string; description?: string; link?: string }
