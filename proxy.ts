@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth } from "@/app/lib/firebase-admin";
 
-const PROTECTED = ["/players"];
+// Public pages — no auth required. Add paths here to gate them behind
+// Firebase session cookie. /players intentionally left public so users
+// can browse Ligue 1 / Ligue 2 player stats without logging in.
+const PROTECTED: string[] = [];
 
 export async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname;
