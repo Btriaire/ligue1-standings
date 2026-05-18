@@ -221,38 +221,62 @@ interface GeminiResult {
   summary: string;
   per_item: ("positive" | "negative" | "neutral")[];
 }
-async function scoreWithGemini(clubName: string, items: { title: string; description?: string; source: string; ageLabel: string }[]): Promise<GeminiResult | null> {
-  console.log(`[gemini] call ${clubName} items=${items.length} hasKey=${!!process.env.GEMINI_API_KEY}`);
-  if (!process.env.GEMINI_API_KEY) { console.warn("[gemini] GEMINI_API_KEY missing"); return null; }
-  if (items.length === 0) { console.log(`[gemini] ${clubName} skipped: no items`); return null; }
-  const numbered = items.map((it, i) =>
-    `${i + 1}. [${it.source} · ${it.ageLabel}] ${it.title}${it.description ? ` — ${it.description.slice(0, 240)}` : ""}`
-  ).join("\n");
+interface GeminiClubInput {
+  clubName: string;
+  items: { title: string; description?: string; source: string; ageLabel: string }[];
+}
+// Single batched call: evaluate ALL clubs in one Gemini request.
+// Drastically cuts request count (1 vs 18) — critical for free-tier quotas.
+async function scoreClubsBatch(clubs: GeminiClubInput[]): Promise<Map<string, GeminiResult>> {
+  const out = new Map<string, GeminiResult>();
+  if (!process.env.GEMINI_API_KEY) { console.warn("[gemini] GEMINI_API_KEY missing"); return out; }
+  const eligible = clubs.filter(c => c.items.length > 0);
+  if (eligible.length === 0) return out;
+
+  const blocks = eligible.map((c, ci) => {
+    const numbered = c.items.map((it, i) =>
+      `  ${i + 1}. [${it.source} · ${it.ageLabel}] ${it.title}${it.description ? ` — ${it.description.slice(0, 200)}` : ""}`
+    ).join("\n");
+    return `--- Club ${ci + 1}: ${c.clubName} (${c.items.length} items) ---\n${numbered}`;
+  }).join("\n\n");
+
+  console.log(`[gemini] batch call clubs=${eligible.length} totalItems=${eligible.reduce((s,c)=>s+c.items.length,0)}`);
+
   try {
     const model = genai.getGenerativeModel({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-2.0-flash",
       generationConfig: { responseMimeType: "application/json", temperature: 0.4 },
       systemInstruction:
-        "Tu es un analyste sentiment foot français. Évalue le climat médiatique global d'un club à partir d'une liste d'actualités. " +
+        "Tu es un analyste sentiment foot français. Pour CHAQUE club fourni, évalue son climat médiatique global à partir de sa liste d'actualités. " +
         "Considère: résultats sportifs, blessures, transferts, climat interne, comportement des fans, polémiques. " +
         "Réponds en JSON STRICT: " +
-        `{"score":0-100,"positive":int,"negative":int,"summary":"1 phrase fr","per_item":["positive"|"negative"|"neutral",...]}` +
-        " où per_item a la même longueur que la liste. 50 = neutre, 100 = très positif, 0 = très négatif.",
+        `{"results":[{"club":"nom exact","score":0-100,"positive":int,"negative":int,"summary":"1 phrase fr","per_item":["positive"|"negative"|"neutral",...]},...]}` +
+        " où per_item a la même longueur que la liste d'items du club. 50 = neutre, 100 = très positif, 0 = très négatif.",
     });
-    const result = await model.generateContent(`Club: ${clubName}\n\nActualités:\n${numbered}`);
+    const result = await model.generateContent(blocks);
     const text = result.response.text();
-    console.log(`[gemini] ${clubName} raw=${text.slice(0, 200)}`);
+    console.log(`[gemini] batch raw len=${text.length}`);
     const json = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] ?? "{}");
-    const score = Math.max(0, Math.min(100, Number(json.score) || 50));
-    const positive = Math.max(0, Number(json.positive) || 0);
-    const negative = Math.max(0, Number(json.negative) || 0);
-    const summary = String(json.summary ?? "").slice(0, 240);
-    const per_item = Array.isArray(json.per_item) ? json.per_item.slice(0, items.length) : [];
-    return { score, positive, negative, summary, per_item };
+    const arr: { club?: string; score?: number; positive?: number; negative?: number; summary?: string; per_item?: string[] }[] =
+      Array.isArray(json.results) ? json.results : [];
+    for (const r of arr) {
+      if (!r.club) continue;
+      const club = eligible.find(c => c.clubName === r.club) ?? eligible.find(c => c.clubName.toLowerCase().includes(String(r.club).toLowerCase()) || String(r.club).toLowerCase().includes(c.clubName.toLowerCase()));
+      if (!club) continue;
+      const score = Math.max(0, Math.min(100, Number(r.score) || 50));
+      const positive = Math.max(0, Number(r.positive) || 0);
+      const negative = Math.max(0, Number(r.negative) || 0);
+      const summary = String(r.summary ?? "").slice(0, 240);
+      const per_item = (Array.isArray(r.per_item) ? r.per_item : [])
+        .map(v => (v === "positive" || v === "negative") ? v : "neutral")
+        .slice(0, club.items.length) as ("positive" | "negative" | "neutral")[];
+      out.set(club.clubName, { score, positive, negative, summary, per_item });
+    }
+    console.log(`[gemini] batch ok results=${out.size}/${eligible.length}`);
   } catch (err) {
-    console.error(`[gemini] ${clubName} failed:`, err instanceof Error ? err.message : err);
-    return null;
+    console.error("[gemini] batch failed:", err instanceof Error ? err.message : err);
   }
+  return out;
 }
 
 // ─── Article excerpts (top N per club, parallel) ─────────────────────────────
@@ -276,12 +300,16 @@ function ageLabel(pubDate: string): string {
   return `il y a ${d}j`;
 }
 
-async function fetchMediaScore(teamId: number, clubName: string, actuFootItems: RSSItem[]): Promise<{
-  score: number; articles: ArticleItem[]; positive: number; negative: number;
-  total: number; sourceBreakdown: SourceBreakdown[]; summary?: string;
-}> {
+interface MediaBundle {
+  clubName: string;
+  finalItems: RSSItem[];
+  sourceBreakdown: SourceBreakdown[];
+  geminiInput: { title: string; description?: string; source: string; ageLabel: string }[];
+}
+
+async function collectMediaItems(teamId: number, clubName: string, actuFootItems: RSSItem[]): Promise<MediaBundle | null> {
   const query = CLUB_SEARCH_TERMS[teamId];
-  if (!query) return { score: 50, articles: [], positive: 0, negative: 0, total: 0, sourceBreakdown: [] };
+  if (!query) return null;
 
   const [googleXml, rmcXml, figaroXml] = await Promise.all([
     safeFetch(`https://news.google.com/rss/search?q=${query}+football&hl=fr&gl=FR&ceid=FR:fr`, { next: { revalidate: 1800 } } as RequestInit),
@@ -312,7 +340,7 @@ async function fetchMediaScore(teamId: number, clubName: string, actuFootItems: 
   if (tweets.length > 0) sourceBreakdown.push({ source: "ActuFoot_ (X)", articleCount: tweets.length, positive: 0, negative: 0, score: 50 });
 
   if (allItems.length === 0) {
-    return { score: 50, articles: [], positive: 0, negative: 0, total: 0, sourceBreakdown };
+    return { clubName, finalItems: [], sourceBreakdown, geminiInput: [] };
   }
 
   // Sort by freshness × source weight, take top 12
@@ -328,7 +356,6 @@ async function fetchMediaScore(teamId: number, clubName: string, actuFootItems: 
   const enrichedMap = new Map(enrichedRss.map(i => [i.title, i]));
   const finalItems = ranked.map(i => enrichedMap.get(i.title) ?? i);
 
-  // Build Gemini input
   const geminiInput = finalItems.map(i => ({
     title: i.title,
     description: i.description,
@@ -336,18 +363,29 @@ async function fetchMediaScore(teamId: number, clubName: string, actuFootItems: 
     ageLabel: ageLabel(i.pubDate),
   }));
 
+  return { clubName, finalItems, sourceBreakdown, geminiInput };
+}
+
+function assembleMediaScore(bundle: MediaBundle, gem: GeminiResult | undefined): {
+  score: number; articles: ArticleItem[]; positive: number; negative: number;
+  total: number; sourceBreakdown: SourceBreakdown[]; summary?: string;
+} {
+  const { finalItems, sourceBreakdown } = bundle;
+  if (finalItems.length === 0) {
+    return { score: 50, articles: [], positive: 0, negative: 0, total: 0, sourceBreakdown };
+  }
+
   let score = 50;
   let positive = 0, negative = 0;
   let summary = "";
   const perItem: ("positive" | "negative" | "neutral")[] = new Array(finalItems.length).fill("neutral");
 
-  const g = await scoreWithGemini(clubName, geminiInput);
-  if (g) {
-    score = g.score;
-    positive = g.positive;
-    negative = g.negative;
-    summary = g.summary;
-    for (let i = 0; i < perItem.length && i < g.per_item.length; i++) perItem[i] = g.per_item[i];
+  if (gem) {
+    score = gem.score;
+    positive = gem.positive;
+    negative = gem.negative;
+    summary = gem.summary;
+    for (let i = 0; i < perItem.length && i < gem.per_item.length; i++) perItem[i] = gem.per_item[i];
   } else {
     // Lexicon fallback: weight by freshness × source
     let posW = 0, negW = 0;
@@ -365,7 +403,6 @@ async function fetchMediaScore(teamId: number, clubName: string, actuFootItems: 
     score = total === 0 ? 50 : Math.max(0, Math.min(100, Math.round(50 + ((positive - negative) / (total + 3)) * 50)));
   }
 
-  // Build article cards (top 9 for UI)
   const articles: ArticleItem[] = finalItems.slice(0, 9).map((i, idx) => ({
     title: i.title,
     pubDate: i.pubDate,
@@ -373,7 +410,6 @@ async function fetchMediaScore(teamId: number, clubName: string, actuFootItems: 
     sentiment: perItem[idx] ?? "neutral",
   }));
 
-  // Update per-source counts from per_item
   for (const sb of sourceBreakdown) {
     const idxs = finalItems
       .map((it, i) => it.source === sb.source ? i : -1)
@@ -471,11 +507,22 @@ export async function GET() {
 
     const actuFoot = await fetchActuFootTweets();
 
-    const [humanResults, mediaResults, oddsMap] = await Promise.all([
+    const [humanResults, mediaBundles, oddsMap] = await Promise.all([
       Promise.all(teamIds.map(fetchHumanScore)),
-      Promise.all(teamIds.map((id) => fetchMediaScore(id, teamInfo[id]?.name ?? "", actuFoot))),
+      Promise.all(teamIds.map((id) => collectMediaItems(id, teamInfo[id]?.name ?? "", actuFoot))),
       fetchOddsMarketScore(),
     ]);
+
+    // Single batched Gemini call across all clubs (1 request, not 18)
+    const geminiInputs: GeminiClubInput[] = mediaBundles
+      .filter((b): b is MediaBundle => b !== null && b.geminiInput.length > 0)
+      .map(b => ({ clubName: b.clubName, items: b.geminiInput }));
+    const gemMap = await scoreClubsBatch(geminiInputs);
+
+    const mediaResults = mediaBundles.map((b) => {
+      if (!b) return { score: 50, articles: [], positive: 0, negative: 0, total: 0, sourceBreakdown: [] as SourceBreakdown[] };
+      return assembleMediaScore(b, gemMap.get(b.clubName));
+    });
 
     // Fan sentiment: use proxy (position + form) since Reddit blocks server IPs
     const redditResults = table.map((entry: StandingEntry) =>
