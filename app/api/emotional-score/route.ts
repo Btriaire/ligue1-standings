@@ -222,8 +222,9 @@ interface GeminiResult {
   per_item: ("positive" | "negative" | "neutral")[];
 }
 async function scoreWithGemini(clubName: string, items: { title: string; description?: string; source: string; ageLabel: string }[]): Promise<GeminiResult | null> {
+  console.log(`[gemini] call ${clubName} items=${items.length} hasKey=${!!process.env.GEMINI_API_KEY}`);
   if (!process.env.GEMINI_API_KEY) { console.warn("[gemini] GEMINI_API_KEY missing"); return null; }
-  if (items.length === 0) return null;
+  if (items.length === 0) { console.log(`[gemini] ${clubName} skipped: no items`); return null; }
   const numbered = items.map((it, i) =>
     `${i + 1}. [${it.source} · ${it.ageLabel}] ${it.title}${it.description ? ` — ${it.description.slice(0, 240)}` : ""}`
   ).join("\n");
@@ -240,6 +241,7 @@ async function scoreWithGemini(clubName: string, items: { title: string; descrip
     });
     const result = await model.generateContent(`Club: ${clubName}\n\nActualités:\n${numbered}`);
     const text = result.response.text();
+    console.log(`[gemini] ${clubName} raw=${text.slice(0, 200)}`);
     const json = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] ?? "{}");
     const score = Math.max(0, Math.min(100, Number(json.score) || 50));
     const positive = Math.max(0, Number(json.positive) || 0);
