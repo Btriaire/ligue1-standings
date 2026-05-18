@@ -27,6 +27,7 @@ interface Club {
   city: string;
   capacity: string;
   stadiumImg?: string;
+  league?: "FL1" | "FL2"; // defaults to FL1 when omitted
 }
 
 const L1_CLUBS: Club[] = [
@@ -74,6 +75,30 @@ const L1_CLUBS: Club[] = [
   { id:1045, name:"Paris FC",            shortName:"Paris FC",   color:"#003087", color2:"#D72020", stadium:"Stade Charléty",          city:"Paris",              capacity:"20 000",
     crest:"https://crests.football-data.org/1045.png" },
 ];
+
+// ── Ligue 2 clubs (FotMob ids + crests; squad/results endpoints not available)
+const L2_CLUBS: Club[] = [
+  { id:10242,  name:"ES Troyes AC",     shortName:"Troyes",       color:"#1B47B0", color2:"#FFFFFF", stadium:"Stade de l'Aube",         city:"Troyes",        capacity:"21 877", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/10242_medium.png" },
+  { id:9853,   name:"AS Saint-Étienne", shortName:"Saint-Étienne",color:"#008B3D", color2:"#FFFFFF", stadium:"Geoffroy-Guichard",       city:"Saint-Étienne", capacity:"41 965", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/9853_medium.png" },
+  { id:9837,   name:"Stade de Reims",   shortName:"Reims",        color:"#E10600", color2:"#FFFFFF", stadium:"Stade Auguste-Delaune",   city:"Reims",         capacity:"21 684", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/9837_medium.png" },
+  { id:10249,  name:"Montpellier HSC",  shortName:"Montpellier",  color:"#F47B20", color2:"#003DA5", stadium:"Stade de la Mosson",      city:"Montpellier",   capacity:"32 939", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/10249_medium.png" },
+  { id:8311,   name:"Clermont Foot",    shortName:"Clermont",     color:"#003DA5", color2:"#E10600", stadium:"Stade Gabriel-Montpied",  city:"Clermont-Ferrand", capacity:"11 980", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/8311_medium.png" },
+  { id:9747,   name:"En Avant Guingamp",shortName:"Guingamp",     color:"#E10600", color2:"#1A1A1A", stadium:"Stade de Roudourou",      city:"Guingamp",      capacity:"18 378", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/9747_medium.png" },
+  { id:8682,   name:"Le Mans FC",       shortName:"Le Mans",      color:"#E10600", color2:"#FFFFFF", stadium:"Stade Marie-Marvingt",    city:"Le Mans",       capacity:"25 064", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/8682_medium.png" },
+  { id:6390,   name:"Red Star FC",      shortName:"Red Star",     color:"#005232", color2:"#FFFFFF", stadium:"Stade Bauer",             city:"Saint-Ouen",    capacity:"10 000", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/6390_medium.png" },
+  { id:4120,   name:"Rodez AF",         shortName:"Rodez",        color:"#E10600", color2:"#1A1A1A", stadium:"Stade Paul-Lignon",       city:"Rodez",         capacity:"5 955",  league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/4120_medium.png" },
+  { id:293352, name:"FC Annecy",        shortName:"Annecy",       color:"#E10600", color2:"#FFFFFF", stadium:"Parc des Sports",         city:"Annecy",        capacity:"15 660", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/293352_medium.png" },
+  { id:6355,   name:"Pau FC",           shortName:"Pau",          color:"#003DA5", color2:"#FFD700", stadium:"Nouste Camp",             city:"Pau",           capacity:"4 031",  league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/6355_medium.png" },
+  { id:47214,  name:"USL Dunkerque",    shortName:"Dunkerque",    color:"#E10600", color2:"#FFFFFF", stadium:"Stade Marcel-Tribut",     city:"Dunkerque",     capacity:"4 200",  league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/47214_medium.png" },
+  { id:9855,   name:"Grenoble Foot 38", shortName:"Grenoble",     color:"#003DA5", color2:"#FFFFFF", stadium:"Stade des Alpes",         city:"Grenoble",      capacity:"20 068", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/9855_medium.png" },
+  { id:8481,   name:"AS Nancy-Lorraine",shortName:"Nancy",        color:"#E10600", color2:"#FFFFFF", stadium:"Stade Marcel-Picot",      city:"Tomblaine",     capacity:"20 087", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/8481_medium.png" },
+  { id:4170,   name:"US Boulogne",      shortName:"Boulogne",     color:"#E10600", color2:"#1A1A1A", stadium:"Stade de la Libération",  city:"Boulogne-sur-Mer", capacity:"7 139",  league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/4170_medium.png" },
+  { id:7853,   name:"Stade Lavallois",  shortName:"Laval",        color:"#F47B20", color2:"#1A1A1A", stadium:"Stade Francis-Le Basser", city:"Laval",         capacity:"18 467", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/7853_medium.png" },
+  { id:7794,   name:"SC Bastia",        shortName:"Bastia",       color:"#003DA5", color2:"#FFFFFF", stadium:"Stade Armand-Cesari",     city:"Bastia",        capacity:"16 480", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/7794_medium.png" },
+  { id:8587,   name:"Amiens SC",        shortName:"Amiens",       color:"#1A1A1A", color2:"#FFFFFF", stadium:"Stade de la Licorne",     city:"Amiens",        capacity:"12 097", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/8587_medium.png" },
+];
+
+const ALL_CLUBS: Club[] = [...L1_CLUBS, ...L2_CLUBS];
 
 /* ══════════════════════════════════════════ ZONES ══ */
 
@@ -343,6 +368,8 @@ function FootPitch({color}:{color:string}) {
 /* ══════════════════════════════════════════ SELECTOR ══ */
 
 function ClubSelector({onSelect}:{onSelect:(c:Club)=>void}) {
+  const [league, setLeague] = useState<"FL1"|"FL2">("FL1");
+  const list = league === "FL1" ? L1_CLUBS : L2_CLUBS;
   return (
     <div>
       <div className="text-center mb-6">
@@ -353,8 +380,21 @@ function ClubSelector({onSelect}:{onSelect:(c:Club)=>void}) {
         <h2 className="text-xl font-black mb-1" style={{color:"#e8edf5"}}>Choisissez votre club de cœur</h2>
         <p className="text-xs" style={{color:"#6b7c96"}}>Aperçu · Effectif · Résultats · Prédictions AI · Ma Compo</p>
       </div>
+      <div className="flex justify-center gap-2 mb-4">
+        {(["FL1","FL2"] as const).map(l => (
+          <button key={l} onClick={()=>setLeague(l)}
+            className="text-xs font-bold px-3 py-1.5 rounded-full transition-colors"
+            style={{
+              background: league===l ? "rgba(0,212,255,0.12)" : "rgba(255,255,255,0.04)",
+              border: `1px solid ${league===l ? "rgba(0,212,255,0.35)" : "#1e2d42"}`,
+              color: league===l ? "#00d4ff" : "#6b7c96",
+            }}>
+            {l === "FL1" ? "Ligue 1" : "Ligue 2"}
+          </button>
+        ))}
+      </div>
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
-        {L1_CLUBS.map(club=>(
+        {list.map(club=>(
           <button key={club.id} onClick={()=>onSelect(club)}
             className="flex flex-col items-center gap-2 p-3 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95"
             style={{background:"#0d1421",border:"1px solid #1e2d42"}}
@@ -626,7 +666,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
   const loadData = useCallback(async()=>{
     setLoading(true);
     const [sR,rR]=await Promise.allSettled([
-      fetch("/api/standings?t="+Date.now()).then(r=>r.json()),
+      fetch(`/api/standings?competition=${club.league==="FL2"?"FL2":"FL1"}&t=${Date.now()}`).then(r=>r.json()),
       fetch("/api/results?limit=40").then(r=>r.json()),
     ]);
     if(sR.status==="fulfilled"&&!sR.value.error){
@@ -2387,6 +2427,6 @@ export default function MonClubTab() {
   const pick = (c:Club) => { localStorage.setItem(STORAGE_KEY,String(c.id)); setClubId(c.id); };
   const drop = ()       => { localStorage.removeItem(STORAGE_KEY); setClubId(null); };
   if(!ready) return <div className="flex items-center justify-center py-20"><div className="w-7 h-7 rounded-full border-2 animate-spin" style={{borderColor:"#3b82f6",borderTopColor:"transparent"}}/></div>;
-  const club=L1_CLUBS.find(c=>c.id===clubId)??null;
+  const club=ALL_CLUBS.find(c=>c.id===clubId)??null;
   return club ? <ClubDashboard club={club} onChangeClub={drop}/> : <ClubSelector onSelect={pick}/>;
 }
