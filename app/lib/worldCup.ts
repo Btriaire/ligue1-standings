@@ -5,7 +5,7 @@ export const WC2026_END   = new Date("2026-07-19T23:59:59Z");
 
 /** Number of days BEFORE the opening match where we already light up the
  *  CdM tab/UI ("quelques jours avant"). */
-export const WC_PRELUDE_DAYS = 21;
+export const WC_PRELUDE_DAYS = 35;
 /** Number of days AFTER the final to keep the highlight ("encore frais"). */
 export const WC_AFTERGLOW_DAYS = 3;
 

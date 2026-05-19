@@ -966,12 +966,383 @@ function NewsCdMTab() {
   );
 }
 
+// ─── L'Affiche (marquee match) ───────────────────────────────────────────────
+
+function parseFrDate(s: string): Date {
+  // "14 juin" → 2026-06-14
+  const months: Record<string, number> = {
+    "janv": 0, "févr": 1, "mars": 2, "avr": 3, "mai": 4, "juin": 5,
+    "juil": 6, "août": 7, "sept": 8, "oct": 9, "nov": 10, "déc": 11,
+  };
+  const [d, mo] = s.split(" ");
+  const key = Object.keys(months).find(k => mo.toLowerCase().startsWith(k));
+  const month = key ? months[key] : 5;
+  return new Date(2026, month, parseInt(d));
+}
+
+function AfficheTab() {
+  // Pick the next upcoming notable match (or the most recent if all past)
+  const now = new Date();
+  const sorted = [...NOTABLE_MATCHES]
+    .map(m => ({ ...m, when: parseFrDate(m.date) }))
+    .sort((a, b) => a.when.getTime() - b.when.getTime());
+  const upcoming = sorted.find(m => m.when.getTime() >= now.getTime() - 86_400_000) ?? sorted[0];
+  const next3 = sorted.filter(m => m.when.getTime() > upcoming.when.getTime()).slice(0, 3);
+  const daysOut = Math.max(0, Math.round((upcoming.when.getTime() - now.getTime()) / 86_400_000));
+
+  return (
+    <div className="space-y-4">
+      {/* Hero */}
+      <div className="rounded-2xl p-5 relative overflow-hidden"
+        style={{ background: "linear-gradient(135deg, rgba(251,191,36,0.18), rgba(239,68,68,0.10))", border: "1px solid rgba(251,191,36,0.35)" }}>
+        <div className="flex items-center gap-2 mb-2">
+          <Flame size={14} weight="fill" style={{ color: "#fbbf24" }}/>
+          <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "#fbbf24" }}>
+            L&apos;affiche · {upcoming.note ?? "À l'affiche"}
+          </span>
+        </div>
+        <h2 className="text-2xl font-black mb-2" style={{ color: "#e8edf5" }}>{upcoming.teams}</h2>
+        <div className="flex items-center gap-3 flex-wrap text-[11px]">
+          <span className="inline-flex items-center gap-1.5 font-bold" style={{ color: "#e8edf5" }}>
+            <Calendar size={11} weight="bold" style={{ color: "#fbbf24" }}/>
+            {upcoming.date} 2026
+          </span>
+          <span style={{ color: "#fbbf24" }}>·</span>
+          <span style={{ color: "#94a3b8" }}>{upcoming.group}</span>
+          {daysOut > 0 && (
+            <>
+              <span style={{ color: "#fbbf24" }}>·</span>
+              <span className="font-black" style={{ color: "#fbbf24" }}>J-{daysOut}</span>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Predictions CTA */}
+      <div className="rounded-xl p-4" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
+        <div className="flex items-center gap-2 mb-2">
+          <Lightning size={14} weight="bold" style={{ color: "#fbbf24" }}/>
+          <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "#6b7c96" }}>
+            Pronostic IA
+          </span>
+        </div>
+        <p className="text-[11px]" style={{ color: "#94a3b8" }}>
+          Retrouvez le pronostic détaillé (xG, scénarios, joueurs clés) dans
+          l&apos;onglet <span style={{ color: "#fbbf24" }}>AI Predictions → Coupe du Monde</span>.
+        </p>
+      </div>
+
+      {/* Next matches */}
+      {next3.length > 0 && (
+        <div className="rounded-xl overflow-hidden" style={{ border: "1px solid #1e2d42" }}>
+          <div className="px-3 py-2 flex items-center gap-2" style={{ background: "#0a0f1c", borderBottom: "1px solid #1e2d42" }}>
+            <Calendar size={10} style={{ color: "#6b7c96" }}/>
+            <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: "#6b7c96" }}>À venir</span>
+          </div>
+          <div className="divide-y" style={{ borderColor: "rgba(30,45,66,0.4)" }}>
+            {next3.map((m, i) => (
+              <div key={i} className="flex items-center gap-3 px-3 py-2.5">
+                <span className="text-[10px] font-black w-14 flex-shrink-0" style={{ color: m.highlight ?? "#94a3b8" }}>
+                  {m.date}
+                </span>
+                <span className="flex-1 text-[12px]" style={{ color: "#e8edf5" }}>{m.teams}</span>
+                <span className="text-[9px]" style={{ color: "#6b7c96" }}>{m.group}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Ma Compo CdM ────────────────────────────────────────────────────────────
+
+const COMPO_FORMATIONS = ["4-3-3", "4-4-2", "3-5-2", "4-2-3-1"] as const;
+type CompoFormation = typeof COMPO_FORMATIONS[number];
+const COMPO_KEY = "wc_macompo_v1";
+
+interface CompoState {
+  nation: string;       // ISO code
+  formation: CompoFormation;
+  players: string[];    // 11 player names (free text — minimal)
+}
+
+function MaCompoTab() {
+  // Curated set of 8 contender nations to keep the picker tight.
+  const NATIONS_LIST = [
+    { code: "FRA", name: "France",      flag: "🇫🇷" },
+    { code: "ARG", name: "Argentine",   flag: "🇦🇷" },
+    { code: "BRA", name: "Brésil",      flag: "🇧🇷" },
+    { code: "ESP", name: "Espagne",     flag: "🇪🇸" },
+    { code: "GER", name: "Allemagne",   flag: "🇩🇪" },
+    { code: "POR", name: "Portugal",    flag: "🇵🇹" },
+    { code: "ENG", name: "Angleterre",  flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
+    { code: "NED", name: "Pays-Bas",    flag: "🇳🇱" },
+  ];
+
+  const [state, setState] = useState<CompoState>({ nation: "FRA", formation: "4-3-3", players: Array(11).fill("") });
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    const raw = localStorage.getItem(COMPO_KEY);
+    if (raw) {
+      try { setState(JSON.parse(raw)); } catch { /* ignore */ }
+    }
+  }, []);
+
+  const save = () => {
+    localStorage.setItem(COMPO_KEY, JSON.stringify(state));
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
+  };
+
+  const setPlayer = (i: number, v: string) => {
+    setState(s => {
+      const next = [...s.players];
+      next[i] = v;
+      return { ...s, players: next };
+    });
+  };
+
+  const nation = NATIONS_LIST.find(n => n.code === state.nation) ?? NATIONS_LIST[0];
+
+  // Layout: split 11 into rows depending on formation (gardien always 1st)
+  const split: Record<CompoFormation, number[]> = {
+    "4-3-3":   [1, 4, 3, 3],
+    "4-4-2":   [1, 4, 4, 2],
+    "3-5-2":   [1, 3, 5, 2],
+    "4-2-3-1": [1, 4, 2, 3, 1],
+  };
+  const rows = split[state.formation];
+  const rowLabels = ["GB", "DEF", "MIL", "ATT", "ATT"];
+  let idx = 0;
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="rounded-2xl p-4" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
+        <div className="flex items-center gap-2 mb-3">
+          <SoccerBall size={16} weight="bold" style={{ color: "#fbbf24" }}/>
+          <h3 className="text-base font-black" style={{ color: "#e8edf5" }}>Ma Compo Coupe du Monde</h3>
+        </div>
+
+        {/* Nation picker */}
+        <div className="mb-3">
+          <label className="text-[10px] uppercase tracking-widest font-black mb-1.5 block" style={{ color: "#6b7c96" }}>Sélection</label>
+          <div className="grid grid-cols-4 gap-1.5">
+            {NATIONS_LIST.map(n => {
+              const active = state.nation === n.code;
+              return (
+                <button key={n.code} onClick={() => setState(s => ({ ...s, nation: n.code }))}
+                  className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-bold transition-colors"
+                  style={{
+                    background: active ? "rgba(251,191,36,0.15)" : "#0a0f1c",
+                    border: `1px solid ${active ? "rgba(251,191,36,0.5)" : "#1e2d42"}`,
+                    color: active ? "#fbbf24" : "#94a3b8",
+                  }}>
+                  <span className="text-base">{n.flag}</span>
+                  <span className="truncate">{n.code}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Formation picker */}
+        <div>
+          <label className="text-[10px] uppercase tracking-widest font-black mb-1.5 block" style={{ color: "#6b7c96" }}>Formation</label>
+          <div className="flex gap-1.5">
+            {COMPO_FORMATIONS.map(f => {
+              const active = state.formation === f;
+              return (
+                <button key={f} onClick={() => setState(s => ({ ...s, formation: f }))}
+                  className="px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors"
+                  style={{
+                    background: active ? "rgba(251,191,36,0.15)" : "#0a0f1c",
+                    border: `1px solid ${active ? "rgba(251,191,36,0.5)" : "#1e2d42"}`,
+                    color: active ? "#fbbf24" : "#94a3b8",
+                  }}>
+                  {f}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Pitch */}
+      <div className="rounded-2xl p-4"
+        style={{ background: "linear-gradient(180deg, #0d2818, #0a1f12)", border: "1px solid #1e4a2d" }}>
+        <div className="text-center mb-3">
+          <span className="text-3xl">{nation.flag}</span>
+          <p className="text-xs font-black mt-1" style={{ color: "#e8edf5" }}>{nation.name} · {state.formation}</p>
+        </div>
+        <div className="space-y-2">
+          {rows.map((count, rowIdx) => {
+            const rowLabel = rowIdx === 0 ? "GB" : rowIdx === rows.length - 1 ? "ATT" : rowLabels[rowIdx];
+            return (
+              <div key={rowIdx}>
+                <div className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: "#6b7c96" }}>{rowLabel}</div>
+                <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${count}, 1fr)` }}>
+                  {Array.from({ length: count }).map(() => {
+                    const i = idx++;
+                    return (
+                      <input key={i} type="text" value={state.players[i] ?? ""} onChange={e => setPlayer(i, e.target.value)}
+                        placeholder={`#${i + 1}`}
+                        className="bg-transparent text-[11px] text-center font-semibold rounded-lg px-1 py-1.5 outline-none transition-colors"
+                        style={{ background: "rgba(0,0,0,0.35)", border: "1px solid rgba(251,191,36,0.25)", color: "#e8edf5" }}/>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Save */}
+      <button onClick={save}
+        className="w-full text-xs font-bold px-3 py-2.5 rounded-lg inline-flex items-center justify-center gap-1.5"
+        style={{ background: saved ? "#22c55e" : "rgba(251,191,36,0.2)", color: saved ? "#fff" : "#fbbf24", border: `1px solid ${saved ? "#22c55e" : "rgba(251,191,36,0.4)"}` }}>
+        {saved ? "✓ Sauvegardé" : "💾 Sauvegarder ma compo"}
+      </button>
+    </div>
+  );
+}
+
+// ─── FanX (Twitter fans CdM) ─────────────────────────────────────────────────
+
+// Curated fan / community accounts (mix FR + intl) — distinct from News CdM
+// which targets official + journalism handles. Fans give the noisy, partisan,
+// meme-y side that makes a tournament tab feel alive.
+const FANX_ACCOUNTS = [
+  "actufoot_",
+  "footmercato",
+  "TeamPSG",
+  "FRStaff",
+  "OptaJean",
+  "TimaLT",
+];
+
+function FanXTab() {
+  const [tweets, setTweets] = useState<TweetItem[]>([]);
+  const [byAccount, setByAccount] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<string>("all");
+  const [open, setOpen] = useState<TweetItem | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const results = await Promise.all(
+        FANX_ACCOUNTS.map(h =>
+          fetch(`/api/twitter-user?handle=${encodeURIComponent(h)}`)
+            .then(r => r.json())
+            .then((d: { tweets?: TweetItem[] }) => d.tweets ?? [])
+            .catch(() => [] as TweetItem[])
+        )
+      );
+      if (cancelled) return;
+      const counts: Record<string, number> = {};
+      for (const list of results) {
+        for (const t of list) counts[t.author] = (counts[t.author] ?? 0) + 1;
+      }
+      const merged = results.flat()
+        .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
+        .slice(0, 40);
+      setTweets(merged);
+      setByAccount(counts);
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const filtered = filter === "all" ? tweets : tweets.filter(t => t.author === filter);
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="rounded-2xl p-4"
+        style={{ background: "linear-gradient(135deg, rgba(29,161,242,0.12), rgba(168,85,247,0.08))", border: "1px solid rgba(29,161,242,0.3)" }}>
+        <div className="flex items-center gap-2 mb-1">
+          <TwitterLogo size={16} weight="fill" style={{ color: "#1da1f2" }}/>
+          <h3 className="text-base font-black" style={{ color: "#e8edf5" }}>FanX · Voix des supporters</h3>
+        </div>
+        <p className="text-[11px]" style={{ color: "#94a3b8" }}>
+          {FANX_ACCOUNTS.length} comptes fans &amp; experts · cliquez un tweet pour le détail
+        </p>
+      </div>
+
+      {/* Filter chips */}
+      <div className="flex gap-1.5 flex-wrap">
+        <button onClick={() => setFilter("all")}
+          className="text-[10px] font-bold px-2.5 py-1 rounded-full"
+          style={{
+            background: filter === "all" ? "rgba(29,161,242,0.2)" : "#0d1421",
+            color: filter === "all" ? "#1da1f2" : "#94a3b8",
+            border: `1px solid ${filter === "all" ? "rgba(29,161,242,0.5)" : "#1e2d42"}`,
+          }}>
+          Tous ({tweets.length})
+        </button>
+        {FANX_ACCOUNTS.filter(h => (byAccount[h] ?? 0) > 0).map(h => (
+          <button key={h} onClick={() => setFilter(h)}
+            className="text-[10px] font-bold px-2.5 py-1 rounded-full"
+            style={{
+              background: filter === h ? "rgba(29,161,242,0.2)" : "#0d1421",
+              color: filter === h ? "#1da1f2" : "#94a3b8",
+              border: `1px solid ${filter === h ? "rgba(29,161,242,0.5)" : "#1e2d42"}`,
+            }}>
+            @{h} ({byAccount[h]})
+          </button>
+        ))}
+      </div>
+
+      {/* Tweets */}
+      <div className="space-y-2">
+        {loading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="h-20 rounded-xl animate-pulse" style={{ background: "#0d1421" }}/>
+          ))
+        ) : filtered.length === 0 ? (
+          <div className="rounded-xl p-6 text-center" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
+            <p className="text-sm" style={{ color: "#6b7c96" }}>Aucun tweet — Twitter/Nitter temporairement bloqués.</p>
+          </div>
+        ) : (
+          filtered.map(t => (
+            <button key={t.id + t.author} onClick={() => setOpen(t)}
+              className="w-full text-left rounded-xl p-3 transition-all duration-150 hover:scale-[1.01] active:scale-[0.99]"
+              style={{ background: "#0d1421", border: "1px solid #1e2d42" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(29,161,242,0.4)"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "#1e2d42"; }}>
+              <div className="flex items-center gap-1.5 mb-1">
+                <TwitterLogo size={11} weight="fill" style={{ color: "#1da1f2" }}/>
+                <span className="text-[10px] font-bold" style={{ color: "#1da1f2" }}>@{t.author}</span>
+                <span className="inline-flex items-center gap-1 text-[10px]" style={{ color: "#6b7c96" }}>
+                  <Clock size={9} weight="bold"/>
+                  {timeAgoShort(t.pubDate)}
+                </span>
+              </div>
+              <p className="text-[13px] leading-snug line-clamp-3" style={{ color: "#e8edf5" }}>{t.title}</p>
+            </button>
+          ))
+        )}
+      </div>
+
+      {open && <TweetModal tweet={open} onClose={() => setOpen(null)}/>}
+    </div>
+  );
+}
+
 // ─── Sub-tabs ────────────────────────────────────────────────────────────────
 
-type SubTab = "groupes" | "calendrier" | "joueurs" | "france" | "favoris" | "tableau" | "arbitres" | "news";
+type SubTab = "groupes" | "calendrier" | "joueurs" | "france" | "favoris" | "tableau" | "arbitres" | "news" | "affiche" | "macompo" | "fanx";
 
 const SUB_TABS: { id: SubTab; label: string }[] = [
   { id: "news",       label: "📰 News CdM" },
+  { id: "affiche",    label: "🎬 L'affiche" },
+  { id: "macompo",    label: "📋 Ma Compo CdM" },
+  { id: "fanx",       label: "🐦 FanX" },
   { id: "groupes",    label: "Groupes" },
   { id: "tableau",    label: "🏆 Tableau" },
   { id: "calendrier", label: "Calendrier" },
@@ -1736,6 +2107,9 @@ export default function WorldCupTab() {
 
       {/* Content */}
       {activeTab === "news"       && <NewsCdMTab />}
+      {activeTab === "affiche"    && <AfficheTab />}
+      {activeTab === "macompo"    && <MaCompoTab />}
+      {activeTab === "fanx"       && <FanXTab />}
       {activeTab === "groupes"    && <GroupesTab />}
       {activeTab === "tableau"    && <BracketTab />}
       {activeTab === "calendrier" && <CalendrierTab />}
