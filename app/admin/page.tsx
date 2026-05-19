@@ -65,27 +65,22 @@ const L1_CLUBS_ADMIN = [
   { id: 1045, name: "Paris FC" },
 ];
 
-// Default fan/supporter accounts — pre-filled in the admin, admin can override
-const DEFAULT_TWITTER_HANDLES: Record<string, string> = {
-  "524":  "LMDPSG",           // Le Meilleur du PSG — 161K followers
-  "548":  "ASMSUPPORTERSFR",  // ASM Supporters FR — 7.5K followers
-  "516":  "SupporterOfMars",  // Supporter Of Marseille Officiel
-  "521":  "loscfansclub",     // Losc Fans Club — 5K followers
-  "529":  "team_srfc",        // Team SRFC — 5.4K followers
-  "522":  "ogcnsupporter",    // OGC Nice Supporter
-  "546":  "LensoisComLive",   // Lensois.com — 24.7K followers
-  "523":  "oetl",             // Olympique-et-Lyonnais.com — 66.9K followers
-  "576":  "fsrcs",            // Fédération Supporters RCS
-  "511":  "LesVioletsCom",    // LesViolets.com — 22K followers
-  "512":  "SuppBrestois",     // Supporter Brestois
-  "532":  "IncroyableSCO",    // Incroyable SCO — 7.9K followers
-  "533":  "hacfans1872",      // HAC Fans 1872 — 4.7K followers
-  "519":  "TeamAJA89",        // TeamAJA — 3.5K followers
-  "543":  "TribuneNantaise",  // Tribune Nantaise — 100K combined
-  "545":  "FCMetzFans",       // FC Metz Fans
-  "525":  "supp_Lorient",     // Supporters Lorient — 2.8K followers
-  "1045": "PassionParisFC",   // Passion Paris FC
-};
+// Default fan/supporter handles — derived from the curated fan ecosystem
+// in `app/lib/fanConfig.ts` so the recommendations stay in sync across
+// the app. For each L1 club we pick the top-ranked *fan* account (or
+// the top *media* account if no fan account is listed). Admin overrides
+// from Firestore take priority over this base.
+const DEFAULT_TWITTER_HANDLES: Record<string, string> = (() => {
+  const out: Record<string, string> = {};
+  for (const club of L1_CLUBS_ADMIN) {
+    const entry = FAN_CLUBS_L1[club.id];
+    if (!entry) continue;
+    const fan = entry.twitter.find(a => a.kind === "fan")
+            ?? entry.twitter.find(a => a.kind === "media");
+    if (fan) out[String(club.id)] = fan.handle;
+  }
+  return out;
+})();
 
 // Labels for the fan-config admin editor. Keys must match the ids used
 // in FAN_CLUBS_L2 / FAN_NATIONS in `app/lib/fanConfig.ts`.
