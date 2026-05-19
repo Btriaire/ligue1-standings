@@ -2595,7 +2595,7 @@ function TweetMyPickCard({ text, accentColor = "#fbbf24" }: { text: string; acce
 
 /* ══════════════════════════════════════════ NATION DASHBOARD ══ */
 
-function NationDashboard({nation,onChange}:{nation:Nation;onChange:()=>void}) {
+function NationDashboard({nation,onChange,onSwitchNation}:{nation:Nation;onChange:()=>void;onSwitchNation:(n:Nation)=>void}) {
   const groupMates = nationsInGroup(nation.group).filter(n => n.code !== nation.code);
   const daysToWC = Math.max(0, Math.round((WC2026_START.getTime() - Date.now()) / 86_400_000));
 
@@ -2640,17 +2640,29 @@ function NationDashboard({nation,onChange}:{nation:Nation;onChange:()=>void}) {
           <span className="text-[9px] font-black uppercase tracking-widest" style={{color:"#6b7c96"}}>
             Adversaires · Groupe {nation.group}
           </span>
+          <span className="ml-auto text-[9px]" style={{color:"#475569"}}>cliquez pour explorer</span>
         </div>
         <div className="divide-y" style={{borderColor:"rgba(30,45,66,0.4)"}}>
           {groupMates.map(n => (
-            <div key={n.code} className="flex items-center gap-3 px-3 py-2.5">
+            <button key={n.code} onClick={() => onSwitchNation(n)}
+              className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors"
+              style={{background:"transparent"}}
+              onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background="rgba(251,191,36,0.06)";}}
+              onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background="transparent";}}
+              aria-label={`Voir l'identité complète de ${n.name}`}>
               <span className="text-2xl">{n.flag}</span>
-              <span className="flex-1 text-sm font-semibold" style={{color:"#e8edf5"}}>{n.name}</span>
-              {n.host && (
-                <span className="text-[8px] font-black px-1.5 py-0.5 rounded"
-                  style={{background:"rgba(251,191,36,0.18)",color:"#fbbf24"}}>HÔTE</span>
-              )}
-            </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-semibold" style={{color:"#e8edf5"}}>{n.name}</span>
+                  {n.host && (
+                    <span className="text-[8px] font-black px-1.5 py-0.5 rounded"
+                      style={{background:"rgba(251,191,36,0.18)",color:"#fbbf24"}}>HÔTE</span>
+                  )}
+                </div>
+                <div className="text-[10px]" style={{color:"#6b7c96"}}>{n.code} · Groupe {n.group}</div>
+              </div>
+              <ArrowSquareOut size={12} weight="bold" style={{color:"#fbbf24"}}/>
+            </button>
           ))}
         </div>
       </div>
@@ -2673,84 +2685,6 @@ function NationDashboard({nation,onChange}:{nation:Nation;onChange:()=>void}) {
         text={`Je supporte ${nation.flag} ${nation.name} (Groupe ${nation.group}) pour la Coupe du Monde 2026 ! #CdM2026 #FootInsider`}
         accentColor="#fbbf24"
       />
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════════ NATION DASHBOARD ══ */
-
-function NationDashboard({nation,onChange}:{nation:Nation;onChange:()=>void}) {
-  const groupMates = nationsInGroup(nation.group).filter(n => n.code !== nation.code);
-  const daysToWC = Math.max(0, Math.round((WC2026_START.getTime() - Date.now()) / 86_400_000));
-
-  return (
-    <div className="space-y-4">
-      {/* Hero */}
-      <div className="rounded-2xl overflow-hidden relative"
-        style={{background:"linear-gradient(135deg, rgba(251,191,36,0.12), rgba(239,68,68,0.08))", border:"1px solid rgba(251,191,36,0.3)"}}>
-        <div className="p-4 flex items-center gap-3">
-          <div className="text-5xl">{nation.flag}</div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-              <h2 className="text-xl font-black truncate" style={{color:"#e8edf5"}}>{nation.name}</h2>
-              {nation.host && (
-                <span className="text-[9px] font-black px-1.5 py-0.5 rounded"
-                  style={{background:"rgba(251,191,36,0.2)",color:"#fbbf24"}}>HÔTE</span>
-              )}
-            </div>
-            <p className="text-[11px]" style={{color:"#94a3b8"}}>
-              Coupe du Monde 2026 · Groupe {nation.group}
-            </p>
-          </div>
-          <button onClick={onChange}
-            className="text-[10px] font-bold px-2.5 py-1.5 rounded-lg"
-            style={{background:"rgba(255,255,255,0.06)",border:"1px solid #1e2d42",color:"#94a3b8"}}>
-            Changer
-          </button>
-        </div>
-        {daysToWC > 0 && (
-          <div className="px-4 pb-3 flex items-center gap-2 text-[10px]" style={{color:"#fbbf24"}}>
-            <Calendar size={10} weight="bold"/>
-            <span className="font-black">J-{daysToWC}</span>
-            <span style={{color:"#6b7c96"}}>avant le coup d&apos;envoi</span>
-          </div>
-        )}
-      </div>
-
-      {/* Group */}
-      <div className="rounded-xl overflow-hidden" style={{border:"1px solid #1e2d42"}}>
-        <div className="px-3 py-2 flex items-center gap-2" style={{background:"#0a0f1c",borderBottom:"1px solid #1e2d42"}}>
-          <Users size={10} style={{color:"#6b7c96"}}/>
-          <span className="text-[9px] font-black uppercase tracking-widest" style={{color:"#6b7c96"}}>
-            Adversaires · Groupe {nation.group}
-          </span>
-        </div>
-        <div className="divide-y" style={{borderColor:"rgba(30,45,66,0.4)"}}>
-          {groupMates.map(n => (
-            <div key={n.code} className="flex items-center gap-3 px-3 py-2.5">
-              <span className="text-2xl">{n.flag}</span>
-              <span className="flex-1 text-sm font-semibold" style={{color:"#e8edf5"}}>{n.name}</span>
-              {n.host && (
-                <span className="text-[8px] font-black px-1.5 py-0.5 rounded"
-                  style={{background:"rgba(251,191,36,0.18)",color:"#fbbf24"}}>HÔTE</span>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Prediction CTA */}
-      <div className="rounded-xl p-4 text-center"
-        style={{background:"#0d1421",border:"1px solid #1e2d42"}}>
-        <Lightning size={20} weight="bold" style={{color:"#fbbf24"}} className="mx-auto mb-2"/>
-        <p className="text-xs font-bold mb-1" style={{color:"#e8edf5"}}>
-          Pronostics IA disponibles
-        </p>
-        <p className="text-[10px]" style={{color:"#6b7c96"}}>
-          Retrouvez les prédictions de tous les matchs de la phase de groupes
-          dans l&apos;onglet <span style={{color:"#fbbf24"}}>Coupe du Monde</span>.
-        </p>
-      </div>
     </div>
   );
 }
@@ -2790,7 +2724,7 @@ export default function MonClubTab() {
   if(!ready) return <div className="flex items-center justify-center py-20"><div className="w-7 h-7 rounded-full border-2 animate-spin" style={{borderColor:"#3b82f6",borderTopColor:"transparent"}}/></div>;
   const club=ALL_CLUBS.find(c=>c.id===clubId)??null;
   const nation=nationCode ? (NATIONS.find(n=>n.code===nationCode)??null) : null;
-  if(nation) return <NationDashboard nation={nation} onChange={drop}/>;
+  if(nation) return <NationDashboard nation={nation} onChange={drop} onSwitchNation={pickNation}/>;
   if(club)   return <ClubDashboard club={club} onChangeClub={drop}/>;
   return <ClubSelector onSelectClub={pickClub} onSelectNation={pickNation}/>;
 }
