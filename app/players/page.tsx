@@ -220,26 +220,49 @@ function PlayersPageInner() {
     const total = teamIds.length;
     const squadEndpoint = league === "FL2" ? "/api/squad-l2" : "/api/squad";
 
-    teamIds.forEach(id => {
-      fetch(`${squadEndpoint}/${id}`)
-        .then(r => r.json())
-        .then(data => {
+    // Throttle: football-data.org free tier is 10 req/min. Run in small
+    // concurrent batches so we don't burn through the quota and get most
+    // squads back as 429s (which previously surfaced as "5 clubs · 155 joueurs").
+    const CONCURRENCY = 3;
+    const queue = [...teamIds];
+
+    const fetchOne = async (id: number) => {
+      try {
+        const r = await fetch(`${squadEndpoint}/${id}`);
+        if (!r.ok) {
+          console.warn(`[players] squad ${id} HTTP ${r.status}`);
+        } else {
+          const data = await r.json();
           if (cancelled) return;
           const players: PlayerEntry[] = (data?.squad ?? []).map(
             (p: Omit<PlayerEntry, "clubId" | "club">) => ({ ...p, clubId: id, club: data.team })
           );
           if (players.length > 0) {
             setAllPlayers(prev => [...prev, ...players]);
+          } else {
+            console.warn(`[players] squad ${id} empty`);
           }
-        })
-        .catch(() => {})
-        .finally(() => {
-          if (cancelled) return;
-          done++;
-          setLoadedCount(done);
-          if (done === total) setLoading(false);
-        });
-    });
+        }
+      } catch (err) {
+        console.warn(`[players] squad ${id} fetch failed:`, err);
+      } finally {
+        if (cancelled) return;
+        done++;
+        setLoadedCount(done);
+        if (done === total) setLoading(false);
+      }
+    };
+
+    const worker = async () => {
+      while (!cancelled) {
+        const id = queue.shift();
+        if (id === undefined) return;
+        await fetchOne(id);
+      }
+    };
+
+    for (let i = 0; i < CONCURRENCY; i++) worker();
+
     return () => { cancelled = true; };
   }, [teamIds, league]);
 
