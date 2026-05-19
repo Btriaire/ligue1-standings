@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { TEAM_TM_MAP, ECONOMIC_SCORES, CLUB_SEARCH_TERMS, CLUB_SUBREDDITS } from "@/app/lib/teamMapping";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY ?? "");
+// LLM provider: Groq (OpenAI-compatible). Free tier ~14k requests/day,
+// no card required. We send one batched chat completion for all clubs
+// per /api/emotional-score call (1 request per 30-min revalidate window).
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const GROQ_MODEL = "llama-3.3-70b-versatile";
 
 const API_KEY = process.env.FOOTBALL_DATA_API_KEY;
 const ODDS_API_KEY = process.env.THE_ODDS_API_KEY;
@@ -213,7 +216,7 @@ async function fetchActuFootTweets(): Promise<RSSItem[]> {
   }
 }
 
-// ─── Gemini per-club scorer ──────────────────────────────────────────────────
+// ─── LLM (Groq) per-club scorer ──────────────────────────────────────────────
 interface GeminiResult {
   score: number;
   positive: number;
@@ -225,11 +228,11 @@ interface GeminiClubInput {
   clubName: string;
   items: { title: string; description?: string; source: string; ageLabel: string }[];
 }
-// Single batched call: evaluate ALL clubs in one Gemini request.
-// Drastically cuts request count (1 vs 18) — critical for free-tier quotas.
+// Single batched call: evaluate ALL clubs in one LLM request.
+// Drastically cuts request count (1 vs 18) — keeps us well under free-tier limits.
 async function scoreClubsBatch(clubs: GeminiClubInput[]): Promise<Map<string, GeminiResult>> {
   const out = new Map<string, GeminiResult>();
-  if (!process.env.GEMINI_API_KEY) { console.warn("[gemini] GEMINI_API_KEY missing"); return out; }
+  if (!GROQ_API_KEY) { console.warn("[llm] GROQ_API_KEY missing"); return out; }
   const eligible = clubs.filter(c => c.items.length > 0);
   if (eligible.length === 0) return out;
 
@@ -240,28 +243,49 @@ async function scoreClubsBatch(clubs: GeminiClubInput[]): Promise<Map<string, Ge
     return `--- Club ${ci + 1}: ${c.clubName} (${c.items.length} items) ---\n${numbered}`;
   }).join("\n\n");
 
-  console.log(`[gemini] batch call clubs=${eligible.length} totalItems=${eligible.reduce((s,c)=>s+c.items.length,0)}`);
+  console.log(`[llm] batch call clubs=${eligible.length} totalItems=${eligible.reduce((s,c)=>s+c.items.length,0)}`);
+
+  const system =
+    "Tu es un analyste sentiment foot français. Pour CHAQUE club fourni, évalue son climat médiatique global à partir de sa liste d'actualités. " +
+    "Considère: résultats sportifs, blessures, transferts, climat interne, comportement des fans, polémiques. " +
+    "Réponds en JSON STRICT: " +
+    `{"results":[{"club":"nom exact","score":0-100,"positive":int,"negative":int,"summary":"1 phrase fr","per_item":["positive"|"negative"|"neutral",...]},...]}` +
+    " où per_item a la même longueur que la liste d'items du club. 50 = neutre, 100 = très positif, 0 = très négatif.";
 
   try {
-    const model = genai.getGenerativeModel({
-      model: "gemini-2.0-flash",
-      generationConfig: { responseMimeType: "application/json", temperature: 0.4 },
-      systemInstruction:
-        "Tu es un analyste sentiment foot français. Pour CHAQUE club fourni, évalue son climat médiatique global à partir de sa liste d'actualités. " +
-        "Considère: résultats sportifs, blessures, transferts, climat interne, comportement des fans, polémiques. " +
-        "Réponds en JSON STRICT: " +
-        `{"results":[{"club":"nom exact","score":0-100,"positive":int,"negative":int,"summary":"1 phrase fr","per_item":["positive"|"negative"|"neutral",...]},...]}` +
-        " où per_item a la même longueur que la liste d'items du club. 50 = neutre, 100 = très positif, 0 = très négatif.",
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${GROQ_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        temperature: 0.4,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: blocks },
+        ],
+      }),
+      signal: AbortSignal.timeout(15000),
     });
-    const result = await model.generateContent(blocks);
-    const text = result.response.text();
-    console.log(`[gemini] batch raw len=${text.length}`);
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error(`[llm] batch HTTP ${res.status}: ${errText.slice(0, 300)}`);
+      return out;
+    }
+    const data = await res.json();
+    const text: string = data.choices?.[0]?.message?.content ?? "";
+    console.log(`[llm] batch raw len=${text.length}`);
     const json = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] ?? "{}");
     const arr: { club?: string; score?: number; positive?: number; negative?: number; summary?: string; per_item?: string[] }[] =
       Array.isArray(json.results) ? json.results : [];
     for (const r of arr) {
       if (!r.club) continue;
-      const club = eligible.find(c => c.clubName === r.club) ?? eligible.find(c => c.clubName.toLowerCase().includes(String(r.club).toLowerCase()) || String(r.club).toLowerCase().includes(c.clubName.toLowerCase()));
+      const club = eligible.find(c => c.clubName === r.club)
+        ?? eligible.find(c => c.clubName.toLowerCase().includes(String(r.club).toLowerCase())
+                          || String(r.club).toLowerCase().includes(c.clubName.toLowerCase()));
       if (!club) continue;
       const score = Math.max(0, Math.min(100, Number(r.score) || 50));
       const positive = Math.max(0, Number(r.positive) || 0);
@@ -272,9 +296,9 @@ async function scoreClubsBatch(clubs: GeminiClubInput[]): Promise<Map<string, Ge
         .slice(0, club.items.length) as ("positive" | "negative" | "neutral")[];
       out.set(club.clubName, { score, positive, negative, summary, per_item });
     }
-    console.log(`[gemini] batch ok results=${out.size}/${eligible.length}`);
+    console.log(`[llm] batch ok results=${out.size}/${eligible.length}`);
   } catch (err) {
-    console.error("[gemini] batch failed:", err instanceof Error ? err.message : err);
+    console.error("[llm] batch failed:", err instanceof Error ? err.message : err);
   }
   return out;
 }
@@ -513,7 +537,7 @@ export async function GET() {
       fetchOddsMarketScore(),
     ]);
 
-    // Single batched Gemini call across all clubs (1 request, not 18)
+    // Single batched LLM call across all clubs (1 request, not 18)
     const geminiInputs: GeminiClubInput[] = mediaBundles
       .filter((b): b is MediaBundle => b !== null && b.geminiInput.length > 0)
       .map(b => ({ clubName: b.clubName, items: b.geminiInput }));
