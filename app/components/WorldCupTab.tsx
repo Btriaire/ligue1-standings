@@ -931,8 +931,21 @@ function NewsCdMTab() {
               <div key={i} className="h-20 rounded-xl animate-pulse" style={{ background: "#0d1421" }} />
             ))
           ) : tweets.length === 0 ? (
-            <div className="rounded-xl p-6 text-center" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
-              <p className="text-sm" style={{ color: "#6b7c96" }}>Aucun tweet disponible — Twitter/Nitter temporairement indisponibles.</p>
+            <div className="rounded-xl p-4 space-y-3" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
+              <p className="text-[11px] text-center" style={{ color: "#94a3b8" }}>
+                Fil indisponible — ouvre les comptes directement sur X :
+              </p>
+              <div className="grid grid-cols-2 gap-1.5">
+                {WC_TWITTER_ACCOUNTS.slice(0, 12).map(h => (
+                  <a key={h}
+                    href={`https://x.com/${h}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="rounded-lg px-2 py-2 text-center text-[11px] font-bold transition-all hover:scale-[1.02]"
+                    style={{ background: "rgba(29,161,242,0.08)", border: "1px solid rgba(29,161,242,0.3)", color: "#1da1f2" }}>
+                    @{h}
+                  </a>
+                ))}
+              </div>
             </div>
           ) : (
             tweets.map((t) => (
@@ -1394,8 +1407,21 @@ function FanXTab() {
             <div key={i} className="h-20 rounded-xl animate-pulse" style={{ background: "#0d1421" }}/>
           ))
         ) : filtered.length === 0 ? (
-          <div className="rounded-xl p-6 text-center" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
-            <p className="text-sm" style={{ color: "#6b7c96" }}>Aucun tweet — Twitter/Nitter temporairement bloqués.</p>
+          <div className="rounded-xl p-4 space-y-3" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
+            <p className="text-[11px] text-center" style={{ color: "#94a3b8" }}>
+              Fil indisponible — ouvre les comptes directement sur X :
+            </p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {accounts.slice(0, 12).map(h => (
+                <a key={h}
+                  href={`https://x.com/${h}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="rounded-lg px-2 py-2 text-center text-[11px] font-bold transition-all hover:scale-[1.02]"
+                  style={{ background: "rgba(29,161,242,0.08)", border: "1px solid rgba(29,161,242,0.3)", color: "#1da1f2" }}>
+                  @{h}
+                </a>
+              ))}
+            </div>
           </div>
         ) : (
           filtered.map(t => (
