@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { ArrowsClockwise, TrendUp, TrendDown, Minus, Trophy, WifiHigh, WifiSlash, Clock, Lightning, ChartBar, Shield, Pulse, Globe, GearSix, Target, ArrowsLeftRight, CaretRight, Users, Lock, SignIn, SignOut } from "@phosphor-icons/react";
+import { ArrowsClockwise, TrendUp, TrendDown, Minus, Trophy, WifiHigh, WifiSlash, Clock, Lightning, ChartBar, Shield, Pulse, Globe, GearSix, Target, ArrowsLeftRight, CaretRight, Users, Lock, SignIn, SignOut, Fire } from "@phosphor-icons/react";
+import { isWorldCupHot, worldCupPhase, daysUntilWorldCup } from "./lib/worldCup";
 import dynamic from "next/dynamic";
 const TeamPanel = dynamic(() => import("./components/TeamPanel"), { ssr: false });
 import { TipText } from "./components/Tooltip";
@@ -600,17 +601,43 @@ export default function Home() {
           {TABS.map((t) => {
             const isProtected = (t.id === "predictions" || t.id === "emotional") && !user;
             const active = tab === t.id;
+            const isHotWC = t.id === "worldcup" && isWorldCupHot();
+            const wcPhase = isHotWC ? worldCupPhase() : "off";
+            const wcBadge = isHotWC && wcPhase === "before"
+              ? `J-${Math.max(0, daysUntilWorldCup())}`
+              : isHotWC && wcPhase === "live" ? "LIVE" : null;
             return (
               <button key={t.id} onClick={() => setTab(t.id)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex-shrink-0"
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${isHotWC ? "wc-hot-tab" : ""}`}
                 style={{
-                  background: active ? "rgba(255,255,255,0.07)" : "transparent",
-                  color: active ? "#e2e8f0" : "#64748b",
-                  border: active ? "1px solid rgba(255,255,255,0.08)" : "1px solid transparent",
+                  background: isHotWC
+                    ? (active
+                        ? "linear-gradient(135deg, rgba(251,191,36,0.18), rgba(239,68,68,0.18))"
+                        : "linear-gradient(135deg, rgba(251,191,36,0.08), rgba(239,68,68,0.08))")
+                    : active ? "rgba(255,255,255,0.07)" : "transparent",
+                  color: isHotWC ? "#fbbf24" : active ? "#e2e8f0" : "#64748b",
+                  border: isHotWC
+                    ? `1px solid ${active ? "rgba(251,191,36,0.5)" : "rgba(251,191,36,0.3)"}`
+                    : active ? "1px solid rgba(255,255,255,0.08)" : "1px solid transparent",
+                  boxShadow: isHotWC ? "0 0 12px rgba(251,191,36,0.18)" : undefined,
                 }}>
-                {t.icon}
+                {isHotWC ? <Fire size={14} weight="fill" style={{ color: "#fbbf24" }} /> : t.icon}
                 <span className="hidden sm:inline">{t.label}</span>
                 <span className="sm:hidden">{t.shortLabel ?? t.label}</span>
+                {wcBadge && (
+                  <span className="ml-1 text-[9px] font-black px-1.5 py-0.5 rounded-full"
+                    style={{
+                      background: wcPhase === "live" ? "#ef4444" : "rgba(251,191,36,0.2)",
+                      color: wcPhase === "live" ? "#fff" : "#fbbf24",
+                      border: wcPhase === "live" ? "none" : "1px solid rgba(251,191,36,0.4)",
+                    }}>
+                    {wcPhase === "live" && (
+                      <span className="inline-block w-1 h-1 rounded-full mr-1 align-middle"
+                        style={{ background: "#fff", animation: "wc-pulse 1.2s ease-in-out infinite" }} />
+                    )}
+                    {wcBadge}
+                  </span>
+                )}
                 {isProtected && <Lock size={9} style={{ color: "#475569", marginLeft: 1 }} />}
               </button>
             );

@@ -40,3 +40,17 @@ body {
 .live-pulse {
   animation: pulseGlow 1.8s ease-in-out infinite;
 }
+
+@keyframes wc-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.4; transform: scale(0.7); }
+}
+
+@keyframes wc-hot-glow {
+  0%, 100% { box-shadow: 0 0 12px rgba(251,191,36,0.18); }
+  50%      { box-shadow: 0 0 18px rgba(251,191,36,0.32); }
+}
+
+.wc-hot-tab {
+  animation: wc-hot-glow 2.4s ease-in-out infinite;
+}
