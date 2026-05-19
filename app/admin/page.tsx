@@ -65,89 +65,30 @@ const L1_CLUBS_ADMIN = [
   { id: 1045, name: "Paris FC" },
 ];
 
-// Default fan/supporter handles — derived from the curated fan ecosystem
-// in `app/lib/fanConfig.ts` so the recommendations stay in sync across
-// the app. For each L1 club we pick the top-ranked *fan* account (or
-// the top *media* account if no fan account is listed). Admin overrides
-// from Firestore take priority over this base.
-const DEFAULT_TWITTER_HANDLES: Record<string, string> = (() => {
-  const out: Record<string, string> = {};
-  for (const club of L1_CLUBS_ADMIN) {
-    const entry = FAN_CLUBS_L1[club.id];
-    if (!entry) continue;
-    const fan = entry.twitter.find(a => a.kind === "fan")
-            ?? entry.twitter.find(a => a.kind === "media");
-    if (fan) out[String(club.id)] = fan.handle;
-  }
-  return out;
-})();
-
-// Labels for the fan-config admin editor. Keys must match the ids used
-// in FAN_CLUBS_L2 / FAN_NATIONS in `app/lib/fanConfig.ts`.
-const L2_CLUBS_ADMIN: { id: number; name: string }[] = [
-  { id: 10242,  name: "Troyes" },        { id: 9853,   name: "Saint-Étienne" },
-  { id: 9837,   name: "Reims" },         { id: 10249,  name: "Montpellier" },
-  { id: 8311,   name: "Clermont" },      { id: 9747,   name: "Guingamp" },
-  { id: 8682,   name: "Le Mans" },       { id: 6390,   name: "Red Star" },
-  { id: 4120,   name: "Rodez" },         { id: 293352, name: "Annecy" },
-  { id: 6355,   name: "Pau" },           { id: 47214,  name: "Dunkerque" },
-  { id: 9855,   name: "Grenoble" },      { id: 8481,   name: "Nancy" },
-  { id: 4170,   name: "Boulogne" },      { id: 7853,   name: "Laval" },
-  { id: 7794,   name: "Bastia" },        { id: 8587,   name: "Amiens" },
-];
-
-const NATIONS_ADMIN: { code: string; name: string }[] = [
-  { code:"ARG", name:"Argentine" },   { code:"CHI", name:"Chili" },
-  { code:"PER", name:"Pérou" },       { code:"AUS", name:"Australie" },
-  { code:"MEX", name:"Mexique" },     { code:"JAM", name:"Jamaïque" },
-  { code:"VEN", name:"Venezuela" },   { code:"ECU", name:"Équateur" },
-  { code:"USA", name:"USA" },         { code:"PAN", name:"Panama" },
-  { code:"CUB", name:"Cuba" },        { code:"NZL", name:"Nouvelle-Zélande" },
-  { code:"CAN", name:"Canada" },      { code:"HON", name:"Honduras" },
-  { code:"URU", name:"Uruguay" },     { code:"POR", name:"Portugal" },
-  { code:"ESP", name:"Espagne" },     { code:"MAR", name:"Maroc" },
-  { code:"BEL", name:"Belgique" },    { code:"JPN", name:"Japon" },
-  { code:"FRA", name:"France" },      { code:"KSA", name:"Arabie Saoudite" },
-  { code:"SUI", name:"Suisse" },      { code:"ALG", name:"Algérie" },
-  { code:"BRA", name:"Brésil" },      { code:"COL", name:"Colombie" },
-  { code:"PAR", name:"Paraguay" },    { code:"CMR", name:"Cameroun" },
-  { code:"GER", name:"Allemagne" },   { code:"NED", name:"Pays-Bas" },
-  { code:"POL", name:"Pologne" },     { code:"SRB", name:"Serbie" },
-  { code:"ENG", name:"Angleterre" },  { code:"SEN", name:"Sénégal" },
-  { code:"TUN", name:"Tunisie" },     { code:"CRC", name:"Costa Rica" },
-  { code:"ITA", name:"Italie" },      { code:"CRO", name:"Croatie" },
-  { code:"ROU", name:"Roumanie" },    { code:"ANG", name:"Angola" },
-  { code:"UKR", name:"Ukraine" },     { code:"GHA", name:"Ghana" },
-  { code:"RSA", name:"Afrique du Sud" }, { code:"COD", name:"RD Congo" },
-  { code:"KOR", name:"Corée du Sud" },{ code:"CIV", name:"Côte d'Ivoire" },
-  { code:"ZIM", name:"Zimbabwe" },    { code:"KEN", name:"Kenya" },
-];
-
-interface FanCatalogRow {
-  id: string;           // "club:524" / "nation:FRA"
-  scope: "L1" | "L2" | "WC";
-  label: string;
-  defaults: FanEntry;
-}
-
-function buildFanCatalogRows(): FanCatalogRow[] {
-  const rows: FanCatalogRow[] = [];
-  for (const c of L1_CLUBS_ADMIN) {
-    const d = FAN_CLUBS_L1[c.id];
-    if (d) rows.push({ id:`club:${c.id}`, scope:"L1", label:c.name, defaults:d });
-  }
-  for (const c of L2_CLUBS_ADMIN) {
-    const d = FAN_CLUBS_L2[c.id];
-    if (d) rows.push({ id:`club:${c.id}`, scope:"L2", label:c.name, defaults:d });
-  }
-  for (const n of NATIONS_ADMIN) {
-    const d = FAN_NATIONS[n.code];
-    if (d) rows.push({ id:`nation:${n.code}`, scope:"WC", label:n.name, defaults:d });
-  }
-  return rows;
-}
-
-const FAN_CATALOG_ROWS: FanCatalogRow[] = buildFanCatalogRows();
+// Default fan/supporter accounts — hand-picked recognisable handles per
+// L1 club. Admin overrides (in Firestore) take priority. For the richer
+// curated ecosystem (5+ accounts, fan sites, hashtags) see the
+// "Écosystème fans" section further down — it edits `fanConfig.ts`.
+const DEFAULT_TWITTER_HANDLES: Record<string, string> = {
+  "524":  "LMDPSG",           // Le Meilleur du PSG — 161K followers
+  "548":  "ASMSUPPORTERSFR",  // ASM Supporters FR — 7.5K followers
+  "516":  "SupporterOfMars",  // Supporter Of Marseille Officiel
+  "521":  "loscfansclub",     // Losc Fans Club — 5K followers
+  "529":  "team_srfc",        // Team SRFC — 5.4K followers
+  "522":  "ogcnsupporter",    // OGC Nice Supporter
+  "546":  "LensoisComLive",   // Lensois.com — 24.7K followers
+  "523":  "oetl",             // Olympique-et-Lyonnais.com — 66.9K followers
+  "576":  "fsrcs",            // Fédération Supporters RCS
+  "511":  "LesVioletsCom",    // LesViolets.com — 22K followers
+  "512":  "SuppBrestois",     // Supporter Brestois
+  "532":  "IncroyableSCO",    // Incroyable SCO — 7.9K followers
+  "533":  "hacfans1872",      // HAC Fans 1872 — 4.7K followers
+  "519":  "TeamAJA89",        // TeamAJA — 3.5K followers
+  "543":  "TribuneNantaise",  // Tribune Nantaise — 100K combined
+  "545":  "FCMetzFans",       // FC Metz Fans
+  "525":  "supp_Lorient",     // Supporters Lorient — 2.8K followers
+  "1045": "PassionParisFC",   // Passion Paris FC
+};
 
 // Labels for the fan-config admin editor. Keys must match the ids used
 // in FAN_CLUBS_L2 / FAN_NATIONS in `app/lib/fanConfig.ts`.
