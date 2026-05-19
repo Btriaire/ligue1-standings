@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Calendar, Trophy, Users, MapPin, Globe, Star, Lightning, TrendUp, Target, Shield } from "@phosphor-icons/react";
+import { useState, type ReactNode } from "react";
+import { Calendar, Trophy, Users, MapPin, Globe, Star, Lightning, TrendUp, Target, Shield, MagnifyingGlass, X, ListBullets, SquaresFour, CaretDown, Flame, SoccerBall, Medal, Flag, Warning, Crosshair, Crown } from "@phosphor-icons/react";
 import RefereesWCTab from "./RefereesWCTab";
 
 // ─── Data ──────────────────────────────────────────────────────────────────
@@ -21,14 +21,14 @@ const GROUPS = [
   { letter: "L", teams: ["🇰🇷 Corée du Sud", "🇨🇮 Côte d'Ivoire", "🇿🇼 Zimbabwe", "🇰🇪 Kenya"] },
 ];
 
-const SCHEDULE = [
-  { phase: "Match d'ouverture", dates: "11 juin 2026",         icon: "🚀", color: "#00d4ff" },
-  { phase: "Phase de groupes", dates: "12 juin – 2 juil 2026", icon: "⚽", color: "#22c55e" },
-  { phase: "Huitièmes de finale", dates: "4 – 7 juil 2026",   icon: "🏆", color: "#f59e0b" },
-  { phase: "Quarts de finale", dates: "9 – 12 juil 2026",      icon: "⭐", color: "#f97316" },
-  { phase: "Demi-finales", dates: "14 – 15 juil 2026",         icon: "🔥", color: "#ef4444" },
-  { phase: "Match 3e place", dates: "18 juil 2026",            icon: "🥉", color: "#a78bfa" },
-  { phase: "FINALE", dates: "19 juil 2026",                    icon: "🏆", color: "#fbbf24" },
+const SCHEDULE: { phase: string; dates: string; Icon: (props: { size?: number }) => ReactNode; color: string }[] = [
+  { phase: "Match d'ouverture",   dates: "11 juin 2026",         Icon: (p) => <Flag       weight="bold" {...p} />, color: "#00d4ff" },
+  { phase: "Phase de groupes",    dates: "12 juin – 2 juil 2026", Icon: (p) => <SoccerBall weight="bold" {...p} />, color: "#22c55e" },
+  { phase: "Huitièmes de finale", dates: "4 – 7 juil 2026",      Icon: (p) => <Shield     weight="bold" {...p} />, color: "#f59e0b" },
+  { phase: "Quarts de finale",    dates: "9 – 12 juil 2026",     Icon: (p) => <Crosshair  weight="bold" {...p} />, color: "#f97316" },
+  { phase: "Demi-finales",        dates: "14 – 15 juil 2026",    Icon: (p) => <Crown      weight="bold" {...p} />, color: "#ef4444" },
+  { phase: "Match 3e place",      dates: "18 juil 2026",         Icon: (p) => <Medal      weight="bold" {...p} />, color: "#a78bfa" },
+  { phase: "FINALE",              dates: "19 juil 2026",         Icon: (p) => <Trophy     weight="bold" {...p} />, color: "#fbbf24" },
 ];
 
 const NOTABLE_MATCHES = [
@@ -275,11 +275,11 @@ const POS_CFG: Record<PosType, { label: string; color: string; bg: string }> = {
   GB:  { label: "GB",  color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
 };
 
-const CAT_CFG: Record<CatType, { label: string; color: string; icon: string }> = {
-  star:       { label: "Superstar",   color: "#fbbf24", icon: "⭐" },
-  revelation: { label: "Révélation",  color: "#06b6d4", icon: "💥" },
-  veteran:    { label: "Vétéran",     color: "#94a3b8", icon: "🧠" },
-  danger:     { label: "Danger",      color: "#f97316", icon: "⚡" },
+const CAT_CFG: Record<CatType, { label: string; color: string; Icon: (props: { size?: number }) => ReactNode }> = {
+  star:       { label: "Superstar",   color: "#fbbf24", Icon: (p) => <Star      weight="bold" {...p} /> },
+  revelation: { label: "Révélation",  color: "#06b6d4", Icon: (p) => <Lightning weight="bold" {...p} /> },
+  veteran:    { label: "Vétéran",     color: "#94a3b8", Icon: (p) => <Medal     weight="bold" {...p} /> },
+  danger:     { label: "Danger",      color: "#f97316", Icon: (p) => <Warning   weight="bold" {...p} /> },
 };
 
 // ─── Bracket tab ─────────────────────────────────────────────────────────────
@@ -851,9 +851,9 @@ function PlayerCard({ p }: { p: WCPlayer }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-sm font-black leading-tight" style={{ color: "#e8edf5" }}>{p.name}</span>
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+              <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full"
                 style={{ background: cat.color + "15", color: cat.color, border: `1px solid ${cat.color}25` }}>
-                {cat.icon} {cat.label}
+                <cat.Icon size={9} /> {cat.label}
               </span>
             </div>
             <p className="text-[10px] mt-0.5 truncate" style={{ color: "#64748b" }}>{p.club} · {p.age} ans · Gr.{p.group}</p>
@@ -917,8 +917,8 @@ function PlayerCard({ p }: { p: WCPlayer }) {
         <div className="px-3 pb-3 space-y-2.5" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
           {/* Pronostic */}
           <div className="rounded-xl px-3 py-2 mt-2" style={{ background: `${cat.color}08`, border: `1px solid ${cat.color}20` }}>
-            <p className="text-[9px] uppercase font-bold mb-0.5" style={{ color: cat.color }}>
-              {cat.icon} Pronostic tournoi
+            <p className="inline-flex items-center gap-1 text-[9px] uppercase font-bold mb-0.5" style={{ color: cat.color }}>
+              <cat.Icon size={10} /> Pronostic tournoi
             </p>
             <p className="text-xs leading-relaxed" style={{ color: "#94a3b8" }}>{p.pronostic}</p>
           </div>
@@ -974,29 +974,170 @@ function PlayerCard({ p }: { p: WCPlayer }) {
   );
 }
 
+// ─── Compact player row (dense list view) ───────────────────────────────────
+
+function PlayerRow({ p }: { p: WCPlayer }) {
+  const [open, setOpen] = useState(false);
+  const pos = POS_CFG[p.pos];
+  const cat = CAT_CFG[p.cat];
+  return (
+    <div className="rounded-lg overflow-hidden transition-colors"
+      style={{ background: "#0a1120", border: `1px solid ${open ? cat.color + "40" : "#15243a"}` }}>
+      <button onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-2 px-2.5 py-2 hover:bg-white/[0.03] text-left">
+        <span className="text-base flex-shrink-0">{p.flag}</span>
+        <span className="text-[9px] font-black w-7 text-center flex-shrink-0 px-1 py-0.5 rounded"
+          style={{ background: pos.bg, color: pos.color, border: `1px solid ${pos.color}30` }}>
+          {pos.label}
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-bold truncate" style={{ color: "#e8edf5" }}>{p.name}</p>
+          <p className="text-[10px] truncate" style={{ color: "#64748b" }}>{p.club} · {p.age}a · Gr.{p.group}</p>
+        </div>
+        <span className="hidden sm:inline-flex items-center flex-shrink-0" title={cat.label} style={{ color: cat.color }}>
+          <cat.Icon size={11} />
+        </span>
+        <div className="flex items-center gap-0.5 flex-shrink-0" title="Impact">
+          <span className="text-xs font-black" style={{ color: cat.color }}>{p.impact}</span>
+          <span className="text-[8px]" style={{ color: "#475569" }}>/100</span>
+        </div>
+        <CaretDown size={11} style={{ color: "#475569", transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
+      </button>
+      {open && (
+        <div className="px-2.5 pb-2.5 pt-1 space-y-1.5" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+          <p className="text-[10px] leading-snug" style={{ color: "#94a3b8" }}>{p.role}</p>
+          <p className="flex items-start gap-1 text-[10px] leading-snug px-2 py-1 rounded"
+            style={{ background: `${cat.color}08`, color: "#cbd5e1", border: `1px solid ${cat.color}20` }}>
+            <span style={{ color: cat.color, marginTop: 1 }}><cat.Icon size={10} /></span>
+            <span>{p.pronostic}</span>
+          </p>
+          <div className="grid grid-cols-4 gap-1">
+            <StatBar label="Vit."   value={p.vitesse}   color="#00d4ff" />
+            <StatBar label="Tech."  value={p.technique} color="#a78bfa" />
+            <StatBar label="Buts"   value={p.buts}      color="#ef4444" />
+            <StatBar label="Impact" value={p.impact}    color={cat.color} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Joueurs tab ─────────────────────────────────────────────────────────────
 
 type FilterPos = "ALL" | PosType;
 type FilterCat = "ALL" | CatType;
+type SortKey = "impact" | "buts" | "vitesse" | "technique" | "age_asc" | "age_desc" | "name";
+type ViewMode = "cards" | "compact";
+type GroupMode = "none" | "nat" | "pos" | "group";
+
+const SORT_OPTS: { key: SortKey; label: string }[] = [
+  { key: "impact",   label: "Impact ↓" },
+  { key: "buts",     label: "Menace buts ↓" },
+  { key: "vitesse",  label: "Vitesse ↓" },
+  { key: "technique",label: "Technique ↓" },
+  { key: "age_asc",  label: "Âge ↑" },
+  { key: "age_desc", label: "Âge ↓" },
+  { key: "name",     label: "Nom A→Z" },
+];
+
+const GROUP_OPTS: { key: GroupMode; label: string }[] = [
+  { key: "none",  label: "Liste" },
+  { key: "nat",   label: "Par nation" },
+  { key: "pos",   label: "Par poste" },
+  { key: "group", label: "Par groupe" },
+];
+
+const stripDiacritics = (s: string) =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
 function JoueursTab() {
-  const [filterPos, setFilterPos] = useState<FilterPos>("ALL");
-  const [filterCat, setFilterCat] = useState<FilterCat>("ALL");
+  const [filterPos, setFilterPos]   = useState<FilterPos>("ALL");
+  const [filterCat, setFilterCat]   = useState<FilterCat>("ALL");
   const [filterGroup, setFilterGroup] = useState<string>("ALL");
+  const [search, setSearch]         = useState("");
+  const [sortKey, setSortKey]       = useState<SortKey>("impact");
+  const [view, setView]             = useState<ViewMode>("compact");
+  const [groupMode, setGroupMode]   = useState<GroupMode>("none");
+  const [showFilters, setShowFilters] = useState(false);
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 
-  const filtered = PLAYERS.filter(p =>
-    (filterPos === "ALL" || p.pos === filterPos) &&
-    (filterCat === "ALL" || p.cat === filterCat) &&
-    (filterGroup === "ALL" || p.group === filterGroup)
-  );
+  const q = stripDiacritics(search.trim());
 
-  // Spotlight: highest impact players
+  const filtered = PLAYERS.filter(p => {
+    if (filterPos !== "ALL"   && p.pos !== filterPos) return false;
+    if (filterCat !== "ALL"   && p.cat !== filterCat) return false;
+    if (filterGroup !== "ALL" && p.group !== filterGroup) return false;
+    if (q && !stripDiacritics(p.name).includes(q)
+          && !stripDiacritics(p.club).includes(q)
+          && !stripDiacritics(p.nat).includes(q)) return false;
+    return true;
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
+    switch (sortKey) {
+      case "impact":    return b.impact   - a.impact;
+      case "buts":      return b.buts     - a.buts;
+      case "vitesse":   return b.vitesse  - a.vitesse;
+      case "technique": return b.technique- a.technique;
+      case "age_asc":   return a.age - b.age;
+      case "age_desc":  return b.age - a.age;
+      case "name":      return a.name.localeCompare(b.name);
+    }
+  });
+
+  // Spotlight: highest impact players (independent of filters)
   const spotlight = [...PLAYERS].sort((a, b) => b.impact - a.impact).slice(0, 3);
+
+  // Group sorted list when groupMode != "none"
+  const groups: { key: string; label: string; color: string; players: WCPlayer[] }[] = (() => {
+    if (groupMode === "none") return [];
+    const map = new Map<string, WCPlayer[]>();
+    sorted.forEach(p => {
+      const k =
+        groupMode === "nat"   ? p.nat :
+        groupMode === "pos"   ? p.pos :
+        /* group */             p.group;
+      if (!map.has(k)) map.set(k, []);
+      map.get(k)!.push(p);
+    });
+    const arr = Array.from(map.entries()).map(([k, players]) => {
+      let label = k, color = "#94a3b8";
+      if (groupMode === "pos") {
+        const cfg = POS_CFG[k as PosType]; label = cfg.label; color = cfg.color;
+      } else if (groupMode === "group") {
+        label = `Groupe ${k}`; color = "#00d4ff";
+      } else {
+        // nat — pick flag from first player
+        label = `${players[0].flag} ${k}`; color = "#e8edf5";
+      }
+      return { key: k, label, color, players };
+    });
+    // Sort sections: by player count desc for nat/group, fixed order for pos
+    if (groupMode === "pos") {
+      const order: PosType[] = ["ATT", "MIL", "DEF", "GB"];
+      arr.sort((a, b) => order.indexOf(a.key as PosType) - order.indexOf(b.key as PosType));
+    } else {
+      arr.sort((a, b) => b.players.length - a.players.length);
+    }
+    return arr;
+  })();
+
+  const toggleSection = (k: string) =>
+    setCollapsedSections(s => ({ ...s, [k]: !s[k] }));
+
+  const resetFilters = () => {
+    setFilterPos("ALL"); setFilterCat("ALL"); setFilterGroup("ALL"); setSearch("");
+  };
+  const isFiltered = filterPos !== "ALL" || filterCat !== "ALL" || filterGroup !== "ALL" || search.trim() !== "";
+
+  const renderPlayer = (p: WCPlayer) =>
+    view === "cards" ? <PlayerCard key={p.name} p={p} /> : <PlayerRow key={p.name} p={p} />;
 
   return (
     <div>
       {/* Spotlight banner */}
-      <div className="rounded-2xl p-3 mb-4"
+      <div className="rounded-2xl p-3 mb-3"
         style={{ background: "linear-gradient(135deg, rgba(251,191,36,0.06), rgba(239,68,68,0.06), rgba(0,212,255,0.06))", border: "1px solid rgba(251,191,36,0.2)" }}>
         <p className="text-[10px] uppercase font-bold tracking-widest mb-2" style={{ color: "#fbbf24" }}>
           ⭐ Top 3 Impact Potentiel
@@ -1005,90 +1146,201 @@ function JoueursTab() {
           {spotlight.map((p, i) => {
             const cat = CAT_CFG[p.cat];
             return (
-              <div key={p.name} className="text-center">
+              <button key={p.name} onClick={() => setSearch(p.name)}
+                className="text-center hover:bg-white/[0.04] rounded-lg py-1 transition-colors">
                 <div className="flex items-center justify-center gap-1 mb-0.5">
                   <span className="text-base">{p.flag}</span>
-                  {i === 0 && <span className="text-xs">🥇</span>}
-                  {i === 1 && <span className="text-xs">🥈</span>}
-                  {i === 2 && <span className="text-xs">🥉</span>}
+                  <Medal size={12} weight="bold"
+                    style={{ color: i === 0 ? "#fbbf24" : i === 1 ? "#cbd5e1" : "#d97706" }} />
                 </div>
                 <p className="text-[10px] font-black truncate" style={{ color: "#e8edf5" }}>{p.name}</p>
-                <p className="text-[9px]" style={{ color: "#64748b" }}>{p.club}</p>
+                <p className="text-[9px] truncate" style={{ color: "#64748b" }}>{p.club}</p>
                 <span className="text-[10px] font-black" style={{ color: cat.color }}>{p.impact}/100</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Sticky toolbar: search + sort + view + filters toggle */}
+      <div className="sticky top-0 z-20 pb-2 pt-1 mb-2"
+        style={{ background: "linear-gradient(180deg, #080c14 85%, transparent)" }}>
+        <div className="flex items-center gap-1.5">
+          {/* Search */}
+          <div className="relative flex-1 min-w-0">
+            <MagnifyingGlass size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: "#475569" }} />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Rechercher joueur, club, nation…"
+              className="w-full pl-7 pr-7 py-1.5 rounded-lg text-xs outline-none"
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid #1e2d42", color: "#e8edf5" }}
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2">
+                <X size={11} style={{ color: "#6b7c96" }} />
+              </button>
+            )}
+          </div>
+
+          {/* Sort */}
+          <select
+            value={sortKey}
+            onChange={e => setSortKey(e.target.value as SortKey)}
+            className="text-[10px] px-2 py-1.5 rounded-lg outline-none font-bold"
+            style={{ background: "#0d1421", border: "1px solid #1e2d42", color: "#00d4ff" }}
+            title="Trier">
+            {SORT_OPTS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
+          </select>
+
+          {/* View toggle */}
+          <div className="flex rounded-lg overflow-hidden flex-shrink-0" style={{ border: "1px solid #1e2d42" }}>
+            <button onClick={() => setView("compact")} className="px-1.5 py-1.5" title="Liste compacte"
+              style={{ background: view === "compact" ? "rgba(0,212,255,0.12)" : "transparent",
+                       color: view === "compact" ? "#00d4ff" : "#6b7c96" }}>
+              <ListBullets size={12} />
+            </button>
+            <button onClick={() => setView("cards")} className="px-1.5 py-1.5" title="Cartes détaillées"
+              style={{ background: view === "cards" ? "rgba(0,212,255,0.12)" : "transparent",
+                       color: view === "cards" ? "#00d4ff" : "#6b7c96",
+                       borderLeft: "1px solid #1e2d42" }}>
+              <SquaresFour size={12} />
+            </button>
+          </div>
+
+          {/* Filters toggle */}
+          <button onClick={() => setShowFilters(v => !v)}
+            className="text-[10px] font-bold px-2 py-1.5 rounded-lg flex-shrink-0"
+            style={{
+              background: showFilters || isFiltered ? "rgba(0,212,255,0.1)" : "rgba(255,255,255,0.03)",
+              border: `1px solid ${showFilters || isFiltered ? "rgba(0,212,255,0.25)" : "rgba(255,255,255,0.06)"}`,
+              color: showFilters || isFiltered ? "#00d4ff" : "#6b7c96",
+            }}>
+            Filtres{isFiltered ? " •" : ""}
+          </button>
+        </div>
+
+        {/* Group-by row */}
+        <div className="flex flex-wrap gap-1 mt-1.5">
+          {GROUP_OPTS.map(g => (
+            <button key={g.key} onClick={() => setGroupMode(g.key)}
+              className="px-2 py-0.5 rounded text-[9px] font-bold transition-all"
+              style={{
+                background: groupMode === g.key ? "rgba(167,139,250,0.12)" : "rgba(255,255,255,0.03)",
+                color: groupMode === g.key ? "#a78bfa" : "#475569",
+                border: `1px solid ${groupMode === g.key ? "rgba(167,139,250,0.3)" : "rgba(255,255,255,0.05)"}`,
+              }}>
+              {g.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Collapsible filter chips */}
+        {showFilters && (
+          <div className="space-y-1.5 mt-2 p-2 rounded-lg"
+            style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
+            <div className="flex flex-wrap gap-1">
+              {(["ALL", "ATT", "MIL", "DEF", "GB"] as const).map(f => {
+                const active = filterPos === f;
+                const cfg = f !== "ALL" ? POS_CFG[f] : null;
+                return (
+                  <button key={f} onClick={() => setFilterPos(f)}
+                    className="px-2 py-0.5 rounded text-[10px] font-bold transition-all"
+                    style={{
+                      background: active ? (cfg ? cfg.bg : "rgba(255,255,255,0.08)") : "rgba(255,255,255,0.03)",
+                      color: active ? (cfg?.color ?? "#e8edf5") : "#6b7c96",
+                      border: `1px solid ${active ? (cfg?.color ?? "#e8edf5") + "40" : "rgba(255,255,255,0.06)"}`,
+                    }}>
+                    {f === "ALL" ? "Tous postes" : f}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {(["ALL", "star", "revelation", "veteran", "danger"] as const).map(f => {
+                const active = filterCat === f;
+                const cfg = f !== "ALL" ? CAT_CFG[f] : null;
+                return (
+                  <button key={f} onClick={() => setFilterCat(f)}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold transition-all"
+                    style={{
+                      background: active ? (cfg ? cfg.color + "15" : "rgba(255,255,255,0.08)") : "rgba(255,255,255,0.03)",
+                      color: active ? (cfg?.color ?? "#e8edf5") : "#6b7c96",
+                      border: `1px solid ${active ? (cfg?.color ?? "#ffffff") + "30" : "rgba(255,255,255,0.06)"}`,
+                    }}>
+                    {f === "ALL" ? "Tous profils" : <>
+                      {cfg && <cfg.Icon size={9} />} {cfg!.label}
+                    </>}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {(["ALL", "F", "E", "G", "H", "A", "I", "D"]).map(g => (
+                <button key={g} onClick={() => setFilterGroup(g)}
+                  className="px-2 py-0.5 rounded text-[9px] font-bold transition-all"
+                  style={{
+                    background: filterGroup === g ? "rgba(234,179,8,0.12)" : "rgba(255,255,255,0.03)",
+                    color: filterGroup === g ? "#eab308" : "#475569",
+                    border: `1px solid ${filterGroup === g ? "rgba(234,179,8,0.3)" : "rgba(255,255,255,0.05)"}`,
+                  }}>
+                  {g === "ALL" ? "Tous groupes" : `Gr.${g}`}
+                </button>
+              ))}
+            </div>
+            {isFiltered && (
+              <button onClick={resetFilters}
+                className="text-[10px] font-bold px-2 py-0.5 rounded"
+                style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", color: "#ef4444" }}>
+                ✕ Effacer les filtres
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Result count */}
+      <p className="text-[10px] mb-2" style={{ color: "#475569" }}>
+        {sorted.length} joueur{sorted.length > 1 ? "s" : ""}
+        {isFiltered && ` sur ${PLAYERS.length}`} · Tri : {SORT_OPTS.find(o => o.key === sortKey)?.label}
+      </p>
+
+      {/* List */}
+      {sorted.length === 0 ? (
+        <div className="text-center py-8 rounded-xl" style={{ color: "#6b7c96", background: "#0d1421", border: "1px solid #1e2d42" }}>
+          Aucun joueur pour ces filtres
+        </div>
+      ) : groupMode === "none" ? (
+        <div className={view === "compact" ? "space-y-1" : "space-y-2"}>
+          {sorted.map(renderPlayer)}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {groups.map(g => {
+            const collapsed = collapsedSections[g.key];
+            return (
+              <div key={g.key} className="rounded-xl overflow-hidden"
+                style={{ background: "#0a1120", border: `1px solid ${g.color}20` }}>
+                <button onClick={() => toggleSection(g.key)}
+                  className="w-full flex items-center gap-2 px-3 py-2 hover:bg-white/[0.03] text-left">
+                  <CaretDown size={11} style={{ color: g.color, transform: collapsed ? "rotate(-90deg)" : "none", transition: "transform .15s" }} />
+                  <span className="text-xs font-black flex-1" style={{ color: g.color }}>{g.label}</span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                    style={{ background: g.color + "15", color: g.color }}>
+                    {g.players.length}
+                  </span>
+                </button>
+                {!collapsed && (
+                  <div className={`px-2 pb-2 ${view === "compact" ? "space-y-1" : "space-y-2"}`}>
+                    {g.players.map(renderPlayer)}
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
-      </div>
-
-      {/* Filters */}
-      <div className="space-y-2 mb-3">
-        {/* Position */}
-        <div className="flex flex-wrap gap-1">
-          {(["ALL", "ATT", "MIL", "DEF"] as const).map(f => {
-            const active = filterPos === f;
-            const cfg = f !== "ALL" ? POS_CFG[f] : null;
-            return (
-              <button key={f} onClick={() => setFilterPos(f)}
-                className="px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all"
-                style={{
-                  background: active ? (cfg ? cfg.bg : "rgba(255,255,255,0.08)") : "rgba(255,255,255,0.03)",
-                  color: active ? (cfg?.color ?? "#e8edf5") : "#6b7c96",
-                  border: `1px solid ${active ? (cfg?.color ?? "#e8edf5") + "40" : "rgba(255,255,255,0.06)"}`,
-                }}>
-                {f === "ALL" ? "Tous postes" : f}
-              </button>
-            );
-          })}
-        </div>
-        {/* Category */}
-        <div className="flex flex-wrap gap-1">
-          {(["ALL", "star", "revelation", "veteran", "danger"] as const).map(f => {
-            const active = filterCat === f;
-            const cfg = f !== "ALL" ? CAT_CFG[f] : null;
-            return (
-              <button key={f} onClick={() => setFilterCat(f)}
-                className="px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all"
-                style={{
-                  background: active ? (cfg ? cfg.color + "15" : "rgba(255,255,255,0.08)") : "rgba(255,255,255,0.03)",
-                  color: active ? (cfg?.color ?? "#e8edf5") : "#6b7c96",
-                  border: `1px solid ${active ? (cfg?.color ?? "#ffffff") + "30" : "rgba(255,255,255,0.06)"}`,
-                }}>
-                {f === "ALL" ? "Tous profils" : `${cfg!.icon} ${cfg!.label}`}
-              </button>
-            );
-          })}
-        </div>
-        {/* Group filter for French group */}
-        <div className="flex flex-wrap gap-1">
-          {(["ALL", "F", "E", "G", "H", "A", "I", "D"]).map(g => (
-            <button key={g} onClick={() => setFilterGroup(g)}
-              className="px-2 py-0.5 rounded text-[9px] font-bold transition-all"
-              style={{
-                background: filterGroup === g ? "rgba(234,179,8,0.12)" : "rgba(255,255,255,0.03)",
-                color: filterGroup === g ? "#eab308" : "#475569",
-                border: `1px solid ${filterGroup === g ? "rgba(234,179,8,0.3)" : "rgba(255,255,255,0.05)"}`,
-              }}>
-              {g === "ALL" ? "Tous groupes" : `Gr.${g}`}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Count */}
-      <p className="text-[10px] mb-3" style={{ color: "#475569" }}>
-        {filtered.length} joueur{filtered.length > 1 ? "s" : ""} · Cliquer pour le détail + stats tournoi
-      </p>
-
-      {/* Cards */}
-      <div className="space-y-2">
-        {filtered.length === 0 && (
-          <div className="text-center py-8" style={{ color: "#6b7c96" }}>
-            Aucun joueur pour ces filtres
-          </div>
-        )}
-        {filtered.map(p => <PlayerCard key={p.name} p={p} />)}
-      </div>
+      )}
 
       <p className="mt-4 text-center text-[10px]" style={{ color: "#475569" }}>
         Stats tournoi mises à jour au fur et à mesure · FootPredictom AI
@@ -1127,7 +1379,7 @@ function CalendrierTab() {
           {SCHEDULE.map((s) => (
             <div key={s.phase} className="flex items-center gap-3 px-3 py-2 rounded-xl"
               style={{ background: "#0d1421", border: `1px solid ${s.color}20` }}>
-              <span className="text-base flex-shrink-0">{s.icon}</span>
+              <span className="flex-shrink-0" style={{ color: s.color }}><s.Icon size={16} /></span>
               <span className="text-xs font-bold flex-1" style={{ color: s.color }}>{s.phase}</span>
               <span className="text-xs flex-shrink-0" style={{ color: "#6b7c96" }}>{s.dates}</span>
             </div>
@@ -1256,7 +1508,7 @@ export default function WorldCupTab() {
       {/* Slim header */}
       <div className="flex flex-wrap items-center gap-2 px-3 py-2 rounded-xl mb-3"
         style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
-        <span className="text-base">🌍</span>
+        <Globe size={16} weight="bold" style={{ color: "#00d4ff" }} />
         <span className="text-sm font-black tracking-tight" style={{ color: "#e8edf5" }}>Coupe du Monde 2026</span>
         <div className="flex flex-wrap gap-1.5 ml-auto">
           {[
