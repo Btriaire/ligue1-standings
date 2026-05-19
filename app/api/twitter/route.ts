@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminFirestore } from "@/app/lib/firebase-admin";
 import { fetchSyndicationTimeline } from "@/app/lib/twitter-syndication";
+import { FAN_CLUBS_L1, FAN_CLUBS_L2 } from "@/app/lib/fanConfig";
 
 export const dynamic = "force-dynamic";
 
@@ -16,8 +17,20 @@ const NITTER_INSTANCES = [
   "nitter.kavin.rocks",
 ];
 
+// Build OFFICIAL_HANDLES and CLUB_HASHTAGS from fanConfig so L2 clubs are
+// covered too. The hand-picked L1 set below overrides anything derived.
+function pickOfficialHandle(entry: { twitter: { handle: string; kind: string }[] } | undefined): string | null {
+  if (!entry) return null;
+  return entry.twitter.find(t => t.kind === "official")?.handle ?? null;
+}
+function pickHashtag(entry: { hashtags: string[] } | undefined): string | null {
+  if (!entry || entry.hashtags.length === 0) return null;
+  // Use the first hashtag (most common); strip leading '#' if present.
+  return entry.hashtags[0].replace(/^#/, "");
+}
+
 // ── Official club handles — absolute last resort if fan account fails ─────────
-const OFFICIAL_HANDLES: Record<string, string> = {
+const OFFICIAL_HANDLES_L1_OVERRIDES: Record<string, string> = {
   "524":  "PSG",
   "548":  "AS_Monaco",
   "516":  "OM_Officiel",
@@ -38,8 +51,22 @@ const OFFICIAL_HANDLES: Record<string, string> = {
   "1045": "ParisFC",
 };
 
+const OFFICIAL_HANDLES: Record<string, string> = (() => {
+  const out: Record<string, string> = {};
+  for (const [id, entry] of Object.entries(FAN_CLUBS_L1)) {
+    const h = pickOfficialHandle(entry);
+    if (h) out[id] = h;
+  }
+  for (const [id, entry] of Object.entries(FAN_CLUBS_L2)) {
+    const h = pickOfficialHandle(entry);
+    if (h) out[id] = h;
+  }
+  Object.assign(out, OFFICIAL_HANDLES_L1_OVERRIDES);
+  return out;
+})();
+
 // ── Club hashtags — fetched via Nitter search RSS ─────────────────────────────
-const CLUB_HASHTAGS: Record<string, string> = {
+const CLUB_HASHTAGS_L1_OVERRIDES: Record<string, string> = {
   "524":  "TeamPSG",
   "548":  "DaghePrincipe",
   "516":  "TeamOM",
@@ -60,27 +87,68 @@ const CLUB_HASHTAGS: Record<string, string> = {
   "1045": "ParisFC",
 };
 
+const CLUB_HASHTAGS: Record<string, string> = (() => {
+  const out: Record<string, string> = {};
+  for (const [id, entry] of Object.entries(FAN_CLUBS_L1)) {
+    const h = pickHashtag(entry);
+    if (h) out[id] = h;
+  }
+  for (const [id, entry] of Object.entries(FAN_CLUBS_L2)) {
+    const h = pickHashtag(entry);
+    if (h) out[id] = h;
+  }
+  Object.assign(out, CLUB_HASHTAGS_L1_OVERRIDES);
+  return out;
+})();
+
 // ── Default fan accounts ──────────────────────────────────────────────────────
-const DEFAULT_HANDLES: Record<string, string> = {
-  "524":  "LMDPSG",           // Le Meilleur du PSG — 161K
-  "548":  "ASMSUPPORTERSFR",  // ASM Supporters FR — 7.5K
-  "516":  "SupporterOfMars",  // Supporter Of Marseille
-  "521":  "loscfansclub",     // Losc Fans Club
-  "529":  "team_srfc",        // Team SRFC
-  "522":  "ogcnsupporter",    // OGC Nice Supporter
-  "546":  "LensoisComLive",   // Lensois.com — 24.7K
-  "523":  "oetl",             // Olympique-et-Lyonnais.com — 66.9K
-  "576":  "fsrcs",            // Fédération Supporters RCS
-  "511":  "LesVioletsCom",    // LesViolets.com — 22K
-  "512":  "SuppBrestois",     // Supporter Brestois
-  "532":  "IncroyableSCO",    // Incroyable SCO — 7.9K
-  "533":  "hacfans1872",      // HAC Fans 1872
-  "519":  "TeamAJA89",        // TeamAJA
-  "543":  "TribuneNantaise",  // Tribune Nantaise
-  "545":  "FCMetzFans",       // FC Metz Fans
-  "525":  "supp_Lorient",     // Supporters Lorient
-  "1045": "PassionParisFC",   // Passion Paris FC
+// Hand-curated L1 set kept for explicit memorable picks (LMDPSG…).
+// Everything else (L2 clubs, plus any missing L1 club) falls back to the
+// top fan / media account from app/lib/fanConfig.ts so L2 clubs are also
+// pre-filled instead of showing "Aucun compte configuré".
+const DEFAULT_HANDLES_L1_OVERRIDES: Record<string, string> = {
+  "524":  "LMDPSG",
+  "548":  "ASMSUPPORTERSFR",
+  "516":  "SupporterOfMars",
+  "521":  "loscfansclub",
+  "529":  "team_srfc",
+  "522":  "ogcnsupporter",
+  "546":  "LensoisComLive",
+  "523":  "oetl",
+  "576":  "fsrcs",
+  "511":  "LesVioletsCom",
+  "512":  "SuppBrestois",
+  "532":  "IncroyableSCO",
+  "533":  "hacfans1872",
+  "519":  "TeamAJA89",
+  "543":  "TribuneNantaise",
+  "545":  "FCMetzFans",
+  "525":  "supp_Lorient",
+  "1045": "PassionParisFC",
 };
+
+function pickFanHandle(entry: { twitter: { handle: string; kind: string }[] } | undefined): string | null {
+  if (!entry) return null;
+  const pick = entry.twitter.find(t => t.kind === "fan")
+            ?? entry.twitter.find(t => t.kind === "media")
+            ?? entry.twitter.find(t => t.kind === "official");
+  return pick?.handle ?? null;
+}
+
+const DEFAULT_HANDLES: Record<string, string> = (() => {
+  const out: Record<string, string> = {};
+  for (const [id, entry] of Object.entries(FAN_CLUBS_L1)) {
+    const h = pickFanHandle(entry);
+    if (h) out[id] = h;
+  }
+  for (const [id, entry] of Object.entries(FAN_CLUBS_L2)) {
+    const h = pickFanHandle(entry);
+    if (h) out[id] = h;
+  }
+  // Apply the explicit L1 overrides last so they win.
+  Object.assign(out, DEFAULT_HANDLES_L1_OVERRIDES);
+  return out;
+})();
 
 interface Tweet { id: string; title: string; pubDate: string; url: string; author: string }
 

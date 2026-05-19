@@ -2628,8 +2628,21 @@ function FanXFeed({ entityId, accentColor = "#1da1f2" }: { entityId: string; acc
           ))}
         </div>
       ) : tweets.length === 0 ? (
-        <div className="rounded-xl p-4 text-center text-[11px]" style={{ background:"#0d1421", border:"1px solid #1e2d42", color:"#6b7c96" }}>
-          Aucun tweet récent — X/Nitter temporairement bloqués.
+        <div className="space-y-2">
+          <p className="text-[10px] text-center" style={{ color:"#6b7c96" }}>
+            Fil indisponible — ouvre les comptes directement sur X :
+          </p>
+          <div className="grid grid-cols-2 gap-1.5">
+            {handles.map(h => (
+              <a key={h}
+                href={`https://x.com/${h}`}
+                target="_blank" rel="noopener noreferrer"
+                className="rounded-lg px-2 py-2 text-center text-[11px] font-bold transition-all hover:scale-[1.02]"
+                style={{ background:"#0d1421", border:`1px solid ${accentColor}40`, color:accentColor }}>
+                @{h}
+              </a>
+            ))}
+          </div>
         </div>
       ) : (
         <div className="space-y-2">
