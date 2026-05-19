@@ -4,7 +4,9 @@ import { useState, useEffect, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import { Calendar, Trophy, Users, MapPin, Globe, Star, Lightning, TrendUp, Target, Shield, MagnifyingGlass, X, ListBullets, SquaresFour, CaretDown, Flame, SoccerBall, Medal, Flag, Warning, Crosshair, Crown, Newspaper, TwitterLogo, Clock, ArrowSquareOut } from "@phosphor-icons/react";
 import RefereesWCTab from "./RefereesWCTab";
-import { isWorldCupHot } from "@/app/lib/worldCup";
+import { isWorldCupHot, NATIONS } from "@/app/lib/worldCup";
+import { FORMATIONS, F_KEYS, type FKey } from "@/app/lib/formations";
+import FootPitch from "./FootPitch";
 
 const NewsModal = dynamic(() => import("./NewsModal"), { ssr: false });
 const TweetModal = dynamic(() => import("./TweetModal"), { ssr: false });
@@ -1057,156 +1059,217 @@ function AfficheTab() {
 }
 
 // ─── Ma Compo CdM ────────────────────────────────────────────────────────────
+// Mirrors the Ligue 1 "Ma Compo" UX from MonClub: same FORMATIONS pitch layout,
+// same positioned slot chips, same formation picker chips. Because nation
+// rosters aren't fetched, the player picker is replaced by a free-text input
+// (tap a slot → type a name). Persisted per-nation in localStorage.
 
-const COMPO_FORMATIONS = ["4-3-3", "4-4-2", "3-5-2", "4-2-3-1"] as const;
-type CompoFormation = typeof COMPO_FORMATIONS[number];
-const COMPO_KEY = "wc_macompo_v1";
+const WC_COMPO_KEY_PREFIX = "wc_macompo_";
+const WC_ACCENT = "#fbbf24";
 
-interface CompoState {
-  nation: string;       // ISO code
-  formation: CompoFormation;
-  players: string[];    // 11 player names (free text — minimal)
+interface WCCompoState {
+  formation: FKey;
+  players: (string | null)[];
 }
 
 function MaCompoTab() {
-  // Curated set of 8 contender nations to keep the picker tight.
-  const NATIONS_LIST = [
-    { code: "FRA", name: "France",      flag: "🇫🇷" },
-    { code: "ARG", name: "Argentine",   flag: "🇦🇷" },
-    { code: "BRA", name: "Brésil",      flag: "🇧🇷" },
-    { code: "ESP", name: "Espagne",     flag: "🇪🇸" },
-    { code: "GER", name: "Allemagne",   flag: "🇩🇪" },
-    { code: "POR", name: "Portugal",    flag: "🇵🇹" },
-    { code: "ENG", name: "Angleterre",  flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
-    { code: "NED", name: "Pays-Bas",    flag: "🇳🇱" },
-  ];
+  const [nationCode, setNationCode] = useState<string>("FRA");
+  const [formation,  setFormation]  = useState<FKey>("4-3-3");
+  const [players11,  setPlayers11]  = useState<(string | null)[]>(Array(11).fill(null));
+  const [selSlot,    setSelSlot]    = useState<number | null>(null);
+  const [draft,      setDraft]      = useState<string>("");
+  const [saved,      setSaved]      = useState(false);
+  const [hydrated,   setHydrated]   = useState(false);
 
-  const [state, setState] = useState<CompoState>({ nation: "FRA", formation: "4-3-3", players: Array(11).fill("") });
-  const [saved, setSaved] = useState(false);
-
+  // Load per-nation compo from localStorage when the nation changes.
   useEffect(() => {
-    const raw = localStorage.getItem(COMPO_KEY);
+    const raw = localStorage.getItem(`${WC_COMPO_KEY_PREFIX}${nationCode}`);
     if (raw) {
-      try { setState(JSON.parse(raw)); } catch { /* ignore */ }
+      try {
+        const d = JSON.parse(raw) as WCCompoState;
+        setFormation(d.formation ?? "4-3-3");
+        setPlayers11(d.players?.length === 11 ? d.players : Array(11).fill(null));
+      } catch { /* ignore */ }
+    } else {
+      setFormation("4-3-3");
+      setPlayers11(Array(11).fill(null));
     }
-  }, []);
+    setSelSlot(null);
+    setHydrated(true);
+  }, [nationCode]);
 
-  const save = () => {
-    localStorage.setItem(COMPO_KEY, JSON.stringify(state));
+  // Auto-save whenever the compo changes (post-hydration).
+  useEffect(() => {
+    if (!hydrated) return;
+    localStorage.setItem(`${WC_COMPO_KEY_PREFIX}${nationCode}`,
+      JSON.stringify({ formation, players: players11 } satisfies WCCompoState));
+  }, [hydrated, nationCode, formation, players11]);
+
+  const nation = NATIONS.find(n => n.code === nationCode) ?? NATIONS[0];
+  const slots  = FORMATIONS[formation];
+  const filled = players11.filter(Boolean).length;
+
+  const assign = (i: number, name: string) => {
+    const cleaned = name.trim();
+    if (!cleaned) return;
+    setPlayers11(prev => {
+      const next = [...prev];
+      next[i] = cleaned;
+      return next;
+    });
+    setSelSlot(null);
+    setDraft("");
+  };
+  const clearSlot = (i: number) => {
+    setPlayers11(prev => { const next = [...prev]; next[i] = null; return next; });
+    setSelSlot(null);
+    setDraft("");
+  };
+  const changeFormation = (f: FKey) => { setFormation(f); setPlayers11(Array(11).fill(null)); setSelSlot(null); };
+  const clearAll = () => { setPlayers11(Array(11).fill(null)); setSelSlot(null); };
+
+  const handleSave = () => {
+    localStorage.setItem(`${WC_COMPO_KEY_PREFIX}${nationCode}`,
+      JSON.stringify({ formation, players: players11 } satisfies WCCompoState));
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
   };
 
-  const setPlayer = (i: number, v: string) => {
-    setState(s => {
-      const next = [...s.players];
-      next[i] = v;
-      return { ...s, players: next };
-    });
-  };
-
-  const nation = NATIONS_LIST.find(n => n.code === state.nation) ?? NATIONS_LIST[0];
-
-  // Layout: split 11 into rows depending on formation (gardien always 1st)
-  const split: Record<CompoFormation, number[]> = {
-    "4-3-3":   [1, 4, 3, 3],
-    "4-4-2":   [1, 4, 4, 2],
-    "3-5-2":   [1, 3, 5, 2],
-    "4-2-3-1": [1, 4, 2, 3, 1],
-  };
-  const rows = split[state.formation];
-  const rowLabels = ["GB", "DEF", "MIL", "ATT", "ATT"];
-  let idx = 0;
-
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="rounded-2xl p-4" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
-        <div className="flex items-center gap-2 mb-3">
-          <SoccerBall size={16} weight="bold" style={{ color: "#fbbf24" }}/>
-          <h3 className="text-base font-black" style={{ color: "#e8edf5" }}>Ma Compo Coupe du Monde</h3>
-        </div>
-
-        {/* Nation picker */}
-        <div className="mb-3">
-          <label className="text-[10px] uppercase tracking-widest font-black mb-1.5 block" style={{ color: "#6b7c96" }}>Sélection</label>
-          <div className="grid grid-cols-4 gap-1.5">
-            {NATIONS_LIST.map(n => {
-              const active = state.nation === n.code;
-              return (
-                <button key={n.code} onClick={() => setState(s => ({ ...s, nation: n.code }))}
-                  className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-bold transition-colors"
-                  style={{
-                    background: active ? "rgba(251,191,36,0.15)" : "#0a0f1c",
-                    border: `1px solid ${active ? "rgba(251,191,36,0.5)" : "#1e2d42"}`,
-                    color: active ? "#fbbf24" : "#94a3b8",
-                  }}>
-                  <span className="text-base">{n.flag}</span>
-                  <span className="truncate">{n.code}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Formation picker */}
-        <div>
-          <label className="text-[10px] uppercase tracking-widest font-black mb-1.5 block" style={{ color: "#6b7c96" }}>Formation</label>
-          <div className="flex gap-1.5">
-            {COMPO_FORMATIONS.map(f => {
-              const active = state.formation === f;
-              return (
-                <button key={f} onClick={() => setState(s => ({ ...s, formation: f }))}
-                  className="px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors"
-                  style={{
-                    background: active ? "rgba(251,191,36,0.15)" : "#0a0f1c",
-                    border: `1px solid ${active ? "rgba(251,191,36,0.5)" : "#1e2d42"}`,
-                    color: active ? "#fbbf24" : "#94a3b8",
-                  }}>
-                  {f}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Pitch */}
-      <div className="rounded-2xl p-4"
-        style={{ background: "linear-gradient(180deg, #0d2818, #0a1f12)", border: "1px solid #1e4a2d" }}>
-        <div className="text-center mb-3">
-          <span className="text-3xl">{nation.flag}</span>
-          <p className="text-xs font-black mt-1" style={{ color: "#e8edf5" }}>{nation.name} · {state.formation}</p>
-        </div>
-        <div className="space-y-2">
-          {rows.map((count, rowIdx) => {
-            const rowLabel = rowIdx === 0 ? "GB" : rowIdx === rows.length - 1 ? "ATT" : rowLabels[rowIdx];
+      {/* Nation picker — full 32-nation list, scrollable, grouped visually */}
+      <div className="rounded-xl p-3" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
+        <p className="text-[9px] font-black uppercase tracking-widest mb-2" style={{ color: "#6b7c96" }}>Sélection</p>
+        <div className="grid grid-cols-4 gap-1.5 max-h-44 overflow-y-auto pr-1">
+          {NATIONS.map(n => {
+            const active = nationCode === n.code;
             return (
-              <div key={rowIdx}>
-                <div className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: "#6b7c96" }}>{rowLabel}</div>
-                <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${count}, 1fr)` }}>
-                  {Array.from({ length: count }).map(() => {
-                    const i = idx++;
-                    return (
-                      <input key={i} type="text" value={state.players[i] ?? ""} onChange={e => setPlayer(i, e.target.value)}
-                        placeholder={`#${i + 1}`}
-                        className="bg-transparent text-[11px] text-center font-semibold rounded-lg px-1 py-1.5 outline-none transition-colors"
-                        style={{ background: "rgba(0,0,0,0.35)", border: "1px solid rgba(251,191,36,0.25)", color: "#e8edf5" }}/>
-                    );
-                  })}
-                </div>
-              </div>
+              <button key={n.code} onClick={() => setNationCode(n.code)}
+                className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-bold transition-colors"
+                style={{
+                  background: active ? `${WC_ACCENT}26` : "#0a0f1c",
+                  border: `1px solid ${active ? `${WC_ACCENT}80` : "#1e2d42"}`,
+                  color: active ? WC_ACCENT : "#94a3b8",
+                }}>
+                <span className="text-base">{n.flag}</span>
+                <span className="truncate">{n.code}</span>
+              </button>
             );
           })}
         </div>
       </div>
 
-      {/* Save */}
-      <button onClick={save}
-        className="w-full text-xs font-bold px-3 py-2.5 rounded-lg inline-flex items-center justify-center gap-1.5"
-        style={{ background: saved ? "#22c55e" : "rgba(251,191,36,0.2)", color: saved ? "#fff" : "#fbbf24", border: `1px solid ${saved ? "#22c55e" : "rgba(251,191,36,0.4)"}` }}>
-        {saved ? "✓ Sauvegardé" : "💾 Sauvegarder ma compo"}
-      </button>
+      {/* Formation picker — same chips as L1 */}
+      <div className="rounded-xl p-3" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
+        <p className="text-[9px] font-black uppercase tracking-widest mb-2" style={{ color: "#6b7c96" }}>Formation</p>
+        <div className="flex gap-1.5 flex-wrap">
+          {F_KEYS.map(f => (
+            <button key={f} onClick={() => changeFormation(f)}
+              className="px-3 py-1.5 rounded-lg text-xs font-black transition-all hover:opacity-90"
+              style={{
+                background: formation === f ? WC_ACCENT : "rgba(255,255,255,0.05)",
+                color: formation === f ? "#0a0f1c" : "#64748b",
+                border: `1px solid ${formation === f ? WC_ACCENT : "rgba(255,255,255,0.08)"}`,
+              }}>
+              {f}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* PITCH — same maxWidth + aspect ratio + slot chips as L1 */}
+      <div style={{ maxWidth: 340, margin: "0 auto", width: "100%" }}>
+        <div className="rounded-2xl overflow-hidden"
+          style={{ border: `1px solid ${WC_ACCENT}55`, position: "relative", paddingBottom: "128%" }}>
+          <div style={{ position: "absolute", inset: 0 }}>
+            <FootPitch color={WC_ACCENT}/>
+            {slots.map((slot, idx) => {
+              const name = players11[idx];
+              const isSel = selSlot === idx;
+              return (
+                <div key={idx} style={{ position: "absolute", left: `${slot.x}%`, top: `${slot.y}%`, transform: "translate(-50%,-50%)", zIndex: 10 }}>
+                  <button onClick={() => { setSelSlot(isSel ? null : idx); setDraft(name ?? ""); }}
+                    className="flex flex-col items-center"
+                    style={{ outline: "none", background: "none", border: "none", padding: 0, cursor: "pointer" }}>
+                    <div className="flex items-center justify-center rounded-full transition-all duration-150"
+                      style={{
+                        width: 38, height: 38,
+                        background: name ? WC_ACCENT : "rgba(10,15,28,0.8)",
+                        border: `2px solid ${name ? WC_ACCENT : isSel ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.2)"}`,
+                        boxShadow: name ? `0 0 10px ${WC_ACCENT}66` : isSel ? "0 0 8px rgba(255,255,255,0.25)" : "none",
+                      }}>
+                      {name
+                        ? <span className="text-center px-0.5" style={{ fontSize: 7, lineHeight: 1.1, maxWidth: 34, color: "#0a0f1c", fontWeight: 900, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+                            {name.split(" ").pop()}
+                          </span>
+                        : <span style={{ fontSize: 15, color: "rgba(255,255,255,0.3)" }}>+</span>}
+                    </div>
+                    <div className="text-center rounded"
+                      style={{ marginTop: 1, fontSize: 7, fontWeight: 900, color: "rgba(255,255,255,0.7)", background: "rgba(0,0,0,0.6)", padding: "1px 3px" }}>
+                      {slot.role}
+                    </div>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Slot editor — outside pitch so it never gets clipped */}
+      {selSlot !== null && (
+        <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${WC_ACCENT}55`, background: "#0d1421" }}>
+          <div className="flex items-center justify-between px-3 py-2" style={{ background: "#0a0f1c", borderBottom: "1px solid #1e2d42" }}>
+            <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: WC_ACCENT }}>
+              {nation.flag} {nation.name} — {slots[selSlot].role}
+            </span>
+            <button onClick={() => setSelSlot(null)} className="hover:opacity-70" style={{ color: "#6b7c96" }}>
+              <X size={12}/>
+            </button>
+          </div>
+          <div className="p-3 space-y-2">
+            <input type="text" value={draft} onChange={e => setDraft(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") assign(selSlot, draft); }}
+              placeholder="Nom du joueur (ex. Mbappé)"
+              autoFocus
+              className="w-full bg-transparent text-sm font-semibold rounded-lg px-3 py-2 outline-none"
+              style={{ background: "#0a0f1c", border: `1px solid ${WC_ACCENT}40`, color: "#e8edf5" }}/>
+            <div className="flex gap-2">
+              <button onClick={() => assign(selSlot, draft)} disabled={!draft.trim()}
+                className="flex-1 text-xs font-bold px-3 py-2 rounded-lg disabled:opacity-40"
+                style={{ background: `${WC_ACCENT}26`, color: WC_ACCENT, border: `1px solid ${WC_ACCENT}80` }}>
+                Valider
+              </button>
+              {players11[selSlot] && (
+                <button onClick={() => clearSlot(selSlot)}
+                  className="text-xs font-bold px-3 py-2 rounded-lg"
+                  style={{ background: "rgba(239,68,68,0.1)", color: "#f87171", border: "1px solid rgba(239,68,68,0.3)" }}>
+                  Retirer
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Actions bar — same style as L1 */}
+      <div className="flex gap-2 items-center flex-wrap">
+        <span className="text-xs font-bold px-2 py-1 rounded-md"
+          style={{ background: filled === 11 ? "#22c55e22" : "#1e2d42", color: filled === 11 ? "#22c55e" : "#94a3b8" }}>
+          {filled}/11
+        </span>
+        <div className="flex-1"/>
+        <button onClick={clearAll}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-80"
+          style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#f87171" }}>
+          <X size={11}/> Effacer
+        </button>
+        <button onClick={handleSave}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-black hover:opacity-80"
+          style={{ background: saved ? "#22c55e" : WC_ACCENT, color: saved ? "#fff" : "#0a0f1c" }}>
+          {saved ? "✓ Sauvegardé" : "💾 Sauvegarder"}
+        </button>
+      </div>
     </div>
   );
 }
