@@ -169,6 +169,16 @@ function PlayersPageInner() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
+  // Reset to hardcoded L1 IDs when switching back to FL1 (otherwise stale L2
+  // IDs would persist and the per-team aggregator would call /api/squad on
+  // FotMob team IDs that don't exist there).
+  useEffect(() => {
+    if (league !== "FL1") return;
+    setAllPlayers([]); setLoadedCount(0); setLoading(true);
+    setTeamIds(TEAM_IDS_L1);
+    setClubLabels({});
+  }, [league]);
+
   // For Ligue 2 we don't hardcode team IDs — fetch them dynamically from
   // our standings endpoint, which already knows the right competition.
   useEffect(() => {
@@ -204,14 +214,17 @@ function PlayersPageInner() {
   }, [league]);
 
   useEffect(() => {
-    if (league === "FL2") return; // L2 uses /api/players-l2, not per-club squads
     if (teamIds.length === 0) return;
     let done = 0;
     const total = teamIds.length;
     setLoadedCount(0);
+    // Reset accumulator when switching league
+    setAllPlayers([]);
+
+    const squadEndpoint = league === "FL2" ? "/api/squad-l2" : "/api/squad";
 
     teamIds.forEach(id => {
-      fetch(`/api/squad/${id}`)
+      fetch(`${squadEndpoint}/${id}`)
         .then(r => r.json())
         .then(data => {
           const players: PlayerEntry[] = (data?.squad ?? []).map(
@@ -228,7 +241,7 @@ function PlayersPageInner() {
           if (done === total) setLoading(false);
         });
     });
-  }, [teamIds]);
+  }, [teamIds, league]);
 
   // Merge static L1 names with any dynamically-fetched (L2) labels so search
   // and filter dropdowns work regardless of competition.
