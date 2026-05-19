@@ -1276,16 +1276,12 @@ function MaCompoTab() {
 
 // ─── FanX (Twitter fans CdM) ─────────────────────────────────────────────────
 
-// Curated fan / community accounts (mix FR + intl) — distinct from News CdM
-// which targets official + journalism handles. Fans give the noisy, partisan,
-// meme-y side that makes a tournament tab feel alive.
-const FANX_ACCOUNTS = [
-  "actufoot_",
-  "footmercato",
-  "TeamPSG",
-  "FRStaff",
-  "OptaJean",
-  "TimaLT",
+// Curated fan / community accounts — fallback list used until the
+// admin-driven fan-config (see `app/lib/fanConfig.ts`) loads. FanXTab
+// now aggregates the *fan* + *media* handles defined in fan-config for
+// every WC nation, so the wall reflects whatever admins curate.
+const FANX_FALLBACK = [
+  "actufoot_", "footmercato", "TeamPSG", "FRStaff", "OptaJean", "TimaLT",
 ];
 
 function FanXTab() {
@@ -1294,12 +1290,42 @@ function FanXTab() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
   const [open, setOpen] = useState<TweetItem | null>(null);
+  const [accounts, setAccounts] = useState<string[]>(FANX_FALLBACK);
 
+  // Pull the curated fan/media accounts from /api/fan-config once mounted.
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      try {
+        const r = await fetch("/api/fan-config");
+        if (!r.ok) return;
+        const d = await r.json() as {
+          entries: Record<string, {
+            twitter: { handle: string; kind: string }[];
+          }>;
+        };
+        const set = new Set<string>();
+        for (const [id, entry] of Object.entries(d.entries ?? {})) {
+          if (!id.startsWith("nation:")) continue;
+          for (const t of entry.twitter ?? []) {
+            if (t.kind === "fan" || t.kind === "media") set.add(t.handle);
+          }
+        }
+        if (!cancelled && set.size >= 3) {
+          // Cap to ~20 so we don't hammer the syndication endpoint.
+          setAccounts(Array.from(set).slice(0, 20));
+        }
+      } catch { /* keep fallback */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    (async () => {
       const results = await Promise.all(
-        FANX_ACCOUNTS.map(h =>
+        accounts.map(h =>
           fetch(`/api/twitter-user?handle=${encodeURIComponent(h)}`)
             .then(r => r.json())
             .then((d: { tweets?: TweetItem[] }) => d.tweets ?? [])
@@ -1319,7 +1345,7 @@ function FanXTab() {
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [accounts]);
 
   const filtered = filter === "all" ? tweets : tweets.filter(t => t.author === filter);
 
@@ -1333,7 +1359,7 @@ function FanXTab() {
           <h3 className="text-base font-black" style={{ color: "#e8edf5" }}>FanX · Voix des supporters</h3>
         </div>
         <p className="text-[11px]" style={{ color: "#94a3b8" }}>
-          {FANX_ACCOUNTS.length} comptes fans &amp; experts · cliquez un tweet pour le détail
+          {accounts.length} comptes fans &amp; experts · cliquez un tweet pour le détail
         </p>
       </div>
 
@@ -1348,7 +1374,7 @@ function FanXTab() {
           }}>
           Tous ({tweets.length})
         </button>
-        {FANX_ACCOUNTS.filter(h => (byAccount[h] ?? 0) > 0).map(h => (
+        {accounts.filter(h => (byAccount[h] ?? 0) > 0).map(h => (
           <button key={h} onClick={() => setFilter(h)}
             className="text-[10px] font-bold px-2.5 py-1 rounded-full"
             style={{
