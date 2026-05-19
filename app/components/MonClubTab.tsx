@@ -2424,6 +2424,9 @@ function FicheSection({club,nextMatch,opponentId,ficheTeamData,ficheSquad,mySqua
       {/* Fan ecosystem */}
       <FanEcosystemCard entityId={`club:${club.id}`} accentColor={club.color} />
 
+      {/* FanX feed — live tweets from the club's curated fan/media accounts */}
+      <FanXFeed entityId={`club:${club.id}`} accentColor={club.color} />
+
       {/* Tweet my pick */}
       <TweetMyPickCard
         text={`Je supporte ${club.name} en ${club.id === 1045 || L2_CLUBS.some(c => c.id === club.id) ? "Ligue 2" : "Ligue 1"} cette saison ! #${club.shortName.replace(/\s+/g, "")} #FootInsider`}
@@ -2557,6 +2560,97 @@ function FanEcosystemCard({ entityId, accentColor = "#1da1f2" }: { entityId: str
             ))}
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════ FAN X FEED ══ */
+
+// Live tweet wall scoped to one entity (club or nation). Pulls the
+// `fan` + `media` handles from fanConfig and merges their latest tweets
+// via /api/twitter-user. Click → opens the existing TweetModal.
+interface TweetItemMini { id: string; title: string; pubDate: string; url: string; author: string }
+
+function FanXFeed({ entityId, accentColor = "#1da1f2" }: { entityId: string; accentColor?: string }) {
+  const entry = bundledFanEntry(entityId);
+  const handles = (entry?.twitter ?? [])
+    .filter(t => t.kind === "fan" || t.kind === "media")
+    .slice(0, 6)
+    .map(t => t.handle);
+
+  const [tweets, setTweets]   = useState<TweetItemMini[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen]       = useState<TweetItemMini | null>(null);
+
+  useEffect(() => {
+    if (handles.length === 0) { setLoading(false); return; }
+    let cancelled = false;
+    setLoading(true);
+    (async () => {
+      const lists = await Promise.all(
+        handles.map(h =>
+          fetch(`/api/twitter-user?handle=${encodeURIComponent(h)}`)
+            .then(r => r.json())
+            .then((d: { tweets?: TweetItemMini[] }) => d.tweets ?? [])
+            .catch(() => [] as TweetItemMini[])
+        )
+      );
+      if (cancelled) return;
+      const merged = lists.flat()
+        .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
+        .slice(0, 12);
+      setTweets(merged);
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+    // handles is derived from entityId — depending on it is enough.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entityId]);
+
+  if (handles.length === 0) return null;
+
+  return (
+    <div className="rounded-2xl p-4 space-y-3"
+      style={{ background:`linear-gradient(135deg, ${accentColor}10, rgba(13,20,33,0.6))`, border:`1px solid ${accentColor}30` }}>
+      <div className="flex items-center gap-2">
+        <span className="text-base">🐦</span>
+        <h3 className="text-sm font-black" style={{ color:"#e8edf5" }}>FanX · Fil en direct</h3>
+        <span className="text-[9px] ml-auto" style={{ color:"#475569" }}>
+          {handles.length} comptes
+        </span>
+      </div>
+
+      {loading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-16 rounded-xl animate-pulse" style={{ background:"#0d1421" }}/>
+          ))}
+        </div>
+      ) : tweets.length === 0 ? (
+        <div className="rounded-xl p-4 text-center text-[11px]" style={{ background:"#0d1421", border:"1px solid #1e2d42", color:"#6b7c96" }}>
+          Aucun tweet récent — X/Nitter temporairement bloqués.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {tweets.map(t => (
+            <button key={t.id + t.author} onClick={() => setOpen(t)}
+              className="w-full text-left rounded-xl p-3 transition-all duration-150 hover:scale-[1.01]"
+              style={{ background:"#0d1421", border:"1px solid #1e2d42" }}>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-black" style={{ color:"#1da1f2" }}>@{t.author}</span>
+                <span className="text-[9px] ml-auto" style={{ color:"#475569" }}>
+                  {new Date(t.pubDate).toLocaleDateString("fr-FR", { day:"numeric", month:"short" })}
+                </span>
+              </div>
+              <p className="text-[11px] leading-snug line-clamp-3" style={{ color:"#cbd5e1" }}>{t.title}</p>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {open && (
+        <TweetModal tweet={open} onClose={() => setOpen(null)} />
       )}
     </div>
   );
@@ -2749,6 +2843,9 @@ function NationDashboard({nation,onChange,onSwitchNation}:{nation:Nation;onChang
 
       {/* Fan ecosystem */}
       <FanEcosystemCard entityId={`nation:${nation.code}`} accentColor="#fbbf24" />
+
+      {/* FanX feed — live tweets from the nation's curated fan/media accounts */}
+      <FanXFeed entityId={`nation:${nation.code}`} accentColor="#fbbf24" />
 
       {/* Tweet my pick */}
       <TweetMyPickCard
