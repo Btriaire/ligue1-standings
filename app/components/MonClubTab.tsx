@@ -2417,11 +2417,133 @@ function FicheSection({club,nextMatch,opponentId,ficheTeamData,ficheSquad,mySqua
         )}
       </div>
 
+      {/* Fan ecosystem */}
+      <FanEcosystemCard entityId={`club:${club.id}`} accentColor={club.color} />
+
       {/* Tweet my pick */}
       <TweetMyPickCard
         text={`Je supporte ${club.name} en ${club.id === 1045 || L2_CLUBS.some(c => c.id === club.id) ? "Ligue 2" : "Ligue 1"} cette saison ! #${club.shortName.replace(/\s+/g, "")} #FootInsider`}
         accentColor={club.color}
       />
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════ FAN ECOSYSTEM ══ */
+
+// Reusable card that surfaces the curated fan ecosystem (Twitter accounts
+// ≥5, fan sites, X hashtags) defined in `app/lib/fanConfig.ts` and
+// editable in /admin. Pulled lazily from /api/fan-config so admin
+// overrides take effect without a redeploy.
+function FanEcosystemCard({ entityId, accentColor = "#1da1f2" }: { entityId: string; accentColor?: string }) {
+  type FA = { handle: string; name: string; kind: "official"|"fan"|"media"|"player"; followers?: string };
+  type FS = { name: string; url: string };
+  interface Entry { twitter: FA[]; sites: FS[]; hashtags: string[] }
+
+  const [entry, setEntry] = useState<Entry | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch("/api/fan-config");
+        if (!r.ok) { setLoading(false); return; }
+        const d = await r.json() as { entries: Record<string, Entry> };
+        if (cancelled) return;
+        setEntry(d.entries?.[entityId] ?? null);
+      } catch { /* swallow */ }
+      finally { if (!cancelled) setLoading(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [entityId]);
+
+  if (loading) {
+    return <div className="h-24 rounded-2xl animate-pulse" style={{ background: "#0d1421" }}/>;
+  }
+  if (!entry) return null;
+
+  const KIND_LABEL: Record<FA["kind"], string> = {
+    official: "Officiel", fan: "Fan", media: "Média", player: "Joueur",
+  };
+  const KIND_COLOR: Record<FA["kind"], string> = {
+    official: "#22c55e", fan: "#1da1f2", media: "#fbbf24", player: "#a78bfa",
+  };
+
+  return (
+    <div className="rounded-2xl p-4 space-y-3"
+      style={{ background: `linear-gradient(135deg, ${accentColor}10, rgba(13,20,33,0.6))`, border: `1px solid ${accentColor}30` }}>
+      <div className="flex items-center gap-2">
+        <span className="text-base">📣</span>
+        <h3 className="text-sm font-black" style={{ color: "#e8edf5" }}>Écosystème fans</h3>
+      </div>
+
+      {/* Twitter accounts */}
+      {entry.twitter.length > 0 && (
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-widest mb-1.5" style={{ color: "#1da1f2" }}>
+            Comptes X · {entry.twitter.length}
+          </p>
+          <div className="space-y-1">
+            {entry.twitter.map((acc, i) => (
+              <a key={`${acc.handle}-${i}`}
+                href={`https://twitter.com/${encodeURIComponent(acc.handle)}`}
+                target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:opacity-80"
+                style={{ background: "rgba(29,161,242,0.06)", border: "1px solid rgba(29,161,242,0.15)" }}>
+                <span className="text-[11px] font-bold" style={{ color: "#1da1f2" }}>@{acc.handle}</span>
+                <span className="text-[10px] flex-1 truncate" style={{ color: "#94a3b8" }}>{acc.name}</span>
+                {acc.followers && (
+                  <span className="text-[9px] font-bold" style={{ color: "#475569" }}>{acc.followers}</span>
+                )}
+                <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full"
+                  style={{ background: `${KIND_COLOR[acc.kind]}18`, color: KIND_COLOR[acc.kind] }}>
+                  {KIND_LABEL[acc.kind]}
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Fan sites */}
+      {entry.sites.length > 0 && (
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-widest mb-1.5" style={{ color: "#22c55e" }}>
+            Sites de fans · {entry.sites.length}
+          </p>
+          <div className="space-y-1">
+            {entry.sites.map((s, i) => (
+              <a key={`${s.url}-${i}`} href={s.url} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:opacity-80"
+                style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.15)" }}>
+                <span className="text-[11px] font-bold flex-1 truncate" style={{ color: "#e8edf5" }}>{s.name}</span>
+                <span className="text-[9px] font-mono truncate max-w-[40%]" style={{ color: "#475569" }}>{s.url.replace(/^https?:\/\//, "")}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Hashtags */}
+      {entry.hashtags.length > 0 && (
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-widest mb-1.5" style={{ color: "#f59e0b" }}>
+            Hashtags X
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {entry.hashtags.map((h, i) => (
+              <a key={`${h}-${i}`}
+                href={`https://twitter.com/hashtag/${encodeURIComponent(h.replace(/^#/, ""))}`}
+                target="_blank" rel="noopener noreferrer"
+                className="text-[10px] font-bold px-2 py-0.5 rounded-full hover:opacity-80"
+                style={{ background: "rgba(245,158,11,0.1)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.25)" }}>
+                {h.startsWith("#") ? h : `#${h}`}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2610,6 +2732,9 @@ function NationDashboard({nation,onChange,onSwitchNation}:{nation:Nation;onChang
           dans l&apos;onglet <span style={{color:"#fbbf24"}}>Coupe du Monde</span>.
         </p>
       </div>
+
+      {/* Fan ecosystem */}
+      <FanEcosystemCard entityId={`nation:${nation.code}`} accentColor="#fbbf24" />
 
       {/* Tweet my pick */}
       <TweetMyPickCard

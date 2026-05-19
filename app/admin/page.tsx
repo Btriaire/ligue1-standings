@@ -8,7 +8,12 @@ import {
   Eye, EyeSlash, HardDrives, Trash, WifiHigh, WifiSlash,
   ArrowSquareOut, Funnel, ToggleLeft, ToggleRight,
   ChartBar, TwitterLogo, FloppyDisk, CloudArrowDown,
+  CaretDown, CaretRight, Hash, Globe as GlobeIcon,
 } from "@phosphor-icons/react";
+import {
+  FAN_CLUBS_L1, FAN_CLUBS_L2, FAN_NATIONS,
+  type FanEntry, type FanAccount,
+} from "@/app/lib/fanConfig";
 
 /* ─── Types ──────────────────────────────────────────────────── */
 interface DataSource {
@@ -81,6 +86,73 @@ const DEFAULT_TWITTER_HANDLES: Record<string, string> = {
   "525":  "supp_Lorient",     // Supporters Lorient — 2.8K followers
   "1045": "PassionParisFC",   // Passion Paris FC
 };
+
+// Labels for the fan-config admin editor. Keys must match the ids used
+// in FAN_CLUBS_L2 / FAN_NATIONS in `app/lib/fanConfig.ts`.
+const L2_CLUBS_ADMIN: { id: number; name: string }[] = [
+  { id: 10242,  name: "Troyes" },        { id: 9853,   name: "Saint-Étienne" },
+  { id: 9837,   name: "Reims" },         { id: 10249,  name: "Montpellier" },
+  { id: 8311,   name: "Clermont" },      { id: 9747,   name: "Guingamp" },
+  { id: 8682,   name: "Le Mans" },       { id: 6390,   name: "Red Star" },
+  { id: 4120,   name: "Rodez" },         { id: 293352, name: "Annecy" },
+  { id: 6355,   name: "Pau" },           { id: 47214,  name: "Dunkerque" },
+  { id: 9855,   name: "Grenoble" },      { id: 8481,   name: "Nancy" },
+  { id: 4170,   name: "Boulogne" },      { id: 7853,   name: "Laval" },
+  { id: 7794,   name: "Bastia" },        { id: 8587,   name: "Amiens" },
+];
+
+const NATIONS_ADMIN: { code: string; name: string }[] = [
+  { code:"ARG", name:"Argentine" },   { code:"CHI", name:"Chili" },
+  { code:"PER", name:"Pérou" },       { code:"AUS", name:"Australie" },
+  { code:"MEX", name:"Mexique" },     { code:"JAM", name:"Jamaïque" },
+  { code:"VEN", name:"Venezuela" },   { code:"ECU", name:"Équateur" },
+  { code:"USA", name:"USA" },         { code:"PAN", name:"Panama" },
+  { code:"CUB", name:"Cuba" },        { code:"NZL", name:"Nouvelle-Zélande" },
+  { code:"CAN", name:"Canada" },      { code:"HON", name:"Honduras" },
+  { code:"URU", name:"Uruguay" },     { code:"POR", name:"Portugal" },
+  { code:"ESP", name:"Espagne" },     { code:"MAR", name:"Maroc" },
+  { code:"BEL", name:"Belgique" },    { code:"JPN", name:"Japon" },
+  { code:"FRA", name:"France" },      { code:"KSA", name:"Arabie Saoudite" },
+  { code:"SUI", name:"Suisse" },      { code:"ALG", name:"Algérie" },
+  { code:"BRA", name:"Brésil" },      { code:"COL", name:"Colombie" },
+  { code:"PAR", name:"Paraguay" },    { code:"CMR", name:"Cameroun" },
+  { code:"GER", name:"Allemagne" },   { code:"NED", name:"Pays-Bas" },
+  { code:"POL", name:"Pologne" },     { code:"SRB", name:"Serbie" },
+  { code:"ENG", name:"Angleterre" },  { code:"SEN", name:"Sénégal" },
+  { code:"TUN", name:"Tunisie" },     { code:"CRC", name:"Costa Rica" },
+  { code:"ITA", name:"Italie" },      { code:"CRO", name:"Croatie" },
+  { code:"ROU", name:"Roumanie" },    { code:"ANG", name:"Angola" },
+  { code:"UKR", name:"Ukraine" },     { code:"GHA", name:"Ghana" },
+  { code:"RSA", name:"Afrique du Sud" }, { code:"COD", name:"RD Congo" },
+  { code:"KOR", name:"Corée du Sud" },{ code:"CIV", name:"Côte d'Ivoire" },
+  { code:"ZIM", name:"Zimbabwe" },    { code:"KEN", name:"Kenya" },
+];
+
+interface FanCatalogRow {
+  id: string;           // "club:524" / "nation:FRA"
+  scope: "L1" | "L2" | "WC";
+  label: string;
+  defaults: FanEntry;
+}
+
+function buildFanCatalogRows(): FanCatalogRow[] {
+  const rows: FanCatalogRow[] = [];
+  for (const c of L1_CLUBS_ADMIN) {
+    const d = FAN_CLUBS_L1[c.id];
+    if (d) rows.push({ id:`club:${c.id}`, scope:"L1", label:c.name, defaults:d });
+  }
+  for (const c of L2_CLUBS_ADMIN) {
+    const d = FAN_CLUBS_L2[c.id];
+    if (d) rows.push({ id:`club:${c.id}`, scope:"L2", label:c.name, defaults:d });
+  }
+  for (const n of NATIONS_ADMIN) {
+    const d = FAN_NATIONS[n.code];
+    if (d) rows.push({ id:`nation:${n.code}`, scope:"WC", label:n.name, defaults:d });
+  }
+  return rows;
+}
+
+const FAN_CATALOG_ROWS: FanCatalogRow[] = buildFanCatalogRows();
 
 interface PingResult {
   ok: boolean; status: number; ms: number;
@@ -231,6 +303,52 @@ export default function AdminPage() {
   const [archiveIngesting, setArchiveIngesting] = useState(false);
   const [archiveLog, setArchiveLog] = useState<string>("");
 
+  // ── Fan ecosystem config (Twitter accounts ≥5 / sites / hashtags) ────────
+  const [fanEntries, setFanEntries] = useState<Record<string, FanEntry>>(() => {
+    const out: Record<string, FanEntry> = {};
+    for (const r of FAN_CATALOG_ROWS) out[r.id] = r.defaults;
+    return out;
+  });
+  const [fanScope, setFanScope]   = useState<"L1" | "L2" | "WC">("L1");
+  const [fanOpen, setFanOpen]     = useState<string | null>(null);
+  const [fanSaving, setFanSaving] = useState(false);
+  const [fanLog, setFanLog]       = useState<string>("");
+
+  const loadFanConfig = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/fan-config");
+      if (!res.ok) return;
+      const d = await res.json() as { overrides: Record<string, FanEntry> };
+      if (d.overrides && Object.keys(d.overrides).length) {
+        setFanEntries(prev => ({ ...prev, ...d.overrides }));
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  async function saveFanConfig() {
+    setFanSaving(true); setFanLog("⏳ Sauvegarde…");
+    try {
+      const res = await fetch("/api/admin/fan-config", {
+        method:"POST", headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ overrides: fanEntries }),
+      });
+      const d = await res.json() as { ok: boolean; saved: number; error?: string };
+      setFanLog(d.ok
+        ? `✅ ${d.saved} entité(s) sauvegardée(s) à ${new Date().toLocaleTimeString("fr-FR")}`
+        : `❌ ${d.error ?? "Erreur"}`);
+    } catch (e) {
+      setFanLog(`❌ ${String(e)}`);
+    } finally { setFanSaving(false); }
+  }
+
+  function updateFanEntry(id: string, patch: Partial<FanEntry>) {
+    setFanEntries(prev => ({ ...prev, [id]: { ...prev[id], ...patch } }));
+  }
+  function resetFanEntry(id: string) {
+    const row = FAN_CATALOG_ROWS.find(r => r.id === id);
+    if (row) setFanEntries(prev => ({ ...prev, [id]: row.defaults }));
+  }
+
   useEffect(() => {
     fetch("/api/admin/auth")
       .then(r => r.ok ? r.json() : { admin: false })
@@ -298,8 +416,11 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    if (authed) { loadStatus(); loadHistorical(); loadTwitterConfig(); loadArchiveMeta(); }
-  }, [authed, loadStatus, loadHistorical, loadTwitterConfig, loadArchiveMeta]);
+    if (authed) {
+      loadStatus(); loadHistorical(); loadTwitterConfig(); loadArchiveMeta();
+      loadFanConfig();
+    }
+  }, [authed, loadStatus, loadHistorical, loadTwitterConfig, loadArchiveMeta, loadFanConfig]);
 
   async function logout() {
     await fetch("/api/admin/auth", { method: "DELETE" });
@@ -817,6 +938,170 @@ export default function AdminPage() {
                 style={{ background: "rgba(29,161,242,0.08)", border: "1px solid rgba(29,161,242,0.25)", color: "#1da1f2" }}>
                 {twitterSaving ? <ArrowsClockwise size={11} className="animate-spin"/> : <FloppyDisk size={11}/>}
                 {twitterSaving ? "Sauvegarde…" : "Sauvegarder les handles"}
+              </button>
+            </section>
+
+            {/* ── Fan ecosystem (Twitter ≥5, fan sites, hashtags) ── */}
+            <section>
+              <h2 className="text-[9px] font-black uppercase tracking-widest mb-2 flex items-center gap-1.5"
+                style={{ color: "#475569" }}>
+                <Hash size={11}/> Écosystème fans (Twitter / Sites / Hashtags)
+              </h2>
+              <p className="text-[9px] mb-2" style={{ color: "#475569" }}>
+                Pour chaque club Ligue 1, Ligue 2 et équipe nationale CdM 2026 : comptes X (min. 5, classés par taille), sites de fans et hashtags. Modifiable, repris partout dans l&apos;app.
+              </p>
+              <div className="flex gap-1.5 mb-2">
+                {(["L1","L2","WC"] as const).map(sc => (
+                  <button key={sc} onClick={() => { setFanScope(sc); setFanOpen(null); }}
+                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold"
+                    style={{
+                      background: fanScope===sc ? "rgba(59,130,246,0.15)" : "rgba(255,255,255,0.04)",
+                      border: `1px solid ${fanScope===sc ? "#3b82f6" : "#1e2d42"}`,
+                      color: fanScope===sc ? "#3b82f6" : "#94a3b8",
+                    }}>
+                    {sc==="L1" ? "Ligue 1 (18)" : sc==="L2" ? "Ligue 2 (18)" : "CdM 2026 (48)"}
+                  </button>
+                ))}
+              </div>
+              <div className="rounded-xl overflow-hidden mb-2" style={{ border:"1px solid #1e2d42" }}>
+                {FAN_CATALOG_ROWS.filter(r => r.scope === fanScope).map((row, i, arr) => {
+                  const entry = fanEntries[row.id] ?? row.defaults;
+                  const open = fanOpen === row.id;
+                  return (
+                    <div key={row.id} style={{ background:"#0d1421", borderBottom: i<arr.length-1 ? "1px solid #1e2d42" : "none" }}>
+                      <button onClick={() => setFanOpen(open ? null : row.id)}
+                        className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left">
+                        {open ? <CaretDown size={10} style={{ color:"#94a3b8" }}/> : <CaretRight size={10} style={{ color:"#94a3b8" }}/>}
+                        <span className="text-[10px] font-bold flex-1 truncate" style={{ color:"#e8edf5" }}>{row.label}</span>
+                        <span className="text-[9px]" style={{ color:"#475569" }}>
+                          {entry.twitter.length} X · {entry.sites.length} sites · {entry.hashtags.length} #
+                        </span>
+                      </button>
+                      {open && (
+                        <div className="px-2.5 pb-2.5 pt-1 space-y-2" style={{ borderTop:"1px dashed #1e2d42" }}>
+                          {/* Twitter accounts */}
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[9px] font-black uppercase tracking-widest" style={{ color:"#1da1f2" }}>
+                                Comptes X
+                              </span>
+                              <button onClick={() => updateFanEntry(row.id, {
+                                twitter: [...entry.twitter, { handle:"", name:"", kind:"fan" }],
+                              })} className="text-[9px] px-1.5 py-0.5 rounded" style={{ background:"rgba(29,161,242,0.1)", color:"#1da1f2" }}>+ ajouter</button>
+                            </div>
+                            {entry.twitter.map((acc, idx) => (
+                              <div key={idx} className="flex items-center gap-1 mb-1">
+                                <input value={acc.handle} placeholder="handle"
+                                  onChange={e => {
+                                    const next = [...entry.twitter];
+                                    next[idx] = { ...acc, handle: e.target.value.replace(/^@/, "") };
+                                    updateFanEntry(row.id, { twitter: next });
+                                  }}
+                                  className="flex-1 min-w-0 text-[10px] px-1.5 py-1 rounded outline-none"
+                                  style={{ background:"rgba(255,255,255,0.04)", border:"1px solid #1e2d42", color:"#e8edf5" }}/>
+                                <input value={acc.name} placeholder="nom"
+                                  onChange={e => {
+                                    const next = [...entry.twitter];
+                                    next[idx] = { ...acc, name: e.target.value };
+                                    updateFanEntry(row.id, { twitter: next });
+                                  }}
+                                  className="flex-1 min-w-0 text-[10px] px-1.5 py-1 rounded outline-none"
+                                  style={{ background:"rgba(255,255,255,0.04)", border:"1px solid #1e2d42", color:"#e8edf5" }}/>
+                                <select value={acc.kind} onChange={e => {
+                                  const next = [...entry.twitter];
+                                  next[idx] = { ...acc, kind: e.target.value as FanAccount["kind"] };
+                                  updateFanEntry(row.id, { twitter: next });
+                                }} className="text-[10px] px-1 py-1 rounded outline-none"
+                                  style={{ background:"rgba(255,255,255,0.04)", border:"1px solid #1e2d42", color:"#e8edf5" }}>
+                                  <option value="official">officiel</option>
+                                  <option value="fan">fan</option>
+                                  <option value="media">media</option>
+                                  <option value="player">joueur</option>
+                                </select>
+                                <input value={acc.followers ?? ""} placeholder="fans"
+                                  onChange={e => {
+                                    const next = [...entry.twitter];
+                                    next[idx] = { ...acc, followers: e.target.value };
+                                    updateFanEntry(row.id, { twitter: next });
+                                  }}
+                                  className="w-12 text-[10px] px-1.5 py-1 rounded outline-none"
+                                  style={{ background:"rgba(255,255,255,0.04)", border:"1px solid #1e2d42", color:"#e8edf5" }}/>
+                                <button onClick={() => updateFanEntry(row.id, {
+                                  twitter: entry.twitter.filter((_, j) => j !== idx),
+                                })} className="text-[9px] px-1 py-1 rounded" style={{ color:"#ef4444" }}>
+                                  <Trash size={10}/>
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          {/* Fan sites */}
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[9px] font-black uppercase tracking-widest" style={{ color:"#22c55e" }}>
+                                <GlobeIcon size={9} className="inline -mt-0.5 mr-1"/>Sites de fans
+                              </span>
+                              <button onClick={() => updateFanEntry(row.id, {
+                                sites: [...entry.sites, { name:"", url:"" }],
+                              })} className="text-[9px] px-1.5 py-0.5 rounded" style={{ background:"rgba(34,197,94,0.1)", color:"#22c55e" }}>+ ajouter</button>
+                            </div>
+                            {entry.sites.map((site, idx) => (
+                              <div key={idx} className="flex items-center gap-1 mb-1">
+                                <input value={site.name} placeholder="nom"
+                                  onChange={e => {
+                                    const next = [...entry.sites];
+                                    next[idx] = { ...site, name: e.target.value };
+                                    updateFanEntry(row.id, { sites: next });
+                                  }}
+                                  className="w-32 text-[10px] px-1.5 py-1 rounded outline-none"
+                                  style={{ background:"rgba(255,255,255,0.04)", border:"1px solid #1e2d42", color:"#e8edf5" }}/>
+                                <input value={site.url} placeholder="https://…"
+                                  onChange={e => {
+                                    const next = [...entry.sites];
+                                    next[idx] = { ...site, url: e.target.value };
+                                    updateFanEntry(row.id, { sites: next });
+                                  }}
+                                  className="flex-1 min-w-0 text-[10px] px-1.5 py-1 rounded outline-none"
+                                  style={{ background:"rgba(255,255,255,0.04)", border:"1px solid #1e2d42", color:"#e8edf5" }}/>
+                                <button onClick={() => updateFanEntry(row.id, {
+                                  sites: entry.sites.filter((_, j) => j !== idx),
+                                })} className="text-[9px] px-1 py-1 rounded" style={{ color:"#ef4444" }}>
+                                  <Trash size={10}/>
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          {/* Hashtags */}
+                          <div>
+                            <span className="text-[9px] font-black uppercase tracking-widest block mb-1" style={{ color:"#f59e0b" }}>
+                              Hashtags X (séparés par virgule)
+                            </span>
+                            <input value={entry.hashtags.join(", ")}
+                              onChange={e => updateFanEntry(row.id, {
+                                hashtags: e.target.value.split(",").map(h => h.trim()).filter(Boolean),
+                              })}
+                              className="w-full text-[10px] px-1.5 py-1 rounded outline-none"
+                              style={{ background:"rgba(255,255,255,0.04)", border:"1px solid #1e2d42", color:"#e8edf5" }}/>
+                          </div>
+                          <button onClick={() => resetFanEntry(row.id)}
+                            className="text-[9px] px-2 py-1 rounded" style={{ background:"rgba(255,255,255,0.04)", border:"1px solid #1e2d42", color:"#94a3b8" }}>
+                            ↺ Réinitialiser par défaut
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {fanLog && (
+                <p className="text-[9px] font-mono mb-2" style={{ color: fanLog.startsWith("✅") ? "#22c55e" : fanLog.startsWith("❌") ? "#ef4444" : "#fbbf24" }}>
+                  {fanLog}
+                </p>
+              )}
+              <button onClick={saveFanConfig} disabled={fanSaving}
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold hover:opacity-80 disabled:opacity-40"
+                style={{ background:"rgba(34,197,94,0.08)", border:"1px solid rgba(34,197,94,0.25)", color:"#22c55e" }}>
+                {fanSaving ? <ArrowsClockwise size={11} className="animate-spin"/> : <FloppyDisk size={11}/>}
+                {fanSaving ? "Sauvegarde…" : "Sauvegarder l'écosystème fans"}
               </button>
             </section>
 
