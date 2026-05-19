@@ -1,8 +1,13 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { Calendar, Trophy, Users, MapPin, Globe, Star, Lightning, TrendUp, Target, Shield, MagnifyingGlass, X, ListBullets, SquaresFour, CaretDown, Flame, SoccerBall, Medal, Flag, Warning, Crosshair, Crown } from "@phosphor-icons/react";
+import { useState, useEffect, type ReactNode } from "react";
+import dynamic from "next/dynamic";
+import { Calendar, Trophy, Users, MapPin, Globe, Star, Lightning, TrendUp, Target, Shield, MagnifyingGlass, X, ListBullets, SquaresFour, CaretDown, Flame, SoccerBall, Medal, Flag, Warning, Crosshair, Crown, Newspaper, TwitterLogo, Clock, ArrowSquareOut } from "@phosphor-icons/react";
 import RefereesWCTab from "./RefereesWCTab";
+import { isWorldCupHot } from "@/app/lib/worldCup";
+
+const NewsModal = dynamic(() => import("./NewsModal"), { ssr: false });
+const TweetModal = dynamic(() => import("./TweetModal"), { ssr: false });
 
 // ─── Data ──────────────────────────────────────────────────────────────────
 
@@ -776,11 +781,197 @@ function BracketTab() {
   );
 }
 
+// ─── News CdM tab ────────────────────────────────────────────────────────────
+
+interface NewsItem  { title: string; pubDate: string; url: string; source?: string }
+interface TweetItem { id: string; title: string; pubDate: string; url: string; author: string }
+
+// Hand-picked World Cup / international football accounts. We mix official
+// (FIFA, federations) with strong journalism (LEquipe, GoalFR, BBCSport) so
+// the timeline has multiple voices, not one PR feed.
+const WC_TWITTER_ACCOUNTS = [
+  "FIFAWorldCup",
+  "fifacom_fr",
+  "equipedefrance",
+  "lequipe",
+  "GoalFR",
+  "BBCSport",
+];
+
+function timeAgoShort(iso: string): string {
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (diff < 60)    return "à l'instant";
+  if (diff < 3600)  return `${Math.round(diff / 60)} min`;
+  if (diff < 86400) return `${Math.round(diff / 3600)} h`;
+  if (diff < 86400 * 7) return `${Math.round(diff / 86400)} j`;
+  return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+}
+
+function NewsCdMTab() {
+  const [newsItems, setNewsItems]   = useState<NewsItem[]>([]);
+  const [tweets,    setTweets]      = useState<TweetItem[]>([]);
+  const [loadingN,  setLoadingN]    = useState(true);
+  const [loadingT,  setLoadingT]    = useState(true);
+  const [tab, setTab] = useState<"news" | "twitter">("news");
+  const [openNews,  setOpenNews]  = useState<NewsItem  | null>(null);
+  const [openTweet, setOpenTweet] = useState<TweetItem | null>(null);
+
+  // Fetch So Foot mondial news
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/news?topic=mondial")
+      .then(r => r.json())
+      .then(d => { if (!cancelled) setNewsItems(d.items ?? []); })
+      .catch(() => { /* silent */ })
+      .finally(() => { if (!cancelled) setLoadingN(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Fetch all WC twitter accounts in parallel and merge
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const results = await Promise.all(
+        WC_TWITTER_ACCOUNTS.map(h =>
+          fetch(`/api/twitter-user?handle=${encodeURIComponent(h)}`)
+            .then(r => r.json())
+            .then((d: { tweets?: TweetItem[] }) => d.tweets ?? [])
+            .catch(() => [] as TweetItem[])
+        )
+      );
+      if (cancelled) return;
+      // Flatten + sort newest first, cap at 30
+      const merged = results.flat()
+        .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
+        .slice(0, 30);
+      setTweets(merged);
+      setLoadingT(false);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="rounded-2xl p-4"
+        style={{ background: "linear-gradient(135deg, rgba(251,191,36,0.10), rgba(239,68,68,0.06))", border: "1px solid rgba(251,191,36,0.3)" }}>
+        <div className="flex items-center gap-2 mb-1">
+          <Newspaper size={18} weight="bold" style={{ color: "#fbbf24" }}/>
+          <h3 className="text-base font-black" style={{ color: "#e8edf5" }}>News Coupe du Monde 2026</h3>
+        </div>
+        <p className="text-[11px]" style={{ color: "#94a3b8" }}>
+          Articles &amp; tweets · sources variées · cliquez pour le détail
+        </p>
+      </div>
+
+      {/* Switcher */}
+      <div className="flex gap-1 p-1 rounded-xl" style={{ background: "#0a0f1c", border: "1px solid #1a2235", display: "inline-flex" }}>
+        {([["news", "Articles", Newspaper, newsItems.length], ["twitter", "Twitter", TwitterLogo, tweets.length]] as const).map(([id, label, Icon, count]) => {
+          const active = tab === id;
+          return (
+            <button key={id} onClick={() => setTab(id)}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap inline-flex items-center gap-1.5"
+              style={{
+                background: active ? "rgba(251,191,36,0.15)" : "transparent",
+                color: active ? "#fbbf24" : "#64748b",
+                border: active ? "1px solid rgba(251,191,36,0.4)" : "1px solid transparent",
+              }}>
+              <Icon size={11} weight="bold"/>
+              {label}
+              {count > 0 && (
+                <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full"
+                  style={{ background: active ? "rgba(251,191,36,0.25)" : "rgba(255,255,255,0.05)", color: active ? "#fbbf24" : "#64748b" }}>
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Content */}
+      {tab === "news" ? (
+        <div className="space-y-2">
+          {loadingN ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-20 rounded-xl animate-pulse" style={{ background: "#0d1421" }} />
+            ))
+          ) : newsItems.length === 0 ? (
+            <div className="rounded-xl p-6 text-center" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
+              <p className="text-sm" style={{ color: "#6b7c96" }}>Aucune actualité Mondial disponible pour l&apos;instant.</p>
+            </div>
+          ) : (
+            newsItems.map((n, i) => (
+              <button key={n.url + i} onClick={() => setOpenNews(n)}
+                className="w-full text-left rounded-xl p-3 transition-all duration-150 hover:scale-[1.01] active:scale-[0.99]"
+                style={{ background: "#0d1421", border: "1px solid #1e2d42" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(251,191,36,0.4)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "#1e2d42"; }}>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded"
+                    style={{ background: "rgba(251,191,36,0.15)", color: "#fbbf24" }}>
+                    {n.source ?? "So Foot"}
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[10px]" style={{ color: "#6b7c96" }}>
+                    <Clock size={9} weight="bold"/>
+                    {timeAgoShort(n.pubDate)}
+                  </span>
+                </div>
+                <p className="text-sm font-semibold leading-snug" style={{ color: "#e8edf5" }}>{n.title}</p>
+              </button>
+            ))
+          )}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {loadingT ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-20 rounded-xl animate-pulse" style={{ background: "#0d1421" }} />
+            ))
+          ) : tweets.length === 0 ? (
+            <div className="rounded-xl p-6 text-center" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
+              <p className="text-sm" style={{ color: "#6b7c96" }}>Aucun tweet disponible — Twitter/Nitter temporairement indisponibles.</p>
+            </div>
+          ) : (
+            tweets.map((t) => (
+              <button key={t.id + t.author} onClick={() => setOpenTweet(t)}
+                className="w-full text-left rounded-xl p-3 transition-all duration-150 hover:scale-[1.01] active:scale-[0.99]"
+                style={{ background: "#0d1421", border: "1px solid #1e2d42" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(29,161,242,0.4)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "#1e2d42"; }}>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <TwitterLogo size={11} weight="fill" style={{ color: "#1da1f2" }}/>
+                  <span className="text-[10px] font-bold" style={{ color: "#1da1f2" }}>@{t.author}</span>
+                  <span className="inline-flex items-center gap-1 text-[10px]" style={{ color: "#6b7c96" }}>
+                    <Clock size={9} weight="bold"/>
+                    {timeAgoShort(t.pubDate)}
+                  </span>
+                </div>
+                <p className="text-[13px] leading-snug line-clamp-3" style={{ color: "#e8edf5" }}>{t.title}</p>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Modals */}
+      {openNews && (
+        <NewsModal title={openNews.title} url={openNews.url} pubDate={openNews.pubDate}
+          onClose={() => setOpenNews(null)} />
+      )}
+      {openTweet && (
+        <TweetModal tweet={openTweet} onClose={() => setOpenTweet(null)} />
+      )}
+    </div>
+  );
+}
+
 // ─── Sub-tabs ────────────────────────────────────────────────────────────────
 
-type SubTab = "groupes" | "calendrier" | "joueurs" | "france" | "favoris" | "tableau" | "arbitres";
+type SubTab = "groupes" | "calendrier" | "joueurs" | "france" | "favoris" | "tableau" | "arbitres" | "news";
 
 const SUB_TABS: { id: SubTab; label: string }[] = [
+  { id: "news",       label: "📰 News CdM" },
   { id: "groupes",    label: "Groupes" },
   { id: "tableau",    label: "🏆 Tableau" },
   { id: "calendrier", label: "Calendrier" },
@@ -1501,7 +1692,7 @@ function FavorisTab() {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function WorldCupTab() {
-  const [activeTab, setActiveTab] = useState<SubTab>("groupes");
+  const [activeTab, setActiveTab] = useState<SubTab>(isWorldCupHot() ? "news" : "groupes");
 
   return (
     <div>
@@ -1544,6 +1735,7 @@ export default function WorldCupTab() {
       </div>
 
       {/* Content */}
+      {activeTab === "news"       && <NewsCdMTab />}
       {activeTab === "groupes"    && <GroupesTab />}
       {activeTab === "tableau"    && <BracketTab />}
       {activeTab === "calendrier" && <CalendrierTab />}

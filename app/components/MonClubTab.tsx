@@ -9,7 +9,7 @@ import {
   Trophy, CaretDown, CaretUp, X, TrendUp, TrendDown,
   Users, Calendar, Lightning, ArrowsClockwise, Shield, MapPin, Target,
   Star, Pulse, ChartBar, FloppyDisk, CheckCircle, ShareNetwork, Globe, Sword,
-  TwitterLogo, ArrowSquareOut,
+  TwitterLogo, ArrowSquareOut, PaperPlaneTilt, Gear,
 } from "@phosphor-icons/react";
 import { NATIONS, nationsInGroup, type Nation, isWorldCupHot, WC2026_START } from "@/app/lib/worldCup";
 import { PlayerRow, PlayerEntry, POS_ORDER, POS_FR as POS_FR_PLURAL, POS_COL } from "./PlayerCard";
@@ -2486,6 +2486,193 @@ function FicheSection({club,nextMatch,opponentId,ficheTeamData,ficheSquad,mySqua
         )}
       </div>
 
+      {/* Tweet my pick */}
+      <TweetMyPickCard
+        text={`Je supporte ${club.name} en ${club.id === 1045 || L2_CLUBS.some(c => c.id === club.id) ? "Ligue 2" : "Ligue 1"} cette saison ! #${club.shortName.replace(/\s+/g, "")} #FootInsider`}
+        accentColor={club.color}
+      />
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════ TWEET MY PICK ══ */
+
+// Lets the user push their MonClub selection to Twitter via the standard
+// web intent (no OAuth required — Twitter opens with the tweet pre-filled
+// and the user picks the account to post from). The optional @handle field
+// is the user's "FootInsider broadcast account" — when set, it's @-mentioned
+// at the start so it appears in that account's mentions timeline and the
+// user can quote-retweet it from there.
+const TWEET_HANDLE_KEY = "monClub_tweetHandle";
+
+function TweetMyPickCard({ text, accentColor = "#fbbf24" }: { text: string; accentColor?: string }) {
+  const [handle, setHandle] = useState<string>("");
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+
+  useEffect(() => {
+    const saved = localStorage.getItem(TWEET_HANDLE_KEY) ?? "";
+    setHandle(saved);
+    setDraft(saved);
+  }, []);
+
+  const saveHandle = () => {
+    // Twitter handle rules: 1–15 chars, alphanumeric/underscore
+    const clean = draft.replace(/^@/, "").trim();
+    if (clean && !/^[A-Za-z0-9_]{1,15}$/.test(clean)) {
+      alert("Handle invalide — 1 à 15 caractères, lettres/chiffres/_");
+      return;
+    }
+    localStorage.setItem(TWEET_HANDLE_KEY, clean);
+    setHandle(clean);
+    setEditing(false);
+  };
+
+  const fullText = handle ? `@${handle} ${text}` : text;
+  const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(fullText)}`;
+
+  return (
+    <div className="rounded-xl p-4" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
+      <div className="flex items-center gap-2 mb-2">
+        <TwitterLogo size={14} weight="fill" style={{ color: "#1da1f2" }}/>
+        <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "#6b7c96" }}>
+          Partager ma sélection
+        </span>
+        <button onClick={() => setEditing(v => !v)} aria-label="Configurer le compte cible"
+          className="ml-auto p-1 rounded-md hover:bg-white/5 transition-colors">
+          <Gear size={12} style={{ color: "#6b7c96" }}/>
+        </button>
+      </div>
+
+      {editing ? (
+        <div className="space-y-2 mb-2">
+          <label className="text-[10px]" style={{ color: "#94a3b8" }}>
+            Compte Twitter cible (sera @-mentionné). Laissez vide pour tweeter sans mention.
+          </label>
+          <div className="flex gap-1.5">
+            <div className="flex-1 flex items-center gap-1 rounded-lg px-2"
+              style={{ background: "#0a0f1c", border: "1px solid #1e2d42" }}>
+              <span className="text-xs" style={{ color: "#6b7c96" }}>@</span>
+              <input type="text" value={draft} onChange={e => setDraft(e.target.value.replace(/^@/, ""))}
+                placeholder="MonCompteFoot"
+                className="flex-1 bg-transparent outline-none text-xs py-1.5"
+                style={{ color: "#e8edf5" }}/>
+            </div>
+            <button onClick={saveHandle}
+              className="text-[10px] font-bold px-3 rounded-lg"
+              style={{ background: `${accentColor}22`, color: accentColor, border: `1px solid ${accentColor}59` }}>
+              OK
+            </button>
+          </div>
+          <p className="text-[10px]" style={{ color: "#475569" }}>
+            Astuce : créez un compte dédié (ex. @MonPronoCdM) — l&apos;intent Twitter vous
+            laissera choisir depuis quel compte poster au moment de publier.
+          </p>
+        </div>
+      ) : (
+        handle && (
+          <p className="text-[10px] mb-2" style={{ color: "#6b7c96" }}>
+            Mention : <span style={{ color: "#1da1f2" }}>@{handle}</span>
+          </p>
+        )
+      )}
+
+      <div className="rounded-lg p-2.5 mb-2 text-[12px] leading-snug"
+        style={{ background: "#0a0f1c", border: "1px solid #1e2d42", color: "#94a3b8" }}>
+        {handle && <span style={{ color: "#1da1f2" }}>@{handle} </span>}
+        {text}
+      </div>
+
+      <a href={intentUrl} target="_blank" rel="noopener noreferrer"
+        className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg w-full justify-center"
+        style={{ background: "#1da1f2", color: "#fff" }}>
+        <PaperPlaneTilt size={12} weight="bold"/>
+        Publier sur Twitter
+      </a>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════ NATION DASHBOARD ══ */
+
+function NationDashboard({nation,onChange}:{nation:Nation;onChange:()=>void}) {
+  const groupMates = nationsInGroup(nation.group).filter(n => n.code !== nation.code);
+  const daysToWC = Math.max(0, Math.round((WC2026_START.getTime() - Date.now()) / 86_400_000));
+
+  return (
+    <div className="space-y-4">
+      {/* Hero */}
+      <div className="rounded-2xl overflow-hidden relative"
+        style={{background:"linear-gradient(135deg, rgba(251,191,36,0.12), rgba(239,68,68,0.08))", border:"1px solid rgba(251,191,36,0.3)"}}>
+        <div className="p-4 flex items-center gap-3">
+          <div className="text-5xl">{nation.flag}</div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <h2 className="text-xl font-black truncate" style={{color:"#e8edf5"}}>{nation.name}</h2>
+              {nation.host && (
+                <span className="text-[9px] font-black px-1.5 py-0.5 rounded"
+                  style={{background:"rgba(251,191,36,0.2)",color:"#fbbf24"}}>HÔTE</span>
+              )}
+            </div>
+            <p className="text-[11px]" style={{color:"#94a3b8"}}>
+              Coupe du Monde 2026 · Groupe {nation.group}
+            </p>
+          </div>
+          <button onClick={onChange}
+            className="text-[10px] font-bold px-2.5 py-1.5 rounded-lg"
+            style={{background:"rgba(255,255,255,0.06)",border:"1px solid #1e2d42",color:"#94a3b8"}}>
+            Changer
+          </button>
+        </div>
+        {daysToWC > 0 && (
+          <div className="px-4 pb-3 flex items-center gap-2 text-[10px]" style={{color:"#fbbf24"}}>
+            <Calendar size={10} weight="bold"/>
+            <span className="font-black">J-{daysToWC}</span>
+            <span style={{color:"#6b7c96"}}>avant le coup d&apos;envoi</span>
+          </div>
+        )}
+      </div>
+
+      {/* Group */}
+      <div className="rounded-xl overflow-hidden" style={{border:"1px solid #1e2d42"}}>
+        <div className="px-3 py-2 flex items-center gap-2" style={{background:"#0a0f1c",borderBottom:"1px solid #1e2d42"}}>
+          <Users size={10} style={{color:"#6b7c96"}}/>
+          <span className="text-[9px] font-black uppercase tracking-widest" style={{color:"#6b7c96"}}>
+            Adversaires · Groupe {nation.group}
+          </span>
+        </div>
+        <div className="divide-y" style={{borderColor:"rgba(30,45,66,0.4)"}}>
+          {groupMates.map(n => (
+            <div key={n.code} className="flex items-center gap-3 px-3 py-2.5">
+              <span className="text-2xl">{n.flag}</span>
+              <span className="flex-1 text-sm font-semibold" style={{color:"#e8edf5"}}>{n.name}</span>
+              {n.host && (
+                <span className="text-[8px] font-black px-1.5 py-0.5 rounded"
+                  style={{background:"rgba(251,191,36,0.18)",color:"#fbbf24"}}>HÔTE</span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Prediction CTA */}
+      <div className="rounded-xl p-4 text-center"
+        style={{background:"#0d1421",border:"1px solid #1e2d42"}}>
+        <Lightning size={20} weight="bold" style={{color:"#fbbf24"}} className="mx-auto mb-2"/>
+        <p className="text-xs font-bold mb-1" style={{color:"#e8edf5"}}>
+          Pronostics IA disponibles
+        </p>
+        <p className="text-[10px]" style={{color:"#6b7c96"}}>
+          Retrouvez les prédictions de tous les matchs de la phase de groupes
+          dans l&apos;onglet <span style={{color:"#fbbf24"}}>Coupe du Monde</span>.
+        </p>
+      </div>
+
+      {/* Tweet my pick */}
+      <TweetMyPickCard
+        text={`Je supporte ${nation.flag} ${nation.name} (Groupe ${nation.group}) pour la Coupe du Monde 2026 ! #CdM2026 #FootInsider`}
+        accentColor="#fbbf24"
+      />
     </div>
   );
 }
