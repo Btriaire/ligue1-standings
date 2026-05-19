@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Calendar, Trophy, Users, MapPin, Globe, Star, Lightning, TrendUp, Target, Shield, MagnifyingGlass, X, ListBullets, SquaresFour, CaretDown } from "@phosphor-icons/react";
+import { useState, type ReactNode } from "react";
+import { Calendar, Trophy, Users, MapPin, Globe, Star, Lightning, TrendUp, Target, Shield, MagnifyingGlass, X, ListBullets, SquaresFour, CaretDown, Sparkle, Crown, Flame, Rocket, SoccerBall, Medal } from "@phosphor-icons/react";
 import RefereesWCTab from "./RefereesWCTab";
 
 // ─── Data ──────────────────────────────────────────────────────────────────
@@ -21,14 +21,14 @@ const GROUPS = [
   { letter: "L", teams: ["🇰🇷 Corée du Sud", "🇨🇮 Côte d'Ivoire", "🇿🇼 Zimbabwe", "🇰🇪 Kenya"] },
 ];
 
-const SCHEDULE = [
-  { phase: "Match d'ouverture", dates: "11 juin 2026",         icon: "🚀", color: "#00d4ff" },
-  { phase: "Phase de groupes", dates: "12 juin – 2 juil 2026", icon: "⚽", color: "#22c55e" },
-  { phase: "Huitièmes de finale", dates: "4 – 7 juil 2026",   icon: "🏆", color: "#f59e0b" },
-  { phase: "Quarts de finale", dates: "9 – 12 juil 2026",      icon: "⭐", color: "#f97316" },
-  { phase: "Demi-finales", dates: "14 – 15 juil 2026",         icon: "🔥", color: "#ef4444" },
-  { phase: "Match 3e place", dates: "18 juil 2026",            icon: "🥉", color: "#a78bfa" },
-  { phase: "FINALE", dates: "19 juil 2026",                    icon: "🏆", color: "#fbbf24" },
+const SCHEDULE: { phase: string; dates: string; Icon: (props: { size?: number; weight?: "regular" | "bold" | "fill" | "duotone" }) => ReactNode; color: string }[] = [
+  { phase: "Match d'ouverture",   dates: "11 juin 2026",         Icon: (p) => <Rocket     weight="fill" {...p} />, color: "#00d4ff" },
+  { phase: "Phase de groupes",    dates: "12 juin – 2 juil 2026", Icon: (p) => <SoccerBall weight="fill" {...p} />, color: "#22c55e" },
+  { phase: "Huitièmes de finale", dates: "4 – 7 juil 2026",      Icon: (p) => <Shield     weight="fill" {...p} />, color: "#f59e0b" },
+  { phase: "Quarts de finale",    dates: "9 – 12 juil 2026",     Icon: (p) => <Star       weight="fill" {...p} />, color: "#f97316" },
+  { phase: "Demi-finales",        dates: "14 – 15 juil 2026",    Icon: (p) => <Flame      weight="fill" {...p} />, color: "#ef4444" },
+  { phase: "Match 3e place",      dates: "18 juil 2026",         Icon: (p) => <Medal      weight="fill" {...p} />, color: "#a78bfa" },
+  { phase: "FINALE",              dates: "19 juil 2026",         Icon: (p) => <Trophy     weight="fill" {...p} />, color: "#fbbf24" },
 ];
 
 const NOTABLE_MATCHES = [
@@ -275,11 +275,11 @@ const POS_CFG: Record<PosType, { label: string; color: string; bg: string }> = {
   GB:  { label: "GB",  color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
 };
 
-const CAT_CFG: Record<CatType, { label: string; color: string; icon: string }> = {
-  star:       { label: "Superstar",   color: "#fbbf24", icon: "⭐" },
-  revelation: { label: "Révélation",  color: "#06b6d4", icon: "💥" },
-  veteran:    { label: "Vétéran",     color: "#94a3b8", icon: "🧠" },
-  danger:     { label: "Danger",      color: "#f97316", icon: "⚡" },
+const CAT_CFG: Record<CatType, { label: string; color: string; Icon: (props: { size?: number; weight?: "regular" | "bold" | "fill" | "duotone" }) => ReactNode }> = {
+  star:       { label: "Superstar",   color: "#fbbf24", Icon: (p) => <Star    weight="fill" {...p} /> },
+  revelation: { label: "Révélation",  color: "#06b6d4", Icon: (p) => <Sparkle weight="fill" {...p} /> },
+  veteran:    { label: "Vétéran",     color: "#94a3b8", Icon: (p) => <Crown   weight="fill" {...p} /> },
+  danger:     { label: "Danger",      color: "#f97316", Icon: (p) => <Flame   weight="fill" {...p} /> },
 };
 
 // ─── Bracket tab ─────────────────────────────────────────────────────────────
@@ -851,9 +851,9 @@ function PlayerCard({ p }: { p: WCPlayer }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-sm font-black leading-tight" style={{ color: "#e8edf5" }}>{p.name}</span>
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+              <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full"
                 style={{ background: cat.color + "15", color: cat.color, border: `1px solid ${cat.color}25` }}>
-                {cat.icon} {cat.label}
+                <cat.Icon size={9} /> {cat.label}
               </span>
             </div>
             <p className="text-[10px] mt-0.5 truncate" style={{ color: "#64748b" }}>{p.club} · {p.age} ans · Gr.{p.group}</p>
@@ -917,8 +917,8 @@ function PlayerCard({ p }: { p: WCPlayer }) {
         <div className="px-3 pb-3 space-y-2.5" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
           {/* Pronostic */}
           <div className="rounded-xl px-3 py-2 mt-2" style={{ background: `${cat.color}08`, border: `1px solid ${cat.color}20` }}>
-            <p className="text-[9px] uppercase font-bold mb-0.5" style={{ color: cat.color }}>
-              {cat.icon} Pronostic tournoi
+            <p className="inline-flex items-center gap-1 text-[9px] uppercase font-bold mb-0.5" style={{ color: cat.color }}>
+              <cat.Icon size={10} /> Pronostic tournoi
             </p>
             <p className="text-xs leading-relaxed" style={{ color: "#94a3b8" }}>{p.pronostic}</p>
           </div>
@@ -994,7 +994,9 @@ function PlayerRow({ p }: { p: WCPlayer }) {
           <p className="text-xs font-bold truncate" style={{ color: "#e8edf5" }}>{p.name}</p>
           <p className="text-[10px] truncate" style={{ color: "#64748b" }}>{p.club} · {p.age}a · Gr.{p.group}</p>
         </div>
-        <span className="hidden sm:inline text-[9px] flex-shrink-0" title={cat.label}>{cat.icon}</span>
+        <span className="hidden sm:inline-flex items-center flex-shrink-0" title={cat.label} style={{ color: cat.color }}>
+          <cat.Icon size={11} />
+        </span>
         <div className="flex items-center gap-0.5 flex-shrink-0" title="Impact">
           <span className="text-xs font-black" style={{ color: cat.color }}>{p.impact}</span>
           <span className="text-[8px]" style={{ color: "#475569" }}>/100</span>
@@ -1004,9 +1006,10 @@ function PlayerRow({ p }: { p: WCPlayer }) {
       {open && (
         <div className="px-2.5 pb-2.5 pt-1 space-y-1.5" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
           <p className="text-[10px] leading-snug" style={{ color: "#94a3b8" }}>{p.role}</p>
-          <p className="text-[10px] leading-snug px-2 py-1 rounded"
+          <p className="flex items-start gap-1 text-[10px] leading-snug px-2 py-1 rounded"
             style={{ background: `${cat.color}08`, color: "#cbd5e1", border: `1px solid ${cat.color}20` }}>
-            {cat.icon} {p.pronostic}
+            <span style={{ color: cat.color, marginTop: 1 }}><cat.Icon size={10} /></span>
+            <span>{p.pronostic}</span>
           </p>
           <div className="grid grid-cols-4 gap-1">
             <StatBar label="Vit."   value={p.vitesse}   color="#00d4ff" />
@@ -1147,9 +1150,8 @@ function JoueursTab() {
                 className="text-center hover:bg-white/[0.04] rounded-lg py-1 transition-colors">
                 <div className="flex items-center justify-center gap-1 mb-0.5">
                   <span className="text-base">{p.flag}</span>
-                  {i === 0 && <span className="text-xs">🥇</span>}
-                  {i === 1 && <span className="text-xs">🥈</span>}
-                  {i === 2 && <span className="text-xs">🥉</span>}
+                  <Medal size={12} weight="fill"
+                    style={{ color: i === 0 ? "#fbbf24" : i === 1 ? "#cbd5e1" : "#d97706" }} />
                 </div>
                 <p className="text-[10px] font-black truncate" style={{ color: "#e8edf5" }}>{p.name}</p>
                 <p className="text-[9px] truncate" style={{ color: "#64748b" }}>{p.club}</p>
@@ -1261,13 +1263,15 @@ function JoueursTab() {
                 const cfg = f !== "ALL" ? CAT_CFG[f] : null;
                 return (
                   <button key={f} onClick={() => setFilterCat(f)}
-                    className="px-2 py-0.5 rounded text-[10px] font-semibold transition-all"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold transition-all"
                     style={{
                       background: active ? (cfg ? cfg.color + "15" : "rgba(255,255,255,0.08)") : "rgba(255,255,255,0.03)",
                       color: active ? (cfg?.color ?? "#e8edf5") : "#6b7c96",
                       border: `1px solid ${active ? (cfg?.color ?? "#ffffff") + "30" : "rgba(255,255,255,0.06)"}`,
                     }}>
-                    {f === "ALL" ? "Tous profils" : `${cfg!.icon} ${cfg!.label}`}
+                    {f === "ALL" ? "Tous profils" : <>
+                      {cfg && <cfg.Icon size={9} />} {cfg!.label}
+                    </>}
                   </button>
                 );
               })}
@@ -1375,7 +1379,7 @@ function CalendrierTab() {
           {SCHEDULE.map((s) => (
             <div key={s.phase} className="flex items-center gap-3 px-3 py-2 rounded-xl"
               style={{ background: "#0d1421", border: `1px solid ${s.color}20` }}>
-              <span className="text-base flex-shrink-0">{s.icon}</span>
+              <span className="flex-shrink-0" style={{ color: s.color }}><s.Icon size={16} /></span>
               <span className="text-xs font-bold flex-1" style={{ color: s.color }}>{s.phase}</span>
               <span className="text-xs flex-shrink-0" style={{ color: "#6b7c96" }}>{s.dates}</span>
             </div>
@@ -1504,7 +1508,7 @@ export default function WorldCupTab() {
       {/* Slim header */}
       <div className="flex flex-wrap items-center gap-2 px-3 py-2 rounded-xl mb-3"
         style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
-        <span className="text-base">🌍</span>
+        <Globe size={16} weight="fill" style={{ color: "#00d4ff" }} />
         <span className="text-sm font-black tracking-tight" style={{ color: "#e8edf5" }}>Coupe du Monde 2026</span>
         <div className="flex flex-wrap gap-1.5 ml-auto">
           {[
