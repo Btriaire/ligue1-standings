@@ -169,32 +169,32 @@ function PlayersPageInner() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
-  // Reset to hardcoded L1 IDs when switching back to FL1 (otherwise stale L2
-  // IDs would persist and the per-team aggregator would call /api/squad on
-  // FotMob team IDs that don't exist there).
+  // League switch: reset state, then either install hardcoded L1 IDs or
+  // fetch the L2 team IDs from standings. teamIds is the trigger for the
+  // aggregator effect below — we set it AFTER clearing so the aggregator
+  // only ever runs with IDs matching the current league.
   useEffect(() => {
-    if (league !== "FL1") return;
     setAllPlayers([]); setLoadedCount(0); setLoading(true);
-    setTeamIds(TEAM_IDS_L1);
+    setTeamIds([]);
     setClubLabels({});
-  }, [league]);
-
-  // For Ligue 2 we don't hardcode team IDs — fetch them dynamically from
-  // our standings endpoint, which already knows the right competition.
-  useEffect(() => {
-    if (league === "FL1") return;
-    setAllPlayers([]); setLoadedCount(0); setLoading(true);
+    if (league === "FL1") {
+      setTeamIds(TEAM_IDS_L1);
+      return;
+    }
+    let cancelled = false;
     fetch("/api/standings?competition=FL2")
       .then(r => r.json())
       .then((d: { standings?: Array<{ team: { id: number; shortName: string; name: string } }> }) => {
+        if (cancelled) return;
         const ids = (d.standings ?? []).map(s => s.team.id);
         const labels: Record<number, string> = {};
         (d.standings ?? []).forEach(s => { labels[s.team.id] = s.team.shortName || s.team.name; });
-        setTeamIds(ids);
         setClubLabels(labels);
+        setTeamIds(ids);
         if (ids.length === 0) setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [league]);
 
   // L2: fetch FotMob top players (squad endpoint doesn't support FotMob IDs)
@@ -215,18 +215,16 @@ function PlayersPageInner() {
 
   useEffect(() => {
     if (teamIds.length === 0) return;
+    let cancelled = false;
     let done = 0;
     const total = teamIds.length;
-    setLoadedCount(0);
-    // Reset accumulator when switching league
-    setAllPlayers([]);
-
     const squadEndpoint = league === "FL2" ? "/api/squad-l2" : "/api/squad";
 
     teamIds.forEach(id => {
       fetch(`${squadEndpoint}/${id}`)
         .then(r => r.json())
         .then(data => {
+          if (cancelled) return;
           const players: PlayerEntry[] = (data?.squad ?? []).map(
             (p: Omit<PlayerEntry, "clubId" | "club">) => ({ ...p, clubId: id, club: data.team })
           );
@@ -236,11 +234,13 @@ function PlayersPageInner() {
         })
         .catch(() => {})
         .finally(() => {
+          if (cancelled) return;
           done++;
           setLoadedCount(done);
           if (done === total) setLoading(false);
         });
     });
+    return () => { cancelled = true; };
   }, [teamIds, league]);
 
   // Merge static L1 names with any dynamically-fetched (L2) labels so search
