@@ -440,6 +440,11 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
   const [communityTeam, setCommunityTeam] = useState<{votes:number;formation:FKey;players:(string|null)[];slotDetails:{name:string;count:number}[][];}|null>(null);
   const [communityLoading, setCommunityLoading] = useState(false);
 
+  // Curated fan ecosystem (X handles, hashtags, fan sites) bundled in
+  // app/lib/fanConfig.ts — used as fallback content whenever the live
+  // fetch fails or no feed/RSS is wired up for this club.
+  const curatedFan = bundledFanEntry(`club:${club.id}`);
+
   // Fans section state
   const [fansTab, setFansTab] = useState<"tweets"|"hashtag"|"articles">("tweets");
   // Tweets
@@ -1496,20 +1501,32 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                 </div>
               )}
 
-              {/* No handle */}
-              {!tweetsLoading&&!tweetHandle&&(
+              {/* No handle OR no tweets — fall back to curated handle grid */}
+              {!tweetsLoading && (!tweetHandle || tweets.length===0) && (curatedFan?.twitter.length ?? 0) > 0 && (
+                <div className="rounded-xl p-4 space-y-3" style={{background:"#0d1421",border:"1px solid #1e2d42"}}>
+                  <p className="text-[11px] text-center" style={{color:"#94a3b8"}}>
+                    {tweetHandle ? "Fil indisponible — ouvre les comptes sur X :" : "Comptes X recommandés :"}
+                  </p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {curatedFan!.twitter.slice(0, 8).map(acc => (
+                      <a key={acc.handle}
+                        href={`https://x.com/${acc.handle}`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="rounded-lg px-2 py-2 text-center text-[11px] font-bold transition-all hover:scale-[1.02]"
+                        style={{background:"rgba(29,161,242,0.08)",border:"1px solid rgba(29,161,242,0.3)",color:"#1da1f2"}}>
+                        @{acc.handle}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* No handle AND no curated fallback */}
+              {!tweetsLoading && !tweetHandle && (curatedFan?.twitter.length ?? 0) === 0 && (
                 <div className="rounded-xl p-6 text-center space-y-1" style={{background:"#0d1421",border:"1px solid #1e2d42"}}>
                   <TwitterLogo size={22} style={{color:"#334155",margin:"0 auto"}}/>
                   <p className="text-sm font-semibold" style={{color:"#475569"}}>Aucun compte configuré</p>
                   <p className="text-xs" style={{color:"#334155"}}>Ajoutez un handle dans l&apos;Admin.</p>
-                </div>
-              )}
-
-              {/* No tweets */}
-              {!tweetsLoading&&tweetHandle&&tweets.length===0&&(
-                <div className="rounded-xl p-5 text-center" style={{background:"#0d1421",border:"1px solid #1e2d42"}}>
-                  <p className="text-sm" style={{color:"#475569"}}>Aucun tweet récupéré.</p>
-                  <p className="text-xs mt-0.5" style={{color:"#334155"}}>Nitter peut être temporairement indisponible.</p>
                 </div>
               )}
 
@@ -1661,9 +1678,24 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                 </button>
               </div>
               {!tweetsLoading&&hashtagTweets.length===0&&(
-                <div className="rounded-xl p-5 text-center" style={{background:"#0d1421",border:"1px solid #1e2d42"}}>
-                  <p className="text-sm" style={{color:"#475569"}}>Aucun tweet récent pour #{hashtag ?? "—"}.</p>
-                  <p className="text-xs mt-0.5" style={{color:"#334155"}}>Les Nitter de recherche sont souvent rate-limités.</p>
+                <div className="rounded-xl p-4 space-y-3" style={{background:"#0d1421",border:"1px solid #1e2d42"}}>
+                  <p className="text-[11px] text-center" style={{color:"#94a3b8"}}>
+                    Fil de hashtag indisponible — explore-les directement sur X :
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 justify-center">
+                    {(curatedFan?.hashtags ?? (hashtag ? [hashtag] : [])).map(h => {
+                      const tag = h.replace(/^#/, "");
+                      return (
+                        <a key={tag}
+                          href={`https://x.com/hashtag/${encodeURIComponent(tag)}`}
+                          target="_blank" rel="noopener noreferrer"
+                          className="rounded-full px-3 py-1.5 text-[11px] font-bold transition-all hover:scale-[1.05]"
+                          style={{background:"rgba(168,85,247,0.1)",border:"1px solid rgba(168,85,247,0.35)",color:"#a855f7"}}>
+                          #{tag}
+                        </a>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
               {hashtagTweets.map(tweet=>{
@@ -1722,19 +1754,33 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                 </div>
               )}
 
-              {/* No RSS for this club */}
-              {!fanArticlesLoading&&!fanArticlesSite&&(
+              {/* No RSS OR no articles — fall back to curated fan site links */}
+              {!fanArticlesLoading && (!fanArticlesSite || fanArticles.length===0) && (curatedFan?.sites.length ?? 0) > 0 && (
+                <div className="rounded-xl p-4 space-y-3" style={{background:"#0d1421",border:"1px solid #1e2d42"}}>
+                  <p className="text-[11px] text-center" style={{color:"#94a3b8"}}>
+                    {fanArticlesSite ? "Flux indisponible — visite les sites fans :" : "Sites fans recommandés :"}
+                  </p>
+                  <div className="space-y-1.5">
+                    {curatedFan!.sites.map(s => (
+                      <a key={s.url}
+                        href={s.url}
+                        target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all hover:scale-[1.01]"
+                        style={{background:"rgba(34,197,94,0.06)",border:"1px solid rgba(34,197,94,0.25)"}}>
+                        <span className="text-[11px] font-bold flex-1 truncate" style={{color:"#e8edf5"}}>{s.name}</span>
+                        <span className="text-[9px] font-mono truncate max-w-[45%]" style={{color:"#22c55e"}}>{s.url.replace(/^https?:\/\//, "")}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* No RSS AND no curated fallback */}
+              {!fanArticlesLoading && !fanArticlesSite && (curatedFan?.sites.length ?? 0) === 0 && (
                 <div className="rounded-xl p-6 text-center space-y-1" style={{background:"#0d1421",border:"1px solid #1e2d42"}}>
                   <span className="text-2xl block">📭</span>
                   <p className="text-sm font-semibold" style={{color:"#475569"}}>Pas de site fan disponible</p>
                   <p className="text-xs" style={{color:"#334155"}}>Aucun flux RSS fan n&apos;a été trouvé pour ce club.</p>
-                </div>
-              )}
-
-              {/* No articles */}
-              {!fanArticlesLoading&&fanArticlesSite&&fanArticles.length===0&&(
-                <div className="rounded-xl p-5 text-center" style={{background:"#0d1421",border:"1px solid #1e2d42"}}>
-                  <p className="text-sm" style={{color:"#475569"}}>Aucun article récupéré.</p>
                 </div>
               )}
 
