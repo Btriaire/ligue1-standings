@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Calendar, Trophy, Users, MapPin, Globe, Star, Lightning, TrendUp, Target, Shield, MagnifyingGlass, X, ListBullets, SquaresFour, CaretDown, Sparkle, Crown, Flame, Rocket, SoccerBall, Medal } from "@phosphor-icons/react";
+import { Calendar, Trophy, Users, MapPin, Globe, Star, Lightning, TrendUp, Target, Shield, MagnifyingGlass, X, ListBullets, SquaresFour, CaretDown, Flame, SoccerBall, Medal, Flag, Warning, Crosshair, Crown } from "@phosphor-icons/react";
 import RefereesWCTab from "./RefereesWCTab";
 
 // ─── Data ──────────────────────────────────────────────────────────────────
@@ -21,14 +21,14 @@ const GROUPS = [
   { letter: "L", teams: ["🇰🇷 Corée du Sud", "🇨🇮 Côte d'Ivoire", "🇿🇼 Zimbabwe", "🇰🇪 Kenya"] },
 ];
 
-const SCHEDULE: { phase: string; dates: string; Icon: (props: { size?: number; weight?: "regular" | "bold" | "fill" | "duotone" }) => ReactNode; color: string }[] = [
-  { phase: "Match d'ouverture",   dates: "11 juin 2026",         Icon: (p) => <Rocket     weight="fill" {...p} />, color: "#00d4ff" },
-  { phase: "Phase de groupes",    dates: "12 juin – 2 juil 2026", Icon: (p) => <SoccerBall weight="fill" {...p} />, color: "#22c55e" },
-  { phase: "Huitièmes de finale", dates: "4 – 7 juil 2026",      Icon: (p) => <Shield     weight="fill" {...p} />, color: "#f59e0b" },
-  { phase: "Quarts de finale",    dates: "9 – 12 juil 2026",     Icon: (p) => <Star       weight="fill" {...p} />, color: "#f97316" },
-  { phase: "Demi-finales",        dates: "14 – 15 juil 2026",    Icon: (p) => <Flame      weight="fill" {...p} />, color: "#ef4444" },
-  { phase: "Match 3e place",      dates: "18 juil 2026",         Icon: (p) => <Medal      weight="fill" {...p} />, color: "#a78bfa" },
-  { phase: "FINALE",              dates: "19 juil 2026",         Icon: (p) => <Trophy     weight="fill" {...p} />, color: "#fbbf24" },
+const SCHEDULE: { phase: string; dates: string; Icon: (props: { size?: number }) => ReactNode; color: string }[] = [
+  { phase: "Match d'ouverture",   dates: "11 juin 2026",         Icon: (p) => <Flag       weight="bold" {...p} />, color: "#00d4ff" },
+  { phase: "Phase de groupes",    dates: "12 juin – 2 juil 2026", Icon: (p) => <SoccerBall weight="bold" {...p} />, color: "#22c55e" },
+  { phase: "Huitièmes de finale", dates: "4 – 7 juil 2026",      Icon: (p) => <Shield     weight="bold" {...p} />, color: "#f59e0b" },
+  { phase: "Quarts de finale",    dates: "9 – 12 juil 2026",     Icon: (p) => <Crosshair  weight="bold" {...p} />, color: "#f97316" },
+  { phase: "Demi-finales",        dates: "14 – 15 juil 2026",    Icon: (p) => <Crown      weight="bold" {...p} />, color: "#ef4444" },
+  { phase: "Match 3e place",      dates: "18 juil 2026",         Icon: (p) => <Medal      weight="bold" {...p} />, color: "#a78bfa" },
+  { phase: "FINALE",              dates: "19 juil 2026",         Icon: (p) => <Trophy     weight="bold" {...p} />, color: "#fbbf24" },
 ];
 
 const NOTABLE_MATCHES = [
@@ -275,11 +275,11 @@ const POS_CFG: Record<PosType, { label: string; color: string; bg: string }> = {
   GB:  { label: "GB",  color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
 };
 
-const CAT_CFG: Record<CatType, { label: string; color: string; Icon: (props: { size?: number; weight?: "regular" | "bold" | "fill" | "duotone" }) => ReactNode }> = {
-  star:       { label: "Superstar",   color: "#fbbf24", Icon: (p) => <Star    weight="fill" {...p} /> },
-  revelation: { label: "Révélation",  color: "#06b6d4", Icon: (p) => <Sparkle weight="fill" {...p} /> },
-  veteran:    { label: "Vétéran",     color: "#94a3b8", Icon: (p) => <Crown   weight="fill" {...p} /> },
-  danger:     { label: "Danger",      color: "#f97316", Icon: (p) => <Flame   weight="fill" {...p} /> },
+const CAT_CFG: Record<CatType, { label: string; color: string; Icon: (props: { size?: number }) => ReactNode }> = {
+  star:       { label: "Superstar",   color: "#fbbf24", Icon: (p) => <Star      weight="bold" {...p} /> },
+  revelation: { label: "Révélation",  color: "#06b6d4", Icon: (p) => <Lightning weight="bold" {...p} /> },
+  veteran:    { label: "Vétéran",     color: "#94a3b8", Icon: (p) => <Medal     weight="bold" {...p} /> },
+  danger:     { label: "Danger",      color: "#f97316", Icon: (p) => <Warning   weight="bold" {...p} /> },
 };
 
 // ─── Bracket tab ─────────────────────────────────────────────────────────────
@@ -1150,7 +1150,7 @@ function JoueursTab() {
                 className="text-center hover:bg-white/[0.04] rounded-lg py-1 transition-colors">
                 <div className="flex items-center justify-center gap-1 mb-0.5">
                   <span className="text-base">{p.flag}</span>
-                  <Medal size={12} weight="fill"
+                  <Medal size={12} weight="bold"
                     style={{ color: i === 0 ? "#fbbf24" : i === 1 ? "#cbd5e1" : "#d97706" }} />
                 </div>
                 <p className="text-[10px] font-black truncate" style={{ color: "#e8edf5" }}>{p.name}</p>
@@ -1508,7 +1508,7 @@ export default function WorldCupTab() {
       {/* Slim header */}
       <div className="flex flex-wrap items-center gap-2 px-3 py-2 rounded-xl mb-3"
         style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
-        <Globe size={16} weight="fill" style={{ color: "#00d4ff" }} />
+        <Globe size={16} weight="bold" style={{ color: "#00d4ff" }} />
         <span className="text-sm font-black tracking-tight" style={{ color: "#e8edf5" }}>Coupe du Monde 2026</span>
         <div className="flex flex-wrap gap-1.5 ml-auto">
           {[
