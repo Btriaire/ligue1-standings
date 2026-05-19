@@ -5,7 +5,9 @@ import { TEAM_TM_MAP, ECONOMIC_SCORES, CLUB_SEARCH_TERMS, CLUB_SUBREDDITS } from
 // no card required. We send one batched chat completion for all clubs
 // per /api/emotional-score call (1 request per 30-min revalidate window).
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
-const GROQ_MODEL = "llama-3.3-70b-versatile";
+// llama-3.1-8b-instant has a 30k TPM free-tier ceiling (vs 12k for 70b),
+// which our batched 18-club prompt needs even after trimming.
+const GROQ_MODEL = "llama-3.1-8b-instant";
 
 const API_KEY = process.env.FOOTBALL_DATA_API_KEY;
 const ODDS_API_KEY = process.env.THE_ODDS_API_KEY;
@@ -236,14 +238,20 @@ async function scoreClubsBatch(clubs: GeminiClubInput[]): Promise<Map<string, Ge
   const eligible = clubs.filter(c => c.items.length > 0);
   if (eligible.length === 0) return out;
 
-  const blocks = eligible.map((c, ci) => {
-    const numbered = c.items.map((it, i) =>
-      `  ${i + 1}. [${it.source} · ${it.ageLabel}] ${it.title}${it.description ? ` — ${it.description.slice(0, 200)}` : ""}`
-    ).join("\n");
-    return `--- Club ${ci + 1}: ${c.clubName} (${c.items.length} items) ---\n${numbered}`;
+  // Trim aggressively to stay under Groq's 30k TPM ceiling on the 8b free tier.
+  // Per club: 6 items max, descriptions only on top-2 capped at 100 chars.
+  const TRIMMED_PER_CLUB = 6;
+  const blocks = eligible.map((c) => {
+    const items = c.items.slice(0, TRIMMED_PER_CLUB);
+    const numbered = items.map((it, i) => {
+      const desc = (i < 2 && it.description) ? ` — ${it.description.slice(0, 100)}` : "";
+      return `${i + 1}. ${it.title}${desc}`;
+    }).join("\n");
+    return `## ${c.clubName}\n${numbered}`;
   }).join("\n\n");
 
-  console.log(`[llm] batch call clubs=${eligible.length} totalItems=${eligible.reduce((s,c)=>s+c.items.length,0)}`);
+  const approxTokens = Math.round(blocks.length / 3.5);
+  console.log(`[llm] batch call clubs=${eligible.length} approxTokens=${approxTokens}`);
 
   const system =
     "Tu es un analyste sentiment foot français. Pour CHAQUE club fourni, évalue son climat médiatique global à partir de sa liste d'actualités. " +
