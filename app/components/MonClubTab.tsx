@@ -9,7 +9,7 @@ import {
   Trophy, CaretDown, CaretUp, X, TrendUp, TrendDown,
   Users, Calendar, Lightning, ArrowsClockwise, Shield, MapPin, Target,
   Star, Pulse, ChartBar, FloppyDisk, CheckCircle, ShareNetwork, Globe, Sword,
-  TwitterLogo, ArrowSquareOut,
+  TwitterLogo, ArrowSquareOut, PaperPlaneTilt, Gear,
 } from "@phosphor-icons/react";
 import { NATIONS, nationsInGroup, type Nation, isWorldCupHot, WC2026_START } from "@/app/lib/worldCup";
 import { PlayerRow, PlayerEntry, POS_ORDER, POS_FR as POS_FR_PLURAL, POS_COL } from "./PlayerCard";
@@ -2486,6 +2486,109 @@ function FicheSection({club,nextMatch,opponentId,ficheTeamData,ficheSquad,mySqua
         )}
       </div>
 
+      {/* Tweet my pick */}
+      <TweetMyPickCard
+        text={`Je supporte ${club.name} en ${club.id === 1045 || L2_CLUBS.some(c => c.id === club.id) ? "Ligue 2" : "Ligue 1"} cette saison ! #${club.shortName.replace(/\s+/g, "")} #FootInsider`}
+        accentColor={club.color}
+      />
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════ TWEET MY PICK ══ */
+
+// Lets the user push their MonClub selection to Twitter via the standard
+// web intent (no OAuth required — Twitter opens with the tweet pre-filled
+// and the user picks the account to post from). The optional @handle field
+// is the user's "FootInsider broadcast account" — when set, it's @-mentioned
+// at the start so it appears in that account's mentions timeline and the
+// user can quote-retweet it from there.
+const TWEET_HANDLE_KEY = "monClub_tweetHandle";
+
+function TweetMyPickCard({ text, accentColor = "#fbbf24" }: { text: string; accentColor?: string }) {
+  const [handle, setHandle] = useState<string>("");
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+
+  useEffect(() => {
+    const saved = localStorage.getItem(TWEET_HANDLE_KEY) ?? "";
+    setHandle(saved);
+    setDraft(saved);
+  }, []);
+
+  const saveHandle = () => {
+    // Twitter handle rules: 1–15 chars, alphanumeric/underscore
+    const clean = draft.replace(/^@/, "").trim();
+    if (clean && !/^[A-Za-z0-9_]{1,15}$/.test(clean)) {
+      alert("Handle invalide — 1 à 15 caractères, lettres/chiffres/_");
+      return;
+    }
+    localStorage.setItem(TWEET_HANDLE_KEY, clean);
+    setHandle(clean);
+    setEditing(false);
+  };
+
+  const fullText = handle ? `@${handle} ${text}` : text;
+  const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(fullText)}`;
+
+  return (
+    <div className="rounded-xl p-4" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
+      <div className="flex items-center gap-2 mb-2">
+        <TwitterLogo size={14} weight="fill" style={{ color: "#1da1f2" }}/>
+        <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "#6b7c96" }}>
+          Partager ma sélection
+        </span>
+        <button onClick={() => setEditing(v => !v)} aria-label="Configurer le compte cible"
+          className="ml-auto p-1 rounded-md hover:bg-white/5 transition-colors">
+          <Gear size={12} style={{ color: "#6b7c96" }}/>
+        </button>
+      </div>
+
+      {editing ? (
+        <div className="space-y-2 mb-2">
+          <label className="text-[10px]" style={{ color: "#94a3b8" }}>
+            Compte Twitter cible (sera @-mentionné). Laissez vide pour tweeter sans mention.
+          </label>
+          <div className="flex gap-1.5">
+            <div className="flex-1 flex items-center gap-1 rounded-lg px-2"
+              style={{ background: "#0a0f1c", border: "1px solid #1e2d42" }}>
+              <span className="text-xs" style={{ color: "#6b7c96" }}>@</span>
+              <input type="text" value={draft} onChange={e => setDraft(e.target.value.replace(/^@/, ""))}
+                placeholder="MonCompteFoot"
+                className="flex-1 bg-transparent outline-none text-xs py-1.5"
+                style={{ color: "#e8edf5" }}/>
+            </div>
+            <button onClick={saveHandle}
+              className="text-[10px] font-bold px-3 rounded-lg"
+              style={{ background: `${accentColor}22`, color: accentColor, border: `1px solid ${accentColor}59` }}>
+              OK
+            </button>
+          </div>
+          <p className="text-[10px]" style={{ color: "#475569" }}>
+            Astuce : créez un compte dédié (ex. @MonPronoCdM) — l&apos;intent Twitter vous
+            laissera choisir depuis quel compte poster au moment de publier.
+          </p>
+        </div>
+      ) : (
+        handle && (
+          <p className="text-[10px] mb-2" style={{ color: "#6b7c96" }}>
+            Mention : <span style={{ color: "#1da1f2" }}>@{handle}</span>
+          </p>
+        )
+      )}
+
+      <div className="rounded-lg p-2.5 mb-2 text-[12px] leading-snug"
+        style={{ background: "#0a0f1c", border: "1px solid #1e2d42", color: "#94a3b8" }}>
+        {handle && <span style={{ color: "#1da1f2" }}>@{handle} </span>}
+        {text}
+      </div>
+
+      <a href={intentUrl} target="_blank" rel="noopener noreferrer"
+        className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg w-full justify-center"
+        style={{ background: "#1da1f2", color: "#fff" }}>
+        <PaperPlaneTilt size={12} weight="bold"/>
+        Publier sur Twitter
+      </a>
     </div>
   );
 }
@@ -2564,6 +2667,12 @@ function NationDashboard({nation,onChange}:{nation:Nation;onChange:()=>void}) {
           dans l&apos;onglet <span style={{color:"#fbbf24"}}>Coupe du Monde</span>.
         </p>
       </div>
+
+      {/* Tweet my pick */}
+      <TweetMyPickCard
+        text={`Je supporte ${nation.flag} ${nation.name} (Groupe ${nation.group}) pour la Coupe du Monde 2026 ! #CdM2026 #FootInsider`}
+        accentColor="#fbbf24"
+      />
     </div>
   );
 }
