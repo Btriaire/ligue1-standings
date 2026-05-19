@@ -117,6 +117,10 @@ const getZone = (p: number) => ZONES.find(z=>z.positions.includes(p)) ?? null;
 // FORMATIONS / FKey / F_KEYS now live in @/app/lib/formations so the
 // WorldCup "Ma Compo CdM" surface can reuse the exact same pitch layout.
 import { FORMATIONS, F_KEYS, type FKey } from "@/app/lib/formations";
+import {
+  FAN_CLUBS_L1, FAN_CLUBS_L2, FAN_NATIONS,
+  type FanEntry,
+} from "@/app/lib/fanConfig";
 
 /* ══════════════════════════════════════════ TYPES ══ */
 
@@ -2433,34 +2437,44 @@ function FicheSection({club,nextMatch,opponentId,ficheTeamData,ficheSquad,mySqua
 
 // Reusable card that surfaces the curated fan ecosystem (Twitter accounts
 // ≥5, fan sites, X hashtags) defined in `app/lib/fanConfig.ts` and
-// editable in /admin. Pulled lazily from /api/fan-config so admin
-// overrides take effect without a redeploy.
+// editable in /admin. The bundled defaults render *immediately* (no
+// loading flash, works offline / without Firestore). Admin overrides
+// are merged in asynchronously when /api/fan-config responds.
+function bundledFanEntry(entityId: string): FanEntry | null {
+  if (entityId.startsWith("club:")) {
+    const id = parseInt(entityId.slice(5), 10);
+    return FAN_CLUBS_L1[id] ?? FAN_CLUBS_L2[id] ?? null;
+  }
+  if (entityId.startsWith("nation:")) {
+    return FAN_NATIONS[entityId.slice(7)] ?? null;
+  }
+  return null;
+}
+
 function FanEcosystemCard({ entityId, accentColor = "#1da1f2" }: { entityId: string; accentColor?: string }) {
-  type FA = { handle: string; name: string; kind: "official"|"fan"|"media"|"player"; followers?: string };
-  type FS = { name: string; url: string };
-  interface Entry { twitter: FA[]; sites: FS[]; hashtags: string[] }
+  type FA = FanEntry["twitter"][number];
+  // Render bundled defaults synchronously — never show an empty card.
+  const [entry, setEntry] = useState<FanEntry | null>(() => bundledFanEntry(entityId));
 
-  const [entry, setEntry] = useState<Entry | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Reset when the entity changes (e.g. user swaps club).
+  useEffect(() => { setEntry(bundledFanEntry(entityId)); }, [entityId]);
 
+  // Best-effort overlay of admin overrides — silently keeps defaults if
+  // the endpoint isn't reachable or Firestore isn't configured.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const r = await fetch("/api/fan-config");
-        if (!r.ok) { setLoading(false); return; }
-        const d = await r.json() as { entries: Record<string, Entry> };
-        if (cancelled) return;
-        setEntry(d.entries?.[entityId] ?? null);
-      } catch { /* swallow */ }
-      finally { if (!cancelled) setLoading(false); }
+        if (!r.ok) return;
+        const d = await r.json() as { entries: Record<string, FanEntry> };
+        const remote = d.entries?.[entityId];
+        if (!cancelled && remote && Array.isArray(remote.twitter)) setEntry(remote);
+      } catch { /* keep bundled */ }
     })();
     return () => { cancelled = true; };
   }, [entityId]);
 
-  if (loading) {
-    return <div className="h-24 rounded-2xl animate-pulse" style={{ background: "#0d1421" }}/>;
-  }
   if (!entry) return null;
 
   const KIND_LABEL: Record<FA["kind"], string> = {
