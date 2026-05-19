@@ -5,6 +5,7 @@ import { Lightning, TrendUp, Shield, Target, Clock, Heart, Star, CaretDown, Care
 import { useConfig } from "@/app/lib/config";
 import { upsertPrediction, downloadCSV, loadPredictions } from "@/app/lib/predictions-store";
 import FunFact from "./FunFact";
+import { isWorldCupHot } from "@/app/lib/worldCup";
 
 interface TeamPred {
   id: number;
@@ -1465,7 +1466,8 @@ function WCPredictionsView() {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function PredictionsTab() {
-  const [subTab, setSubTab] = useState<"l1" | "cdm">("l1");
+  // When the World Cup is hot, default to the CdM predictions surface.
+  const [subTab, setSubTab] = useState<"l1" | "cdm">(isWorldCupHot() ? "cdm" : "l1");
   const [config] = useConfig();
   const [data, setData] = useState<PredData | null>(null);
   const [emoMap, setEmoMap] = useState<Map<number, EmoEntry>>(new Map());
@@ -1592,15 +1594,28 @@ export default function PredictionsTab() {
     ).length;
   }, [data, expertMatches]);
 
+  const wcHot = isWorldCupHot();
   const SubTabs = () => (
     <div className="flex gap-1 mb-5 p-1 rounded-xl" style={{ background: "#0a0f1c", border: "1px solid #1a2235", display: "inline-flex" }}>
-      {([["l1", "🏆 Ligue 1"], ["cdm", "🌍 Coupe du Monde"]] as const).map(([id, label]) => (
-        <button key={id} onClick={() => setSubTab(id)}
-          className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap"
-          style={{ background: subTab === id ? "rgba(255,255,255,0.08)" : "transparent", color: subTab === id ? "#e2e8f0" : "#64748b", border: subTab === id ? "1px solid rgba(255,255,255,0.1)" : "1px solid transparent" }}>
-          {label}
-        </button>
-      ))}
+      {([["l1", "🏆 Ligue 1"], ["cdm", "🌍 Coupe du Monde"]] as const).map(([id, label]) => {
+        const highlight = id === "cdm" && wcHot;
+        const active = subTab === id;
+        return (
+          <button key={id} onClick={() => setSubTab(id)}
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap inline-flex items-center gap-1"
+            style={{
+              background: active ? (highlight ? "rgba(251,191,36,0.15)" : "rgba(255,255,255,0.08)") : "transparent",
+              color: active ? (highlight ? "#fbbf24" : "#e2e8f0") : (highlight ? "#fbbf24" : "#64748b"),
+              border: active ? `1px solid ${highlight ? "rgba(251,191,36,0.4)" : "rgba(255,255,255,0.1)"}` : "1px solid transparent",
+            }}>
+            {label}
+            {highlight && (
+              <span className="text-[8px] font-black px-1 py-0.5 rounded-full ml-0.5"
+                style={{ background: "#ef4444", color: "#fff" }}>HOT</span>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 
