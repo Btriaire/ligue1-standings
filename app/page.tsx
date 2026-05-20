@@ -17,6 +17,7 @@ import MonClubTab from "./components/MonClubTab";
 import RefereesL1Tab from "./components/RefereesL1Tab";
 import NewsBanner from "./components/NewsBanner";
 import ActuFootBanner from "./components/ActuFootBanner";
+import ImageOfTheDay from "./components/ImageOfTheDay";
 import LiveDirectButton from "./components/LiveDirectButton";
 import FunFact from "./components/FunFact";
 
@@ -592,6 +593,9 @@ export default function Home() {
 
       {/* ── @ActuFoot_ live ticker ── */}
       <ActuFootBanner />
+
+      {/* ── Image of the Day — freshest media-bearing tweet (last 24h) ── */}
+      <ImageOfTheDay />
 
       <div className="max-w-[1300px] mx-auto px-4 py-6">
         <div className="lg:grid lg:gap-5 lg:items-start" style={{ gridTemplateColumns: "1fr 196px" }}>
