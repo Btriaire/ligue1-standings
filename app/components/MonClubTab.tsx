@@ -2234,10 +2234,30 @@ function FicheSection({club,nextMatch,opponentId,ficheTeamData,ficheSquad,mySqua
 
   if(!ficheMatchLoaded) {
     return (
-      <div className="space-y-3">
-        {Array.from({length:4}).map((_,i)=>(
-          <div key={i} className="h-9 rounded-lg animate-pulse" style={{background:"#0d1421",opacity:0.6}}/>
-        ))}
+      <div className="space-y-2 py-2">
+        {/* Thin indeterminate progress bar */}
+        <div className="h-0.5 w-full rounded-full overflow-hidden relative"
+          style={{ background: "#0d1421" }}>
+          <div className="absolute inset-y-0 rounded-full"
+            style={{
+              background: `linear-gradient(90deg, transparent, ${club.color}, transparent)`,
+              width: "40%",
+              animation: "ficheSlide 1.4s ease-in-out infinite",
+            }}/>
+        </div>
+        <div className="flex items-center gap-2 justify-center">
+          <div className="w-2.5 h-2.5 rounded-full animate-spin"
+            style={{ border: `1.5px solid ${club.color}30`, borderTopColor: club.color }}/>
+          <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#6b7c96" }}>
+            Chargement de la fiche
+          </span>
+        </div>
+        <style jsx>{`
+          @keyframes ficheSlide {
+            0%   { left: -40%; }
+            100% { left: 100%; }
+          }
+        `}</style>
       </div>
     );
   }
