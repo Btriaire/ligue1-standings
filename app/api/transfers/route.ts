@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CLUB_SEARCH_TERMS } from "@/app/lib/teamMapping";
-import { fetchFotMobLigue1, fetchFotMobLigue2, fotmobCrest, type FmTransfer } from "@/app/lib/fotmob";
+import { fetchFotMobLigue2, fotmobCrest, type FmTransfer } from "@/app/lib/fotmob";
 
 export const revalidate = 1800; // 30 min
 export const maxDuration = 30;  // Vercel: extend serverless timeout for the 18 Google News + RSS + FotMob fan-out
@@ -246,60 +246,9 @@ export async function GET(req: NextRequest) {
     fotmobByClub = r.transfersByClub;
   } else {
     CLUBS = CLUBS_L1;
-    // Also try to enrich Ligue 1 with FotMob's structured transfers (player
-    // photo, fee, market value, contract type). FotMob IDs ≠ football-data IDs,
-    // so we match by club name. Silently fall back if FotMob is unreachable.
-    // Hard 6s cap — Vercel free tier limits serverless functions to 10s total,
-    // and we still need to call 18 Google News feeds + 2 RSS sources after.
-    try {
-      // .catch(() => null) on the FotMob promise so a late rejection (after
-      // the timeout already won the race) doesn't trigger an unhandled
-      // rejection that can crash the serverless function on Vercel.
-      const fm = await Promise.race<Awaited<ReturnType<typeof fetchFotMobLigue1>> | null>([
-        fetchFotMobLigue1().catch(() => null),
-        new Promise(resolve => setTimeout(() => resolve(null), 6000)),
-      ]);
-      if (!fm) throw new Error("FotMob L1 unavailable");
-      const norm = (s: string) => s.toLowerCase()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9]/g, "");
-      // Build a name index for our football-data L1 clubs
-      const nameToId = new Map<string, number>();
-      for (const c of CLUBS) {
-        nameToId.set(norm(c.name), c.id);
-        nameToId.set(norm(c.shortName), c.id);
-      }
-      // Also map FotMob's L1 table names → FotMob club IDs (for the side that
-      // FotMob references in transfers).
-      const fmIdToName = new Map<number, string>();
-      for (const t of fm.table) fmIdToName.set(t.id, t.name);
-
-      const matchClub = (id: number, name: string | undefined): number | null => {
-        const fmName = fmIdToName.get(id) ?? name ?? "";
-        if (!fmName) return null;
-        const n = norm(fmName);
-        if (nameToId.has(n)) return nameToId.get(n)!;
-        // Partial match — first 4 chars (e.g. "marseille" ≈ "om")
-        for (const [k, v] of nameToId) {
-          if (k.length >= 4 && (n.includes(k) || k.includes(n))) return v;
-        }
-        return null;
-      };
-
-      for (const tr of fm.transfers) {
-        const toId = matchClub(tr.toClubId, tr.toClubFullName ?? tr.toClub);
-        const fromId = matchClub(tr.fromClubId, tr.fromClubFullName ?? tr.fromClub);
-        const clubId = toId ?? fromId;
-        if (!clubId) continue;
-        const isArrival = toId === clubId;
-        const item = fotmobTransferToItem(tr, clubId, isArrival);
-        const arr = fotmobItemsL1.get(clubId) ?? [];
-        arr.push(item);
-        fotmobItemsL1.set(clubId, arr);
-      }
-    } catch (err) {
-      console.error("FotMob L1 transfers fetch error:", err);
-    }
+    // L1 FotMob enrichment temporarily disabled — was causing the Mercato
+    // route to fail on Vercel (likely timing out beyond the function budget).
+    // L1 keeps its RSS-based items; the Boursier board still works for L2.
   }
 
   if (CLUBS.length === 0) {
@@ -403,7 +352,7 @@ export async function GET(req: NextRequest) {
     updatedAt: new Date().toISOString(),
     sources: league === "FL2"
       ? ["FotMob", "Ligue1.com", "Google News", "RMC Sport", "Footmercato"]
-      : ["FotMob", "Google News", "RMC Sport", "Footmercato"],
+      : ["Google News", "RMC Sport", "Footmercato"],
     league,
   });
 }
