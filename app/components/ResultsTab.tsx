@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { CheckCircle, XCircle, Minus, Clock, Target, DownloadSimple, Trophy, Globe, Calendar } from "@phosphor-icons/react";
 import { loadPredictions, downloadCSV, SavedPrediction } from "@/app/lib/predictions-store";
+import LoadingBar from "./LoadingBar";
 
 // ── Standings + prediction logic (mirrored from club page) ────────────────────
 interface StandingEntry {
@@ -488,10 +489,8 @@ export default function ResultsTab() {
   if (loading) {
     return (
       <div><SubTabs />
-      <div className="space-y-3">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-28 rounded-2xl animate-pulse" style={{ background: "#0d1421", border: "1px solid #1e2d42" }} />
-        ))}
+      <div className="py-3">
+        <LoadingBar color="#22c55e" caption="Chargement des résultats" />
       </div>
       </div>
     );

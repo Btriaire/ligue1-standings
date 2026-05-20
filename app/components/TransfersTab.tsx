@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { ArrowsClockwise, ArrowSquareOut, TrendUp, TrendDown, Newspaper, CaretDown } from "@phosphor-icons/react";
 import type { ClubTransfers, TransferItem } from "@/app/api/transfers/route";
 import { useConfig } from "@/app/lib/config";
+import LoadingBar from "./LoadingBar";
 
 const NewsModal = dynamic(() => import("./NewsModal"), { ssr: false });
 
@@ -239,11 +240,8 @@ export default function TransfersTab({ league = "FL1" }: { league?: "FL1" | "FL2
 
   if (loading) {
     return (
-      <div className="space-y-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="rounded-2xl px-4 py-4 animate-pulse"
-            style={{ background: "rgba(13,20,33,0.7)", border: "1px solid #1e2d42", height: 72 }} />
-        ))}
+      <div className="py-3">
+        <LoadingBar color="#00d4ff" caption="Chargement du mercato" />
       </div>
     );
   }

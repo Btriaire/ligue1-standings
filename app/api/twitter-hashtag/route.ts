@@ -28,6 +28,15 @@ function handlesFromEntry(entry: FanEntry | undefined): string[] {
     .map(t => t.handle);
 }
 
+// Always sweep these high-signal French football accounts in addition to
+// the curated entity handles. Their syndication timelines are warm in
+// our Firestore cache (the homepage Image-of-the-Day refreshes them
+// frequently), so adding them is essentially free.
+const BASELINE_HANDLES = [
+  "actufoot_", "footmercato", "OptaJean", "lequipe", "RMCsport",
+  "FRStaff", "TimaLT", "EquipedeFrance",
+];
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const tag = (searchParams.get("tag") ?? "").replace(/^#/, "").trim();
@@ -54,28 +63,31 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Cap to keep latency bounded (each handle is a cache lookup; budget ~12).
-  handles = Array.from(new Set(handles)).slice(0, 12);
-
-  if (handles.length === 0) {
-    return NextResponse.json({ tag, tweets: [], handles: [] }, {
-      headers: { "Cache-Control": "public, s-maxage=300" },
-    });
-  }
+  // Always include the baseline media handles — they generate most of
+  // the chatter around hashtags, especially for niche L2 clubs whose
+  // curated fan accounts are syndication-empty.
+  handles = Array.from(new Set([...handles, ...BASELINE_HANDLES])).slice(0, 18);
 
   // Pull each timeline in parallel. fetchSyndicationTimeline reads from
   // Firestore cache first, so this is mostly RAM-cheap.
   const lists = await Promise.all(
-    handles.map(h => fetchSyndicationTimeline(h, 20).catch(() => [] as Tweet[]))
+    handles.map(h => fetchSyndicationTimeline(h, 25).catch(() => [] as Tweet[]))
   );
 
-  const needle = `#${tag}`.toLowerCase();
+  // Match either "#TAG" OR the tag as a standalone word (case-insensitive).
+  // This catches tweets that mention the club/topic without using the
+  // hashtag literal — e.g. "Le MHSC s'impose 2-1" matches tag=MHSC.
+  const lower = tag.toLowerCase();
+  const hashNeedle = `#${lower}`;
+  const wordRe = new RegExp(`(?:^|[^a-z0-9_])${lower.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:[^a-z0-9_]|$)`, "i");
+
   const seen = new Set<string>();
   const matched: Tweet[] = [];
   for (const list of lists) {
     for (const t of list) {
       if (seen.has(t.id)) continue;
-      if (!t.title.toLowerCase().includes(needle)) continue;
+      const hay = t.title.toLowerCase();
+      if (!hay.includes(hashNeedle) && !wordRe.test(hay)) continue;
       seen.add(t.id);
       matched.push(t);
     }
