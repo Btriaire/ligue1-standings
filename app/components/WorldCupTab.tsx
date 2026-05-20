@@ -1311,6 +1311,7 @@ function FanXTab() {
   const [tweets, setTweets] = useState<TweetItem[]>([]);
   const [byAccount, setByAccount] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+  const [loadedCount, setLoadedCount] = useState(0);
   const [filter, setFilter] = useState<string>("all");
   const [open, setOpen] = useState<TweetItem | null>(null);
   const [accounts, setAccounts] = useState<string[]>(FANX_FALLBACK);
@@ -1346,6 +1347,7 @@ function FanXTab() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setLoadedCount(0);
     (async () => {
       const results = await Promise.all(
         accounts.map(h =>
@@ -1353,6 +1355,7 @@ function FanXTab() {
             .then(r => r.json())
             .then((d: { tweets?: TweetItem[] }) => d.tweets ?? [])
             .catch(() => [] as TweetItem[])
+            .finally(() => { if (!cancelled) setLoadedCount(c => c + 1); })
         )
       );
       if (cancelled) return;
@@ -1413,9 +1416,28 @@ function FanXTab() {
       {/* Tweets */}
       <div className="space-y-2">
         {loading ? (
-          Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-20 rounded-xl animate-pulse" style={{ background: "#0d1421" }}/>
-          ))
+          <div className="rounded-xl p-3 flex items-center gap-3"
+            style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
+            <div className="w-3.5 h-3.5 rounded-full animate-spin flex-shrink-0"
+              style={{ border: "2px solid rgba(29,161,242,0.2)", borderTopColor: "#1da1f2" }}/>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#94a3b8" }}>
+                  Chargement du fil
+                </span>
+                <span className="text-[10px] font-mono tabular-nums" style={{ color: "#1da1f2" }}>
+                  {loadedCount}/{accounts.length}
+                </span>
+              </div>
+              <div className="h-1 rounded-full overflow-hidden" style={{ background: "#1e2d42" }}>
+                <div className="h-full transition-all duration-300 ease-out"
+                  style={{
+                    width: `${accounts.length ? (loadedCount / accounts.length) * 100 : 0}%`,
+                    background: "linear-gradient(90deg, #1da1f2, #a855f7)",
+                  }}/>
+              </div>
+            </div>
+          </div>
         ) : filtered.length === 0 ? (
           <div className="rounded-xl p-4 space-y-3" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
             <p className="text-[11px] text-center" style={{ color: "#94a3b8" }}>

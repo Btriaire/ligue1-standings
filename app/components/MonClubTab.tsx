@@ -971,7 +971,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
         <div className="space-y-3">
           {sqLoading?(
             <div className="space-y-2">{Array.from({length:5}).map((_,i)=>(
-              <div key={i} className="h-12 rounded-xl animate-pulse" style={{background:"#0d1421",border:"1px solid #1e2d42"}}/>
+              <div key={i} className="h-7 rounded-lg animate-pulse" style={{background:"#0d1421",opacity:0.6}}/>
             ))}</div>
           ):squad.length===0?(
             <p className="text-center py-10 text-sm" style={{color:"#6b7c96"}}>Effectif indisponible</p>
@@ -1039,7 +1039,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
 
           {resTab==="resultats"&&(
             loading?(
-              <div className="space-y-2">{Array.from({length:4}).map((_,i)=><div key={i} className="h-12 rounded-xl animate-pulse" style={{background:"#0d1421",border:"1px solid #1e2d42"}}/>)}</div>
+              <div className="space-y-1.5">{Array.from({length:4}).map((_,i)=><div key={i} className="h-7 rounded-lg animate-pulse" style={{background:"#0d1421",opacity:0.6}}/>)}</div>
             ):results.length===0?(<p className="text-center py-10 text-sm" style={{color:"#6b7c96"}}>Aucun résultat récent</p>):(
               <div className="rounded-2xl overflow-hidden" style={{border:"1px solid #1e2d42"}}>
                 {results.map((m,idx)=>{
@@ -1081,7 +1081,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                 <p className="text-[10px]" style={{color:"#6b7c96"}}>Probabilités calculées sur la forme, la position et les stats de la saison en cours.</p>
               </div>
               {loading||!standing?(
-                <div className="space-y-3">{Array.from({length:3}).map((_,i)=><div key={i} className="h-24 rounded-xl animate-pulse" style={{background:"#0d1421",border:"1px solid #1e2d42"}}/>)}</div>
+                <div className="space-y-1.5">{Array.from({length:3}).map((_,i)=><div key={i} className="h-8 rounded-lg animate-pulse" style={{background:"#0d1421",opacity:0.6}}/>)}</div>
               ):predOpps.length===0?(<p className="text-center py-10 text-sm" style={{color:"#6b7c96"}}>Classement non disponible</p>):(
                 predOpps.map((opp,idx)=>{
                   const proba=calcProba(standing!,opp);
@@ -1517,7 +1517,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
               {tweetsLoading&&(
                 <div className="space-y-2">
                   {Array.from({length:4}).map((_,i)=>(
-                    <div key={i} className="h-16 rounded-xl animate-pulse" style={{background:"#0d1421",border:"1px solid #1e2d42"}}/>
+                    <div key={i} className="h-9 rounded-lg animate-pulse" style={{background:"#0d1421",opacity:0.6}}/>
                   ))}
                 </div>
               )}
@@ -1780,7 +1780,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
               {fanArticlesLoading&&(
                 <div className="space-y-2">
                   {Array.from({length:4}).map((_,i)=>(
-                    <div key={i} className="h-20 rounded-xl animate-pulse" style={{background:"#0d1421",border:"1px solid #1e2d42"}}/>
+                    <div key={i} className="h-10 rounded-lg animate-pulse" style={{background:"#0d1421",opacity:0.6}}/>
                   ))}
                 </div>
               )}
@@ -2236,7 +2236,7 @@ function FicheSection({club,nextMatch,opponentId,ficheTeamData,ficheSquad,mySqua
     return (
       <div className="space-y-3">
         {Array.from({length:4}).map((_,i)=>(
-          <div key={i} className="h-16 rounded-xl animate-pulse" style={{background:"#0d1421",border:"1px solid #1e2d42"}}/>
+          <div key={i} className="h-9 rounded-lg animate-pulse" style={{background:"#0d1421",opacity:0.6}}/>
         ))}
       </div>
     );
@@ -2446,7 +2446,7 @@ function FicheSection({club,nextMatch,opponentId,ficheTeamData,ficheSquad,mySqua
         {ficheLoading ? (
           <div className="p-3 space-y-2">
             {Array.from({length:3}).map((_,i)=>(
-              <div key={i} className="h-14 rounded-xl animate-pulse" style={{background:"#0d1421"}}/>
+              <div key={i} className="h-8 rounded-lg animate-pulse" style={{background:"#0d1421",opacity:0.6}}/>
             ))}
           </div>
         ) : keyPlayers.length===0 ? (
@@ -2751,12 +2751,14 @@ function FanXFeed({ entityId, accentColor = "#1da1f2" }: { entityId: string; acc
 
   const [tweets, setTweets]   = useState<TweetItemMini[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadedCount, setLoadedCount] = useState(0);
   const [open, setOpen]       = useState<TweetItemMini | null>(null);
 
   useEffect(() => {
     if (handles.length === 0) { setLoading(false); return; }
     let cancelled = false;
     setLoading(true);
+    setLoadedCount(0);
     (async () => {
       const lists = await Promise.all(
         handles.map(h =>
@@ -2764,6 +2766,7 @@ function FanXFeed({ entityId, accentColor = "#1da1f2" }: { entityId: string; acc
             .then(r => r.json())
             .then((d: { tweets?: TweetItemMini[] }) => d.tweets ?? [])
             .catch(() => [] as TweetItemMini[])
+            .finally(() => { if (!cancelled) setLoadedCount(c => c + 1); })
         )
       );
       if (cancelled) return;
@@ -2792,10 +2795,27 @@ function FanXFeed({ entityId, accentColor = "#1da1f2" }: { entityId: string; acc
       </div>
 
       {loading ? (
-        <div className="space-y-2">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-16 rounded-xl animate-pulse" style={{ background:"#0d1421" }}/>
-          ))}
+        <div className="rounded-xl p-2.5 flex items-center gap-2.5"
+          style={{ background:"#0d1421", border:`1px solid ${accentColor}25` }}>
+          <div className="w-3 h-3 rounded-full animate-spin flex-shrink-0"
+            style={{ border: `2px solid ${accentColor}25`, borderTopColor: accentColor }}/>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color:"#94a3b8" }}>
+                Chargement du fil
+              </span>
+              <span className="text-[9px] font-mono tabular-nums" style={{ color: accentColor }}>
+                {loadedCount}/{handles.length}
+              </span>
+            </div>
+            <div className="h-0.5 rounded-full overflow-hidden" style={{ background:"#1e2d42" }}>
+              <div className="h-full transition-all duration-300 ease-out"
+                style={{
+                  width: `${handles.length ? (loadedCount / handles.length) * 100 : 0}%`,
+                  background: accentColor,
+                }}/>
+            </div>
+          </div>
         </div>
       ) : tweets.length === 0 ? (
         <div className="space-y-2">
