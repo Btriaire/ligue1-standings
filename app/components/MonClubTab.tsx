@@ -971,7 +971,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
         <div className="space-y-3">
           {sqLoading?(
             <div className="space-y-2">{Array.from({length:5}).map((_,i)=>(
-              <div key={i} className="h-12 rounded-xl animate-pulse" style={{background:"#0d1421",border:"1px solid #1e2d42"}}/>
+              <div key={i} className="h-7 rounded-lg animate-pulse" style={{background:"#0d1421",opacity:0.6}}/>
             ))}</div>
           ):squad.length===0?(
             <p className="text-center py-10 text-sm" style={{color:"#6b7c96"}}>Effectif indisponible</p>
@@ -1039,7 +1039,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
 
           {resTab==="resultats"&&(
             loading?(
-              <div className="space-y-2">{Array.from({length:4}).map((_,i)=><div key={i} className="h-12 rounded-xl animate-pulse" style={{background:"#0d1421",border:"1px solid #1e2d42"}}/>)}</div>
+              <div className="space-y-1.5">{Array.from({length:4}).map((_,i)=><div key={i} className="h-7 rounded-lg animate-pulse" style={{background:"#0d1421",opacity:0.6}}/>)}</div>
             ):results.length===0?(<p className="text-center py-10 text-sm" style={{color:"#6b7c96"}}>Aucun résultat récent</p>):(
               <div className="rounded-2xl overflow-hidden" style={{border:"1px solid #1e2d42"}}>
                 {results.map((m,idx)=>{
@@ -1081,7 +1081,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                 <p className="text-[10px]" style={{color:"#6b7c96"}}>Probabilités calculées sur la forme, la position et les stats de la saison en cours.</p>
               </div>
               {loading||!standing?(
-                <div className="space-y-3">{Array.from({length:3}).map((_,i)=><div key={i} className="h-24 rounded-xl animate-pulse" style={{background:"#0d1421",border:"1px solid #1e2d42"}}/>)}</div>
+                <div className="space-y-1.5">{Array.from({length:3}).map((_,i)=><div key={i} className="h-8 rounded-lg animate-pulse" style={{background:"#0d1421",opacity:0.6}}/>)}</div>
               ):predOpps.length===0?(<p className="text-center py-10 text-sm" style={{color:"#6b7c96"}}>Classement non disponible</p>):(
                 predOpps.map((opp,idx)=>{
                   const proba=calcProba(standing!,opp);
@@ -1517,7 +1517,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
               {tweetsLoading&&(
                 <div className="space-y-2">
                   {Array.from({length:4}).map((_,i)=>(
-                    <div key={i} className="h-16 rounded-xl animate-pulse" style={{background:"#0d1421",border:"1px solid #1e2d42"}}/>
+                    <div key={i} className="h-9 rounded-lg animate-pulse" style={{background:"#0d1421",opacity:0.6}}/>
                   ))}
                 </div>
               )}
@@ -1780,7 +1780,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
               {fanArticlesLoading&&(
                 <div className="space-y-2">
                   {Array.from({length:4}).map((_,i)=>(
-                    <div key={i} className="h-20 rounded-xl animate-pulse" style={{background:"#0d1421",border:"1px solid #1e2d42"}}/>
+                    <div key={i} className="h-10 rounded-lg animate-pulse" style={{background:"#0d1421",opacity:0.6}}/>
                   ))}
                 </div>
               )}
@@ -2234,10 +2234,30 @@ function FicheSection({club,nextMatch,opponentId,ficheTeamData,ficheSquad,mySqua
 
   if(!ficheMatchLoaded) {
     return (
-      <div className="space-y-3">
-        {Array.from({length:4}).map((_,i)=>(
-          <div key={i} className="h-16 rounded-xl animate-pulse" style={{background:"#0d1421",border:"1px solid #1e2d42"}}/>
-        ))}
+      <div className="space-y-2 py-2">
+        {/* Thin indeterminate progress bar */}
+        <div className="h-0.5 w-full rounded-full overflow-hidden relative"
+          style={{ background: "#0d1421" }}>
+          <div className="absolute inset-y-0 rounded-full"
+            style={{
+              background: `linear-gradient(90deg, transparent, ${club.color}, transparent)`,
+              width: "40%",
+              animation: "ficheSlide 1.4s ease-in-out infinite",
+            }}/>
+        </div>
+        <div className="flex items-center gap-2 justify-center">
+          <div className="w-2.5 h-2.5 rounded-full animate-spin"
+            style={{ border: `1.5px solid ${club.color}30`, borderTopColor: club.color }}/>
+          <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#6b7c96" }}>
+            Chargement de la fiche
+          </span>
+        </div>
+        <style jsx>{`
+          @keyframes ficheSlide {
+            0%   { left: -40%; }
+            100% { left: 100%; }
+          }
+        `}</style>
       </div>
     );
   }
@@ -2446,7 +2466,7 @@ function FicheSection({club,nextMatch,opponentId,ficheTeamData,ficheSquad,mySqua
         {ficheLoading ? (
           <div className="p-3 space-y-2">
             {Array.from({length:3}).map((_,i)=>(
-              <div key={i} className="h-14 rounded-xl animate-pulse" style={{background:"#0d1421"}}/>
+              <div key={i} className="h-8 rounded-lg animate-pulse" style={{background:"#0d1421",opacity:0.6}}/>
             ))}
           </div>
         ) : keyPlayers.length===0 ? (
@@ -2641,6 +2661,35 @@ function HashtagChips({ hashtags, entityId, accentColor }: { hashtags: string[];
   const [tweets, setTweets] = useState<TweetItemMini[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState<TweetItemMini | null>(null);
+  // Articles fetched once per entity, then filtered client-side per
+  // active hashtag (cheap title/desc substring match — case insensitive).
+  const [allArticles, setAllArticles] = useState<(FanXArticle & { description?: string })[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const params = new URLSearchParams();
+    if (entityId.startsWith("club:"))   params.set("clubId",     entityId.slice(5));
+    if (entityId.startsWith("nation:")) params.set("nationCode", entityId.slice(7));
+    if ([...params.keys()].length === 0) return;
+    fetch(`/api/fan-news?${params.toString()}`)
+      .then(r => r.ok ? r.json() : null)
+      .then((d: { articles?: (FanXArticle & { description?: string })[] } | null) => {
+        if (!cancelled) setAllArticles(d?.articles ?? []);
+      })
+      .catch(() => { /* silent */ });
+    return () => { cancelled = true; };
+  }, [entityId]);
+
+  // Article matches for the active hashtag — checks both the tag with
+  // and without leading '#' against title+description.
+  const matchingArticles = (() => {
+    if (!active) return [] as typeof allArticles;
+    const needle = active.toLowerCase();
+    return allArticles.filter(a => {
+      const hay = `${a.title} ${a.description ?? ""}`.toLowerCase();
+      return hay.includes(`#${needle}`) || hay.includes(needle);
+    }).slice(0, 3);
+  })();
 
   useEffect(() => {
     if (!active) return;
@@ -2691,17 +2740,61 @@ function HashtagChips({ hashtags, entityId, accentColor }: { hashtags: string[];
           </a>
         </div>
 
-        {loading ? (
-          <div className="space-y-1.5">
-            {Array.from({ length: 2 }).map((_, i) => (
-              <div key={i} className="h-12 rounded-lg animate-pulse" style={{ background:"#0a0f1c" }}/>
+        {/* Articles mentioning the hashtag */}
+        {matchingArticles.length > 0 && (
+          <div className="space-y-1.5 pb-1.5" style={{ borderBottom: "1px solid #1e2d42" }}>
+            <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: "#22c55e" }}>
+              Articles · {matchingArticles.length}
+            </span>
+            {matchingArticles.map(a => (
+              <a key={a.id} href={a.link} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 rounded-lg p-2 transition-all hover:brightness-125"
+                style={{ background: "#0a0f1c", border: "1px solid rgba(34,197,94,0.2)" }}>
+                {a.image && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={a.image} alt=""
+                    className="w-9 h-9 rounded object-cover flex-shrink-0"
+                    style={{ background: "#1e2d42" }}/>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-bold leading-snug line-clamp-2" style={{ color: "#e8edf5" }}>
+                    {a.title}
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-[9px] font-mono truncate" style={{ color: "#22c55e" }}>{a.site}</span>
+                    <span className="text-[9px]" style={{ color: "#334155" }}>·</span>
+                    <span className="text-[9px]" style={{ color: "#475569" }}>
+                      {new Date(a.pubDate).toLocaleDateString("fr-FR", { day:"numeric", month:"short" })}
+                    </span>
+                  </div>
+                </div>
+              </a>
             ))}
           </div>
-        ) : tweets.length === 0 ? (
+        )}
+
+        {loading ? (
+          <div className="flex items-center gap-2 px-1 py-1">
+            <div className="flex-1 h-[3px] rounded-full overflow-hidden relative"
+              style={{ background: `${accentColor}18` }}>
+              <div className="absolute inset-y-0 rounded-full"
+                style={{
+                  width: "40%",
+                  background: accentColor,
+                  boxShadow: `0 0 6px ${accentColor}aa`,
+                  animation: "hashSlide 1.3s ease-in-out infinite",
+                }}/>
+            </div>
+            <span className="text-[9px] font-mono" style={{ color: accentColor }}>…</span>
+            <style jsx>{`
+              @keyframes hashSlide { 0% { left: -40%; } 100% { left: 100%; } }
+            `}</style>
+          </div>
+        ) : tweets.length === 0 && matchingArticles.length === 0 ? (
           <p className="text-[10px] text-center py-2" style={{ color: "#475569" }}>
             Aucun tweet trouvé pour #{active} dans les comptes curés.
           </p>
-        ) : (
+        ) : tweets.length === 0 ? null : (
           <div className="space-y-1.5">
             {tweets.slice(0, 5).map(t => (
               <button key={t.id + t.author} onClick={() => setOpen(t)}
@@ -2741,22 +2834,54 @@ function HashtagChips({ hashtags, entityId, accentColor }: { hashtags: string[];
 // `fan` + `media` handles from fanConfig and merges their latest tweets
 // via /api/twitter-user. Click → opens the existing TweetModal.
 interface TweetItemMini { id: string; title: string; pubDate: string; url: string; author: string; media?: {type:"photo"|"video"|"gif";url:string;poster?:string}[] }
+interface FanXArticle { id: string; title: string; link: string; pubDate: string; site: string; image: string | null }
 
 function FanXFeed({ entityId, accentColor = "#1da1f2" }: { entityId: string; accentColor?: string }) {
   const entry = bundledFanEntry(entityId);
-  const handles = (entry?.twitter ?? [])
-    .filter(t => t.kind === "fan" || t.kind === "media")
-    .slice(0, 6)
-    .map(t => t.handle);
+  // Prefer fan/media voices, but always include officials too so smaller
+  // clubs (where syndication for niche fan accounts often returns empty)
+  // still surface a live feed.
+  const handles = (() => {
+    const all = entry?.twitter ?? [];
+    const fanMedia = all.filter(t => t.kind === "fan" || t.kind === "media").map(t => t.handle);
+    const officials = all.filter(t => t.kind === "official").map(t => t.handle);
+    return Array.from(new Set([...fanMedia, ...officials])).slice(0, 8);
+  })();
 
   const [tweets, setTweets]   = useState<TweetItemMini[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadedCount, setLoadedCount] = useState(0);
   const [open, setOpen]       = useState<TweetItemMini | null>(null);
+  const [articles, setArticles] = useState<FanXArticle[]>([]);
+
+  // Recent fan-site articles surfaced above the tweet wall. Kept compact:
+  // top 3, all under 14 days old. Same /api/fan-news endpoint that the
+  // ecosystem card uses, so it costs us one extra fetch.
+  useEffect(() => {
+    let cancelled = false;
+    const params = new URLSearchParams();
+    if (entityId.startsWith("club:"))   params.set("clubId",     entityId.slice(5));
+    if (entityId.startsWith("nation:")) params.set("nationCode", entityId.slice(7));
+    if ([...params.keys()].length === 0) return;
+    fetch(`/api/fan-news?${params.toString()}`)
+      .then(r => r.ok ? r.json() : null)
+      .then((d: { articles?: FanXArticle[] } | null) => {
+        if (cancelled) return;
+        const cutoff = Date.now() - 14 * 24 * 3600 * 1000;
+        const recent = (d?.articles ?? [])
+          .filter(a => new Date(a.pubDate).getTime() >= cutoff)
+          .slice(0, 3);
+        setArticles(recent);
+      })
+      .catch(() => { /* silent */ });
+    return () => { cancelled = true; };
+  }, [entityId]);
 
   useEffect(() => {
     if (handles.length === 0) { setLoading(false); return; }
     let cancelled = false;
     setLoading(true);
+    setLoadedCount(0);
     (async () => {
       const lists = await Promise.all(
         handles.map(h =>
@@ -2764,6 +2889,7 @@ function FanXFeed({ entityId, accentColor = "#1da1f2" }: { entityId: string; acc
             .then(r => r.json())
             .then((d: { tweets?: TweetItemMini[] }) => d.tweets ?? [])
             .catch(() => [] as TweetItemMini[])
+            .finally(() => { if (!cancelled) setLoadedCount(c => c + 1); })
         )
       );
       if (cancelled) return;
@@ -2791,11 +2917,58 @@ function FanXFeed({ entityId, accentColor = "#1da1f2" }: { entityId: string; acc
         </span>
       </div>
 
+      {/* Recent fan articles (≤14j, top 3) */}
+      {articles.length > 0 && (
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: "#22c55e" }}>
+              Articles fans · {articles.length}
+            </span>
+            <span className="text-[9px]" style={{ color: "#475569" }}>· moins de 14j</span>
+          </div>
+          <div className="space-y-1.5">
+            {articles.map(a => (
+              <a key={a.id} href={a.link} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 rounded-lg p-2 transition-all hover:brightness-125"
+                style={{ background: "#0d1421", border: "1px solid rgba(34,197,94,0.2)" }}>
+                {a.image && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={a.image} alt=""
+                    className="w-10 h-10 rounded object-cover flex-shrink-0"
+                    style={{ background: "#1e2d42" }}/>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-bold leading-snug line-clamp-2" style={{ color: "#e8edf5" }}>
+                    {a.title}
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-[9px] font-mono truncate" style={{ color: "#22c55e" }}>{a.site}</span>
+                    <span className="text-[9px]" style={{ color: "#334155" }}>·</span>
+                    <span className="text-[9px]" style={{ color: "#475569" }}>
+                      {new Date(a.pubDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                    </span>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
       {loading ? (
-        <div className="space-y-2">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-16 rounded-xl animate-pulse" style={{ background:"#0d1421" }}/>
-          ))}
+        <div className="flex items-center gap-2 px-1">
+          <div className="flex-1 h-[3px] rounded-full overflow-hidden"
+            style={{ background: `${accentColor}18` }}>
+            <div className="h-full transition-all duration-300 ease-out rounded-full"
+              style={{
+                width: `${handles.length ? (loadedCount / handles.length) * 100 : 0}%`,
+                background: accentColor,
+                boxShadow: `0 0 6px ${accentColor}aa`,
+              }}/>
+          </div>
+          <span className="text-[9px] font-mono tabular-nums flex-shrink-0" style={{ color: accentColor }}>
+            {loadedCount}/{handles.length}
+          </span>
         </div>
       ) : tweets.length === 0 ? (
         <div className="space-y-2">
