@@ -81,6 +81,18 @@ function formatRelativeDate(raw: string): string {
   } catch { return ""; }
 }
 
+// Sources whose articles our /api/news/article scraper can't render — opening
+// them in the in-app modal just shows a "Article inaccessible" error. For
+// these we skip the modal and open the link in a new tab directly.
+function shouldOpenExternal(item: TransferItem): boolean {
+  if (item.source === "Google News" || item.source === "FotMob") return true;
+  if (item.url) {
+    if (item.url.includes("news.google.com")) return true;
+    if (item.url.includes("fotmob.com"))      return true;
+  }
+  return false;
+}
+
 // Absolute "23 janv. 2026" — used as title attribute / fallback.
 function formatAbsoluteDate(raw: string): string {
   if (!raw) return "";
@@ -93,10 +105,11 @@ function formatAbsoluteDate(raw: string): string {
 // ── Single news item ───────────────────────────────────────────────────────────
 
 function NewsItem({ item, onOpen }: { item: TransferItem; onOpen: (i: TransferItem) => void }) {
-  return (
-    <button type="button" onClick={() => onOpen(item)}
-      className="group w-full text-left flex items-start gap-2.5 py-2.5 px-3 rounded-xl transition-all hover:brightness-125"
-      style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)" }}>
+  // Google News & FotMob URLs don't scrape well — open them straight in a new tab
+  // instead of routing through the modal (which would just show an error).
+  const external = shouldOpenExternal(item);
+  const Inner = (
+    <>
       <TypeBadge type={item.type} />
       <p className="flex-1 text-xs leading-relaxed line-clamp-2" style={{ color: "#cbd5e1" }}>
         {item.title}
@@ -111,6 +124,20 @@ function NewsItem({ item, onOpen }: { item: TransferItem; onOpen: (i: TransferIt
         )}
         <ArrowSquareOut size={10} className="text-white/20 group-hover:text-white/50 transition-colors" />
       </div>
+    </>
+  );
+  const cls = "group w-full text-left flex items-start gap-2.5 py-2.5 px-3 rounded-xl transition-all hover:brightness-125";
+  const style = { background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)" };
+  if (external) {
+    return (
+      <a href={item.url} target="_blank" rel="noopener noreferrer" className={cls} style={style}>
+        {Inner}
+      </a>
+    );
+  }
+  return (
+    <button type="button" onClick={() => onOpen(item)} className={cls} style={style}>
+      {Inner}
     </button>
   );
 }
@@ -209,13 +236,21 @@ function TopTransferRow({ item, onOpen }: { item: TransferItem; onOpen: (i: Tran
   const Trend = item.type === "arrival" ? TrendUp
               : item.type === "departure" ? TrendDown
               : ChartLine;
+  const external = shouldOpenExternal(item);
+  const cls = "group w-full text-left rounded-xl p-3 transition-all hover:brightness-125 block";
+  const style = {
+    background: `linear-gradient(90deg, ${color}10, rgba(13,20,33,0.7))`,
+    border: `1px solid ${color}30`,
+  };
+  const Wrapper = external
+    ? ({ children }: { children: React.ReactNode }) => (
+        <a href={item.url} target="_blank" rel="noopener noreferrer" className={cls} style={style}>{children}</a>
+      )
+    : ({ children }: { children: React.ReactNode }) => (
+        <button type="button" onClick={() => onOpen(item)} className={cls} style={style}>{children}</button>
+      );
   return (
-    <button type="button" onClick={() => onOpen(item)}
-      className="group w-full text-left rounded-xl p-3 transition-all hover:brightness-125"
-      style={{
-        background: `linear-gradient(90deg, ${color}10, rgba(13,20,33,0.7))`,
-        border: `1px solid ${color}30`,
-      }}>
+    <Wrapper>
       <div className="flex items-center gap-3">
         <PlayerAvatar id={item.playerId} name={item.player} color={color} />
 
@@ -262,7 +297,7 @@ function TopTransferRow({ item, onOpen }: { item: TransferItem; onOpen: (i: Tran
           </span>
         </div>
       </div>
-    </button>
+    </Wrapper>
   );
 }
 
@@ -286,55 +321,86 @@ function MarketChart({ transfers }: { transfers: BoardTransfer[] }) {
 
   if (valid.length < 2) return null;
 
-  // Daily bins (ts → total value).
-  const bins = new Map<number, number>();
+  // Weekly bins for the background bars (volume = activity heat).
+  const WEEK = 7 * 24 * 3600 * 1000;
+  const weekStart = (ts: number) => Math.floor(ts / WEEK) * WEEK;
+  const weekBins = new Map<number, number>();
   for (const t of valid) {
-    const day = Math.floor(t.ts / (24 * 3600 * 1000)) * 24 * 3600 * 1000;
-    bins.set(day, (bins.get(day) ?? 0) + (t.marketValue ?? 0));
+    const w = weekStart(t.ts);
+    weekBins.set(w, (weekBins.get(w) ?? 0) + (t.marketValue ?? 0));
   }
-  const days = [...bins.keys()].sort((a, b) => a - b);
-  if (days.length < 2) return null;
 
-  const firstDay = days[0];
-  const lastDay  = days[days.length - 1];
-  const span     = Math.max(1, lastDay - firstDay);
-  const maxV     = Math.max(...bins.values());
+  // Anchor the X-axis to the chosen window so the chart aligns with the
+  // selector — otherwise zooming feels visually identical when data is
+  // bunched in a short period.
+  const xMin = Math.min(valid[0].ts, now - windowDays * 24 * 3600 * 1000);
+  const xMax = now;
+  const span = Math.max(1, xMax - xMin);
 
-  // Chart geometry — relative coordinates, scaled by viewBox.
-  const W = 600, H = 180, PAD_L = 8, PAD_R = 8, PAD_T = 8, PAD_B = 22;
+  // Log Y axis — without it small transfers (1-5 M€) are invisible next to
+  // 100 M€ outliers. Range: 500k€ floor → ceiling rounded up to next decade.
+  const allValues = valid.map(t => t.marketValue ?? 0);
+  const maxV = Math.max(...allValues);
+  const Y_MIN = 500_000; // 500 k€ floor
+  const Y_MAX = Math.pow(10, Math.ceil(Math.log10(Math.max(maxV, 10_000_000))));
+  const logMin = Math.log10(Y_MIN);
+  const logMax = Math.log10(Y_MAX);
+  const logSpan = Math.max(0.1, logMax - logMin);
+
+  // Chart geometry.
+  const W = 700, H = 220, PAD_L = 38, PAD_R = 8, PAD_T = 10, PAD_B = 26;
   const innerW = W - PAD_L - PAD_R;
   const innerH = H - PAD_T - PAD_B;
-  const xOf = (ts: number) => PAD_L + ((ts - firstDay) / span) * innerW;
-  const yOf = (v: number)  => PAD_T + innerH - (v / maxV) * innerH;
+  const xOf = (ts: number) => PAD_L + ((ts - xMin) / span) * innerW;
+  const yOf = (v: number)  => {
+    const clamped = Math.max(Y_MIN, Math.min(v, Y_MAX));
+    return PAD_T + innerH - ((Math.log10(clamped) - logMin) / logSpan) * innerH;
+  };
 
-  // Path through daily bins (step-like — bourse vibe).
-  const points = days.map((d) => ({ x: xOf(d), y: yOf(bins.get(d) ?? 0) }));
-  const line = points.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
-  const area = `${line} L${points[points.length - 1].x.toFixed(1)},${(PAD_T + innerH).toFixed(1)} L${points[0].x.toFixed(1)},${(PAD_T + innerH).toFixed(1)} Z`;
+  // Bubble radius scales with sqrt(value) — area ∝ value.
+  const maxR = 14;
+  const minR = 2.5;
+  const rOf  = (v: number) => {
+    const ratio = Math.sqrt(Math.max(Y_MIN, v) / Y_MAX);
+    return Math.max(minR, ratio * maxR);
+  };
 
-  // Dots — render every transfer. Each transfer's Y position = its own market
-  // value (not the daily aggregate), so big transfers visually pop above the
-  // area. Sort big-first so they paint on top.
-  const allDots = [...valid]
+  // All transfer bubbles, big first (so small ones paint on top of empty space).
+  const bubbles = [...valid]
     .sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0))
     .map((t, rank) => ({
       ...t, rank,
       x: xOf(t.ts),
-      y: yOf(Math.min(t.marketValue ?? 0, maxV)),
+      y: yOf(t.marketValue ?? 0),
+      r: rOf(t.marketValue ?? 0),
     }));
-  // Top 15 = highlighted (yellow), rest = small cyan dots.
-  const TOP_N = 15;
 
   // Headline metrics.
-  const total      = valid.reduce((s, t) => s + (t.marketValue ?? 0), 0);
-  const avg        = total / valid.length;
-  const bigDay     = [...bins.entries()].sort((a, b) => b[1] - a[1])[0];
-  const lastDate   = new Date(lastDay);
-  const firstDate  = new Date(firstDay);
+  const total = allValues.reduce((s, v) => s + v, 0);
+  const avg   = total / allValues.length;
+  const bigDay = [...weekBins.entries()].sort((a, b) => b[1] - a[1])[0];
 
-  // X-axis ticks: 4–6 evenly spaced.
-  const tickCount = windowDays >= 180 ? 6 : 4;
-  const ticks = Array.from({ length: tickCount }, (_, i) => firstDay + (i * span) / (tickCount - 1));
+  // Log-scale Y gridlines: 1 M, 5 M, 10 M, 50 M, 100 M, …
+  const tickValues: number[] = [];
+  for (let exp = Math.ceil(logMin); exp <= Math.floor(logMax); exp++) {
+    const base = Math.pow(10, exp);
+    if (base >= Y_MIN && base <= Y_MAX) tickValues.push(base);
+    if (base * 5 <= Y_MAX) tickValues.push(base * 5);
+  }
+
+  // X-axis: monthly ticks for ≥6m, biweekly for 3m.
+  const xTickStep = windowDays >= 180 ? 30 : windowDays >= 90 ? 14 : 7;
+  const xTicks: number[] = [];
+  for (let t = xMax; t >= xMin; t -= xTickStep * 24 * 3600 * 1000) xTicks.unshift(t);
+
+  // Background weekly bars (subtle volume heat).
+  const maxWeek = Math.max(...weekBins.values());
+  const weekBars = [...weekBins.entries()].map(([w, vol]) => ({
+    x:  xOf(w),
+    x2: xOf(w + WEEK),
+    h:  (vol / maxWeek) * innerH * 0.35,
+    vol,
+  }));
 
   return (
     <div className="rounded-2xl p-3 mb-4 relative"
@@ -368,7 +434,7 @@ function MarketChart({ transfers }: { transfers: BoardTransfer[] }) {
             </div>
           </div>
           <p className="text-[10px] mt-0.5" style={{ color: "#6b7c96" }}>
-            {valid.length} mouvements · cours quotidien (Σ valeur marchande)
+            {valid.length} mouvements · bulles ∝ valeur · échelle log
           </p>
         </div>
         <div className="text-right flex-shrink-0">
@@ -376,62 +442,79 @@ function MarketChart({ transfers }: { transfers: BoardTransfer[] }) {
             {formatEuro(total)}
           </p>
           <p className="text-[9px] mt-1" style={{ color: "#6b7c96" }}>
-            Moy. {formatEuro(avg)} · Pic {formatEuro(bigDay?.[1] ?? 0)}
+            Moy. {formatEuro(avg)} · Pic sem. {formatEuro(bigDay?.[1] ?? 0)}
           </p>
         </div>
       </div>
 
       <div className="relative">
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" preserveAspectRatio="none"
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto"
           style={{ overflow: "visible" }}>
           <defs>
-            <linearGradient id="mercatoArea" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%"   stopColor="#00d4ff" stopOpacity="0.4" />
-              <stop offset="100%" stopColor="#00d4ff" stopOpacity="0.02" />
+            <radialGradient id="bubbleHalo" cx="50%" cy="50%" r="50%">
+              <stop offset="0%"  stopColor="#fbbf24" stopOpacity="0.5" />
+              <stop offset="100%" stopColor="#fbbf24" stopOpacity="0" />
+            </radialGradient>
+            <linearGradient id="weeklyBar" x1="0" y1="1" x2="0" y2="0">
+              <stop offset="0%"   stopColor="#00d4ff" stopOpacity="0.0" />
+              <stop offset="100%" stopColor="#00d4ff" stopOpacity="0.18" />
             </linearGradient>
           </defs>
 
-          {/* Y grid */}
-          {[0.25, 0.5, 0.75].map((r) => (
-            <line key={r} x1={PAD_L} x2={W - PAD_R}
-              y1={PAD_T + innerH * r} y2={PAD_T + innerH * r}
-              stroke="rgba(255,255,255,0.04)" strokeDasharray="2 3" />
+          {/* Background weekly volume bars */}
+          {weekBars.map((b, i) => (
+            <rect key={`w-${i}`}
+              x={b.x} y={PAD_T + innerH - b.h}
+              width={Math.max(2, b.x2 - b.x - 1)} height={b.h}
+              fill="url(#weeklyBar)" rx={1} />
           ))}
 
-          {/* Area + line */}
-          <path d={area} fill="url(#mercatoArea)" />
-          <path d={line} fill="none" stroke="#00d4ff" strokeWidth="1.5"
-            strokeLinejoin="round" strokeLinecap="round" />
-
-          {/* All transfer dots — small cyan for the long tail, yellow halos
-              on the top 15 most expensive moves so they pop visually. */}
-          {/* Paint the tail first (so highlights sit on top). */}
-          {allDots.slice(TOP_N).map((d, i) => (
-            <circle key={`tail-${d.playerId}-${i}`} cx={d.x} cy={d.y} r="2"
-              fill="#00d4ff" fillOpacity="0.55"
-              onMouseEnter={() => setHover({ x: d.x, y: d.y, t: d })}
-              onMouseLeave={() => setHover(null)}
-              style={{ cursor: "pointer" }} />
-          ))}
-          {allDots.slice(0, TOP_N).map((d, i) => (
-            <g key={`top-${d.playerId}-${i}`}
-              onMouseEnter={() => setHover({ x: d.x, y: d.y, t: d })}
-              onMouseLeave={() => setHover(null)}
-              style={{ cursor: "pointer" }}>
-              <circle cx={d.x} cy={d.y} r="7" fill="#fbbf24" fillOpacity="0.15" />
-              <circle cx={d.x} cy={d.y} r="3.5" fill="#fbbf24" stroke="#0a0f1c" strokeWidth="1.5" />
+          {/* Log-scale Y gridlines + labels */}
+          {tickValues.map((v) => (
+            <g key={`y-${v}`}>
+              <line x1={PAD_L} x2={W - PAD_R} y1={yOf(v)} y2={yOf(v)}
+                stroke="rgba(255,255,255,0.06)" strokeDasharray="3 4" />
+              <text x={PAD_L - 4} y={yOf(v) + 3} textAnchor="end"
+                fill="#6b7c96" fontSize="9" fontWeight="700" className="tabular-nums">
+                {v >= 1_000_000 ? `${v / 1_000_000}M` : `${v / 1_000}k`}
+              </text>
             </g>
           ))}
 
-          {/* X ticks */}
-          {ticks.map((ts, i) => {
+          {/* Vertical grid + X labels */}
+          {xTicks.map((ts, i) => {
             const d = new Date(ts);
             const lbl = d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
             return (
-              <text key={i} x={xOf(ts)} y={H - 6} textAnchor={i === 0 ? "start" : i === ticks.length - 1 ? "end" : "middle"}
-                fill="#475569" fontSize="9" fontWeight="600">
-                {lbl}
-              </text>
+              <g key={`x-${i}`}>
+                <line x1={xOf(ts)} x2={xOf(ts)} y1={PAD_T} y2={PAD_T + innerH}
+                  stroke="rgba(255,255,255,0.03)" />
+                <text x={xOf(ts)} y={H - 6}
+                  textAnchor={i === 0 ? "start" : i === xTicks.length - 1 ? "end" : "middle"}
+                  fill="#6b7c96" fontSize="9" fontWeight="600">
+                  {lbl}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Transfer bubbles — log Y, radius ∝ √value.
+              Painted big→small so small bubbles sit on top of haloes. */}
+          {bubbles.map((b, i) => {
+            const isTop  = i < 15;
+            const isLoan = b.onLoan;
+            const isExt  = b.contractExtension;
+            const fill   = isExt ? "#94a3b8" : isLoan ? "#a78bfa" : isTop ? "#fbbf24" : "#22d3ee";
+            return (
+              <g key={`b-${b.playerId}-${i}`}
+                onMouseEnter={() => setHover({ x: b.x, y: b.y, t: b })}
+                onMouseLeave={() => setHover(null)}
+                style={{ cursor: "pointer" }}>
+                {isTop && <circle cx={b.x} cy={b.y} r={b.r * 2.2} fill="url(#bubbleHalo)" />}
+                <circle cx={b.x} cy={b.y} r={b.r}
+                  fill={fill} fillOpacity={isTop ? 0.85 : 0.55}
+                  stroke="#0a0f1c" strokeWidth={isTop ? 1.5 : 0.5} />
+              </g>
             );
           })}
         </svg>
@@ -458,9 +541,22 @@ function MarketChart({ transfers }: { transfers: BoardTransfer[] }) {
         )}
       </div>
 
-      <p className="text-[9px] mt-1 text-center" style={{ color: "#6b7c96" }}>
-        Du {firstDate.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })} au {lastDate.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })} · Source FotMob
-      </p>
+      {/* Legend */}
+      <div className="flex items-center justify-center gap-3 mt-2 flex-wrap text-[9px]" style={{ color: "#94a3b8" }}>
+        <span className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full" style={{ background: "#fbbf24" }} /> Top 15
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full" style={{ background: "#22d3ee" }} /> Transfert
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full" style={{ background: "#a78bfa" }} /> Prêt
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full" style={{ background: "#94a3b8" }} /> Prolongation
+        </span>
+        <span className="opacity-50">· FotMob</span>
+      </div>
     </div>
   );
 }
