@@ -1,17 +1,61 @@
 import { NextRequest, NextResponse } from "next/server";
+import { FAN_CLUBS_L1, FAN_CLUBS_L2, FAN_NATIONS, type FanEntry } from "@/app/lib/fanConfig";
 
 export const dynamic = "force-dynamic";
 
-// ── Fan site RSS feeds (verified reachable) ───────────────────────────────────
-const FAN_RSS: Record<string, { url: string; site: string }> = {
-  "524":  { url: "https://www.allezparis.fr/feed/",                site: "allezparis.fr"         },
-  "516":  { url: "https://www.footmarseille.com/feed/",            site: "footmarseille.com"     },
-  "523":  { url: "https://www.olympique-et-lyonnais.com/feed/",    site: "olympique-et-lyonnais.com" },
-  "511":  { url: "https://www.lesviolets.com/actu/rss",            site: "lesviolets.com"        },
-  "543":  { url: "https://www.tribunenantaise.fr/feed/",           site: "tribunenantaise.fr"    },
-  "519":  { url: "https://www.teamaja.fr/feed/",                   site: "teamaja.fr"            },
-  "525":  { url: "https://lorient-infos.fr/feed/",                 site: "lorient-infos.fr"      },
+// ── Verified RSS feeds (direct URLs, used when a curated site URL alone
+//    isn't enough to derive the feed). Keyed by hostname for easy override.
+const FEED_OVERRIDES: Record<string, string> = {
+  "lesviolets.com":            "https://www.lesviolets.com/actu/rss",
+  "www.lesviolets.com":        "https://www.lesviolets.com/actu/rss",
+  "allezparis.fr":             "https://www.allezparis.fr/feed/",
+  "www.allezparis.fr":         "https://www.allezparis.fr/feed/",
+  "footmarseille.com":         "https://www.footmarseille.com/feed/",
+  "www.footmarseille.com":     "https://www.footmarseille.com/feed/",
+  "olympique-et-lyonnais.com": "https://www.olympique-et-lyonnais.com/feed/",
+  "www.olympique-et-lyonnais.com": "https://www.olympique-et-lyonnais.com/feed/",
+  "tribunenantaise.fr":        "https://www.tribunenantaise.fr/feed/",
+  "www.tribunenantaise.fr":    "https://www.tribunenantaise.fr/feed/",
+  "teamaja.fr":                "https://www.teamaja.fr/feed/",
+  "www.teamaja.fr":            "https://www.teamaja.fr/feed/",
+  "lorient-infos.fr":          "https://lorient-infos.fr/feed/",
 };
+
+// Generate likely RSS URLs from a curated site URL.
+function candidateFeedsFor(rawUrl: string): string[] {
+  try {
+    const u = new URL(rawUrl);
+    const host = u.hostname;
+    if (FEED_OVERRIDES[host]) return [FEED_OVERRIDES[host]];
+    const base = `${u.protocol}//${u.host}${u.pathname.replace(/\/$/, "")}`;
+    return [
+      `${base}/feed/`,
+      `${base}/rss/`,
+      `${base}/feed`,
+      `${base}/rss`,
+      `${u.protocol}//${u.host}/feed/`,
+      `${u.protocol}//${u.host}/rss/`,
+      `${u.protocol}//${u.host}/?feed=rss2`,
+    ];
+  } catch {
+    return [];
+  }
+}
+
+function siteLabelFor(rawUrl: string): string {
+  try {
+    return new URL(rawUrl).hostname.replace(/^www\./, "");
+  } catch { return rawUrl; }
+}
+
+function entryFor(clubId: string | null, nationCode: string | null): FanEntry | null {
+  if (clubId) {
+    const id = parseInt(clubId, 10);
+    return FAN_CLUBS_L1[id] ?? FAN_CLUBS_L2[id] ?? null;
+  }
+  if (nationCode) return FAN_NATIONS[nationCode] ?? null;
+  return null;
+}
 
 export interface FanArticle {
   id: string;
@@ -111,48 +155,80 @@ function parseFanRSS(xml: string, site: string): FanArticle[] {
   return articles;
 }
 
-// ── GET — fetch fan articles for a club ───────────────────────────────────────
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const clubId = searchParams.get("clubId");
-  if (!clubId) return NextResponse.json({ error: "Missing clubId" }, { status: 400 });
-
-  const feed = FAN_RSS[clubId];
-  if (!feed) {
-    return NextResponse.json({ articles: [], site: null }, {
-      headers: { "Cache-Control": "public, s-maxage=300" },
-    });
-  }
-
+// Try a single feed URL; return [] on any failure.
+async function fetchFeed(feedUrl: string, site: string): Promise<FanArticle[]> {
   try {
-    const res = await fetch(feed.url, {
+    const res = await fetch(feedUrl, {
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; FootPredictom/1.0; +https://footpredictom.vercel.app)",
         "Accept": "application/rss+xml, application/xml, text/xml, */*",
       },
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(5000),
     } as RequestInit);
-
-    if (!res.ok) {
-      return NextResponse.json({ articles: [], site: feed.site, error: `HTTP ${res.status}` }, {
-        headers: { "Cache-Control": "public, s-maxage=60" },
-      });
-    }
-
+    if (!res.ok) return [];
     const xml = await res.text();
-    if (!xml.includes("<item>")) {
-      return NextResponse.json({ articles: [], site: feed.site }, {
-        headers: { "Cache-Control": "public, s-maxage=60" },
-      });
-    }
+    if (!xml.includes("<item>")) return [];
+    return parseFanRSS(xml, site);
+  } catch { return []; }
+}
 
-    const articles = parseFanRSS(xml, feed.site);
-    return NextResponse.json({ articles, site: feed.site }, {
-      headers: { "Cache-Control": "public, s-maxage=1800, stale-while-revalidate=300" },
+// Resolve a curated site URL to its first working feed (tries candidates
+// in order). Returns at most `limit` articles.
+async function fetchSite(rawUrl: string, limit = 8): Promise<FanArticle[]> {
+  const site = siteLabelFor(rawUrl);
+  for (const candidate of candidateFeedsFor(rawUrl)) {
+    const items = await fetchFeed(candidate, site);
+    if (items.length > 0) return items.slice(0, limit);
+  }
+  return [];
+}
+
+// ── GET — fetch fan articles for a club or nation ─────────────────────────────
+// Accepts ?clubId=…  or  ?nationCode=…  or  ?sites=<comma-separated URLs>.
+// When clubId/nationCode is provided, the curated `sites` list from
+// fanConfig is used; this means every club with at least one site URL
+// (i.e. all of them) will surface articles when those sites expose an
+// RSS feed at a common path.
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const clubId     = searchParams.get("clubId");
+  const nationCode = searchParams.get("nationCode");
+  const rawSites   = searchParams.get("sites");
+
+  // Build the list of site URLs to query.
+  let urls: string[] = [];
+  if (rawSites) {
+    urls = rawSites.split(",").map(s => s.trim()).filter(Boolean);
+  } else {
+    const entry = entryFor(clubId, nationCode);
+    if (!entry) return NextResponse.json({ articles: [] }, {
+      headers: { "Cache-Control": "public, s-maxage=300" },
     });
-  } catch (e) {
-    return NextResponse.json({ articles: [], site: feed.site, error: String(e) }, {
-      headers: { "Cache-Control": "public, s-maxage=60" },
+    urls = entry.sites.map(s => s.url);
+  }
+
+  if (urls.length === 0) {
+    return NextResponse.json({ articles: [] }, {
+      headers: { "Cache-Control": "public, s-maxage=300" },
     });
   }
+
+  // Fetch in parallel — bounded by 8 sites max.
+  const lists = await Promise.all(urls.slice(0, 8).map(u => fetchSite(u, 6)));
+  const merged = lists.flat()
+    .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
+    .slice(0, 24);
+
+  // Back-compat: `site` was historically the single source label; now we
+  // aggregate from many curated sites, so summarise as "N sources" when
+  // more than one — callers that just render the label still get
+  // something meaningful.
+  const uniqueSites = Array.from(new Set(merged.map(a => a.site)));
+  const site = uniqueSites.length === 0 ? null
+             : uniqueSites.length === 1 ? uniqueSites[0]
+             : `${uniqueSites.length} sources`;
+
+  return NextResponse.json({ articles: merged, site }, {
+    headers: { "Cache-Control": "public, s-maxage=1800, stale-while-revalidate=300" },
+  });
 }

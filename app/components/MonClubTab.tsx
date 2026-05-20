@@ -2744,10 +2744,15 @@ interface TweetItemMini { id: string; title: string; pubDate: string; url: strin
 
 function FanXFeed({ entityId, accentColor = "#1da1f2" }: { entityId: string; accentColor?: string }) {
   const entry = bundledFanEntry(entityId);
-  const handles = (entry?.twitter ?? [])
-    .filter(t => t.kind === "fan" || t.kind === "media")
-    .slice(0, 6)
-    .map(t => t.handle);
+  // Prefer fan/media voices, but always include officials too so smaller
+  // clubs (where syndication for niche fan accounts often returns empty)
+  // still surface a live feed.
+  const handles = (() => {
+    const all = entry?.twitter ?? [];
+    const fanMedia = all.filter(t => t.kind === "fan" || t.kind === "media").map(t => t.handle);
+    const officials = all.filter(t => t.kind === "official").map(t => t.handle);
+    return Array.from(new Set([...fanMedia, ...officials])).slice(0, 8);
+  })();
 
   const [tweets, setTweets]   = useState<TweetItemMini[]>([]);
   const [loading, setLoading] = useState(true);
