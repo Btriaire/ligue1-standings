@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { ArrowsClockwise, ArrowSquareOut, TrendUp, TrendDown, Newspaper, CaretDown, ArrowRight, ChartLine, User } from "@phosphor-icons/react";
+import { ArrowsClockwise, ArrowSquareOut, TrendUp, TrendDown, Newspaper, CaretDown, ArrowRight, ChartLine, User, Calendar } from "@phosphor-icons/react";
 import type { ClubTransfers, TransferItem } from "@/app/api/transfers/route";
 import type { BoardTransfer } from "@/app/api/mercato-board/route";
 import { useConfig } from "@/app/lib/config";
@@ -59,6 +59,37 @@ function formatDate(raw: string): string {
   } catch { return ""; }
 }
 
+// Relative date helper for the Boursier rows ("il y a 3j", "il y a 2 sem").
+// Falls back to absolute date when older than a year.
+function formatRelativeDate(raw: string): string {
+  if (!raw) return "";
+  try {
+    const d = new Date(raw);
+    const ms = Date.now() - d.getTime();
+    if (Number.isNaN(ms)) return "";
+    const days = Math.floor(ms / (24 * 3600 * 1000));
+    if (days < 0) {
+      // Future-dated (rare but possible with cached data).
+      return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
+    }
+    if (days === 0)  return "aujourd'hui";
+    if (days === 1)  return "hier";
+    if (days < 7)    return `il y a ${days}j`;
+    if (days < 31)   return `il y a ${Math.floor(days / 7)} sem`;
+    if (days < 365)  return `il y a ${Math.floor(days / 30)} mois`;
+    return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+  } catch { return ""; }
+}
+
+// Absolute "23 janv. 2026" — used as title attribute / fallback.
+function formatAbsoluteDate(raw: string): string {
+  if (!raw) return "";
+  try {
+    const d = new Date(raw);
+    return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+  } catch { return ""; }
+}
+
 // ── Single news item ───────────────────────────────────────────────────────────
 
 function NewsItem({ item, onOpen }: { item: TransferItem; onOpen: (i: TransferItem) => void }) {
@@ -73,7 +104,10 @@ function NewsItem({ item, onOpen }: { item: TransferItem; onOpen: (i: TransferIt
       <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-1">
         <SourceBadge source={item.source} />
         {item.pubDate && (
-          <span className="text-[9px]" style={{ color: "#6b7c96" }}>{formatDate(item.pubDate)}</span>
+          <span className="text-[10px] font-semibold tabular-nums" style={{ color: "#94a3b8" }}
+            title={formatAbsoluteDate(item.pubDate)}>
+            {formatDate(item.pubDate)}
+          </span>
         )}
         <ArrowSquareOut size={10} className="text-white/20 group-hover:text-white/50 transition-colors" />
       </div>
@@ -202,6 +236,18 @@ function TopTransferRow({ item, onOpen }: { item: TransferItem; onOpen: (i: Tran
             <ArrowRight size={10} style={{ color: "#475569" }} />
             <ClubChip crest={item.toClubCrest} name={item.toClub} />
           </div>
+          {item.pubDate && (
+            <div className="flex items-center gap-1 mt-1"
+              title={formatAbsoluteDate(item.pubDate)}>
+              <Calendar size={10} weight="bold" style={{ color: "#00d4ff" }} />
+              <span className="text-[10px] font-bold tabular-nums" style={{ color: "#00d4ff" }}>
+                {formatAbsoluteDate(item.pubDate)}
+              </span>
+              <span className="text-[9px]" style={{ color: "#6b7c96" }}>
+                · {formatRelativeDate(item.pubDate)}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
@@ -214,9 +260,6 @@ function TopTransferRow({ item, onOpen }: { item: TransferItem; onOpen: (i: Tran
           <span className="text-[9px] font-semibold" style={{ color: "#6b7c96" }}>
             {item.fee && item.fee !== "—" ? item.fee : item.onLoan ? "Prêt" : item.contractExtension ? "Prolongation" : "Valeur"}
           </span>
-          {item.pubDate && (
-            <span className="text-[9px]" style={{ color: "#475569" }}>{formatDate(item.pubDate)}</span>
-          )}
         </div>
       </div>
     </button>
