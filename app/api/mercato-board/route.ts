@@ -77,11 +77,11 @@ export async function GET(req: NextRequest) {
       .filter(tr => tr.playerId && (tr.toClub || tr.fromClub))
       .map(toBoardTransfer);
 
-    // Top 25 by market value — the UI typically renders 10, but we keep
-    // a margin so client-side dedup / filter can pick from a wider pool.
+    // Return up to 100 transfers — Boursier board uses top 10, the Market
+    // index chart needs the full window to show daily activity.
     const top = [...transfers]
       .sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0))
-      .slice(0, 25);
+      .slice(0, 100);
 
     return NextResponse.json(
       { league, transfers: top, all: transfers.length, updatedAt: new Date().toISOString() },
