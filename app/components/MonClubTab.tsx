@@ -2661,6 +2661,35 @@ function HashtagChips({ hashtags, entityId, accentColor }: { hashtags: string[];
   const [tweets, setTweets] = useState<TweetItemMini[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState<TweetItemMini | null>(null);
+  // Articles fetched once per entity, then filtered client-side per
+  // active hashtag (cheap title/desc substring match — case insensitive).
+  const [allArticles, setAllArticles] = useState<(FanXArticle & { description?: string })[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const params = new URLSearchParams();
+    if (entityId.startsWith("club:"))   params.set("clubId",     entityId.slice(5));
+    if (entityId.startsWith("nation:")) params.set("nationCode", entityId.slice(7));
+    if ([...params.keys()].length === 0) return;
+    fetch(`/api/fan-news?${params.toString()}`)
+      .then(r => r.ok ? r.json() : null)
+      .then((d: { articles?: (FanXArticle & { description?: string })[] } | null) => {
+        if (!cancelled) setAllArticles(d?.articles ?? []);
+      })
+      .catch(() => { /* silent */ });
+    return () => { cancelled = true; };
+  }, [entityId]);
+
+  // Article matches for the active hashtag — checks both the tag with
+  // and without leading '#' against title+description.
+  const matchingArticles = (() => {
+    if (!active) return [] as typeof allArticles;
+    const needle = active.toLowerCase();
+    return allArticles.filter(a => {
+      const hay = `${a.title} ${a.description ?? ""}`.toLowerCase();
+      return hay.includes(`#${needle}`) || hay.includes(needle);
+    }).slice(0, 3);
+  })();
 
   useEffect(() => {
     if (!active) return;
@@ -2711,17 +2740,61 @@ function HashtagChips({ hashtags, entityId, accentColor }: { hashtags: string[];
           </a>
         </div>
 
-        {loading ? (
-          <div className="space-y-1.5">
-            {Array.from({ length: 2 }).map((_, i) => (
-              <div key={i} className="h-12 rounded-lg animate-pulse" style={{ background:"#0a0f1c" }}/>
+        {/* Articles mentioning the hashtag */}
+        {matchingArticles.length > 0 && (
+          <div className="space-y-1.5 pb-1.5" style={{ borderBottom: "1px solid #1e2d42" }}>
+            <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: "#22c55e" }}>
+              Articles · {matchingArticles.length}
+            </span>
+            {matchingArticles.map(a => (
+              <a key={a.id} href={a.link} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 rounded-lg p-2 transition-all hover:brightness-125"
+                style={{ background: "#0a0f1c", border: "1px solid rgba(34,197,94,0.2)" }}>
+                {a.image && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={a.image} alt=""
+                    className="w-9 h-9 rounded object-cover flex-shrink-0"
+                    style={{ background: "#1e2d42" }}/>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-bold leading-snug line-clamp-2" style={{ color: "#e8edf5" }}>
+                    {a.title}
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-[9px] font-mono truncate" style={{ color: "#22c55e" }}>{a.site}</span>
+                    <span className="text-[9px]" style={{ color: "#334155" }}>·</span>
+                    <span className="text-[9px]" style={{ color: "#475569" }}>
+                      {new Date(a.pubDate).toLocaleDateString("fr-FR", { day:"numeric", month:"short" })}
+                    </span>
+                  </div>
+                </div>
+              </a>
             ))}
           </div>
-        ) : tweets.length === 0 ? (
+        )}
+
+        {loading ? (
+          <div className="flex items-center gap-2 px-1 py-1">
+            <div className="flex-1 h-[3px] rounded-full overflow-hidden relative"
+              style={{ background: `${accentColor}18` }}>
+              <div className="absolute inset-y-0 rounded-full"
+                style={{
+                  width: "40%",
+                  background: accentColor,
+                  boxShadow: `0 0 6px ${accentColor}aa`,
+                  animation: "hashSlide 1.3s ease-in-out infinite",
+                }}/>
+            </div>
+            <span className="text-[9px] font-mono" style={{ color: accentColor }}>…</span>
+            <style jsx>{`
+              @keyframes hashSlide { 0% { left: -40%; } 100% { left: 100%; } }
+            `}</style>
+          </div>
+        ) : tweets.length === 0 && matchingArticles.length === 0 ? (
           <p className="text-[10px] text-center py-2" style={{ color: "#475569" }}>
             Aucun tweet trouvé pour #{active} dans les comptes curés.
           </p>
-        ) : (
+        ) : tweets.length === 0 ? null : (
           <div className="space-y-1.5">
             {tweets.slice(0, 5).map(t => (
               <button key={t.id + t.author} onClick={() => setOpen(t)}
@@ -2883,27 +2956,19 @@ function FanXFeed({ entityId, accentColor = "#1da1f2" }: { entityId: string; acc
       )}
 
       {loading ? (
-        <div className="rounded-xl p-2.5 flex items-center gap-2.5"
-          style={{ background:"#0d1421", border:`1px solid ${accentColor}25` }}>
-          <div className="w-3 h-3 rounded-full animate-spin flex-shrink-0"
-            style={{ border: `2px solid ${accentColor}25`, borderTopColor: accentColor }}/>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color:"#94a3b8" }}>
-                Chargement du fil
-              </span>
-              <span className="text-[9px] font-mono tabular-nums" style={{ color: accentColor }}>
-                {loadedCount}/{handles.length}
-              </span>
-            </div>
-            <div className="h-0.5 rounded-full overflow-hidden" style={{ background:"#1e2d42" }}>
-              <div className="h-full transition-all duration-300 ease-out"
-                style={{
-                  width: `${handles.length ? (loadedCount / handles.length) * 100 : 0}%`,
-                  background: accentColor,
-                }}/>
-            </div>
+        <div className="flex items-center gap-2 px-1">
+          <div className="flex-1 h-[3px] rounded-full overflow-hidden"
+            style={{ background: `${accentColor}18` }}>
+            <div className="h-full transition-all duration-300 ease-out rounded-full"
+              style={{
+                width: `${handles.length ? (loadedCount / handles.length) * 100 : 0}%`,
+                background: accentColor,
+                boxShadow: `0 0 6px ${accentColor}aa`,
+              }}/>
           </div>
+          <span className="text-[9px] font-mono tabular-nums flex-shrink-0" style={{ color: accentColor }}>
+            {loadedCount}/{handles.length}
+          </span>
         </div>
       ) : tweets.length === 0 ? (
         <div className="space-y-2">

@@ -737,14 +737,15 @@ function ClubLoadingScreen({ teamId }: { teamId: number }) {
 
   return (
     <main className="min-h-screen flex flex-col" style={{ background: "#080c14" }}>
-      {/* Thin indeterminate top progress bar */}
-      <div className="fixed top-0 inset-x-0 h-0.5 overflow-hidden z-50"
-        style={{ background: "transparent" }}>
+      {/* Indeterminate top progress bar — visible but not heavy */}
+      <div className="fixed top-0 inset-x-0 h-[3px] overflow-hidden z-50"
+        style={{ background: `${primary}15` }}>
         <div className="absolute inset-y-0 rounded-full"
           style={{
             background: `linear-gradient(90deg, transparent, ${primary}, transparent)`,
-            width: "35%",
-            animation: "clubLoadSlide 1.4s ease-in-out infinite",
+            width: "40%",
+            boxShadow: `0 0 8px ${primary}aa`,
+            animation: "clubLoadSlide 1.3s ease-in-out infinite",
           }}/>
       </div>
 

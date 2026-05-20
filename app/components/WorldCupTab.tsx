@@ -1405,25 +1405,34 @@ function FanXTab() {
           <TwitterLogo size={16} weight="fill" style={{ color: "#1da1f2" }}/>
           <h3 className="text-base font-black" style={{ color: "#e8edf5" }}>FanX · Voix des supporters</h3>
         </div>
-        <p className="text-[11px] mb-2.5" style={{ color: "#94a3b8" }}>
+        <p className="text-[11px] mb-3" style={{ color: "#94a3b8" }}>
           {accounts.length} comptes fans &amp; experts · cliquez un tweet pour le détail
         </p>
-        <div className="flex gap-1 flex-wrap">
-          {FANX_LANGS.map(l => {
-            const isActive = l.key === lang;
-            return (
-              <button key={l.key} onClick={() => setLang(l.key)}
-                className="text-[10px] font-bold px-2 py-1 rounded-full transition-all hover:opacity-90 flex items-center gap-1"
-                style={{
-                  background: isActive ? "rgba(29,161,242,0.25)" : "rgba(13,20,33,0.6)",
-                  color:      isActive ? "#1da1f2" : "#94a3b8",
-                  border: `1px solid ${isActive ? "rgba(29,161,242,0.55)" : "rgba(30,45,66,0.8)"}`,
-                }}>
-                <span style={{ fontSize: 12 }}>{l.flag}</span>
-                <span>{l.label}</span>
-              </button>
-            );
-          })}
+        {/* Language picker — high contrast so it's never missed */}
+        <div className="space-y-1.5">
+          <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: "#fbbf24" }}>
+            🌍 Langue
+          </span>
+          <div className="flex gap-1.5 flex-wrap">
+            {FANX_LANGS.map(l => {
+              const isActive = l.key === lang;
+              return (
+                <button key={l.key} onClick={() => setLang(l.key)}
+                  className="text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition-all hover:scale-[1.04] flex items-center gap-1.5"
+                  style={{
+                    background: isActive
+                      ? "linear-gradient(135deg, rgba(29,161,242,0.4), rgba(168,85,247,0.25))"
+                      : "rgba(13,20,33,0.85)",
+                    color:      isActive ? "#ffffff" : "#cbd5e1",
+                    border: `1px solid ${isActive ? "rgba(29,161,242,0.8)" : "rgba(71,85,105,0.5)"}`,
+                    boxShadow: isActive ? "0 2px 8px rgba(29,161,242,0.25)" : "none",
+                  }}>
+                  <span style={{ fontSize: 14 }}>{l.flag}</span>
+                  <span>{l.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
