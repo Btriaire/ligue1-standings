@@ -5,6 +5,7 @@ import { Lightning, TrendUp, Shield, Target, Clock, Heart, Star, CaretDown, Care
 import { useConfig } from "@/app/lib/config";
 import { upsertPrediction, downloadCSV, loadPredictions } from "@/app/lib/predictions-store";
 import FunFact from "./FunFact";
+import LoadingBar from "./LoadingBar";
 import { isWorldCupHot } from "@/app/lib/worldCup";
 
 interface TeamPred {
@@ -1625,10 +1626,8 @@ export default function PredictionsTab() {
     return (
       <div>
         <SubTabs />
-        <div className="grid sm:grid-cols-2 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-72 rounded-2xl animate-pulse" style={{ background: "#0d1421", border: "1px solid #1e2d42" }} />
-          ))}
+        <div className="py-3">
+          <LoadingBar color="#a855f7" caption="Chargement des prédictions" />
         </div>
       </div>
     );

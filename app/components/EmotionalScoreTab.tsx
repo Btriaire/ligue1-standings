@@ -7,6 +7,7 @@ import {
   Info, ChartBar, Radio, Globe, ChatCircle, ArrowsClockwise,
   SlidersHorizontal,
 } from "@phosphor-icons/react";
+import LoadingBar from "./LoadingBar";
 
 interface Article { title: string; pubDate: string; source: string; sentiment: "positive" | "negative" | "neutral" }
 interface SourceBreakdown { source: string; articleCount: number; positive: number; negative: number; score: number }
@@ -809,15 +810,8 @@ export default function EmotionalScoreTab() {
     return (
       <div>
         <SubTabs />
-        <div className="space-y-3">
-          <div className="text-center py-6">
-            <Heart size={24} className="text-cyan-400 mx-auto mb-3 animate-pulse" />
-            <p className="text-sm font-medium" style={{ color: "#e8edf5" }}>Analyse en cours…</p>
-            <p className="text-xs mt-1" style={{ color: "#6b7c96" }}>Collecte : RMC, Figaro, Google News</p>
-          </div>
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-20 rounded-2xl animate-pulse" style={{ background: "#0d1421", border: "1px solid #1e2d42" }} />
-          ))}
+        <div className="py-3">
+          <LoadingBar color="#f43f5e" caption="Analyse émotionnelle" />
         </div>
       </div>
     );

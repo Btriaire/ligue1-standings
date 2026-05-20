@@ -155,32 +155,103 @@ function parseFanRSS(xml: string, site: string): FanArticle[] {
   return articles;
 }
 
+// Realistic browser UA — some sites 403 the default Node UA.
+const BROWSER_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
+
 // Try a single feed URL; return [] on any failure.
 async function fetchFeed(feedUrl: string, site: string): Promise<FanArticle[]> {
   try {
     const res = await fetch(feedUrl, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; FootPredictom/1.0; +https://footpredictom.vercel.app)",
-        "Accept": "application/rss+xml, application/xml, text/xml, */*",
+        "User-Agent": BROWSER_UA,
+        "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
       },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(7000),
     } as RequestInit);
     if (!res.ok) return [];
     const xml = await res.text();
-    if (!xml.includes("<item>")) return [];
+    if (!xml.includes("<item>") && !xml.includes("<entry")) return [];
     return parseFanRSS(xml, site);
   } catch { return []; }
 }
 
-// Resolve a curated site URL to its first working feed (tries candidates
-// in order). Returns at most `limit` articles.
+// Last-resort: pull the HTML root and look for an autodiscovery
+// <link rel="alternate" type="application/rss+xml" href="..."> tag.
+async function discoverFeed(rawUrl: string): Promise<string | null> {
+  try {
+    const u = new URL(rawUrl);
+    const res = await fetch(u.toString(), {
+      headers: { "User-Agent": BROWSER_UA, "Accept": "text/html,*/*" },
+      signal: AbortSignal.timeout(5000),
+    } as RequestInit);
+    if (!res.ok) return null;
+    const html = (await res.text()).slice(0, 80_000); // cap
+    const re = /<link[^>]+rel=["']alternate["'][^>]+type=["']application\/(?:rss|atom)\+xml["'][^>]*>/gi;
+    const m = html.match(re);
+    if (!m) return null;
+    for (const tag of m) {
+      const href = tag.match(/href=["']([^"']+)["']/i)?.[1];
+      if (href) return new URL(href, u).toString();
+    }
+    return null;
+  } catch { return null; }
+}
+
+// Resolve a curated site URL to its first working feed: tries common
+// candidates, falls back to HTML autodiscovery. Returns at most `limit`
+// articles.
 async function fetchSite(rawUrl: string, limit = 8): Promise<FanArticle[]> {
   const site = siteLabelFor(rawUrl);
   for (const candidate of candidateFeedsFor(rawUrl)) {
     const items = await fetchFeed(candidate, site);
     if (items.length > 0) return items.slice(0, limit);
   }
+  // Autodiscovery fallback
+  const discovered = await discoverFeed(rawUrl);
+  if (discovered) {
+    const items = await fetchFeed(discovered, site);
+    if (items.length > 0) return items.slice(0, limit);
+  }
   return [];
+}
+
+// Baseline French football RSS pool — used to backfill articles when the
+// entity's curated sites don't expose feeds (most L2 clubs). We then
+// filter by the entity's search terms so only relevant articles surface.
+const BASELINE_FEEDS: { url: string; site: string }[] = [
+  { url: "https://www.sofoot.com/rss/",     site: "sofoot.com"     },
+  { url: "https://www.actufoot.com/feed/",  site: "actufoot.com"   },
+];
+
+// Derive search terms for an entity: the hashtags (without '#'), plus
+// any obvious shortName-like tokens extracted from the curated account
+// names. These are matched against article title+description to filter
+// the baseline feeds down to club-relevant items.
+function searchTermsFor(entry: FanEntry): string[] {
+  const set = new Set<string>();
+  for (const h of entry.hashtags) {
+    const clean = h.replace(/^#/, "").trim();
+    if (clean.length >= 2) set.add(clean.toLowerCase());
+  }
+  // Pull short tokens from account names ("MHSC (officiel)" → "mhsc").
+  for (const t of entry.twitter.slice(0, 3)) {
+    const tokens = (t.name ?? "").split(/[\s()]+/).filter(w => /^[A-Za-z]{2,}$/.test(w));
+    for (const tok of tokens) set.add(tok.toLowerCase());
+  }
+  return Array.from(set);
+}
+
+function articleMatchesTerms(a: FanArticle, terms: string[]): boolean {
+  if (terms.length === 0) return false;
+  const hay = `${a.title} ${a.description ?? ""}`.toLowerCase();
+  return terms.some(t => {
+    // Whole-word match for short tokens to avoid "OL" hitting "police".
+    if (t.length <= 3) {
+      const re = new RegExp(`(?:^|[^a-z0-9])${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:[^a-z0-9]|$)`, "i");
+      return re.test(hay);
+    }
+    return hay.includes(t);
+  });
 }
 
 // ── GET — fetch fan articles for a club or nation ─────────────────────────────
@@ -195,29 +266,41 @@ export async function GET(req: NextRequest) {
   const nationCode = searchParams.get("nationCode");
   const rawSites   = searchParams.get("sites");
 
-  // Build the list of site URLs to query.
+  // Build the list of curated site URLs to query, plus the entity (used
+  // for the baseline-feed filter).
   let urls: string[] = [];
+  let entry: FanEntry | null = null;
   if (rawSites) {
     urls = rawSites.split(",").map(s => s.trim()).filter(Boolean);
   } else {
-    const entry = entryFor(clubId, nationCode);
-    if (!entry) return NextResponse.json({ articles: [] }, {
-      headers: { "Cache-Control": "public, s-maxage=300" },
-    });
-    urls = entry.sites.map(s => s.url);
+    entry = entryFor(clubId, nationCode);
+    if (entry) urls = entry.sites.map(s => s.url);
   }
 
-  if (urls.length === 0) {
-    return NextResponse.json({ articles: [] }, {
-      headers: { "Cache-Control": "public, s-maxage=300" },
-    });
-  }
+  // Fetch curated sites (bounded) + baseline feeds in parallel.
+  const curatedPromise = Promise.all(urls.slice(0, 8).map(u => fetchSite(u, 6)));
+  const baselinePromise = Promise.all(BASELINE_FEEDS.map(f => fetchFeed(f.url, f.site)));
+  const [curatedLists, baselineLists] = await Promise.all([curatedPromise, baselinePromise]);
 
-  // Fetch in parallel — bounded by 8 sites max.
-  const lists = await Promise.all(urls.slice(0, 8).map(u => fetchSite(u, 6)));
-  const merged = lists.flat()
-    .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
-    .slice(0, 24);
+  const curatedArticles = curatedLists.flat();
+
+  // Filter baseline articles to entity-relevant ones (skip when no entry
+  // or no terms — the curated lists carry the load in that case).
+  const terms = entry ? searchTermsFor(entry) : [];
+  const baselineMatched = entry && terms.length > 0
+    ? baselineLists.flat().filter(a => articleMatchesTerms(a, terms))
+    : [];
+
+  // Merge, de-duplicate by link, sort newest-first.
+  const seen = new Set<string>();
+  const merged: FanArticle[] = [];
+  for (const a of [...curatedArticles, ...baselineMatched]) {
+    if (seen.has(a.link)) continue;
+    seen.add(a.link);
+    merged.push(a);
+  }
+  merged.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
+  merged.splice(24);
 
   // Back-compat: `site` was historically the single source label; now we
   // aggregate from many curated sites, so summarise as "N sources" when
