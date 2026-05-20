@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { ArrowsClockwise, ArrowSquareOut, TrendUp, TrendDown, Newspaper, CaretDown } from "@phosphor-icons/react";
+import { ArrowsClockwise, ArrowSquareOut, TrendUp, TrendDown, Newspaper, CaretDown, ArrowRight, ChartLine, User } from "@phosphor-icons/react";
 import type { ClubTransfers, TransferItem } from "@/app/api/transfers/route";
 import { useConfig } from "@/app/lib/config";
 import LoadingBar from "./LoadingBar";
@@ -120,6 +120,152 @@ function ClubRow({ club, onOpen }: { club: ClubTransfers; onOpen: (i: TransferIt
           {club.items.map((item, i) => <NewsItem key={i} item={item} onOpen={onOpen} />)}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Boursier (stock-market style top transfers) ──────────────────────────────
+
+function formatEuro(v: number | null | undefined): string {
+  if (!v || v <= 0) return "—";
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(v >= 10_000_000 ? 0 : 1)} M€`;
+  if (v >= 1_000)     return `${Math.round(v / 1_000)} k€`;
+  return `${v} €`;
+}
+
+function PlayerAvatar({ id, name, color }: { id?: number; name?: string; color: string }) {
+  const [err, setErr] = useState(false);
+  const src = id ? `https://images.fotmob.com/image_resources/playerimages/${id}.png` : "";
+  if (!src || err) {
+    return (
+      <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
+        style={{ background: `${color}22`, border: `1px solid ${color}40` }}>
+        <User size={20} style={{ color }} weight="duotone" />
+      </div>
+    );
+  }
+  return (
+    /* eslint-disable-next-line @next/next/no-img-element */
+    <img src={src} alt={name ?? ""}
+      onError={() => setErr(true)}
+      className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+      style={{ background: "#0a0f1c", border: `1px solid ${color}40` }} />
+  );
+}
+
+// Tiny club crest with name — reused on both sides of the arrow.
+function ClubChip({ crest, name }: { crest?: string; name?: string }) {
+  if (!name) return null;
+  return (
+    <span className="inline-flex items-center gap-1 max-w-[120px]">
+      {crest && (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={crest} alt="" className="w-3.5 h-3.5 object-contain flex-shrink-0" loading="lazy" />
+      )}
+      <span className="text-[10px] font-semibold truncate" style={{ color: "#cbd5e1" }}>{name}</span>
+    </span>
+  );
+}
+
+function TopTransferRow({ item, onOpen }: { item: TransferItem; onOpen: (i: TransferItem) => void }) {
+  const cfg = TYPE_CONFIG[item.type];
+  const color = cfg.color;
+  // "Trend" indicator — arrival = up (green), departure = down (red), rumor = sideways
+  const Trend = item.type === "arrival" ? TrendUp
+              : item.type === "departure" ? TrendDown
+              : ChartLine;
+  return (
+    <button type="button" onClick={() => onOpen(item)}
+      className="group w-full text-left rounded-xl p-3 transition-all hover:brightness-125"
+      style={{
+        background: `linear-gradient(90deg, ${color}10, rgba(13,20,33,0.7))`,
+        border: `1px solid ${color}30`,
+      }}>
+      <div className="flex items-center gap-3">
+        <PlayerAvatar id={item.playerId} name={item.player} color={color} />
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <p className="text-[13px] font-black truncate" style={{ color: "#e8edf5" }}>
+              {item.player ?? item.title.split(" ").slice(0, 2).join(" ")}
+            </p>
+            {item.position && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0"
+                style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}>
+                {item.position}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1 flex-wrap">
+            <ClubChip crest={item.fromClubCrest} name={item.fromClub} />
+            <ArrowRight size={10} style={{ color: "#475569" }} />
+            <ClubChip crest={item.toClubCrest} name={item.toClub} />
+          </div>
+        </div>
+
+        <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
+          <div className="flex items-center gap-1" style={{ color }}>
+            <Trend size={13} weight="bold" />
+            <span className="text-[13px] font-black tabular-nums">
+              {formatEuro(item.marketValue)}
+            </span>
+          </div>
+          <span className="text-[9px] font-semibold" style={{ color: "#6b7c96" }}>
+            {item.fee && item.fee !== "—" ? item.fee : item.onLoan ? "Prêt" : item.contractExtension ? "Prolongation" : "Valeur"}
+          </span>
+          {item.pubDate && (
+            <span className="text-[9px]" style={{ color: "#475569" }}>{formatDate(item.pubDate)}</span>
+          )}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function BoursierBoard({ clubs, onOpen }: { clubs: ClubTransfers[]; onOpen: (i: TransferItem) => void }) {
+  // Flatten all items, keep only the ones with a real market value, sort desc.
+  const all = clubs.flatMap((c) => c.items)
+    .filter((i) => typeof i.marketValue === "number" && (i.marketValue ?? 0) > 0);
+  // Dedupe by playerId — same player can appear from both ends of a deal
+  const seen = new Set<number>();
+  const dedup = all.filter((i) => {
+    if (!i.playerId) return true;
+    if (seen.has(i.playerId)) return false;
+    seen.add(i.playerId);
+    return true;
+  });
+  const top = dedup.sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0)).slice(0, 10);
+
+  if (top.length === 0) return null;
+
+  const totalValue = top.reduce((s, i) => s + (i.marketValue ?? 0), 0);
+  const arrivals = top.filter((i) => i.type === "arrival").length;
+  const departures = top.filter((i) => i.type === "departure").length;
+
+  return (
+    <div className="rounded-2xl p-3 mb-4"
+      style={{
+        background: "linear-gradient(135deg, rgba(0,212,255,0.06), rgba(13,20,33,0.85))",
+        border: "1px solid rgba(0,212,255,0.25)",
+      }}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <ChartLine size={14} weight="fill" style={{ color: "#00d4ff" }} />
+          <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: "#00d4ff" }}>
+            Bourse des transferts · Top {top.length}
+          </h3>
+        </div>
+        <div className="flex items-center gap-2 text-[10px] font-bold tabular-nums">
+          <span style={{ color: "#22c55e" }}>↑ {arrivals}</span>
+          <span style={{ color: "#ef4444" }}>↓ {departures}</span>
+          <span style={{ color: "#fbbf24" }}>Σ {formatEuro(totalValue)}</span>
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        {top.map((item, i) => (
+          <TopTransferRow key={`${item.playerId ?? item.title}-${i}`} item={item} onOpen={onOpen} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -279,6 +425,9 @@ export default function TransfersTab({ league = "FL1" }: { league?: "FL1" | "FL2
       </div>
 
       {data && <StatsBar clubs={data.clubs} />}
+
+      {/* Boursier board — top transfers (player photo, fee, market value, club arrows) */}
+      {data && <BoursierBoard clubs={data.clubs} onOpen={setSelected} />}
 
       <FilterBar active={filter} onChange={setFilter} />
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CLUB_SEARCH_TERMS } from "@/app/lib/teamMapping";
-import { fetchFotMobLigue2, fotmobCrest, type FmTransfer } from "@/app/lib/fotmob";
+import { fetchFotMobLigue1, fetchFotMobLigue2, fotmobCrest, type FmTransfer } from "@/app/lib/fotmob";
 
 export const revalidate = 1800; // 30 min
 
@@ -15,6 +15,21 @@ export interface TransferItem {
   url: string;
   type: "arrival" | "departure" | "rumor" | "news";
   player?: string;
+  // Structured fields — populated for FotMob-sourced items (Ligue 1 & 2).
+  // The "Boursier" board in the Mercato UI uses these to render rich rows.
+  playerId?: number;
+  playerImage?: string;
+  position?: string;
+  fee?: string | null;
+  marketValue?: number | null;
+  fromClub?: string;
+  fromClubId?: number;
+  fromClubCrest?: string;
+  toClub?: string;
+  toClubId?: number;
+  toClubCrest?: string;
+  onLoan?: boolean;
+  contractExtension?: boolean;
 }
 
 export interface ClubTransfers {
@@ -199,6 +214,19 @@ function fotmobTransferToItem(tr: FmTransfer, clubId: number): TransferItem {
     url: `https://www.fotmob.com/players/${tr.playerId}/${encodeURIComponent(tr.name.toLowerCase().replace(/\s+/g, "-"))}`,
     type: tr.contractExtension ? "news" : isArrival ? "arrival" : "departure",
     player: tr.name,
+    playerId: tr.playerId,
+    playerImage: `https://images.fotmob.com/image_resources/playerimages/${tr.playerId}.png`,
+    position: tr.position?.label,
+    fee: tr.fee,
+    marketValue: tr.marketValue,
+    fromClub: tr.fromClubFullName ?? tr.fromClub,
+    fromClubId: tr.fromClubId,
+    fromClubCrest: tr.fromClubId ? fotmobCrest(tr.fromClubId) : undefined,
+    toClub: tr.toClubFullName ?? tr.toClub,
+    toClubId: tr.toClubId,
+    toClubCrest: tr.toClubId ? fotmobCrest(tr.toClubId) : undefined,
+    onLoan: tr.onLoan,
+    contractExtension: tr.contractExtension,
   };
 }
 
@@ -214,6 +242,24 @@ export async function GET(req: NextRequest) {
     fotmobByClub = r.transfersByClub;
   } else {
     CLUBS = CLUBS_L1;
+    // Also try to enrich Ligue 1 with FotMob's structured transfers (player
+    // photo, fee, market value, contract type) — silently fall back if FotMob
+    // is unreachable.
+    try {
+      const fm = await fetchFotMobLigue1();
+      const idSet = new Set(CLUBS.map(c => c.id));
+      for (const tr of fm.transfers) {
+        const clubId = idSet.has(tr.toClubId) ? tr.toClubId
+                     : idSet.has(tr.fromClubId) ? tr.fromClubId
+                     : null;
+        if (!clubId) continue;
+        const arr = fotmobByClub.get(clubId) ?? [];
+        arr.push(tr);
+        fotmobByClub.set(clubId, arr);
+      }
+    } catch (err) {
+      console.error("FotMob L1 transfers fetch error:", err);
+    }
   }
 
   if (CLUBS.length === 0) {
@@ -310,7 +356,7 @@ export async function GET(req: NextRequest) {
     updatedAt: new Date().toISOString(),
     sources: league === "FL2"
       ? ["FotMob", "Ligue1.com", "Google News", "RMC Sport", "Footmercato"]
-      : ["Google News", "RMC Sport", "Footmercato"],
+      : ["FotMob", "Google News", "RMC Sport", "Footmercato"],
     league,
   });
 }
