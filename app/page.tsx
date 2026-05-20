@@ -694,8 +694,8 @@ export default function Home() {
               </div>
             )}
 
-            {/* Mercato */}
-            {l1SubTab === "mercato" && <TransfersTab />}
+            {/* Mercato — single unified dashboard with L1/L2 internal tabs + Boursier board */}
+            {l1SubTab === "mercato" && <TransfersTab defaultLeague="FL1" />}
 
             {/* Stats Joueurs */}
             {l1SubTab === "joueurs" && (
@@ -715,8 +715,8 @@ export default function Home() {
               </div>
             )}
 
-            {/* Transferts */}
-            {l1SubTab === "transfert" && <TransfersTab />}
+            {/* Transferts (alias) */}
+            {l1SubTab === "transfert" && <TransfersTab defaultLeague="FL1" />}
 
             {/* Arbitres */}
             {l1SubTab === "arbitres" && <RefereesL1Tab />}
@@ -766,7 +766,7 @@ export default function Home() {
               </div>
             )}
 
-            {l2SubTab === "mercato" && <TransfersTab league="FL2" />}
+            {l2SubTab === "mercato" && <TransfersTab defaultLeague="FL2" />}
 
             {l2SubTab === "joueurs" && (
               <div>
@@ -785,7 +785,7 @@ export default function Home() {
               </div>
             )}
 
-            {l2SubTab === "transfert" && <TransfersTab league="FL2" />}
+            {l2SubTab === "transfert" && <TransfersTab defaultLeague="FL2" />}
 
             {l2SubTab === "arbitres" && (
               <div className="rounded-2xl p-10 text-center" style={{ border: "1px solid #1e2d42", background: "rgba(13,20,33,0.6)" }}>

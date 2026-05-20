@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { ArrowsClockwise, ArrowSquareOut, TrendUp, TrendDown, Newspaper, CaretDown, ArrowRight, ChartLine, User } from "@phosphor-icons/react";
 import type { ClubTransfers, TransferItem } from "@/app/api/transfers/route";
+import type { BoardTransfer } from "@/app/api/mercato-board/route";
 import { useConfig } from "@/app/lib/config";
 import LoadingBar from "./LoadingBar";
 
@@ -222,25 +223,91 @@ function TopTransferRow({ item, onOpen }: { item: TransferItem; onOpen: (i: Tran
   );
 }
 
-function BoursierBoard({ clubs, onOpen }: { clubs: ClubTransfers[]; onOpen: (i: TransferItem) => void }) {
-  // Flatten all items, keep only the ones with a real market value, sort desc.
-  const all = clubs.flatMap((c) => c.items)
-    .filter((i) => typeof i.marketValue === "number" && (i.marketValue ?? 0) > 0);
-  // Dedupe by playerId — same player can appear from both ends of a deal
+// Convert a FotMob BoardTransfer into the shared TransferItem shape so the
+// existing TopTransferRow / NewsModal pipeline can render it untouched.
+function boardToItem(b: BoardTransfer): TransferItem {
+  const verb = b.onLoan ? "en prêt à" : b.contractExtension ? "prolonge avec" : "rejoint";
+  return {
+    title: `${b.name} ${verb} ${b.toClub || b.fromClub}`,
+    pubDate: b.transferDate,
+    source: "FotMob",
+    url: `https://www.fotmob.com/players/${b.playerId}`,
+    type: b.contractExtension ? "news" : "arrival",
+    player: b.name,
+    playerId: b.playerId,
+    playerImage: b.playerImage,
+    position: b.position,
+    fee: b.fee,
+    marketValue: b.marketValue,
+    fromClub: b.fromClub,
+    fromClubId: b.fromClubId,
+    fromClubCrest: b.fromClubCrest,
+    toClub: b.toClub,
+    toClubId: b.toClubId,
+    toClubCrest: b.toClubCrest,
+    onLoan: b.onLoan,
+    contractExtension: b.contractExtension,
+  };
+}
+
+function BoursierBoard({ transfers, onOpen, loading }: {
+  transfers: BoardTransfer[];
+  onOpen: (i: TransferItem) => void;
+  loading: boolean;
+}) {
+  if (loading) {
+    return (
+      <div className="rounded-2xl p-3 mb-4"
+        style={{ background: "rgba(0,212,255,0.04)", border: "1px solid rgba(0,212,255,0.18)" }}>
+        <div className="flex items-center gap-2 mb-2">
+          <ChartLine size={14} weight="fill" style={{ color: "#00d4ff" }} />
+          <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: "#00d4ff" }}>
+            Bourse des transferts
+          </h3>
+        </div>
+        <div className="space-y-1.5">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-[70px] rounded-xl animate-pulse"
+              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.04)" }} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Dedupe by playerId, sort by market value desc, take top 10.
   const seen = new Set<number>();
-  const dedup = all.filter((i) => {
-    if (!i.playerId) return true;
-    if (seen.has(i.playerId)) return false;
-    seen.add(i.playerId);
+  const dedup = transfers.filter((t) => {
+    if (seen.has(t.playerId)) return false;
+    seen.add(t.playerId);
     return true;
   });
-  const top = dedup.sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0)).slice(0, 10);
+  const top = [...dedup]
+    .filter((t) => (t.marketValue ?? 0) > 0)
+    .sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0))
+    .slice(0, 10)
+    .map(boardToItem);
 
-  if (top.length === 0) return null;
+  if (top.length === 0) {
+    return (
+      <div className="rounded-2xl p-4 mb-4 text-center"
+        style={{ background: "rgba(0,212,255,0.04)", border: "1px solid rgba(0,212,255,0.18)" }}>
+        <div className="flex items-center justify-center gap-2 mb-1">
+          <ChartLine size={14} weight="fill" style={{ color: "#00d4ff" }} />
+          <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: "#00d4ff" }}>
+            Bourse des transferts
+          </h3>
+        </div>
+        <p className="text-[11px]" style={{ color: "#6b7c96" }}>
+          Aucun transfert valorisé pour le moment (source FotMob).
+        </p>
+      </div>
+    );
+  }
 
   const totalValue = top.reduce((s, i) => s + (i.marketValue ?? 0), 0);
-  const arrivals = top.filter((i) => i.type === "arrival").length;
-  const departures = top.filter((i) => i.type === "departure").length;
+  const loans = top.filter((i) => i.onLoan).length;
+  const extensions = top.filter((i) => i.contractExtension).length;
 
   return (
     <div className="rounded-2xl p-3 mb-4"
@@ -256,9 +323,9 @@ function BoursierBoard({ clubs, onOpen }: { clubs: ClubTransfers[]; onOpen: (i: 
           </h3>
         </div>
         <div className="flex items-center gap-2 text-[10px] font-bold tabular-nums">
-          <span style={{ color: "#22c55e" }}>↑ {arrivals}</span>
-          <span style={{ color: "#ef4444" }}>↓ {departures}</span>
           <span style={{ color: "#fbbf24" }}>Σ {formatEuro(totalValue)}</span>
+          {loans > 0      && <span style={{ color: "#a78bfa" }}>↻ {loans} prêt{loans > 1 ? "s" : ""}</span>}
+          {extensions > 0 && <span style={{ color: "#94a3b8" }}>★ {extensions} prol.</span>}
         </div>
       </div>
       <div className="space-y-1.5">
@@ -327,8 +394,25 @@ function FilterBar({ active, onChange }: { active: Filter; onChange: (f: Filter)
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export default function TransfersTab({ league = "FL1" }: { league?: "FL1" | "FL2" } = {}) {
+type League = "FL1" | "FL2";
+
+export default function TransfersTab({
+  league: leagueProp,
+  defaultLeague = "FL1",
+  showLeagueTabs = true,
+}: {
+  /** Legacy: lock the component to a single league (still used by /club/[id]). */
+  league?: League;
+  /** Default selected league when the user lands on the dashboard. */
+  defaultLeague?: League;
+  /** Hide the L1/L2 switcher when the component is embedded in a single-league view. */
+  showLeagueTabs?: boolean;
+} = {}) {
+  const locked = leagueProp != null;
+  const [league, setLeague] = useState<League>(leagueProp ?? defaultLeague);
   const [data, setData] = useState<{ clubs: ClubTransfers[]; updatedAt: string; sources: string[]; error?: string } | null>(null);
+  const [board, setBoard] = useState<BoardTransfer[]>([]);
+  const [boardLoading, setBoardLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
@@ -336,20 +420,35 @@ export default function TransfersTab({ league = "FL1" }: { league?: "FL1" | "FL2
   const [config] = useConfig();
   const [selected, setSelected] = useState<TransferItem | null>(null);
 
+  // Keep state in sync if the parent forces a league (legacy prop).
+  useEffect(() => {
+    if (leagueProp != null) setLeague(leagueProp);
+  }, [leagueProp]);
+
   const load = async (manual = false) => {
     if (manual) setRefreshing(true);
+    setLoading(true);
+    setBoardLoading(true);
     try {
       const qs = new URLSearchParams({ league });
       if (manual) qs.set("t", String(Date.now()));
-      const res = await fetch("/api/transfers?" + qs.toString());
-      if (!res.ok) throw new Error("Erreur de chargement");
-      const json = await res.json();
-      setData(json);
-      setError(json.error ?? null);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Erreur inconnue");
+
+      // News pipeline + Boursier board fetched independently so the board
+      // shows up even if /api/transfers is slow (RSS fan-out can be heavy).
+      const newsP = fetch("/api/transfers?" + qs.toString())
+        .then(r => r.ok ? r.json() : Promise.reject(new Error("Erreur de chargement")))
+        .then(json => { setData(json); setError(json.error ?? null); })
+        .catch((e: unknown) => setError(e instanceof Error ? e.message : "Erreur inconnue"))
+        .finally(() => setLoading(false));
+
+      const boardP = fetch("/api/mercato-board?" + qs.toString())
+        .then(r => r.ok ? r.json() : { transfers: [] })
+        .then(json => setBoard(Array.isArray(json.transfers) ? json.transfers : []))
+        .catch(() => setBoard([]))
+        .finally(() => setBoardLoading(false));
+
+      await Promise.all([newsP, boardP]);
     } finally {
-      setLoading(false);
       setRefreshing(false);
     }
   };
@@ -384,36 +483,42 @@ export default function TransfersTab({ league = "FL1" }: { league?: "FL1" | "FL2
     } catch { return ""; }
   };
 
-  if (loading) {
-    return (
-      <div className="py-3">
-        <LoadingBar color="#00d4ff" caption="Chargement du mercato" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="rounded-2xl p-10 text-center" style={{ border: "1px solid #ef444430", background: "rgba(239,68,68,0.05)" }}>
-        <p className="text-red-400 font-semibold mb-3">Impossible de charger les transferts</p>
-        <p className="text-sm mb-4" style={{ color: "#6b7c96" }}>{error}</p>
-        <button onClick={() => load(true)} className="px-5 py-2 rounded-lg text-sm font-semibold hover:opacity-80 transition-all"
-          style={{ background: "rgba(0,212,255,0.1)", border: "1px solid rgba(0,212,255,0.3)", color: "#00d4ff" }}>
-          Réessayer
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div>
+      {/* L1/L2 internal switcher */}
+      {showLeagueTabs && !locked && (
+        <div className="flex gap-1 mb-3 p-1 rounded-xl"
+          style={{ background: "#0a0f1c", border: "1px solid #1a2235" }}>
+          {([
+            { id: "FL1" as League, label: "Ligue 1" },
+            { id: "FL2" as League, label: "Ligue 2" },
+          ]).map((opt) => {
+            const active = league === opt.id;
+            return (
+              <button key={opt.id} onClick={() => setLeague(opt.id)}
+                className="flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-all"
+                style={{
+                  background: active ? "rgba(0,212,255,0.12)" : "transparent",
+                  color: active ? "#00d4ff" : "#64748b",
+                  border: active ? "1px solid rgba(0,212,255,0.3)" : "1px solid transparent",
+                }}>
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div>
           <h2 className="text-sm font-bold" style={{ color: "#e8edf5" }}>Mercato {league === "FL2" ? "Ligue 2" : "Ligue 1"}</h2>
           <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>
-            Sources : {data?.sources.join(", ")}
-            {data?.updatedAt && <> · Mis à jour à {formatUpdated(data.updatedAt)}</>}
+            {data ? (
+              <>Sources : {data.sources.join(", ")}{data.updatedAt && <> · Mis à jour à {formatUpdated(data.updatedAt)}</>}</>
+            ) : (
+              <>Chargement…</>
+            )}
           </p>
         </div>
         <button onClick={() => load(true)} disabled={refreshing}
@@ -424,18 +529,40 @@ export default function TransfersTab({ league = "FL1" }: { league?: "FL1" | "FL2
         </button>
       </div>
 
+      {/* Bourse — top transfers by market value (FotMob) */}
+      <BoursierBoard transfers={board} onOpen={setSelected} loading={boardLoading} />
+
       {data && <StatsBar clubs={data.clubs} />}
 
       <FilterBar active={filter} onChange={setFilter} />
 
       <div className="space-y-3">
-        {filteredClubs.map((club) => (
-          <ClubRow key={club.teamId} club={club} onOpen={setSelected} />
-        ))}
-        {filteredClubs.length === 0 && (
-          <div className="rounded-2xl py-10 text-center" style={{ border: "1px solid #1e2d42" }}>
-            <p className="text-sm" style={{ color: "#6b7c96" }}>Aucun article trouvé pour ce filtre.</p>
+        {loading && !data ? (
+          <div className="py-3">
+            <LoadingBar color="#00d4ff" caption="Chargement des actualités" />
           </div>
+        ) : error && !data ? (
+          <div className="rounded-2xl p-6 text-center"
+            style={{ border: "1px solid #ef444430", background: "rgba(239,68,68,0.05)" }}>
+            <p className="text-red-400 font-semibold mb-2 text-sm">Impossible de charger les transferts</p>
+            <p className="text-xs mb-3" style={{ color: "#6b7c96" }}>{error}</p>
+            <button onClick={() => load(true)}
+              className="px-4 py-1.5 rounded-lg text-xs font-semibold hover:opacity-80 transition-all"
+              style={{ background: "rgba(0,212,255,0.1)", border: "1px solid rgba(0,212,255,0.3)", color: "#00d4ff" }}>
+              Réessayer
+            </button>
+          </div>
+        ) : (
+          <>
+            {filteredClubs.map((club) => (
+              <ClubRow key={club.teamId} club={club} onOpen={setSelected} />
+            ))}
+            {filteredClubs.length === 0 && (
+              <div className="rounded-2xl py-10 text-center" style={{ border: "1px solid #1e2d42" }}>
+                <p className="text-sm" style={{ color: "#6b7c96" }}>Aucun article trouvé pour ce filtre.</p>
+              </div>
+            )}
+          </>
         )}
       </div>
 
