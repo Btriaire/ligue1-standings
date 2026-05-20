@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useMemo, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import { Calendar, Trophy, Users, MapPin, Globe, Star, Lightning, TrendUp, Target, Shield, MagnifyingGlass, X, ListBullets, SquaresFour, CaretDown, Flame, SoccerBall, Medal, Flag, Warning, Crosshair, Crown, Newspaper, TwitterLogo, Clock, ArrowSquareOut } from "@phosphor-icons/react";
 import RefereesWCTab from "./RefereesWCTab";
@@ -1299,12 +1299,26 @@ function MaCompoTab() {
 
 // ─── FanX (Twitter fans CdM) ─────────────────────────────────────────────────
 
-// Curated fan / community accounts — fallback list used until the
-// admin-driven fan-config (see `app/lib/fanConfig.ts`) loads. FanXTab
-// now aggregates the *fan* + *media* handles defined in fan-config for
-// every WC nation, so the wall reflects whatever admins curate.
-const FANX_FALLBACK = [
-  "actufoot_", "footmercato", "TeamPSG", "FRStaff", "OptaJean", "TimaLT",
+// Curated fan / community accounts per language. FRA is the default
+// (and is augmented at runtime by /api/fan-config curated nation
+// handles); the others use a static pool tuned for World Cup chatter
+// in that language.
+type LangKey = "fra" | "eng" | "spa" | "por" | "bra" | "ger" | "jpn";
+const FANX_LANGS: { key: LangKey; label: string; flag: string; handles: string[] }[] = [
+  { key: "fra", label: "Français",  flag: "🇫🇷",
+    handles: ["actufoot_", "footmercato", "lequipe", "OptaJean", "RMCsport", "FRStaff", "TeamPSG", "OM_Officiel"] },
+  { key: "eng", label: "English",   flag: "🇬🇧",
+    handles: ["FabrizioRomano", "TheAthleticFC", "BBCSport", "OptaJoe", "SkySportsNews", "GuardianSport", "ESPNFC"] },
+  { key: "spa", label: "Español",   flag: "🇪🇸",
+    handles: ["marca", "sport", "MundoDeportivo", "diarioas", "relevo", "Eurosport_ES"] },
+  { key: "por", label: "Português", flag: "🇵🇹",
+    handles: ["ojogo", "abolanet", "Record_Portugal", "SportTVPortugal", "maisfutebol"] },
+  { key: "bra", label: "Brasil",    flag: "🇧🇷",
+    handles: ["ge_globo", "ESPNBrasil", "GoalBR", "trivela", "FutebolStats"] },
+  { key: "ger", label: "Deutsch",   flag: "🇩🇪",
+    handles: ["SPORT1", "kicker", "BILD_Sport", "DFB_Team", "OptaFranz", "SkySportDE"] },
+  { key: "jpn", label: "日本語",      flag: "🇯🇵",
+    handles: ["gekisaka", "FootballZone_jp", "jfa_samuraiblue", "soccer_king"] },
 ];
 
 function FanXTab() {
@@ -1314,9 +1328,10 @@ function FanXTab() {
   const [loadedCount, setLoadedCount] = useState(0);
   const [filter, setFilter] = useState<string>("all");
   const [open, setOpen] = useState<TweetItem | null>(null);
-  const [accounts, setAccounts] = useState<string[]>(FANX_FALLBACK);
+  const [lang, setLang] = useState<LangKey>("fra");
+  const [fraExtras, setFraExtras] = useState<string[]>([]);
 
-  // Pull the curated fan/media accounts from /api/fan-config once mounted.
+  // Augment FRA pool with curated fan/media handles from /api/fan-config.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -1335,19 +1350,25 @@ function FanXTab() {
             if (t.kind === "fan" || t.kind === "media") set.add(t.handle);
           }
         }
-        if (!cancelled && set.size >= 3) {
-          // Cap to ~20 so we don't hammer the syndication endpoint.
-          setAccounts(Array.from(set).slice(0, 20));
-        }
-      } catch { /* keep fallback */ }
+        if (!cancelled) setFraExtras(Array.from(set));
+      } catch { /* ignore */ }
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // Resolve the active account list from the chosen language.
+  const accounts = useMemo(() => {
+    const pool = FANX_LANGS.find(l => l.key === lang)?.handles ?? [];
+    const merged = lang === "fra" ? [...pool, ...fraExtras] : pool;
+    // De-dup + cap.
+    return Array.from(new Set(merged)).slice(0, 20);
+  }, [lang, fraExtras]);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setLoadedCount(0);
+    setFilter("all");
     (async () => {
       const results = await Promise.all(
         accounts.map(h =>
@@ -1384,9 +1405,26 @@ function FanXTab() {
           <TwitterLogo size={16} weight="fill" style={{ color: "#1da1f2" }}/>
           <h3 className="text-base font-black" style={{ color: "#e8edf5" }}>FanX · Voix des supporters</h3>
         </div>
-        <p className="text-[11px]" style={{ color: "#94a3b8" }}>
+        <p className="text-[11px] mb-2.5" style={{ color: "#94a3b8" }}>
           {accounts.length} comptes fans &amp; experts · cliquez un tweet pour le détail
         </p>
+        <div className="flex gap-1 flex-wrap">
+          {FANX_LANGS.map(l => {
+            const isActive = l.key === lang;
+            return (
+              <button key={l.key} onClick={() => setLang(l.key)}
+                className="text-[10px] font-bold px-2 py-1 rounded-full transition-all hover:opacity-90 flex items-center gap-1"
+                style={{
+                  background: isActive ? "rgba(29,161,242,0.25)" : "rgba(13,20,33,0.6)",
+                  color:      isActive ? "#1da1f2" : "#94a3b8",
+                  border: `1px solid ${isActive ? "rgba(29,161,242,0.55)" : "rgba(30,45,66,0.8)"}`,
+                }}>
+                <span style={{ fontSize: 12 }}>{l.flag}</span>
+                <span>{l.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Filter chips */}
