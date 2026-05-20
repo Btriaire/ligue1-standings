@@ -4,8 +4,19 @@ import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X, ArrowSquareOut, TwitterLogo, Clock } from "@phosphor-icons/react";
 
+export interface TweetMedia {
+  type: "photo" | "video" | "gif";
+  url: string;
+  poster?: string;
+  width?: number;
+  height?: number;
+}
+
 interface Props {
-  tweet: { id: string; title: string; pubDate: string; url: string; author: string };
+  tweet: {
+    id: string; title: string; pubDate: string; url: string; author: string;
+    media?: TweetMedia[];
+  };
   onClose: () => void;
 }
 
@@ -92,10 +103,33 @@ export default function TweetModal({ tweet, onClose }: Props) {
         </div>
 
         {/* Body */}
-        <div className="p-5">
+        <div className="p-5 space-y-3">
           <p className="text-[15px] leading-relaxed whitespace-pre-wrap" style={{ color: "#e8edf5" }}>
             {renderRich(tweet.title)}
           </p>
+
+          {/* Media — photos in a grid, videos with native controls. The
+              original aspect ratio is preserved when supplied by syndication. */}
+          {tweet.media && tweet.media.length > 0 && (
+            <div className={`grid gap-1.5 rounded-xl overflow-hidden ${tweet.media.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
+              {tweet.media.map((m, i) => {
+                if (m.type === "photo") {
+                  return (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={i} src={m.url} alt=""
+                      className="w-full h-auto object-cover"
+                      style={{ background: "#0a0f1c", maxHeight: tweet.media!.length === 1 ? 520 : 260 }}/>
+                  );
+                }
+                return (
+                  <video key={i} src={m.url} poster={m.poster}
+                    controls playsInline preload="metadata"
+                    className="w-full h-auto"
+                    style={{ background: "#0a0f1c", maxHeight: tweet.media!.length === 1 ? 520 : 260 }}/>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Footer */}

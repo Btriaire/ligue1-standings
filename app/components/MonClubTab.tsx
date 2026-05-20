@@ -448,7 +448,8 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
   // Fans section state
   const [fansTab, setFansTab] = useState<"tweets"|"hashtag"|"articles">("tweets");
   // Tweets
-  type Tweet = {id:string;title:string;pubDate:string;url:string;author:string};
+  type TweetMedia = {type:"photo"|"video"|"gif";url:string;poster?:string;width?:number;height?:number};
+  type Tweet = {id:string;title:string;pubDate:string;url:string;author:string;media?:TweetMedia[]};
   const [tweets, setTweets] = useState<Tweet[]>([]);
   const [tweetsLoading, setTweetsLoading] = useState(false);
   const [tweetHandle, setTweetHandle] = useState<string|null>(null);
@@ -520,6 +521,26 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
         setTweetIsFallback(d.isFallback ?? false);
         setHashtag(d.hashtag ?? null);
         setHashtagTweets(d.hashtagTweets ?? []);
+
+        // Broaden the hashtag pool by sweeping ALL curated fan accounts
+        // for the club (the /api/twitter scan only covers fan + official).
+        // Fire-and-forget — UI shows whatever it got first then upgrades.
+        const tag = d.hashtag;
+        if (tag) {
+          fetch(`/api/twitter-hashtag?tag=${encodeURIComponent(tag)}&clubId=${club.id}`)
+            .then(r => r.ok ? r.json() : null)
+            .then((hd: { tweets?: Tweet[] } | null) => {
+              if (!hd?.tweets) return;
+              setHashtagTweets(prev => {
+                const seen = new Set(prev.map(t => t.id));
+                const merged = [...prev];
+                for (const t of hd.tweets!) if (!seen.has(t.id)) merged.push(t);
+                merged.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
+                return merged.slice(0, 30);
+              });
+            })
+            .catch(() => { /* keep what we have */ });
+        }
       }
     } catch { /**/ } finally { setTweetsLoading(false); }
   }, [club.id]);
@@ -1556,6 +1577,16 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                               <ArrowSquareOut size={8} style={{color:"#334155",marginLeft:"auto",flexShrink:0}} className="opacity-0 group-hover:opacity-100 transition-opacity"/>
                             </div>
                             <p className="text-xs leading-relaxed" style={{color:"#94a3b8"}}>{tweet.title}</p>
+                            {tweet.media && tweet.media.length > 0 && (
+                              <div className="flex gap-1 mt-2">
+                                {tweet.media.slice(0, 4).map((m, mi) => (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img key={mi} src={m.poster ?? m.url} alt=""
+                                    className="w-14 h-14 object-cover rounded-md flex-shrink-0"
+                                    style={{background:"#1e2d42"}}/>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </button>
@@ -2590,24 +2621,117 @@ function FanEcosystemCard({ entityId, accentColor = "#1da1f2" }: { entityId: str
 
       {/* Hashtags */}
       {entry.hashtags.length > 0 && (
-        <div>
+        <div className="space-y-2">
           <p className="text-[10px] font-black uppercase tracking-widest mb-1.5" style={{ color: "#f59e0b" }}>
             Hashtags X
           </p>
-          <div className="flex flex-wrap gap-1.5">
-            {entry.hashtags.map((h, i) => (
-              <a key={`${h}-${i}`}
-                href={`https://twitter.com/hashtag/${encodeURIComponent(h.replace(/^#/, ""))}`}
-                target="_blank" rel="noopener noreferrer"
-                className="text-[10px] font-bold px-2 py-0.5 rounded-full hover:opacity-80"
-                style={{ background: "rgba(245,158,11,0.1)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.25)" }}>
-                {h.startsWith("#") ? h : `#${h}`}
-              </a>
-            ))}
-          </div>
+          <HashtagChips hashtags={entry.hashtags} entityId={entityId} accentColor={accentColor} />
         </div>
       )}
     </div>
+  );
+}
+
+// Hashtag chips + an embedded live feed. Clicking a chip swaps the
+// feed below to show recent tweets matching that hashtag, aggregated
+// across the entity's curated fan/media accounts via /api/twitter-hashtag.
+function HashtagChips({ hashtags, entityId, accentColor }: { hashtags: string[]; entityId: string; accentColor: string }) {
+  const cleanTags = hashtags.map(h => h.replace(/^#/, ""));
+  const [active, setActive] = useState<string>(cleanTags[0]);
+  const [tweets, setTweets] = useState<TweetItemMini[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState<TweetItemMini | null>(null);
+
+  useEffect(() => {
+    if (!active) return;
+    let cancelled = false;
+    setLoading(true);
+    const params = new URLSearchParams({ tag: active });
+    if (entityId.startsWith("club:"))   params.set("clubId",   entityId.slice(5));
+    if (entityId.startsWith("nation:")) params.set("nationCode", entityId.slice(7));
+    fetch(`/api/twitter-hashtag?${params.toString()}`)
+      .then(r => r.ok ? r.json() : null)
+      .then((d: { tweets?: TweetItemMini[] } | null) => {
+        if (cancelled) return;
+        setTweets(d?.tweets ?? []);
+        setLoading(false);
+      })
+      .catch(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [active, entityId]);
+
+  return (
+    <>
+      <div className="flex flex-wrap gap-1.5">
+        {cleanTags.map(t => {
+          const isActive = t === active;
+          return (
+            <button key={t} onClick={() => setActive(t)}
+              className="text-[10px] font-bold px-2 py-0.5 rounded-full transition-all hover:opacity-90"
+              style={{
+                background: isActive ? "rgba(245,158,11,0.22)" : "rgba(245,158,11,0.06)",
+                color: "#f59e0b",
+                border: `1px solid ${isActive ? "rgba(245,158,11,0.55)" : "rgba(245,158,11,0.2)"}`,
+              }}>
+              #{t}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Embedded hashtag feed */}
+      <div className="rounded-xl p-3 space-y-2"
+        style={{ background:"#0d1421", border:`1px solid ${accentColor}25` }}>
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-bold" style={{ color: "#f59e0b" }}>#{active}</span>
+          <a href={`https://x.com/hashtag/${encodeURIComponent(active)}`}
+            target="_blank" rel="noopener noreferrer"
+            className="text-[9px] font-bold hover:underline" style={{ color: "#475569" }}>
+            Voir tout sur 𝕏 →
+          </a>
+        </div>
+
+        {loading ? (
+          <div className="space-y-1.5">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div key={i} className="h-12 rounded-lg animate-pulse" style={{ background:"#0a0f1c" }}/>
+            ))}
+          </div>
+        ) : tweets.length === 0 ? (
+          <p className="text-[10px] text-center py-2" style={{ color: "#475569" }}>
+            Aucun tweet trouvé pour #{active} dans les comptes curés.
+          </p>
+        ) : (
+          <div className="space-y-1.5">
+            {tweets.slice(0, 5).map(t => (
+              <button key={t.id + t.author} onClick={() => setOpen(t)}
+                className="w-full text-left rounded-lg p-2 transition-all hover:brightness-125"
+                style={{ background:"#0a0f1c", border:"1px solid #1e2d42" }}>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="text-[9px] font-black" style={{ color: "#1da1f2" }}>@{t.author}</span>
+                  <span className="text-[9px] ml-auto" style={{ color: "#475569" }}>
+                    {new Date(t.pubDate).toLocaleDateString("fr-FR", { day:"numeric", month:"short" })}
+                  </span>
+                </div>
+                <p className="text-[11px] leading-snug line-clamp-2" style={{ color: "#cbd5e1" }}>{t.title}</p>
+                {t.media && t.media.length > 0 && (
+                  <div className="flex gap-1 mt-1.5">
+                    {t.media.slice(0, 3).map((m, i) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img key={i} src={m.poster ?? m.url} alt=""
+                        className="w-12 h-12 object-cover rounded"
+                        style={{ background:"#1e2d42" }}/>
+                    ))}
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {open && <TweetModal tweet={open} onClose={() => setOpen(null)} />}
+      </div>
+    </>
   );
 }
 
@@ -2616,7 +2740,7 @@ function FanEcosystemCard({ entityId, accentColor = "#1da1f2" }: { entityId: str
 // Live tweet wall scoped to one entity (club or nation). Pulls the
 // `fan` + `media` handles from fanConfig and merges their latest tweets
 // via /api/twitter-user. Click → opens the existing TweetModal.
-interface TweetItemMini { id: string; title: string; pubDate: string; url: string; author: string }
+interface TweetItemMini { id: string; title: string; pubDate: string; url: string; author: string; media?: {type:"photo"|"video"|"gif";url:string;poster?:string}[] }
 
 function FanXFeed({ entityId, accentColor = "#1da1f2" }: { entityId: string; accentColor?: string }) {
   const entry = bundledFanEntry(entityId);
@@ -2703,6 +2827,16 @@ function FanXFeed({ entityId, accentColor = "#1da1f2" }: { entityId: string; acc
                 </span>
               </div>
               <p className="text-[11px] leading-snug line-clamp-3" style={{ color:"#cbd5e1" }}>{t.title}</p>
+              {t.media && t.media.length > 0 && (
+                <div className="flex gap-1 mt-1.5">
+                  {t.media.slice(0, 3).map((m, i) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={i} src={m.poster ?? m.url} alt=""
+                      className="w-14 h-14 object-cover rounded"
+                      style={{ background:"#1e2d42" }}/>
+                  ))}
+                </div>
+              )}
             </button>
           ))}
         </div>

@@ -14,12 +14,31 @@
 
 import { getAdminFirestore } from "@/app/lib/firebase-admin";
 
+// A single media attachment surfaced from a tweet. `poster` is the
+// still-image preview for videos / gifs; for photos `url` *is* the image.
+export interface TweetMedia {
+  type: "photo" | "video" | "gif";
+  url: string;       // image URL for photo, mp4 URL for video/gif
+  poster?: string;   // thumbnail for video/gif
+  width?: number;
+  height?: number;
+}
+
 export interface Tweet {
   id: string;
   title: string;     // tweet text, cleaned
   pubDate: string;   // ISO 8601
   url: string;       // canonical x.com URL
   author: string;    // screen_name without @
+  media?: TweetMedia[];
+}
+
+interface SynMediaVariant { content_type?: string; url?: string; bitrate?: number }
+interface SynMedia {
+  type?: string;                            // "photo" | "video" | "animated_gif"
+  media_url_https?: string;
+  video_info?: { variants?: SynMediaVariant[] };
+  original_info?: { width?: number; height?: number };
 }
 
 interface SynTweet {
@@ -32,6 +51,8 @@ interface SynTweet {
   user?: { screen_name?: string };
   retweeted_status?: SynTweet;
   quoted_tweet?: SynTweet;
+  mediaDetails?: SynMedia[];
+  extended_entities?: { media?: SynMedia[] };
 }
 
 interface SynEntry {
@@ -52,6 +73,48 @@ function cleanText(t: string): string {
   // strip everything from media-only tweets.
   const stripped = t.replace(/\s+https?:\/\/t\.co\/\S+$/g, "").trim();
   return stripped.length > 0 ? stripped : t.trim();
+}
+
+// Pick the best mp4 variant for a video tweet (highest-bitrate mp4 keeps
+// quality but avoids HLS streams which won't play in a plain <video>).
+function pickMp4(variants: SynMediaVariant[] | undefined): string | null {
+  if (!variants) return null;
+  const mp4s = variants.filter(v => v.content_type === "video/mp4" && v.url);
+  if (mp4s.length === 0) return null;
+  mp4s.sort((a, b) => (b.bitrate ?? 0) - (a.bitrate ?? 0));
+  return mp4s[0].url ?? null;
+}
+
+// Map syndication media items into our normalized shape. We walk the
+// retweet / quote chain so a media-bearing retweet still surfaces its
+// attachments.
+function extractMedia(t: SynTweet): TweetMedia[] {
+  const raw = t.mediaDetails
+    ?? t.extended_entities?.media
+    ?? t.retweeted_status?.mediaDetails
+    ?? t.retweeted_status?.extended_entities?.media
+    ?? t.quoted_tweet?.mediaDetails
+    ?? t.quoted_tweet?.extended_entities?.media
+    ?? [];
+  const out: TweetMedia[] = [];
+  for (const m of raw) {
+    if (!m.media_url_https) continue;
+    const w = m.original_info?.width;
+    const h = m.original_info?.height;
+    if (m.type === "video" || m.type === "animated_gif") {
+      const mp4 = pickMp4(m.video_info?.variants);
+      if (mp4) {
+        out.push({
+          type: m.type === "animated_gif" ? "gif" : "video",
+          url: mp4, poster: m.media_url_https, width: w, height: h,
+        });
+      }
+    } else {
+      // Default to photo for anything else (incl. "photo").
+      out.push({ type: "photo", url: m.media_url_https, width: w, height: h });
+    }
+  }
+  return out;
 }
 
 // Pull text from a tweet, falling back through retweet/quote chain so
@@ -123,12 +186,14 @@ async function fetchFromSyndication(handle: string, max: number): Promise<Tweet[
     const author = t.user?.screen_name ?? handle;
     const raw = tweetText(t);
     if (!id || !raw) continue;
+    const media = extractMedia(t);
     tweets.push({
       id,
       title: raw,
       pubDate: parseTwitterDate(t.created_at),
       url: t.permalink ? `https://x.com${t.permalink}` : `https://x.com/${author}/status/${id}`,
       author,
+      ...(media.length > 0 ? { media } : {}),
     });
     if (tweets.length >= max) break;
   }

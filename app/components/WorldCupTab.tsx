@@ -786,7 +786,7 @@ function BracketTab() {
 // ─── News CdM tab ────────────────────────────────────────────────────────────
 
 interface NewsItem  { title: string; pubDate: string; url: string; source?: string }
-interface TweetItem { id: string; title: string; pubDate: string; url: string; author: string }
+interface TweetItem { id: string; title: string; pubDate: string; url: string; author: string; media?: {type:"photo"|"video"|"gif";url:string;poster?:string}[] }
 
 // Hand-picked World Cup / international football accounts. We mix official
 // (FIFA, federations) with strong journalism (LEquipe, GoalFR, BBCSport) so
@@ -963,6 +963,16 @@ function NewsCdMTab() {
                   </span>
                 </div>
                 <p className="text-[13px] leading-snug line-clamp-3" style={{ color: "#e8edf5" }}>{t.title}</p>
+                {t.media && t.media.length > 0 && (
+                  <div className="flex gap-1 mt-2">
+                    {t.media.slice(0, 4).map((m, i) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img key={i} src={m.poster ?? m.url} alt=""
+                        className="w-16 h-16 object-cover rounded-md flex-shrink-0"
+                        style={{ background: "#1e2d42" }}/>
+                    ))}
+                  </div>
+                )}
               </button>
             ))
           )}
@@ -1439,6 +1449,16 @@ function FanXTab() {
                 </span>
               </div>
               <p className="text-[13px] leading-snug line-clamp-3" style={{ color: "#e8edf5" }}>{t.title}</p>
+              {t.media && t.media.length > 0 && (
+                <div className="flex gap-1 mt-2">
+                  {t.media.slice(0, 4).map((m, i) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={i} src={m.poster ?? m.url} alt=""
+                      className="w-16 h-16 object-cover rounded-md flex-shrink-0"
+                      style={{ background: "#1e2d42" }}/>
+                  ))}
+                </div>
+              )}
             </button>
           ))
         )}
