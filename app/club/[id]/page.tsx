@@ -98,6 +98,14 @@ interface AdminEntry {
   sources?: { label: string; url: string }[];
 }
 
+// L2 team IDs (FotMob) — these are not part of football-data.org's free tier,
+// so for L2 clubs we point standings/transfers at the FotMob-backed branch
+// of those endpoints via `?competition=FL2` / `?league=FL2`.
+const L2_TEAM_IDS = new Set<number>([
+  10242, 9853, 9837, 10249, 8311, 9747, 8682, 6390, 4120, 293352,
+  6355, 47214, 9855, 8481, 4170, 7853, 7794, 8587,
+]);
+
 const CLUB_ADMIN: Record<number, AdminEntry> = {
   524:  { siren: "317 506 329", forme: "SAS",  siege: "24 r. du Commandant-Guilbaud, 75016 Paris",  president: "Nasser Al-Khelaïfi",  ca: "~800 M€",  employes: "~400",
           dette: "~200 M€", billetterie: "~70 M€", droitsTv: "~80 M€",
@@ -872,11 +880,15 @@ export default function ClubPage() {
       .then(d => setTopPlayers(d.players ?? []))
       .catch(() => null);
 
+    const isL2 = L2_TEAM_IDS.has(teamId);
+    const transfersUrl = isL2 ? "/api/transfers?league=FL2" : "/api/transfers";
+    const standingsUrl = isL2 ? "/api/standings?competition=FL2" : "/api/standings";
+
     Promise.all([
       fetch(`/api/squad/${teamId}`).then(r => r.json()).catch(() => null),
       fetch(`/api/team/${teamId}`).then(r => r.json()).catch(() => null),
-      fetch("/api/transfers").then(r => r.json()).catch(() => null),
-      fetch("/api/standings").then(r => r.json()).catch(() => null),
+      fetch(transfersUrl).then(r => r.json()).catch(() => null),
+      fetch(standingsUrl).then(r => r.json()).catch(() => null),
     ]).then(([sq, mt, tr, st]) => {
       setSquad(sq?.team ? sq : null);
       setMatches(mt?.recent ? mt : null);

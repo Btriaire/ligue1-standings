@@ -1,11 +1,56 @@
 import { NextResponse } from "next/server";
+import { fetchFotMobTeam, fotmobCrest } from "@/app/lib/fotmob";
 
 const API_KEY = process.env.FOOTBALL_DATA_API_KEY;
 
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  if (!API_KEY) return NextResponse.json({ error: "API key not configured" }, { status: 500 });
+// L2 team IDs (FotMob) — football-data.org's free tier doesn't expose Ligue 2,
+// so for these IDs we proxy via FotMob and reshape into the same response.
+const L2_TEAM_IDS = new Set<number>([
+  10242, 9853, 9837, 10249, 8311, 9747, 8682, 6390, 4120, 293352,
+  6355, 47214, 9855, 8481, 4170, 7853, 7794, 8587,
+]);
 
+async function l2TeamResponse(teamId: number) {
+  try {
+    const team = await fetchFotMobTeam(teamId);
+    const now = Date.now();
+    const fixtures = team.fixtures
+      .filter(f => !f.status.cancelled)
+      .sort((a, b) => new Date(a.status.utcTime).getTime() - new Date(b.status.utcTime).getTime());
+
+    const shape = (f: typeof fixtures[number]) => ({
+      id: f.id,
+      date: f.status.utcTime,
+      matchday: 0,
+      status: f.status.finished ? "FINISHED" : "SCHEDULED",
+      homeTeam: { id: f.home.id, name: f.home.name, crest: fotmobCrest(f.home.id) },
+      awayTeam: { id: f.away.id, name: f.away.name, crest: fotmobCrest(f.away.id) },
+      score: { home: f.home.score ?? null, away: f.away.score ?? null },
+      goals: [] as { minute: number; scorer: string | null; type: string; teamId: number | null }[],
+      bookings: [] as { minute: number; player: string; card: string; teamId: number }[],
+      referee: null as string | null,
+      refereeNationality: null as string | null,
+    });
+
+    const recent = fixtures.filter(f => f.status.finished).slice(-5).reverse().map(shape);
+    const upcoming = fixtures.filter(f => !f.status.finished && new Date(f.status.utcTime).getTime() >= now).slice(0, 3).map(shape);
+
+    return NextResponse.json({ recent, upcoming, live: [] });
+  } catch (err) {
+    console.error("FotMob team fetch error:", err);
+    return NextResponse.json({ recent: [], upcoming: [], live: [], error: "FotMob injoignable." });
+  }
+}
+
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const teamIdNum = parseInt(id, 10);
+
+  if (L2_TEAM_IDS.has(teamIdNum)) {
+    return l2TeamResponse(teamIdNum);
+  }
+
+  if (!API_KEY) return NextResponse.json({ error: "API key not configured" }, { status: 500 });
 
   try {
     // Three lists: FINISHED (recap), LIVE (currently in play / halftime),
