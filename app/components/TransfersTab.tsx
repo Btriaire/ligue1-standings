@@ -272,11 +272,12 @@ function TopTransferRow({ item, onOpen }: { item: TransferItem; onOpen: (i: Tran
 
 function MarketChart({ transfers }: { transfers: BoardTransfer[] }) {
   const [hover, setHover] = useState<{ x: number; y: number; t: BoardTransfer } | null>(null);
+  // 90 / 180 / 365 day window — lets the user zoom out when the mercato is busy.
+  const [windowDays, setWindowDays] = useState<90 | 180 | 365>(180);
 
-  // Filter to valued transfers within the last 90 days.
+  // Filter to valued transfers within the chosen window.
   const now = Date.now();
-  const WINDOW_DAYS = 90;
-  const minTs = now - WINDOW_DAYS * 24 * 3600 * 1000;
+  const minTs = now - windowDays * 24 * 3600 * 1000;
   const valid = transfers
     .filter((t) => (t.marketValue ?? 0) > 0)
     .map((t) => ({ ...t, ts: new Date(t.transferDate).getTime() }))
@@ -300,7 +301,7 @@ function MarketChart({ transfers }: { transfers: BoardTransfer[] }) {
   const maxV     = Math.max(...bins.values());
 
   // Chart geometry — relative coordinates, scaled by viewBox.
-  const W = 600, H = 140, PAD_L = 8, PAD_R = 8, PAD_T = 8, PAD_B = 22;
+  const W = 600, H = 180, PAD_L = 8, PAD_R = 8, PAD_T = 8, PAD_B = 22;
   const innerW = W - PAD_L - PAD_R;
   const innerH = H - PAD_T - PAD_B;
   const xOf = (ts: number) => PAD_L + ((ts - firstDay) / span) * innerW;
@@ -311,11 +312,18 @@ function MarketChart({ transfers }: { transfers: BoardTransfer[] }) {
   const line = points.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
   const area = `${line} L${points[points.length - 1].x.toFixed(1)},${(PAD_T + innerH).toFixed(1)} L${points[0].x.toFixed(1)},${(PAD_T + innerH).toFixed(1)} Z`;
 
-  // Big-dot overlays for the 8 largest individual transfers.
-  const dots = [...valid]
+  // Dots — render every transfer. Each transfer's Y position = its own market
+  // value (not the daily aggregate), so big transfers visually pop above the
+  // area. Sort big-first so they paint on top.
+  const allDots = [...valid]
     .sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0))
-    .slice(0, 8)
-    .map((t) => ({ ...t, x: xOf(t.ts), y: yOf(Math.min(t.marketValue ?? 0, maxV)) }));
+    .map((t, rank) => ({
+      ...t, rank,
+      x: xOf(t.ts),
+      y: yOf(Math.min(t.marketValue ?? 0, maxV)),
+    }));
+  // Top 15 = highlighted (yellow), rest = small cyan dots.
+  const TOP_N = 15;
 
   // Headline metrics.
   const total      = valid.reduce((s, t) => s + (t.marketValue ?? 0), 0);
@@ -324,8 +332,9 @@ function MarketChart({ transfers }: { transfers: BoardTransfer[] }) {
   const lastDate   = new Date(lastDay);
   const firstDate  = new Date(firstDay);
 
-  // X-axis ticks: 4 evenly spaced.
-  const ticks = Array.from({ length: 4 }, (_, i) => firstDay + (i * span) / 3);
+  // X-axis ticks: 4–6 evenly spaced.
+  const tickCount = windowDays >= 180 ? 6 : 4;
+  const ticks = Array.from({ length: tickCount }, (_, i) => firstDay + (i * span) / (tickCount - 1));
 
   return (
     <div className="rounded-2xl p-3 mb-4 relative"
@@ -333,19 +342,36 @@ function MarketChart({ transfers }: { transfers: BoardTransfer[] }) {
         background: "linear-gradient(135deg, rgba(0,212,255,0.08), rgba(13,20,33,0.9))",
         border: "1px solid rgba(0,212,255,0.25)",
       }}>
-      <div className="flex items-start justify-between mb-2">
-        <div>
-          <div className="flex items-center gap-2">
+      <div className="flex items-start justify-between mb-2 gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
             <ChartLine size={14} weight="fill" style={{ color: "#00d4ff" }} />
             <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: "#00d4ff" }}>
-              Indice mercato · 90 j
+              Indice mercato
             </h3>
+            {/* Window selector — 3 / 6 / 12 months */}
+            <div className="flex gap-0.5 rounded-md overflow-hidden ml-1"
+              style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(0,212,255,0.2)" }}>
+              {([90, 180, 365] as const).map((d) => {
+                const active = windowDays === d;
+                return (
+                  <button key={d} onClick={() => setWindowDays(d)}
+                    className="px-1.5 py-0.5 text-[9px] font-bold tabular-nums transition-all"
+                    style={{
+                      background: active ? "rgba(0,212,255,0.2)" : "transparent",
+                      color: active ? "#00d4ff" : "#6b7c96",
+                    }}>
+                    {d === 365 ? "1 an" : `${d / 30} m`}
+                  </button>
+                );
+              })}
+            </div>
           </div>
           <p className="text-[10px] mt-0.5" style={{ color: "#6b7c96" }}>
             {valid.length} mouvements · cours quotidien (Σ valeur marchande)
           </p>
         </div>
-        <div className="text-right">
+        <div className="text-right flex-shrink-0">
           <p className="text-[18px] font-black leading-none tabular-nums" style={{ color: "#00d4ff" }}>
             {formatEuro(total)}
           </p>
@@ -377,14 +403,23 @@ function MarketChart({ transfers }: { transfers: BoardTransfer[] }) {
           <path d={line} fill="none" stroke="#00d4ff" strokeWidth="1.5"
             strokeLinejoin="round" strokeLinecap="round" />
 
-          {/* Big-transfer dots */}
-          {dots.map((d) => (
-            <g key={d.playerId}
+          {/* All transfer dots — small cyan for the long tail, yellow halos
+              on the top 15 most expensive moves so they pop visually. */}
+          {/* Paint the tail first (so highlights sit on top). */}
+          {allDots.slice(TOP_N).map((d, i) => (
+            <circle key={`tail-${d.playerId}-${i}`} cx={d.x} cy={d.y} r="2"
+              fill="#00d4ff" fillOpacity="0.55"
+              onMouseEnter={() => setHover({ x: d.x, y: d.y, t: d })}
+              onMouseLeave={() => setHover(null)}
+              style={{ cursor: "pointer" }} />
+          ))}
+          {allDots.slice(0, TOP_N).map((d, i) => (
+            <g key={`top-${d.playerId}-${i}`}
               onMouseEnter={() => setHover({ x: d.x, y: d.y, t: d })}
               onMouseLeave={() => setHover(null)}
               style={{ cursor: "pointer" }}>
-              <circle cx={d.x} cy={d.y} r="6" fill="#00d4ff" fillOpacity="0.15" />
-              <circle cx={d.x} cy={d.y} r="3" fill="#fbbf24" stroke="#0a0f1c" strokeWidth="1.5" />
+              <circle cx={d.x} cy={d.y} r="7" fill="#fbbf24" fillOpacity="0.15" />
+              <circle cx={d.x} cy={d.y} r="3.5" fill="#fbbf24" stroke="#0a0f1c" strokeWidth="1.5" />
             </g>
           ))}
 

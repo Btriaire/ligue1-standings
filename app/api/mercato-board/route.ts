@@ -4,10 +4,15 @@
 // RSS pipeline is slow or rate-limited on Vercel.
 
 import { NextRequest, NextResponse } from "next/server";
-import { fetchFotMobLigue1, fetchFotMobLigue2, fotmobCrest, type FmTransfer } from "@/app/lib/fotmob";
+import {
+  fetchFotMobLigue1, fetchFotMobLigue2,
+  fetchFotMobTeamTransfers,
+  fotmobCrest,
+  type FmTransfer,
+} from "@/app/lib/fotmob";
 
 export const revalidate = 1800; // 30 min
-export const maxDuration = 15;
+export const maxDuration = 30;
 
 export interface BoardTransfer {
   playerId: number;
@@ -71,17 +76,35 @@ export async function GET(req: NextRequest) {
   try {
     const fm = league === "FL2" ? await fetchFotMobLigue2() : await fetchFotMobLigue1();
 
-    // Build a quick id→name lookup so we can format "transfersByClub"
-    // sections too if needed by the UI later.
-    const transfers = fm.transfers
-      .filter(tr => tr.playerId && (tr.toClub || tr.fromClub))
-      .map(toBoardTransfer);
+    // Fan out across all league teams — FotMob's league-level transfers
+    // endpoint is capped at 100, but each team page has its own list.
+    // Merging gives us a much richer pool for the market index chart.
+    const teamIds = fm.table.map(t => t.id);
+    const perTeam = await Promise.all(
+      teamIds.map(id => fetchFotMobTeamTransfers(id).catch(() => [] as FmTransfer[]))
+    );
 
-    // Return up to 100 transfers — Boursier board uses top 10, the Market
-    // index chart needs the full window to show daily activity.
+    // Merge league + per-team, dedupe by playerId+transferDate so the same
+    // transfer doesn't appear from both ends of the deal.
+    const seen = new Set<string>();
+    const merged: FmTransfer[] = [];
+    for (const list of [fm.transfers, ...perTeam]) {
+      for (const tr of list) {
+        if (!tr.playerId || (!tr.toClub && !tr.fromClub)) continue;
+        const key = `${tr.playerId}-${tr.transferDate}-${tr.toClubId ?? 0}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        merged.push(tr);
+      }
+    }
+
+    const transfers = merged.map(toBoardTransfer);
+
+    // Cap at 500 — plenty for the chart, manageable payload size (~150 KB).
+    // Boursier board still picks top 10 by market value, chart uses the rest.
     const top = [...transfers]
       .sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0))
-      .slice(0, 100);
+      .slice(0, 500);
 
     return NextResponse.json(
       { league, transfers: top, all: transfers.length, updatedAt: new Date().toISOString() },
