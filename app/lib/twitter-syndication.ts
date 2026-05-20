@@ -89,13 +89,21 @@ function pickMp4(variants: SynMediaVariant[] | undefined): string | null {
 // retweet / quote chain so a media-bearing retweet still surfaces its
 // attachments.
 function extractMedia(t: SynTweet): TweetMedia[] {
-  const raw = t.mediaDetails
-    ?? t.extended_entities?.media
-    ?? t.retweeted_status?.mediaDetails
-    ?? t.retweeted_status?.extended_entities?.media
-    ?? t.quoted_tweet?.mediaDetails
-    ?? t.quoted_tweet?.extended_entities?.media
-    ?? [];
+  // `??` only falls through on null/undefined — Twitter often returns an empty
+  // array on the outer tweet when the actual media lives on the retweeted /
+  // quoted tweet, so we explicitly skip empty candidates.
+  const first = <T>(...lists: (T[] | undefined)[]): T[] => {
+    for (const l of lists) if (l && l.length > 0) return l;
+    return [];
+  };
+  const raw = first(
+    t.mediaDetails,
+    t.extended_entities?.media,
+    t.retweeted_status?.mediaDetails,
+    t.retweeted_status?.extended_entities?.media,
+    t.quoted_tweet?.mediaDetails,
+    t.quoted_tweet?.extended_entities?.media,
+  );
   const out: TweetMedia[] = [];
   for (const m of raw) {
     if (!m.media_url_https) continue;
