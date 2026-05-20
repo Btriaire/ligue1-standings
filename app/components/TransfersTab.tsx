@@ -305,8 +305,78 @@ function TopTransferRow({ item, onOpen }: { item: TransferItem; onOpen: (i: Tran
 // Plots daily aggregated transfer volume as an area chart, with the biggest
 // individual transfers overlaid as dots (hover → player name + value).
 
+// Detail card shown when a bubble is clicked. Richer than the hover tooltip:
+// shows player avatar, position, both clubs with crests, fee, market value,
+// transfer type and a link to the FotMob player page.
+function BubbleDetail({ t, onClose }: { t: BoardTransfer; onClose: () => void }) {
+  const isExt  = t.contractExtension;
+  const isLoan = t.onLoan;
+  const accent = isExt ? "#94a3b8" : isLoan ? "#a78bfa" : "#22d3ee";
+  const typeLabel = isExt ? "Prolongation" : isLoan ? "Prêt" : (t.transferType || "Transfert");
+  return (
+    <div className="mt-2 rounded-xl p-3 relative"
+      style={{
+        background: `linear-gradient(135deg, ${accent}14, rgba(13,20,33,0.85))`,
+        border: `1px solid ${accent}40`,
+      }}>
+      <button onClick={onClose}
+        className="absolute top-1.5 right-2 text-[14px] leading-none px-1 transition-opacity hover:opacity-80"
+        style={{ color: "#6b7c96" }} aria-label="Fermer">×</button>
+      <div className="flex items-center gap-3">
+        <PlayerAvatar id={t.playerId} name={t.name} color={accent} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap mb-0.5">
+            <p className="text-[13px] font-black truncate" style={{ color: "#e8edf5" }}>{t.name}</p>
+            {t.position && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide"
+                style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}>
+                {t.position}
+              </span>
+            )}
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide"
+              style={{ background: `${accent}22`, color: accent, border: `1px solid ${accent}40` }}>
+              {typeLabel}
+            </span>
+          </div>
+          <div className="flex items-center gap-1 flex-wrap">
+            <ClubChip crest={t.fromClubCrest} name={t.fromClub} />
+            <ArrowRight size={10} style={{ color: "#475569" }} />
+            <ClubChip crest={t.toClubCrest} name={t.toClub} />
+          </div>
+          {t.transferDate && (
+            <div className="flex items-center gap-1 mt-1" title={formatAbsoluteDate(t.transferDate)}>
+              <Calendar size={10} weight="bold" style={{ color: "#00d4ff" }} />
+              <span className="text-[10px] font-bold tabular-nums" style={{ color: "#00d4ff" }}>
+                {formatAbsoluteDate(t.transferDate)}
+              </span>
+              <span className="text-[9px]" style={{ color: "#6b7c96" }}>· {formatRelativeDate(t.transferDate)}</span>
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
+          <span className="text-[15px] font-black tabular-nums" style={{ color: accent }}>
+            {formatEuro(t.marketValue)}
+          </span>
+          <span className="text-[9px] font-semibold" style={{ color: "#6b7c96" }}>
+            {t.fee && t.fee !== "—" ? t.fee : "Valeur marchande"}
+          </span>
+          <a href={`https://www.fotmob.com/players/${t.playerId}`}
+            target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-[9px] font-bold mt-1 px-1.5 py-0.5 rounded transition-opacity hover:opacity-80"
+            style={{ background: "rgba(0,212,255,0.12)", color: "#00d4ff", border: "1px solid rgba(0,212,255,0.3)" }}>
+            Fiche FotMob <ArrowSquareOut size={9} />
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function MarketChart({ transfers }: { transfers: BoardTransfer[] }) {
   const [hover, setHover] = useState<{ x: number; y: number; t: BoardTransfer } | null>(null);
+  // Pinned selection — when the user clicks a bubble we expand a detail card
+  // below the chart with player avatar, both clubs, fee, value, date, etc.
+  const [picked, setPicked] = useState<BoardTransfer | null>(null);
   // 90 / 180 / 365 day window — lets the user zoom out when the mercato is busy.
   const [windowDays, setWindowDays] = useState<90 | 180 | 365>(180);
 
@@ -434,7 +504,7 @@ function MarketChart({ transfers }: { transfers: BoardTransfer[] }) {
             </div>
           </div>
           <p className="text-[10px] mt-0.5" style={{ color: "#6b7c96" }}>
-            {valid.length} mouvements · bulles ∝ valeur · échelle log
+            {valid.length} mouvements · bulles ∝ valeur · échelle log · cliquez pour détails
           </p>
         </div>
         <div className="text-right flex-shrink-0">
@@ -505,15 +575,22 @@ function MarketChart({ transfers }: { transfers: BoardTransfer[] }) {
             const isLoan = b.onLoan;
             const isExt  = b.contractExtension;
             const fill   = isExt ? "#94a3b8" : isLoan ? "#a78bfa" : isTop ? "#fbbf24" : "#22d3ee";
+            const isPicked = picked?.playerId === b.playerId && picked?.transferDate === b.transferDate;
             return (
               <g key={`b-${b.playerId}-${i}`}
                 onMouseEnter={() => setHover({ x: b.x, y: b.y, t: b })}
                 onMouseLeave={() => setHover(null)}
+                onClick={() => setPicked(b)}
                 style={{ cursor: "pointer" }}>
                 {isTop && <circle cx={b.x} cy={b.y} r={b.r * 2.2} fill="url(#bubbleHalo)" />}
+                {isPicked && (
+                  <circle cx={b.x} cy={b.y} r={b.r + 3}
+                    fill="none" stroke="#00d4ff" strokeWidth={1.5} opacity={0.9} />
+                )}
                 <circle cx={b.x} cy={b.y} r={b.r}
                   fill={fill} fillOpacity={isTop ? 0.85 : 0.55}
-                  stroke="#0a0f1c" strokeWidth={isTop ? 1.5 : 0.5} />
+                  stroke={isPicked ? "#00d4ff" : "#0a0f1c"}
+                  strokeWidth={isPicked ? 1.5 : isTop ? 1.5 : 0.5} />
               </g>
             );
           })}
@@ -540,6 +617,9 @@ function MarketChart({ transfers }: { transfers: BoardTransfer[] }) {
           </div>
         )}
       </div>
+
+      {/* Pinned bubble detail — appears when the user clicks a dot */}
+      {picked && <BubbleDetail t={picked} onClose={() => setPicked(null)} />}
 
       {/* Legend */}
       <div className="flex items-center justify-center gap-3 mt-2 flex-wrap text-[9px]" style={{ color: "#94a3b8" }}>
@@ -620,9 +700,11 @@ function BoursierBoard({ transfers, onOpen, loading }: {
     seen.add(t.playerId);
     return true;
   });
+  // Sort by transfer date desc — most recent first. Keeps only valued moves
+  // (the chart already covers no-value rumors).
   const top = [...dedup]
     .filter((t) => (t.marketValue ?? 0) > 0)
-    .sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0))
+    .sort((a, b) => new Date(b.transferDate).getTime() - new Date(a.transferDate).getTime())
     .slice(0, 10)
     .map(boardToItem);
 
@@ -657,7 +739,7 @@ function BoursierBoard({ transfers, onOpen, loading }: {
         <div className="flex items-center gap-2">
           <ChartLine size={14} weight="fill" style={{ color: "#00d4ff" }} />
           <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: "#00d4ff" }}>
-            Bourse des transferts · Top {top.length}
+            Bourse des transferts · {top.length} récents
           </h3>
         </div>
         <div className="flex items-center gap-2 text-[10px] font-bold tabular-nums">
