@@ -200,8 +200,8 @@ async function fetchLigue1ComNews(championshipId: number): Promise<RSSItem[]> {
   }
 }
 
-function fotmobTransferToItem(tr: FmTransfer, clubId: number): TransferItem {
-  const isArrival = tr.toClubId === clubId;
+function fotmobTransferToItem(tr: FmTransfer, clubId: number, isArrivalOverride?: boolean): TransferItem {
+  const isArrival = isArrivalOverride ?? (tr.toClubId === clubId);
   const counterpart = isArrival ? tr.fromClubFullName ?? tr.fromClub : tr.toClubFullName ?? tr.toClub;
   const verb = tr.onLoan ? (isArrival ? "arrive en prêt de" : "part en prêt à") :
                tr.contractExtension ? "prolonge avec" :
@@ -236,6 +236,9 @@ export async function GET(req: NextRequest) {
 
   let CLUBS: ClubRef[];
   let fotmobByClub: Map<number, FmTransfer[]> = new Map();
+  // For L1 (where FotMob IDs ≠ our IDs) we precompute per-club items with the
+  // correct arrival/departure direction and merge them in below.
+  const fotmobItemsL1: Map<number, TransferItem[]> = new Map();
   if (league === "FL2") {
     const r = await fetchL2FromFotMob();
     CLUBS = r.clubs;
@@ -243,19 +246,46 @@ export async function GET(req: NextRequest) {
   } else {
     CLUBS = CLUBS_L1;
     // Also try to enrich Ligue 1 with FotMob's structured transfers (player
-    // photo, fee, market value, contract type) — silently fall back if FotMob
-    // is unreachable.
+    // photo, fee, market value, contract type). FotMob IDs ≠ football-data IDs,
+    // so we match by club name. Silently fall back if FotMob is unreachable.
     try {
       const fm = await fetchFotMobLigue1();
-      const idSet = new Set(CLUBS.map(c => c.id));
+      const norm = (s: string) => s.toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]/g, "");
+      // Build a name index for our football-data L1 clubs
+      const nameToId = new Map<string, number>();
+      for (const c of CLUBS) {
+        nameToId.set(norm(c.name), c.id);
+        nameToId.set(norm(c.shortName), c.id);
+      }
+      // Also map FotMob's L1 table names → FotMob club IDs (for the side that
+      // FotMob references in transfers).
+      const fmIdToName = new Map<number, string>();
+      for (const t of fm.table) fmIdToName.set(t.id, t.name);
+
+      const matchClub = (id: number, name: string | undefined): number | null => {
+        const fmName = fmIdToName.get(id) ?? name ?? "";
+        if (!fmName) return null;
+        const n = norm(fmName);
+        if (nameToId.has(n)) return nameToId.get(n)!;
+        // Partial match — first 4 chars (e.g. "marseille" ≈ "om")
+        for (const [k, v] of nameToId) {
+          if (k.length >= 4 && (n.includes(k) || k.includes(n))) return v;
+        }
+        return null;
+      };
+
       for (const tr of fm.transfers) {
-        const clubId = idSet.has(tr.toClubId) ? tr.toClubId
-                     : idSet.has(tr.fromClubId) ? tr.fromClubId
-                     : null;
+        const toId = matchClub(tr.toClubId, tr.toClubFullName ?? tr.toClub);
+        const fromId = matchClub(tr.fromClubId, tr.fromClubFullName ?? tr.fromClub);
+        const clubId = toId ?? fromId;
         if (!clubId) continue;
-        const arr = fotmobByClub.get(clubId) ?? [];
-        arr.push(tr);
-        fotmobByClub.set(clubId, arr);
+        const isArrival = toId === clubId;
+        const item = fotmobTransferToItem(tr, clubId, isArrival);
+        const arr = fotmobItemsL1.get(clubId) ?? [];
+        arr.push(item);
+        fotmobItemsL1.set(clubId, arr);
       }
     } catch (err) {
       console.error("FotMob L1 transfers fetch error:", err);
@@ -306,10 +336,16 @@ export async function GET(req: NextRequest) {
     const seen = new Set<string>();
     const allItems: TransferItem[] = [];
 
-    // FotMob official transfers come first (highest signal for L2)
-    const fmItems = fotmobByClub.get(club.id) ?? [];
-    for (const tr of fmItems) {
-      const item = fotmobTransferToItem(tr, club.id);
+    // FotMob official transfers come first (highest signal — has player photo,
+    // fee, market value, direction). L2 stores raw FmTransfer (FotMob IDs match
+    // CLUBS ids), L1 stores precomputed TransferItem (because FotMob IDs differ).
+    const fmRaw = fotmobByClub.get(club.id) ?? [];
+    const fmPrecomputed = fotmobItemsL1.get(club.id) ?? [];
+    const fmItems: TransferItem[] = [
+      ...fmRaw.map(tr => fotmobTransferToItem(tr, club.id)),
+      ...fmPrecomputed,
+    ];
+    for (const item of fmItems) {
       const key = item.title.toLowerCase().slice(0, 50);
       if (seen.has(key)) continue;
       seen.add(key);
@@ -329,7 +365,8 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Sort by date desc, take top 8
+    // Sort by date desc. Keep more items so the Boursier board has enough
+    // structured FotMob transfers to surface (was 8 → too few once per-club).
     const sorted = allItems
       .filter((i) => i.title.length > 0)
       .sort((a, b) => {
@@ -337,7 +374,7 @@ export async function GET(req: NextRequest) {
         const db = b.pubDate ? new Date(b.pubDate).getTime() : 0;
         return db - da;
       })
-      .slice(0, 8);
+      .slice(0, 20);
 
     return {
       teamId: club.id,
