@@ -82,7 +82,7 @@ const FAN_RSS_FALLBACK: { url: string; site: string }[] = [
 
 const SOFOOT_RSS = "https://www.sofoot.com/rss/";
 
-const MAX_AGE_MS = 24 * 3600 * 1000;
+const MAX_AGE_MS = 48 * 3600 * 1000; // 2 jours max — l'image du jour reste fraîche
 
 // ── Output shape ─────────────────────────────────────────────────────────────
 interface ImageCandidate {
