@@ -3,6 +3,7 @@ import { CLUB_SEARCH_TERMS } from "@/app/lib/teamMapping";
 import { fetchFotMobLigue1, fetchFotMobLigue2, fotmobCrest, type FmTransfer } from "@/app/lib/fotmob";
 
 export const revalidate = 1800; // 30 min
+export const maxDuration = 30;  // Vercel: extend serverless timeout for the 18 Google News + RSS + FotMob fan-out
 
 const API_KEY = process.env.FOOTBALL_DATA_API_KEY;
 
@@ -248,8 +249,14 @@ export async function GET(req: NextRequest) {
     // Also try to enrich Ligue 1 with FotMob's structured transfers (player
     // photo, fee, market value, contract type). FotMob IDs ≠ football-data IDs,
     // so we match by club name. Silently fall back if FotMob is unreachable.
+    // Hard 6s cap — Vercel free tier limits serverless functions to 10s total,
+    // and we still need to call 18 Google News feeds + 2 RSS sources after.
     try {
-      const fm = await fetchFotMobLigue1();
+      const fm = await Promise.race<Awaited<ReturnType<typeof fetchFotMobLigue1>> | null>([
+        fetchFotMobLigue1(),
+        new Promise(resolve => setTimeout(() => resolve(null), 6000)),
+      ]);
+      if (!fm) throw new Error("FotMob L1 timeout");
       const norm = (s: string) => s.toLowerCase()
         .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
         .replace(/[^a-z0-9]/g, "");
