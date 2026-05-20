@@ -9,19 +9,66 @@ import { fetchSyndicationTimeline, type Tweet } from "@/app/lib/twitter-syndicat
 
 export const dynamic = "force-dynamic";
 
-// ── Pool of high-signal Twitter accounts ─────────────────────────────────────
+// ── Pool of high-signal football-only Twitter accounts ──────────────────────
+// (Generalist sports accounts like @lequipe / @RMCsport are excluded — they
+// post about rugby, tennis, F1, etc. We want football media only.)
 const SEED_ACCOUNTS = [
   "actufoot_",
   "footmercato",
   "OptaJean",
-  "RMCsport",
-  "lequipe",
   "TeamPSG",
   "OM_Officiel",
   "OL",
   "loscofficiel",
   "FRStaff",
+  "Ligue1UberEats",
+  "Ligue2BKT",
+  "FFF",
+  "EquipedeFrance",
 ];
+
+// ── Football vocabulary filter ───────────────────────────────────────────────
+// A candidate must look footbally (positive keyword) AND not look like another
+// sport (negative keyword). Applied to title + author string, case-insensitive.
+const FOOTBALL_HINTS = [
+  "foot", "football", "ligue 1", "ligue 2", "l1", "l2", "psg", "om ", "ol ",
+  "losc", "asse", "stade ", "rc ", "fc ", "uefa", "fifa", "champions league",
+  "ligue des champions", "europa", "coupe du monde", "world cup", "mercato",
+  "transfer", "transfert", "but ", "buts ", "goal", "gardien", "milieu",
+  "attaquant", "défenseur", "selectionneur", "sélectionneur", "kylian mbappé",
+  "mbappé", "mbappe", "deschamps", "zidane", "neymar", "messi", "ronaldo",
+  "haaland", "real madrid", "barça", "barca", "barcelone", "bayern",
+  "manchester", "chelsea", "arsenal", "liverpool", "juventus", "milan",
+  "premier league", "la liga", "serie a", "bundesliga",
+];
+const NON_FOOTBALL_HINTS = [
+  " rugby", "top 14", "xv de france",
+  " tennis", "roland garros", "wimbledon", "atp ", "wta ",
+  " nba ", "basket", "basket-ball",
+  "formule 1", "formula 1", " f1 ", "grand prix", "moto gp", "motogp",
+  " ufc ", "boxe", "boxing",
+  "cyclisme", "tour de france", "vuelta", "giro",
+  "handball", "natation", "athlétisme", "athletisme",
+  "volley", "ski ", "biathlon", "patinage",
+  "baseball", "hockey", "cricket", "golf",
+];
+
+// Sources that are 100% football — we still reject non-football keywords
+// (in case they cross-post), but we don't require a positive football hint.
+const FOOTBALL_ONLY_SOURCES = new Set([
+  "actufoot_", "footmercato", "optajean", "teampsg", "om_officiel", "ol",
+  "loscofficiel", "frstaff", "ligue1ubereats", "ligue2bkt", "fff",
+  "equipedefrance",
+  "allezparis.fr", "footmarseille.com", "olympique-et-lyonnais.com",
+  "tribunenantaise.fr", "teamaja.fr", "lorient-infos.fr", "sofoot.com",
+]);
+
+function isFootball(text: string, source?: string): boolean {
+  const t = ` ${text.toLowerCase()} `;
+  if (NON_FOOTBALL_HINTS.some(k => t.includes(k))) return false;
+  if (source && FOOTBALL_ONLY_SOURCES.has(source.toLowerCase())) return true;
+  return FOOTBALL_HINTS.some(k => t.includes(k));
+}
 
 // ── L1 fan-site RSS feeds (verified — same set as /api/fan-news) ─────────────
 const FAN_RSS_FALLBACK: { url: string; site: string }[] = [
@@ -112,6 +159,9 @@ function harvestRss(xml: string, site: string, now: number): ImageCandidate[] {
 
     if (now - ts > MAX_AGE_MS) continue;
     if (!title || !link) continue;
+    // Football-only — drop anything that doesn't look footbally or that
+    // looks like another sport. Club-specific fan sites pass via author.
+    if (!isFootball(title, site)) continue;
 
     out.push({
       url: img, poster: null, type: "photo",
@@ -138,6 +188,9 @@ export async function GET() {
       if (!t.media || t.media.length === 0) continue;
       const ts = new Date(t.pubDate).getTime();
       if (Number.isNaN(ts) || now - ts > MAX_AGE_MS) continue;
+      // Football-only — even within football-leaning accounts we sometimes
+      // catch off-topic posts. Drop them.
+      if (!isFootball(t.title, t.author)) continue;
       const photoIdx = t.media.findIndex(m => m.type === "photo");
       const m = t.media[photoIdx >= 0 ? photoIdx : 0];
       candidates.push({
