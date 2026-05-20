@@ -276,6 +276,22 @@ export async function fetchFotMobTeam(teamId: number): Promise<FmTeamData> {
   };
 }
 
+/** Fetch a single team's transfers page (much richer than the league-level
+ *  transfers endpoint, which is capped at 100). Returns up to ~25 most recent
+ *  transfers for the team. Throws on failure — caller should catch. */
+export async function fetchFotMobTeamTransfers(teamId: number): Promise<FmTransfer[]> {
+  const html = await fetchPage(`https://www.fotmob.com/teams/${teamId}/transfers`);
+  const data = parseNextData(html);
+  if (!data) return [];
+  const fb = (data as unknown as {
+    props: { pageProps: { fallback?: Record<string, unknown> } };
+  }).props.pageProps.fallback;
+  const teamBlob = fb?.[`team-${teamId}`] as
+    | { transfers?: { allTransfers?: FmTransfer[] } }
+    | undefined;
+  return teamBlob?.transfers?.allTransfers ?? [];
+}
+
 /** Convert FotMob form list (newest-first) into the "W,D,L,..." comma string the UI expects (oldest-first). */
 export function fotmobFormString(form: FmFormResult[] | undefined): string {
   if (!form || !form.length) return "";
