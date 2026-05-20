@@ -2761,6 +2761,7 @@ function HashtagChips({ hashtags, entityId, accentColor }: { hashtags: string[];
 // `fan` + `media` handles from fanConfig and merges their latest tweets
 // via /api/twitter-user. Click → opens the existing TweetModal.
 interface TweetItemMini { id: string; title: string; pubDate: string; url: string; author: string; media?: {type:"photo"|"video"|"gif";url:string;poster?:string}[] }
+interface FanXArticle { id: string; title: string; link: string; pubDate: string; site: string; image: string | null }
 
 function FanXFeed({ entityId, accentColor = "#1da1f2" }: { entityId: string; accentColor?: string }) {
   const entry = bundledFanEntry(entityId);
@@ -2778,6 +2779,30 @@ function FanXFeed({ entityId, accentColor = "#1da1f2" }: { entityId: string; acc
   const [loading, setLoading] = useState(true);
   const [loadedCount, setLoadedCount] = useState(0);
   const [open, setOpen]       = useState<TweetItemMini | null>(null);
+  const [articles, setArticles] = useState<FanXArticle[]>([]);
+
+  // Recent fan-site articles surfaced above the tweet wall. Kept compact:
+  // top 3, all under 14 days old. Same /api/fan-news endpoint that the
+  // ecosystem card uses, so it costs us one extra fetch.
+  useEffect(() => {
+    let cancelled = false;
+    const params = new URLSearchParams();
+    if (entityId.startsWith("club:"))   params.set("clubId",     entityId.slice(5));
+    if (entityId.startsWith("nation:")) params.set("nationCode", entityId.slice(7));
+    if ([...params.keys()].length === 0) return;
+    fetch(`/api/fan-news?${params.toString()}`)
+      .then(r => r.ok ? r.json() : null)
+      .then((d: { articles?: FanXArticle[] } | null) => {
+        if (cancelled) return;
+        const cutoff = Date.now() - 14 * 24 * 3600 * 1000;
+        const recent = (d?.articles ?? [])
+          .filter(a => new Date(a.pubDate).getTime() >= cutoff)
+          .slice(0, 3);
+        setArticles(recent);
+      })
+      .catch(() => { /* silent */ });
+    return () => { cancelled = true; };
+  }, [entityId]);
 
   useEffect(() => {
     if (handles.length === 0) { setLoading(false); return; }
@@ -2818,6 +2843,44 @@ function FanXFeed({ entityId, accentColor = "#1da1f2" }: { entityId: string; acc
           {handles.length} comptes
         </span>
       </div>
+
+      {/* Recent fan articles (≤14j, top 3) */}
+      {articles.length > 0 && (
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: "#22c55e" }}>
+              Articles fans · {articles.length}
+            </span>
+            <span className="text-[9px]" style={{ color: "#475569" }}>· moins de 14j</span>
+          </div>
+          <div className="space-y-1.5">
+            {articles.map(a => (
+              <a key={a.id} href={a.link} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 rounded-lg p-2 transition-all hover:brightness-125"
+                style={{ background: "#0d1421", border: "1px solid rgba(34,197,94,0.2)" }}>
+                {a.image && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={a.image} alt=""
+                    className="w-10 h-10 rounded object-cover flex-shrink-0"
+                    style={{ background: "#1e2d42" }}/>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-bold leading-snug line-clamp-2" style={{ color: "#e8edf5" }}>
+                    {a.title}
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-[9px] font-mono truncate" style={{ color: "#22c55e" }}>{a.site}</span>
+                    <span className="text-[9px]" style={{ color: "#334155" }}>·</span>
+                    <span className="text-[9px]" style={{ color: "#475569" }}>
+                      {new Date(a.pubDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                    </span>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="rounded-xl p-2.5 flex items-center gap-2.5"
