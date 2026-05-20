@@ -9,7 +9,7 @@ const TweetModal = dynamic(() => import("./TweetModal"), { ssr: false });
 // Nitter proxy in /api/twitter-user. Auto-refresh every 5 minutes — the
 // route already caches s-maxage=300 so we won't hammer Nitter.
 
-interface Tweet { id: string; title: string; pubDate: string; url: string; author: string }
+interface Tweet { id: string; title: string; pubDate: string; url: string; author: string; media?: {type:"photo"|"video"|"gif";url:string;poster?:string}[] }
 
 function timeAgo(iso: string): string {
   const d = (Date.now() - new Date(iso).getTime()) / 1000;

@@ -150,7 +150,8 @@ const DEFAULT_HANDLES: Record<string, string> = (() => {
   return out;
 })();
 
-interface Tweet { id: string; title: string; pubDate: string; url: string; author: string }
+interface TweetMedia { type: "photo" | "video" | "gif"; url: string; poster?: string; width?: number; height?: number }
+interface Tweet { id: string; title: string; pubDate: string; url: string; author: string; media?: TweetMedia[] }
 
 function parseNitterRSS(xml: string, handle: string): Tweet[] {
   const items: Tweet[] = [];
