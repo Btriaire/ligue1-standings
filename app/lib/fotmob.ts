@@ -135,9 +135,8 @@ function normalizeTopPlayers(raw: RawTopPlayer[] | undefined): FmTopPlayer[] {
   }));
 }
 
-/** Fetch Ligue 2 data from FotMob. Throws on failure. */
-export async function fetchFotMobLigue2(): Promise<FotMobLeagueData> {
-  const html = await fetchPage("https://www.fotmob.com/leagues/110/table/ligue-2");
+async function fetchFotMobLeague(url: string): Promise<FotMobLeagueData> {
+  const html = await fetchPage(url);
   const data = parseNextData(html);
   if (!data) throw new Error("FotMob: __NEXT_DATA__ not found");
 
@@ -157,6 +156,16 @@ export async function fetchFotMobLigue2(): Promise<FotMobLeagueData> {
     topByAssists: normalizeTopPlayers(top.byAssists?.players),
     updatedAt: new Date().toISOString(),
   };
+}
+
+/** Fetch Ligue 2 data from FotMob. Throws on failure. */
+export function fetchFotMobLigue2(): Promise<FotMobLeagueData> {
+  return fetchFotMobLeague("https://www.fotmob.com/leagues/110/table/ligue-2");
+}
+
+/** Fetch Ligue 1 data from FotMob. Throws on failure. */
+export function fetchFotMobLigue1(): Promise<FotMobLeagueData> {
+  return fetchFotMobLeague("https://www.fotmob.com/leagues/53/table/ligue-1");
 }
 
 /** FotMob team logo URL by team id.
