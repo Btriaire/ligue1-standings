@@ -266,6 +266,170 @@ function TopTransferRow({ item, onOpen }: { item: TransferItem; onOpen: (i: Tran
   );
 }
 
+// ── Market index chart (stock-ticker style) ──────────────────────────────────
+// Plots daily aggregated transfer volume as an area chart, with the biggest
+// individual transfers overlaid as dots (hover → player name + value).
+
+function MarketChart({ transfers }: { transfers: BoardTransfer[] }) {
+  const [hover, setHover] = useState<{ x: number; y: number; t: BoardTransfer } | null>(null);
+
+  // Filter to valued transfers within the last 90 days.
+  const now = Date.now();
+  const WINDOW_DAYS = 90;
+  const minTs = now - WINDOW_DAYS * 24 * 3600 * 1000;
+  const valid = transfers
+    .filter((t) => (t.marketValue ?? 0) > 0)
+    .map((t) => ({ ...t, ts: new Date(t.transferDate).getTime() }))
+    .filter((t) => !Number.isNaN(t.ts) && t.ts >= minTs && t.ts <= now)
+    .sort((a, b) => a.ts - b.ts);
+
+  if (valid.length < 2) return null;
+
+  // Daily bins (ts → total value).
+  const bins = new Map<number, number>();
+  for (const t of valid) {
+    const day = Math.floor(t.ts / (24 * 3600 * 1000)) * 24 * 3600 * 1000;
+    bins.set(day, (bins.get(day) ?? 0) + (t.marketValue ?? 0));
+  }
+  const days = [...bins.keys()].sort((a, b) => a - b);
+  if (days.length < 2) return null;
+
+  const firstDay = days[0];
+  const lastDay  = days[days.length - 1];
+  const span     = Math.max(1, lastDay - firstDay);
+  const maxV     = Math.max(...bins.values());
+
+  // Chart geometry — relative coordinates, scaled by viewBox.
+  const W = 600, H = 140, PAD_L = 8, PAD_R = 8, PAD_T = 8, PAD_B = 22;
+  const innerW = W - PAD_L - PAD_R;
+  const innerH = H - PAD_T - PAD_B;
+  const xOf = (ts: number) => PAD_L + ((ts - firstDay) / span) * innerW;
+  const yOf = (v: number)  => PAD_T + innerH - (v / maxV) * innerH;
+
+  // Path through daily bins (step-like — bourse vibe).
+  const points = days.map((d) => ({ x: xOf(d), y: yOf(bins.get(d) ?? 0) }));
+  const line = points.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+  const area = `${line} L${points[points.length - 1].x.toFixed(1)},${(PAD_T + innerH).toFixed(1)} L${points[0].x.toFixed(1)},${(PAD_T + innerH).toFixed(1)} Z`;
+
+  // Big-dot overlays for the 8 largest individual transfers.
+  const dots = [...valid]
+    .sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0))
+    .slice(0, 8)
+    .map((t) => ({ ...t, x: xOf(t.ts), y: yOf(Math.min(t.marketValue ?? 0, maxV)) }));
+
+  // Headline metrics.
+  const total      = valid.reduce((s, t) => s + (t.marketValue ?? 0), 0);
+  const avg        = total / valid.length;
+  const bigDay     = [...bins.entries()].sort((a, b) => b[1] - a[1])[0];
+  const lastDate   = new Date(lastDay);
+  const firstDate  = new Date(firstDay);
+
+  // X-axis ticks: 4 evenly spaced.
+  const ticks = Array.from({ length: 4 }, (_, i) => firstDay + (i * span) / 3);
+
+  return (
+    <div className="rounded-2xl p-3 mb-4 relative"
+      style={{
+        background: "linear-gradient(135deg, rgba(0,212,255,0.08), rgba(13,20,33,0.9))",
+        border: "1px solid rgba(0,212,255,0.25)",
+      }}>
+      <div className="flex items-start justify-between mb-2">
+        <div>
+          <div className="flex items-center gap-2">
+            <ChartLine size={14} weight="fill" style={{ color: "#00d4ff" }} />
+            <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: "#00d4ff" }}>
+              Indice mercato · 90 j
+            </h3>
+          </div>
+          <p className="text-[10px] mt-0.5" style={{ color: "#6b7c96" }}>
+            {valid.length} mouvements · cours quotidien (Σ valeur marchande)
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-[18px] font-black leading-none tabular-nums" style={{ color: "#00d4ff" }}>
+            {formatEuro(total)}
+          </p>
+          <p className="text-[9px] mt-1" style={{ color: "#6b7c96" }}>
+            Moy. {formatEuro(avg)} · Pic {formatEuro(bigDay?.[1] ?? 0)}
+          </p>
+        </div>
+      </div>
+
+      <div className="relative">
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" preserveAspectRatio="none"
+          style={{ overflow: "visible" }}>
+          <defs>
+            <linearGradient id="mercatoArea" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stopColor="#00d4ff" stopOpacity="0.4" />
+              <stop offset="100%" stopColor="#00d4ff" stopOpacity="0.02" />
+            </linearGradient>
+          </defs>
+
+          {/* Y grid */}
+          {[0.25, 0.5, 0.75].map((r) => (
+            <line key={r} x1={PAD_L} x2={W - PAD_R}
+              y1={PAD_T + innerH * r} y2={PAD_T + innerH * r}
+              stroke="rgba(255,255,255,0.04)" strokeDasharray="2 3" />
+          ))}
+
+          {/* Area + line */}
+          <path d={area} fill="url(#mercatoArea)" />
+          <path d={line} fill="none" stroke="#00d4ff" strokeWidth="1.5"
+            strokeLinejoin="round" strokeLinecap="round" />
+
+          {/* Big-transfer dots */}
+          {dots.map((d) => (
+            <g key={d.playerId}
+              onMouseEnter={() => setHover({ x: d.x, y: d.y, t: d })}
+              onMouseLeave={() => setHover(null)}
+              style={{ cursor: "pointer" }}>
+              <circle cx={d.x} cy={d.y} r="6" fill="#00d4ff" fillOpacity="0.15" />
+              <circle cx={d.x} cy={d.y} r="3" fill="#fbbf24" stroke="#0a0f1c" strokeWidth="1.5" />
+            </g>
+          ))}
+
+          {/* X ticks */}
+          {ticks.map((ts, i) => {
+            const d = new Date(ts);
+            const lbl = d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
+            return (
+              <text key={i} x={xOf(ts)} y={H - 6} textAnchor={i === 0 ? "start" : i === ticks.length - 1 ? "end" : "middle"}
+                fill="#475569" fontSize="9" fontWeight="600">
+                {lbl}
+              </text>
+            );
+          })}
+        </svg>
+
+        {hover && (
+          <div className="absolute pointer-events-none px-2 py-1.5 rounded-lg z-10"
+            style={{
+              left: `${(hover.x / W) * 100}%`,
+              top: `${(hover.y / H) * 100}%`,
+              transform: "translate(-50%, calc(-100% - 10px))",
+              background: "rgba(13,20,33,0.95)",
+              border: "1px solid rgba(0,212,255,0.4)",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+              minWidth: 130,
+            }}>
+            <p className="text-[10px] font-black" style={{ color: "#e8edf5" }}>{hover.t.name}</p>
+            <p className="text-[9px]" style={{ color: "#94a3b8" }}>
+              {hover.t.fromClub} → {hover.t.toClub}
+            </p>
+            <p className="text-[10px] font-black tabular-nums mt-0.5" style={{ color: "#00d4ff" }}>
+              {formatEuro(hover.t.marketValue)} · {formatDate(hover.t.transferDate)}
+            </p>
+          </div>
+        )}
+      </div>
+
+      <p className="text-[9px] mt-1 text-center" style={{ color: "#6b7c96" }}>
+        Du {firstDate.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })} au {lastDate.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })} · Source FotMob
+      </p>
+    </div>
+  );
+}
+
 // Convert a FotMob BoardTransfer into the shared TransferItem shape so the
 // existing TopTransferRow / NewsModal pipeline can render it untouched.
 function boardToItem(b: BoardTransfer): TransferItem {
@@ -571,6 +735,9 @@ export default function TransfersTab({
           Actualiser
         </button>
       </div>
+
+      {/* Market index — daily volume area chart with top-transfer dots */}
+      {!boardLoading && board.length > 0 && <MarketChart transfers={board} />}
 
       {/* Bourse — top transfers by market value (FotMob) */}
       <BoursierBoard transfers={board} onOpen={setSelected} loading={boardLoading} />
