@@ -252,11 +252,14 @@ export async function GET(req: NextRequest) {
     // Hard 6s cap — Vercel free tier limits serverless functions to 10s total,
     // and we still need to call 18 Google News feeds + 2 RSS sources after.
     try {
+      // .catch(() => null) on the FotMob promise so a late rejection (after
+      // the timeout already won the race) doesn't trigger an unhandled
+      // rejection that can crash the serverless function on Vercel.
       const fm = await Promise.race<Awaited<ReturnType<typeof fetchFotMobLigue1>> | null>([
-        fetchFotMobLigue1(),
+        fetchFotMobLigue1().catch(() => null),
         new Promise(resolve => setTimeout(() => resolve(null), 6000)),
       ]);
-      if (!fm) throw new Error("FotMob L1 timeout");
+      if (!fm) throw new Error("FotMob L1 unavailable");
       const norm = (s: string) => s.toLowerCase()
         .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
         .replace(/[^a-z0-9]/g, "");
