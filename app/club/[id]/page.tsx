@@ -727,133 +727,43 @@ function BuzzMethodology({ buzz }: { buzz: BuzzData }) {
 }
 
 // ── Club loading screen ───────────────────────────────────────────────────────
-
-const PARSING_STEPS = [
-  { label: "Récupération du classement",        key: "standings", ms: 300 },
-  { label: "Chargement de l'effectif",          key: "squad",     ms: 700 },
-  { label: "Analyse des matchs récents",        key: "matches",   ms: 950 },
-  { label: "Parsing des statistiques joueurs",  key: "players",   ms: 1200 },
-  { label: "Calcul du score émotionnel",        key: "emotion",   ms: 1600 },
-  { label: "Génération de l'analyse prédictive",key: "pred",      ms: 1900 },
-];
+// Minimal, pro indicator: a thin indeterminate progress bar at the very
+// top of the viewport (tinted with the club color) + a single centred
+// caption. No banner shimmer, no terminal, no skeleton cards.
 
 function ClubLoadingScreen({ teamId }: { teamId: number }) {
-  const [step, setStep] = useState(0);
-  const [dots, setDots] = useState(".");
-  const [counter, setCounter] = useState(0);
   const colors = CLUB_COLORS[teamId];
   const primary = colors?.primary ?? "#0033a0";
 
-  useEffect(() => {
-    // Advance steps
-    const timers = PARSING_STEPS.map((s, i) =>
-      setTimeout(() => setStep(i + 1), s.ms)
-    );
-    // Dots animation
-    const dotInterval = setInterval(() => setDots(d => d.length >= 3 ? "." : d + "."), 400);
-    // Counter animation (fake player count)
-    const counterInterval = setInterval(() => setCounter(c => c < 34 ? c + 1 : 34), 55);
-    return () => {
-      timers.forEach(clearTimeout);
-      clearInterval(dotInterval);
-      clearInterval(counterInterval);
-    };
-  }, []);
-
   return (
     <main className="min-h-screen flex flex-col" style={{ background: "#080c14" }}>
-      {/* Banner shimmer */}
-      <div className="relative h-52 overflow-hidden flex-shrink-0"
-        style={{ background: `linear-gradient(135deg, ${primary}44 0%, #0d1421 60%, ${primary}22 100%)` }}>
-        <div className="absolute inset-0 animate-pulse" style={{ background: `linear-gradient(90deg, transparent, ${primary}22, transparent)`, backgroundSize: "200% 100%", animation: "shimmer 1.8s infinite" }} />
-        {/* Scan line */}
-        <div className="absolute inset-x-0 h-0.5 animate-bounce" style={{ top: "40%", background: `linear-gradient(90deg, transparent, ${primary}, transparent)`, opacity: 0.6 }} />
-        <div className="absolute bottom-4 left-4">
-          <div className="flex items-center gap-3">
-            <div className="w-14 h-14 rounded-xl animate-pulse" style={{ background: `${primary}30` }} />
-            <div className="space-y-2">
-              <div className="h-3 w-32 rounded animate-pulse" style={{ background: `${primary}40` }} />
-              <div className="h-5 w-48 rounded animate-pulse" style={{ background: `${primary}25` }} />
-            </div>
-          </div>
-        </div>
+      {/* Thin indeterminate top progress bar */}
+      <div className="fixed top-0 inset-x-0 h-0.5 overflow-hidden z-50"
+        style={{ background: "transparent" }}>
+        <div className="absolute inset-y-0 rounded-full"
+          style={{
+            background: `linear-gradient(90deg, transparent, ${primary}, transparent)`,
+            width: "35%",
+            animation: "clubLoadSlide 1.4s ease-in-out infinite",
+          }}/>
       </div>
 
-      <div className="max-w-3xl mx-auto w-full px-4 py-5 space-y-4">
-        {/* Terminal parsing box */}
-        <div className="rounded-2xl overflow-hidden" style={{ background: "#060a10", border: `1px solid ${primary}40` }}>
-          {/* Header bar */}
-          <div className="flex items-center gap-2 px-4 py-2.5" style={{ background: "#0a0f1a", borderBottom: `1px solid ${primary}30` }}>
-            <div className="flex gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#ef4444" }} />
-              <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#f59e0b" }} />
-              <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#22c55e" }} />
-            </div>
-            <span className="text-[10px] font-mono ml-2" style={{ color: `${primary}cc` }}>
-              FootPredictom — analyse_club.sh
-            </span>
-            <span className="ml-auto text-[10px] font-mono animate-pulse" style={{ color: primary }}>
-              ● LIVE
-            </span>
-          </div>
-
-          {/* Terminal lines */}
-          <div className="px-4 py-3 font-mono text-[11px] space-y-1.5" style={{ minHeight: 200 }}>
-            <p style={{ color: "#4b5563" }}>$ ./analyse_club --id={teamId} --mode=full</p>
-            {PARSING_STEPS.map((s, i) => (
-              <div key={s.key} className="flex items-center gap-2"
-                style={{ opacity: step >= i ? 1 : 0, transition: "opacity 0.3s", color: step > i ? "#22c55e" : step === i ? "#fbbf24" : "#6b7c96" }}>
-                {step > i ? (
-                  <span style={{ color: "#22c55e" }}>✓</span>
-                ) : step === i ? (
-                  <span className="inline-block w-3 text-center" style={{ color: "#fbbf24" }}>›</span>
-                ) : (
-                  <span style={{ color: "#2d3748" }}>○</span>
-                )}
-                <span>{s.label}</span>
-                {step === i && <span style={{ color: "#fbbf24" }}>{dots}</span>}
-                {step > i && (
-                  <span className="ml-auto text-[10px]" style={{ color: "#22c55e" }}>OK</span>
-                )}
-              </div>
-            ))}
-            {step >= PARSING_STEPS.length && (
-              <p className="mt-2 animate-pulse" style={{ color: primary }}>
-                › Compilation des données{dots}
-              </p>
-            )}
-          </div>
+      {/* Centred caption */}
+      <div className="flex-1 flex items-center justify-center">
+        <div className="flex items-center gap-2.5">
+          <div className="w-3 h-3 rounded-full animate-spin"
+            style={{ border: `1.5px solid ${primary}30`, borderTopColor: primary }}/>
+          <span className="text-[11px] font-semibold uppercase tracking-wider"
+            style={{ color: "#6b7c96" }}>
+            Chargement de la fiche
+          </span>
         </div>
-
-        {/* Live counters */}
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { label: "Joueurs parsés", value: counter, suffix: "/34", color: "#00d4ff" },
-            { label: "Sources actives", value: Math.min(step, 4), suffix: "/6", color: "#22c55e" },
-            { label: "Facteur additionnel", value: step >= 4 ? "…" : "—", suffix: "", color: "#06b6d4" },
-          ].map(stat => (
-            <div key={stat.label} className="rounded-xl px-3 py-3 text-center"
-              style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
-              <p className="text-xl font-black font-mono" style={{ color: stat.color }}>
-                {stat.value}{stat.suffix}
-              </p>
-              <p className="text-[10px] mt-1" style={{ color: "#4b5563" }}>{stat.label}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Skeleton cards */}
-        {[160, 80, 100].map((h, i) => (
-          <div key={i} className="rounded-2xl animate-pulse"
-            style={{ height: h, background: "#0d1421", border: "1px solid #1e2d42",
-              animationDelay: `${i * 150}ms` }} />
-        ))}
       </div>
 
       <style>{`
-        @keyframes shimmer {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
+        @keyframes clubLoadSlide {
+          0%   { left: -35%; }
+          100% { left: 100%; }
         }
       `}</style>
     </main>
