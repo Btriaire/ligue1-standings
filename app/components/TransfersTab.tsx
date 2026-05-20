@@ -426,9 +426,6 @@ export default function TransfersTab({ league = "FL1" }: { league?: "FL1" | "FL2
 
       {data && <StatsBar clubs={data.clubs} />}
 
-      {/* Boursier board — top transfers (player photo, fee, market value, club arrows) */}
-      {data && <BoursierBoard clubs={data.clubs} onOpen={setSelected} />}
-
       <FilterBar active={filter} onChange={setFilter} />
 
       <div className="space-y-3">
