@@ -2518,11 +2518,11 @@ function FicheSection({club,nextMatch,opponentId,ficheTeamData,ficheSquad,mySqua
         )}
       </div>
 
-      {/* Fan ecosystem */}
-      <FanEcosystemCard entityId={`club:${club.id}`} accentColor={club.color} />
-
-      {/* FanX feed — live tweets from the club's curated fan/media accounts */}
+      {/* FanX feed — live tweets + articles first (information before directory) */}
       <FanXFeed entityId={`club:${club.id}`} accentColor={club.color} />
+
+      {/* Fan ecosystem — hashtags feed up top, addresses (X accounts, sites) collapsed below */}
+      <FanEcosystemCard entityId={`club:${club.id}`} accentColor={club.color} />
 
       {/* Tweet my pick */}
       <TweetMyPickCard
@@ -2592,61 +2592,75 @@ function FanEcosystemCard({ entityId, accentColor = "#1da1f2" }: { entityId: str
         <h3 className="text-sm font-black" style={{ color: "#e8edf5" }}>Écosystème fans</h3>
       </div>
 
-      {/* Twitter accounts */}
-      {entry.twitter.length > 0 && (
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-widest mb-1.5" style={{ color: "#1da1f2" }}>
-            Comptes X · {entry.twitter.length}
-          </p>
-          <div className="space-y-1">
-            {entry.twitter.map((acc, i) => (
-              <a key={`${acc.handle}-${i}`}
-                href={`https://twitter.com/${encodeURIComponent(acc.handle)}`}
-                target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:opacity-80"
-                style={{ background: "rgba(29,161,242,0.06)", border: "1px solid rgba(29,161,242,0.15)" }}>
-                <span className="text-[11px] font-bold" style={{ color: "#1da1f2" }}>@{acc.handle}</span>
-                <span className="text-[10px] flex-1 truncate" style={{ color: "#94a3b8" }}>{acc.name}</span>
-                {acc.followers && (
-                  <span className="text-[9px] font-bold" style={{ color: "#475569" }}>{acc.followers}</span>
-                )}
-                <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full"
-                  style={{ background: `${KIND_COLOR[acc.kind]}18`, color: KIND_COLOR[acc.kind] }}>
-                  {KIND_LABEL[acc.kind]}
-                </span>
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Fan sites */}
-      {entry.sites.length > 0 && (
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-widest mb-1.5" style={{ color: "#22c55e" }}>
-            Sites de fans · {entry.sites.length}
-          </p>
-          <div className="space-y-1">
-            {entry.sites.map((s, i) => (
-              <a key={`${s.url}-${i}`} href={s.url} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:opacity-80"
-                style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.15)" }}>
-                <span className="text-[11px] font-bold flex-1 truncate" style={{ color: "#e8edf5" }}>{s.name}</span>
-                <span className="text-[9px] font-mono truncate max-w-[40%]" style={{ color: "#475569" }}>{s.url.replace(/^https?:\/\//, "")}</span>
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Hashtags */}
+      {/* Hashtags + live feed — surfaced first so users get content immediately */}
       {entry.hashtags.length > 0 && (
         <div className="space-y-2">
           <p className="text-[10px] font-black uppercase tracking-widest mb-1.5" style={{ color: "#f59e0b" }}>
-            Hashtags X
+            Hashtags X · feed live
           </p>
           <HashtagChips hashtags={entry.hashtags} entityId={entityId} accentColor={accentColor} />
         </div>
+      )}
+
+      {/* Directory (X accounts + fan sites) — collapsed by default, addresses are reference info */}
+      {(entry.twitter.length > 0 || entry.sites.length > 0) && (
+        <details className="group rounded-xl"
+          style={{ background: "rgba(13,20,33,0.4)", border: `1px solid ${accentColor}20` }}>
+          <summary className="cursor-pointer list-none px-3 py-2 flex items-center gap-2 hover:opacity-90">
+            <span className="text-[10px] font-black uppercase tracking-widest flex-1" style={{ color: accentColor }}>
+              📇 Annuaire · {entry.twitter.length} comptes · {entry.sites.length} sites
+            </span>
+            <span className="text-[10px] transition-transform group-open:rotate-180" style={{ color: "#94a3b8" }}>▾</span>
+          </summary>
+          <div className="px-3 pb-3 pt-1 space-y-3">
+            {/* Twitter accounts */}
+            {entry.twitter.length > 0 && (
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest mb-1.5" style={{ color: "#1da1f2" }}>
+                  Comptes X · {entry.twitter.length}
+                </p>
+                <div className="space-y-1">
+                  {entry.twitter.map((acc, i) => (
+                    <a key={`${acc.handle}-${i}`}
+                      href={`https://twitter.com/${encodeURIComponent(acc.handle)}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:opacity-80"
+                      style={{ background: "rgba(29,161,242,0.06)", border: "1px solid rgba(29,161,242,0.15)" }}>
+                      <span className="text-[11px] font-bold" style={{ color: "#1da1f2" }}>@{acc.handle}</span>
+                      <span className="text-[10px] flex-1 truncate" style={{ color: "#94a3b8" }}>{acc.name}</span>
+                      {acc.followers && (
+                        <span className="text-[9px] font-bold" style={{ color: "#475569" }}>{acc.followers}</span>
+                      )}
+                      <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full"
+                        style={{ background: `${KIND_COLOR[acc.kind]}18`, color: KIND_COLOR[acc.kind] }}>
+                        {KIND_LABEL[acc.kind]}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Fan sites */}
+            {entry.sites.length > 0 && (
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest mb-1.5" style={{ color: "#22c55e" }}>
+                  Sites de fans · {entry.sites.length}
+                </p>
+                <div className="space-y-1">
+                  {entry.sites.map((s, i) => (
+                    <a key={`${s.url}-${i}`} href={s.url} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:opacity-80"
+                      style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.15)" }}>
+                      <span className="text-[11px] font-bold flex-1 truncate" style={{ color: "#e8edf5" }}>{s.name}</span>
+                      <span className="text-[9px] font-mono truncate max-w-[40%]" style={{ color: "#475569" }}>{s.url.replace(/^https?:\/\//, "")}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </details>
       )}
     </div>
   );
@@ -3207,11 +3221,11 @@ function NationDashboard({nation,onChange,onSwitchNation}:{nation:Nation;onChang
         </p>
       </div>
 
-      {/* Fan ecosystem */}
-      <FanEcosystemCard entityId={`nation:${nation.code}`} accentColor="#fbbf24" />
-
-      {/* FanX feed — live tweets from the nation's curated fan/media accounts */}
+      {/* FanX feed — live tweets + articles first (information before directory) */}
       <FanXFeed entityId={`nation:${nation.code}`} accentColor="#fbbf24" />
+
+      {/* Fan ecosystem — hashtags feed up top, addresses collapsed below */}
+      <FanEcosystemCard entityId={`nation:${nation.code}`} accentColor="#fbbf24" />
 
       {/* Tweet my pick */}
       <TweetMyPickCard
