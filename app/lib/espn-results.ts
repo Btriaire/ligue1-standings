@@ -81,10 +81,13 @@ function rangeYYYYMMDD(daysBack: number): string {
 
 // Fetch + parse finished L1 matches over the given trailing window.
 // `daysBack` lets the cron pull a larger window (e.g. 90 days) than the live route (28 days).
-export async function fetchEspnResults(daysBack = 28): Promise<ResultMatch[]> {
+// ESPN soccer league codes — fra.1 = Ligue 1, fra.2 = Ligue 2.
+export type EspnLeague = "fra.1" | "fra.2";
+
+export async function fetchEspnResults(daysBack = 28, league: EspnLeague = "fra.1"): Promise<ResultMatch[]> {
   const dateRange = rangeYYYYMMDD(daysBack);
   const res = await fetch(
-    `https://site.api.espn.com/apis/site/v2/sports/soccer/fra.1/scoreboard?dates=${dateRange}&limit=400`,
+    `https://site.api.espn.com/apis/site/v2/sports/soccer/${league}/scoreboard?dates=${dateRange}&limit=400`,
     { next: { revalidate: 300 } } as RequestInit,
   );
   if (!res.ok) throw new Error(`ESPN error ${res.status}`);

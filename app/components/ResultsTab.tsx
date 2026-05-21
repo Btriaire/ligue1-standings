@@ -433,13 +433,18 @@ function WCResultsView() {
 }
 
 export default function ResultsTab() {
-  const [subTab, setSubTab] = useState<"l1" | "cdm">("l1");
+  const [subTab, setSubTab] = useState<"l1" | "l2" | "cdm">("l1");
   const [data, setData] = useState<ResultsData | null>(null);
+  const [dataL2, setDataL2] = useState<ResultsData | null>(null);
   const [standings, setStandings] = useState<StandingEntry[]>([]);
+  const [standingsL2, setStandingsL2] = useState<StandingEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingL2, setLoadingL2] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorL2, setErrorL2] = useState<string | null>(null);
   const [savedPreds, setSavedPreds] = useState<SavedPrediction[]>([]);
   const [filterMatchday, setFilterMatchday] = useState<number | null>(null);
+  const [filterMatchdayL2, setFilterMatchdayL2] = useState<number | null>(null);
 
   useEffect(() => {
     setSavedPreds(loadPredictions());
@@ -453,6 +458,21 @@ export default function ResultsTab() {
     }).catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
+
+  // Lazy-load L2 results when the user opens that sub-tab.
+  useEffect(() => {
+    if (subTab !== "l2" || dataL2 || loadingL2 || errorL2) return;
+    setLoadingL2(true);
+    Promise.all([
+      fetch("/api/results?competition=FL2&limit=50").then(r => r.json()),
+      fetch("/api/standings?competition=FL2").then(r => r.json()).catch(() => ({ standings: [] })),
+    ]).then(([results, st]) => {
+      if (results.error) throw new Error(results.error);
+      setDataL2(results);
+      setStandingsL2(st?.standings ?? []);
+    }).catch(e => setErrorL2(e instanceof Error ? e.message : String(e)))
+      .finally(() => setLoadingL2(false));
+  }, [subTab, dataL2, loadingL2, errorL2]);
 
   const matchdays = data ? [...new Set(data.matches.map((m) => m.matchday))].sort((a, b) => b - a) : [];
 
@@ -474,7 +494,7 @@ export default function ResultsTab() {
 
   const SubTabs = () => (
     <div className="flex gap-1 mb-5 p-1 rounded-xl" style={{ background: "#0a0f1c", border: "1px solid #1a2235", display: "inline-flex" }}>
-      {([["l1", "🏆 Ligue 1"], ["cdm", "🌍 Coupe du Monde"]] as const).map(([id, label]) => (
+      {([["l1", "🏆 Ligue 1"], ["l2", "🥈 Ligue 2"], ["cdm", "🌍 Coupe du Monde"]] as const).map(([id, label]) => (
         <button key={id} onClick={() => setSubTab(id)}
           className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap"
           style={{ background: subTab === id ? "rgba(255,255,255,0.08)" : "transparent", color: subTab === id ? "#e2e8f0" : "#64748b", border: subTab === id ? "1px solid rgba(255,255,255,0.1)" : "1px solid transparent" }}>
@@ -485,6 +505,77 @@ export default function ResultsTab() {
   );
 
   if (subTab === "cdm") return <div><SubTabs /><WCResultsView /></div>;
+
+  if (subTab === "l2") {
+    if (loadingL2 || (!dataL2 && !errorL2)) {
+      return (
+        <div><SubTabs />
+          <div className="py-3"><LoadingBar color="#a78bfa" caption="Chargement des résultats Ligue 2" /></div>
+        </div>
+      );
+    }
+    if (errorL2) return <div><SubTabs /><div className="text-center py-16 text-red-400 text-sm">{errorL2}</div></div>;
+    const l2Matchdays = dataL2 ? [...new Set(dataL2.matches.map((m) => m.matchday))].sort((a, b) => b - a) : [];
+    const l2Filtered = dataL2?.matches.filter((m) => filterMatchdayL2 === null || m.matchday === filterMatchdayL2) ?? [];
+    return (
+      <div>
+        <SubTabs />
+        <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
+          <div>
+            <h2 className="text-base font-bold flex items-center gap-2" style={{ color: "#e8edf5" }}>
+              <Target size={17} style={{ color: "#a78bfa" }} /> Résultats Ligue 2
+            </h2>
+            <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>
+              Scores · Buteurs · Source ESPN (fra.2)
+            </p>
+          </div>
+        </div>
+        {l2Matchdays.length > 1 && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            <button onClick={() => setFilterMatchdayL2(null)}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+              style={{
+                background: filterMatchdayL2 === null ? "rgba(167,139,250,0.12)" : "rgba(255,255,255,0.04)",
+                border: `1px solid ${filterMatchdayL2 === null ? "rgba(167,139,250,0.3)" : "rgba(255,255,255,0.08)"}`,
+                color: filterMatchdayL2 === null ? "#a78bfa" : "#6b7c96",
+              }}>
+              Tous
+            </button>
+            {l2Matchdays.slice(0, 10).map((md) => (
+              <button key={md} onClick={() => setFilterMatchdayL2(md)}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                style={{
+                  background: filterMatchdayL2 === md ? "rgba(167,139,250,0.12)" : "rgba(255,255,255,0.04)",
+                  border: `1px solid ${filterMatchdayL2 === md ? "rgba(167,139,250,0.3)" : "rgba(255,255,255,0.08)"}`,
+                  color: filterMatchdayL2 === md ? "#a78bfa" : "#6b7c96",
+                }}>
+                J{md}
+              </button>
+            ))}
+          </div>
+        )}
+        {l2Filtered.length === 0 && (
+          <div className="text-center py-16" style={{ color: "#6b7c96" }}>
+            <Minus size={24} className="mx-auto mb-2 opacity-40" />
+            <p>Aucun résultat Ligue 2 disponible.</p>
+            <p className="text-xs mt-1">Les matchs terminés apparaîtront ici.</p>
+          </div>
+        )}
+        <div className="grid sm:grid-cols-2 gap-4">
+          {l2Filtered.map((match, i) => {
+            const homeS = findStanding(match.homeTeam.name, match.homeTeam.shortName, standingsL2);
+            const awayS = findStanding(match.awayTeam.name, match.awayTeam.shortName, standingsL2);
+            const algoPred = homeS && awayS ? computePrediction(homeS, awayS) : null;
+            return (
+              <div key={match.id} className="animate-fade-in-up" style={{ animationDelay: `${i * 40}ms` }}>
+                <MatchResultCard match={match} savedPrediction={null} algoPred={algoPred} />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
