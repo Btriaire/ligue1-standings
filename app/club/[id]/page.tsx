@@ -8,8 +8,9 @@ import {
   ArrowsLeftRight, Star, Calendar, Heart,
   Info, CaretDown, ArrowSquareOut, Briefcase, CurrencyDollar,
   TrendDown, X, MapPin, Buildings, IdentificationCard, Crown, TShirt, Flag,
+  MagnifyingGlass,
 } from "@phosphor-icons/react";
-import { clubProfile, clubStadiumPhoto, commonsUrl, type ClubProfile } from "@/app/lib/clubProfile";
+import { clubProfile, clubStadiumPhoto, commonsUrl, personPhoto, type ClubProfile } from "@/app/lib/clubProfile";
 
 // ── Static data ────────────────────────────────────────────────────────────────
 
@@ -460,13 +461,21 @@ function ClubLeadershipCard({ profile }: { profile: ClubProfile }) {
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         {people.map((p, i) => {
           const initials = p.name.split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
+          const photo = personPhoto(p.name);
           return (
             <div key={i} className="flex items-center gap-2 rounded-lg px-2 py-1.5"
               style={{ background: "rgba(13,20,33,0.55)", border: "1px solid rgba(255,255,255,0.04)" }}>
-              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-black"
-                style={{ background: `${p.color}22`, color: p.color, border: `1px solid ${p.color}40` }}>
-                {initials || "?"}
-              </div>
+              {photo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={photo} alt={p.name} loading="lazy"
+                  className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                  style={{ border: `1px solid ${p.color}60` }} />
+              ) : (
+                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-black"
+                  style={{ background: `${p.color}22`, color: p.color, border: `1px solid ${p.color}40` }}>
+                  {initials || "?"}
+                </div>
+              )}
               <div className="min-w-0">
                 <p className="text-[9px] uppercase tracking-wide font-bold" style={{ color: p.color }}>{p.role}</p>
                 <p className="text-[11px] font-bold truncate" style={{ color: "#e8edf5" }} title={p.name}>{p.name}</p>
@@ -1113,6 +1122,11 @@ export default function ClubPage() {
               {recentForm.map((r, i) => <FormDot key={i} result={r} />)}
             </div>
           )}
+          <Link href="/search" aria-label="Rechercher"
+            className="ml-1 flex items-center justify-center w-7 h-7 rounded-lg flex-shrink-0 hover:opacity-80"
+            style={{ background: "rgba(0,212,255,0.08)", border: "1px solid rgba(0,212,255,0.22)", color: "#00d4ff" }}>
+            <MagnifyingGlass size={13} />
+          </Link>
         </div>
       </header>
 

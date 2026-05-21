@@ -123,6 +123,40 @@ export function clubStadiumPhoto(id: number): string | undefined {
   return STADIUM_PHOTO_URLS[id];
 }
 
+// Verified Wikimedia headshot URLs for prominent club figures (coaches,
+// presidents, captains). Keyed by lowercase, accent-folded full name so the
+// lookup is resilient to typography. Add more as new names appear in profiles.
+const PERSON_PHOTOS: Record<string, string> = {
+  "luis enrique":          "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/Luis_enrique.jpg/500px-Luis_enrique.jpg",
+  "habib beye":            "https://upload.wikimedia.org/wikipedia/commons/2/20/Habib_Beye_2019_%28cropped%29.png",
+  "marquinhos":            "https://upload.wikimedia.org/wikipedia/commons/d/dc/FC_Salzburg_gegen_Paris_Saint-Germain_UEFA_Champions_League_49_%28cropped%29.jpg",
+  "pablo longoria":        "https://upload.wikimedia.org/wikipedia/commons/c/c6/Pablo_Longoria_2024.jpg",
+  "nasser al-khelaifi":    "https://upload.wikimedia.org/wikipedia/commons/8/8b/Nasser_Al-Khelaifi.jpg",
+  "paulo fonseca":         "https://upload.wikimedia.org/wikipedia/commons/e/ec/Paulo-Fonseca-Confer%C3%AAncia-de-Imprensa.jpg",
+  "bruno genesio":         "https://upload.wikimedia.org/wikipedia/commons/3/3b/BrunoGenesio2020.png",
+  "claude puel":           "https://upload.wikimedia.org/wikipedia/commons/4/47/Claude_Puel_%28cropped%29.jpg",
+  "antoine kombouare":     "https://upload.wikimedia.org/wikipedia/commons/9/95/Antoine_Kombouar%C3%A9_%28valenciennes%29.jpg",
+  "franck haise":          "https://upload.wikimedia.org/wikipedia/commons/b/be/Entra%C3%AEnement_du_RC_Lens_-_3_juillet_2023_47_%28cropped%29.jpg",
+  "john textor":           "https://upload.wikimedia.org/wikipedia/commons/d/dc/John_Textor_%28cropped%29.jpg",
+  "michele kang":          "https://upload.wikimedia.org/wikipedia/commons/e/ea/Michelle_Kang_220917-F-LE393-0304.jpg",
+  "marc keller":           "https://upload.wikimedia.org/wikipedia/commons/1/1d/Marc_Keller_au_local_des_supporters_du_Racing_Club_de_Strasbourg_en_2017.jpg",
+  "joseph oughourlian":    "https://upload.wikimedia.org/wikipedia/commons/2/2f/RC_Lens_-_US_Orl%C3%A9ans_%2817-05-2019%29_69.jpg",
+  "pierre sage":           "https://upload.wikimedia.org/wikipedia/commons/d/db/Pierre_Sage_en_2024.jpg",
+  "gary o'neil":           "https://upload.wikimedia.org/wikipedia/commons/4/41/Gary_O_Neil_2026.png",
+  "vahid halilhodzic":     "https://upload.wikimedia.org/wikipedia/commons/e/e5/Alg%C3%A9rie_-_Arm%C3%A9nie_-_20140531_-_Vahid_Halilodzic_1_%28cropped%29.jpg",
+  "dmitri rybolovlev":     "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/DmitryRybolovlev1.JPG/1024px-DmitryRybolovlev1.JPG",
+  "dmitry rybolovlev":     "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/DmitryRybolovlev1.JPG/1024px-DmitryRybolovlev1.JPG",
+};
+
+function normalizeName(name: string): string {
+  return name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+
+export function personPhoto(name: string | undefined): string | undefined {
+  if (!name) return undefined;
+  return PERSON_PHOTOS[normalizeName(name)];
+}
+
 /* ════════════════════════════════════════ Ligue 1 ════ */
 
 export const CLUB_PROFILES_L1: Record<number, ClubProfile> = {
@@ -150,7 +184,7 @@ export const CLUB_PROFILES_L1: Record<number, ClubProfile> = {
     stade: { nom: "Stade Louis-II", capacite: "16 360", inauguration: 1985, photo: "Stade_Louis_II.jpg" },
     president: "Dmitry Rybolovlev", presidentDepuis: 2011,
     actionnaire: "Monaco Sport Invest (D. Rybolovlev)",
-    directeurSportif: "Thiago Scuro", entraineur: "Adi Hütter",
+    directeurSportif: "Thiago Scuro", entraineur: "Sébastien Pocognoli",
     forme: "SAM", siege: "7 av. des Castelans, Monaco",
     ca: "~200 M€", employes: "~150", dette: "~30 M€", billetterie: "~20 M€", droitsTv: "~55 M€",
     equipementier: "Kappa", sponsorMaillot: "Vibrant Stork",
@@ -166,7 +200,7 @@ export const CLUB_PROFILES_L1: Record<number, ClubProfile> = {
     stade: { nom: "Orange Vélodrome", capacite: "67 394", inauguration: 1937, photo: "Stade_Velodrome_Marseille.jpg" },
     president: "Pablo Longoria", presidentDepuis: 2021,
     actionnaire: "Frank McCourt (McCourt Global)",
-    directeurSportif: "Mehdi Benatia", entraineur: "Roberto De Zerbi",
+    directeurSportif: "Mehdi Benatia", entraineur: "Habib Beye",
     forme: "SA", siren: "786 164 659",
     siege: "145 traverse Charles Susini, 13008 Marseille",
     ca: "~170 M€", employes: "~200", dette: "~80 M€", billetterie: "~25 M€", droitsTv: "~55 M€",
@@ -196,9 +230,9 @@ export const CLUB_PROFILES_L1: Record<number, ClubProfile> = {
     ville: "Rennes", region: "Bretagne", population: "225 081 hab.",
     couleurs: { primary: "#e41e20", secondary: "#000000" },
     stade: { nom: "Roazhon Park", capacite: "29 778", inauguration: 1912, photo: "Stade_de_la_Route_de_Lorient_Rennes.JPG" },
-    president: "Baptiste Cueff", presidentDepuis: 2024,
+    president: "Arnaud Pouille", presidentDepuis: 2024,
     actionnaire: "Famille Pinault (Artémis)",
-    directeurSportif: "Frederic Massara", entraineur: "Habib Beye",
+    directeurSportif: "Loïc Désiré", entraineur: "Franck Haise",
     forme: "SAS", siren: "303 623 965",
     siege: "111 route de Lorient, 35000 Rennes",
     ca: "~130 M€", employes: "~160", dette: "~15 M€", billetterie: "~18 M€", droitsTv: "~40 M€",
@@ -212,9 +246,9 @@ export const CLUB_PROFILES_L1: Record<number, ClubProfile> = {
     ville: "Nice", region: "Provence-Alpes-Côte d'Azur", population: "347 105 hab.",
     couleurs: { primary: "#e30a17", secondary: "#000000" },
     stade: { nom: "Allianz Riviera", capacite: "35 624", inauguration: 2013, photo: "Allianz_Riviera_panorama.jpg" },
-    president: "Jean-Pierre Rivère", presidentDepuis: 2011,
+    president: "Fabrice Bocquet", presidentDepuis: 2025,
     actionnaire: "INEOS (Sir Jim Ratcliffe)",
-    directeurSportif: "Florent Ghisolfi", entraineur: "Franck Haise",
+    directeurSportif: "Florent Ghisolfi", entraineur: "Claude Puel",
     forme: "SA", siren: "776 416 358",
     siege: "Av. Simone Veil, 06200 Nice",
     ca: "~150 M€", employes: "~180", dette: "~25 M€", billetterie: "~20 M€", droitsTv: "~45 M€",
@@ -244,8 +278,8 @@ export const CLUB_PROFILES_L1: Record<number, ClubProfile> = {
     ville: "Lyon", region: "Auvergne-Rhône-Alpes", population: "522 250 hab.",
     couleurs: { primary: "#c8102e", secondary: "#0033a0" },
     stade: { nom: "Groupama Stadium", capacite: "59 186", inauguration: 2016, photo: "Groupama_Stadium_-_Lyon_(Décines).jpg" },
-    president: "John Textor", presidentDepuis: 2022,
-    actionnaire: "Eagle Football Holdings (J. Textor)",
+    president: "Michele Kang", presidentDepuis: 2025,
+    actionnaire: "Eagle Football Holdings (Michele Kang)",
     directeurSportif: "Matthieu Louis-Jean", entraineur: "Paulo Fonseca",
     forme: "SA", siren: "320 835 374",
     siege: "350 av. Jean Jaurès, 69007 Lyon",
@@ -262,7 +296,7 @@ export const CLUB_PROFILES_L1: Record<number, ClubProfile> = {
     stade: { nom: "Stade de la Meinau", capacite: "26 109", inauguration: 1914, photo: "Stade_Meinau_2012.JPG" },
     president: "Marc Keller", presidentDepuis: 2012,
     actionnaire: "BlueCo (groupe Todd Boehly / Chelsea)",
-    directeurSportif: "Loïc Désiré", entraineur: "Liam Rosenior",
+    directeurSportif: "Andrey Santos", entraineur: "Gary O'Neil",
     forme: "SA", siren: "422 952 942",
     siege: "11 rue du Stade, 67100 Strasbourg",
     ca: "~120 M€", employes: "~150", dette: "~40 M€", billetterie: "~14 M€", droitsTv: "~38 M€",
@@ -276,7 +310,7 @@ export const CLUB_PROFILES_L1: Record<number, ClubProfile> = {
     ville: "Toulouse", region: "Occitanie", population: "504 078 hab.",
     couleurs: { primary: "#6a1de0", secondary: "#ffffff" },
     stade: { nom: "Stadium de Toulouse", capacite: "33 150", inauguration: 1937, photo: "Stadium_de_Toulouse.jpg" },
-    president: "Damien Comolli", presidentDepuis: 2020,
+    president: "Olivier Cloarec", presidentDepuis: 2025,
     actionnaire: "RedBird Capital Partners",
     directeurSportif: "Jean-Baptiste Léger", entraineur: "Carles Martínez Novell",
     forme: "SA", siren: "408 476 801",
@@ -358,7 +392,7 @@ export const CLUB_PROFILES_L1: Record<number, ClubProfile> = {
     stade: { nom: "Stade de la Beaujoire", capacite: "35 322", inauguration: 1984, photo: "Stade_de_la_Beaujoire.JPG" },
     president: "Waldemar Kita", presidentDepuis: 2007,
     actionnaire: "Waldemar Kita (Famille Kita)",
-    directeurSportif: "Franck Kita", entraineur: "Luis Castro",
+    directeurSportif: "Franck Kita", entraineur: "Vahid Halilhodžić",
     forme: "SA", siren: "302 505 072",
     siege: "Stade de la Beaujoire, 44300 Nantes",
     ca: "~70 M€", employes: "~110", dette: "~15 M€", billetterie: "~9 M€", droitsTv: "~30 M€",
@@ -374,7 +408,7 @@ export const CLUB_PROFILES_L1: Record<number, ClubProfile> = {
     stade: { nom: "Stade Saint-Symphorien", capacite: "30 000", inauguration: 1923, photo: "Stade_Saint_Symphorien_Metz.jpg" },
     president: "Bernard Serin", presidentDepuis: 2009,
     actionnaire: "Bernard Serin (CMI France)",
-    directeurSportif: "Pierre Dréossi", entraineur: "Stéphane Le Mignan",
+    directeurSportif: "Pierre Dréossi", entraineur: "Benoît Tavenot",
     forme: "SASP", siren: "384 233 417",
     siege: "Stade Saint-Symphorien, 57050 Metz",
     ca: "~35 M€", employes: "~65", dette: "~5 M€", billetterie: "~4 M€", droitsTv: "~22 M€",
@@ -404,9 +438,9 @@ export const CLUB_PROFILES_L1: Record<number, ClubProfile> = {
     ville: "Paris", region: "Île-de-France", population: "2,1 M hab.",
     couleurs: { primary: "#003da5", secondary: "#e4002b" },
     stade: { nom: "Stade Charléty", capacite: "20 000", inauguration: 1939, photo: "Stade_Charléty.jpg" },
-    president: "Pierre-Dreyfus", presidentDepuis: 2024,
+    president: "Pierre Ferracci", presidentDepuis: 2024,
     actionnaire: "Famille Arnault (LVMH) + Red Bull",
-    directeurSportif: "François Ferracci", entraineur: "Stéphane Gilli",
+    directeurSportif: "François Ferracci", entraineur: "Antoine Kombouaré",
     forme: "SA", siren: "814 988 091",
     siege: "Stade Charléty, 75013 Paris",
     ca: "~60 M€", employes: "~90", dette: "~10 M€", billetterie: "~8 M€", droitsTv: "~25 M€",
@@ -442,7 +476,7 @@ export const CLUB_PROFILES_L2: Record<number, ClubProfile> = {
     stade: { nom: "Geoffroy-Guichard", capacite: "41 965", inauguration: 1931, photo: "Stade_Geoffroy-Guichard.jpg" },
     president: "Ivan Gazidis", presidentDepuis: 2024,
     actionnaire: "Kilmer Sports Ventures (Larry Tanenbaum)",
-    directeurSportif: "Huss Fahmy", entraineur: "Eirik Horneland", capitaine: "Anthony Briançon",
+    directeurSportif: "Huss Fahmy", entraineur: "Philippe Montanier", capitaine: "Anthony Briançon",
     forme: "SASP", siege: "114 Cours Marshall, 42000 Saint-Étienne",
     ca: "~45 M€", employes: "~120", dette: "~10 M€", billetterie: "~8 M€", droitsTv: "~10 M€",
     equipementier: "Hummel", sponsorMaillot: "Vinci",
