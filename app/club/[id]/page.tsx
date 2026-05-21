@@ -9,7 +9,7 @@ import {
   Info, CaretDown, ArrowSquareOut, Briefcase, CurrencyDollar,
   TrendDown, X, MapPin, Buildings, IdentificationCard, Crown, TShirt, Flag,
 } from "@phosphor-icons/react";
-import { clubProfile, commonsUrl, type ClubProfile } from "@/app/lib/clubProfile";
+import { clubProfile, clubStadiumPhoto, commonsUrl, type ClubProfile } from "@/app/lib/clubProfile";
 
 // ── Static data ────────────────────────────────────────────────────────────────
 
@@ -79,8 +79,10 @@ const CLUB_COLORS: Record<number, { primary: string; secondary: string }> = {
 };
 
 function stadiumUrl(id: number): string {
-  // Priority: hand-tuned CDN URL (L1 — fastest, known-good size) →
-  // STADIUM_IMAGES legacy entry → clubProfile().stade.photo (handles L2)
+  // Priority: verified Wikimedia REST API URL (covers all 36 L1+L2 clubs) →
+  // hand-tuned CDN URL → STADIUM_IMAGES legacy → clubProfile().stade.photo.
+  const verified = clubStadiumPhoto(id);
+  if (verified) return verified;
   if (CLUB_BANNERS[id]) return CLUB_BANNERS[id];
   if (STADIUM_IMAGES[id]?.file) {
     return commonsUrl(STADIUM_IMAGES[id].file, 1000);

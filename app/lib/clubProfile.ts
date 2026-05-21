@@ -73,6 +73,56 @@ export function commonsUrl(file: string, width = 1200): string {
   return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=${width}`;
 }
 
+// Pre-resolved Wikimedia URLs for stadium hero photos. These were verified
+// once by hitting `fr.wikipedia.org/api/rest_v1/page/summary/<stadium>` and
+// pulling `originalimage.source` — much more reliable than guessing the
+// Special:FilePath filename, which depends on exact casing/spacing.
+const STADIUM_PHOTO_URLS: Record<number, string> = {
+  // ── Ligue 1 ──
+  524:  "https://upload.wikimedia.org/wikipedia/commons/f/f4/Paris_Parc_des_Princes_1.jpg",
+  548:  "https://upload.wikimedia.org/wikipedia/commons/7/78/Panoramio_-_V%26A_Dudush_-_stade_Louis_II.jpg",
+  516:  "https://upload.wikimedia.org/wikipedia/commons/1/16/Stade_V%C3%A9lodrome_%2820150405%29.jpg",
+  521:  "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Lille_vs_PSG_2019_-_Stade_Pierre_Mauroy.jpg/3840px-Lille_vs_PSG_2019_-_Stade_Pierre_Mauroy.jpg",
+  529:  "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Le_Roazhon_Park_de_jour_en_2021.jpg/3840px-Le_Roazhon_Park_de_jour_en_2021.jpg",
+  522:  "https://upload.wikimedia.org/wikipedia/fr/8/8c/Allianzrivierainauguration.jpg",
+  523:  "https://upload.wikimedia.org/wikipedia/commons/d/d2/Int%C3%A9rieur_POL.JPG",
+  576:  "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/Stade_de_la_Meinau_-_Vue_depuis_les_gradins_-_pelouse_%281%29.jpg/3840px-Stade_de_la_Meinau_-_Vue_depuis_les_gradins_-_pelouse_%281%29.jpg",
+  511:  "https://upload.wikimedia.org/wikipedia/commons/e/e9/Stadium-Lory.jpg",
+  512:  "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Vue_panoramique_du_stade_depuis_tribune_Eurodif.jpg/3840px-Vue_panoramique_du_stade_depuis_tribune_Eurodif.jpg",
+  532:  "https://upload.wikimedia.org/wikipedia/commons/f/fb/Stade_Jean_Bouin_Angers_2.JPG",
+  533:  "https://upload.wikimedia.org/wikipedia/commons/9/96/Stade_Oc%C3%A9ane_nuit.jpg",
+  519:  "https://upload.wikimedia.org/wikipedia/commons/9/91/Stade_de_l%27Abb%C3%A9_Deschamps.png",
+  543:  "https://upload.wikimedia.org/wikipedia/commons/1/17/Stade_de_la_Beaujoire.jpg",
+  545:  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Match_Football_FC_Metz_x_FC_Nantes_-_Stade_Saint_Symphorien_-_Longeville-l%C3%A8s-Metz_%28FR57%29_-_2022-02-27_-_16.jpg/3840px-Match_Football_FC_Metz_x_FC_Nantes_-_Stade_Saint_Symphorien_-_Longeville-l%C3%A8s-Metz_%28FR57%29_-_2022-02-27_-_16.jpg",
+  525:  "https://upload.wikimedia.org/wikipedia/commons/b/b1/Stade_du_Moustoir.jpg",
+  1045: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Paris_Stade_S%C3%A9bastien_Charl%C3%A9ty.jpg/3840px-Paris_Stade_S%C3%A9bastien_Charl%C3%A9ty.jpg",
+  546:  "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Stade_Bollaert-Delelis_Lens.jpg/1200px-Stade_Bollaert-Delelis_Lens.jpg",
+
+  // ── Ligue 2 ──
+  10242: "https://upload.wikimedia.org/wikipedia/fr/thumb/a/a2/Fa%C3%A7ade_du_stade_de_l%27Aube.jpeg/1200px-Fa%C3%A7ade_du_stade_de_l%27Aube.jpeg",
+  9853:  "https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Match_ASSE_x_OL_-_Stade_Geoffroy-Guichard_-_6_octobre_2019_-_St_%C3%89tienne_Loire_5.jpg/3840px-Match_ASSE_x_OL_-_Stade_Geoffroy-Guichard_-_6_octobre_2019_-_St_%C3%89tienne_Loire_5.jpg",
+  9837:  "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Stade_Auguste_Delaune_-_Reims_%28FR51%29_-_2024-01-28_-_6.jpg/3840px-Stade_Auguste_Delaune_-_Reims_%28FR51%29_-_2024-01-28_-_6.jpg",
+  10249: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Stade_de_la_Mosson_-_Vue_du_Stade.jpg/1200px-Stade_de_la_Mosson_-_Vue_du_Stade.jpg",
+  8311:  "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Stade_Gabriel-Montpied%2C_tribune_Gergovie_2017-06-25.jpg/3840px-Stade_Gabriel-Montpied%2C_tribune_Gergovie_2017-06-25.jpg",
+  9747:  "https://upload.wikimedia.org/wikipedia/commons/2/20/Roudourou-ensemble.JPG",
+  8682:  "https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/MMArena_Le_Mans.jpg/1200px-MMArena_Le_Mans.jpg",
+  6390:  "https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Match_Football_Red_Star_FC_x_FBBP01_-_Stade_Bauer_-_Saint-Ouen-sur-Seine_%28FR93%29_-_2022-10-12_-_16.jpg/3840px-Match_Football_Red_Star_FC_x_FBBP01_-_Stade_Bauer_-_Saint-Ouen-sur-Seine_%28FR93%29_-_2022-10-12_-_16.jpg",
+  4120:  "https://upload.wikimedia.org/wikipedia/commons/7/7e/Rodez_AF_v_FC_Nantes_B%2C_31_March_2007.jpg",
+  293352:"https://upload.wikimedia.org/wikipedia/commons/9/9f/Parc_des_Sports_d%27Annecy_Manpower_1.jpg",
+  6355:  "https://upload.wikimedia.org/wikipedia/commons/thumb/8/81/Nouste_Camp_-_23-09-2023.jpg/3840px-Nouste_Camp_-_23-09-2023.jpg",
+  47214: "https://upload.wikimedia.org/wikipedia/commons/9/91/Tribut123..jpg",
+  9855:  "https://upload.wikimedia.org/wikipedia/commons/thumb/8/81/Stade_des_Alpes_Grenoble_2018.jpg/1200px-Stade_des_Alpes_Grenoble_2018.jpg",
+  8481:  "https://upload.wikimedia.org/wikipedia/commons/3/31/Stade_marcel_picot.jpg",
+  4170:  "https://upload.wikimedia.org/wikipedia/commons/e/e7/Boulogne-sur-Mer_Stade_de_la_Liberation_%285%29.jpg",
+  7853:  "https://upload.wikimedia.org/wikipedia/commons/9/91/STADE_FRANCIS_LE_BASSER.jpg",
+  7794:  "https://upload.wikimedia.org/wikipedia/commons/4/4e/Stade_Armand-Cesari_vu_du_ciel.jpg",
+  8587:  "https://upload.wikimedia.org/wikipedia/commons/0/0e/Stadlic3.JPG",
+};
+
+export function clubStadiumPhoto(id: number): string | undefined {
+  return STADIUM_PHOTO_URLS[id];
+}
+
 /* ════════════════════════════════════════ Ligue 1 ════ */
 
 export const CLUB_PROFILES_L1: Record<number, ClubProfile> = {
