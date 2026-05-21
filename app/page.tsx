@@ -341,7 +341,7 @@ function FootPredictomLogo() {
 
 // ── Club sidebar ───────────────────────────────────────────────────────────────
 
-const SIDEBAR_CLUBS = [
+const L1_SIDEBAR_CLUBS = [
   { id: 524,  shortName: "PSG",        crest: "https://crests.football-data.org/524.png" },
   { id: 548,  shortName: "Monaco",     crest: "https://crests.football-data.org/548.png" },
   { id: 516,  shortName: "Marseille",  crest: "https://crests.football-data.org/516.png" },
@@ -362,49 +362,90 @@ const SIDEBAR_CLUBS = [
   { id: 1045, shortName: "Paris FC",   crest: "https://crests.football-data.org/1045.png" },
 ];
 
-function ClubSidebar({ standings }: { standings?: Standing[] }) {
+// Ligue 2 clubs — crests served by FotMob (football-data has no FL2 free tier).
+const L2_SIDEBAR_CLUBS = [
+  { id:10242,  shortName: "Troyes",       crest: "https://images.fotmob.com/image_resources/logo/teamlogo/10242.png" },
+  { id:9853,   shortName: "Saint-Étienne",crest: "https://images.fotmob.com/image_resources/logo/teamlogo/9853.png" },
+  { id:9837,   shortName: "Reims",        crest: "https://images.fotmob.com/image_resources/logo/teamlogo/9837.png" },
+  { id:10249,  shortName: "Montpellier",  crest: "https://images.fotmob.com/image_resources/logo/teamlogo/10249.png" },
+  { id:8311,   shortName: "Clermont",     crest: "https://images.fotmob.com/image_resources/logo/teamlogo/8311.png" },
+  { id:9747,   shortName: "Guingamp",     crest: "https://images.fotmob.com/image_resources/logo/teamlogo/9747.png" },
+  { id:8682,   shortName: "Le Mans",      crest: "https://images.fotmob.com/image_resources/logo/teamlogo/8682.png" },
+  { id:6390,   shortName: "Red Star",     crest: "https://images.fotmob.com/image_resources/logo/teamlogo/6390.png" },
+  { id:4120,   shortName: "Rodez",        crest: "https://images.fotmob.com/image_resources/logo/teamlogo/4120.png" },
+  { id:293352, shortName: "Annecy",       crest: "https://images.fotmob.com/image_resources/logo/teamlogo/293352.png" },
+  { id:6355,   shortName: "Pau",          crest: "https://images.fotmob.com/image_resources/logo/teamlogo/6355.png" },
+  { id:47214,  shortName: "Dunkerque",    crest: "https://images.fotmob.com/image_resources/logo/teamlogo/47214.png" },
+  { id:9855,   shortName: "Grenoble",     crest: "https://images.fotmob.com/image_resources/logo/teamlogo/9855.png" },
+  { id:8481,   shortName: "Nancy",        crest: "https://images.fotmob.com/image_resources/logo/teamlogo/8481.png" },
+  { id:4170,   shortName: "Boulogne",     crest: "https://images.fotmob.com/image_resources/logo/teamlogo/4170.png" },
+  { id:7853,   shortName: "Laval",        crest: "https://images.fotmob.com/image_resources/logo/teamlogo/7853.png" },
+  { id:7794,   shortName: "Bastia",       crest: "https://images.fotmob.com/image_resources/logo/teamlogo/7794.png" },
+  { id:8587,   shortName: "Amiens",       crest: "https://images.fotmob.com/image_resources/logo/teamlogo/8587.png" },
+];
+
+function SidebarLeagueSection({
+  title, clubs, standings, defaultOpen = true,
+}: {
+  title: string;
+  clubs: { id: number; shortName: string; crest: string }[];
+  standings?: Standing[];
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
   const posMap = new Map(standings?.map((s) => [s.team.id, s.position]) ?? []);
   const formMap = new Map(standings?.map((s) => [s.team.id, s.form]) ?? []);
-
-  // Sort by standings position if available, otherwise use default order
   const sorted = standings
-    ? [...SIDEBAR_CLUBS].sort((a, b) => (posMap.get(a.id) ?? 99) - (posMap.get(b.id) ?? 99))
-    : SIDEBAR_CLUBS;
+    ? [...clubs].sort((a, b) => (posMap.get(a.id) ?? 99) - (posMap.get(b.id) ?? 99))
+    : clubs;
 
   return (
     <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42", background: "#0d1421" }}>
-      <div className="px-3 py-2.5 flex items-center justify-between" style={{ borderBottom: "1px solid #1e2d42" }}>
-        <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "#6b7c96" }}>Clubs L1</p>
-        <CaretRight size={12} style={{ color: "#6b7c96" }} />
-      </div>
-      <div className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 140px)" }}>
-        {sorted.map((club) => {
-          const pos = posMap.get(club.id);
-          const form = formMap.get(club.id);
-          const lastResult = form ? form.split(",").filter(Boolean).slice(-1)[0] : null;
-          const resultColor = lastResult === "W" ? "#22c55e" : lastResult === "L" ? "#ef4444" : lastResult === "D" ? "#f59e0b" : null;
-          return (
-            <a key={club.id} href={`/club/${club.id}`}
-              className="flex items-center gap-2 px-3 py-2 transition-all hover:bg-white/[0.04] group"
-              style={{ borderBottom: "1px solid rgba(30,45,66,0.3)" }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={club.crest} alt={club.shortName} className="w-6 h-6 object-contain flex-shrink-0" loading="lazy" />
-              <span className="flex-1 text-xs font-medium truncate transition-colors" style={{ color: "#94a3b8" }}>
-                {club.shortName}
-              </span>
-              {pos && (
-                <span className="text-xs font-mono flex-shrink-0 w-4 text-right"
-                  style={{ color: pos <= 3 ? "#22c55e" : pos >= 16 ? "#ef4444" : "#6b7c96" }}>
-                  {pos}
+      <button onClick={() => setOpen(!open)}
+        className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-white/[0.03] transition-colors"
+        style={{ borderBottom: open ? "1px solid #1e2d42" : "none" }}>
+        <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "#6b7c96" }}>{title}</p>
+        <CaretRight size={12} style={{ color: "#6b7c96", transform: open ? "rotate(90deg)" : "none", transition: "transform .2s" }} />
+      </button>
+      {open && (
+        <div className="overflow-y-auto" style={{ maxHeight: "calc(50vh - 80px)" }}>
+          {sorted.map((club) => {
+            const pos = posMap.get(club.id);
+            const form = formMap.get(club.id);
+            const lastResult = form ? form.split(",").filter(Boolean).slice(-1)[0] : null;
+            const resultColor = lastResult === "W" ? "#22c55e" : lastResult === "L" ? "#ef4444" : lastResult === "D" ? "#f59e0b" : null;
+            return (
+              <a key={club.id} href={`/club/${club.id}`}
+                className="flex items-center gap-2 px-3 py-2 transition-all hover:bg-white/[0.04] group"
+                style={{ borderBottom: "1px solid rgba(30,45,66,0.3)" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={club.crest} alt={club.shortName} className="w-6 h-6 object-contain flex-shrink-0" loading="lazy" />
+                <span className="flex-1 text-xs font-medium truncate transition-colors" style={{ color: "#94a3b8" }}>
+                  {club.shortName}
                 </span>
-              )}
-              {lastResult && resultColor && (
-                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: resultColor }} />
-              )}
-            </a>
-          );
-        })}
-      </div>
+                {pos && (
+                  <span className="text-xs font-mono flex-shrink-0 w-4 text-right"
+                    style={{ color: pos <= 3 ? "#22c55e" : pos >= 16 ? "#ef4444" : "#6b7c96" }}>
+                    {pos}
+                  </span>
+                )}
+                {lastResult && resultColor && (
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: resultColor }} />
+                )}
+              </a>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ClubSidebar({ standings, standingsL2 }: { standings?: Standing[]; standingsL2?: Standing[] }) {
+  return (
+    <div className="space-y-3">
+      <SidebarLeagueSection title="Clubs L1" clubs={L1_SIDEBAR_CLUBS} standings={standings} defaultOpen={true} />
+      <SidebarLeagueSection title="Clubs L2" clubs={L2_SIDEBAR_CLUBS} standings={standingsL2} defaultOpen={false} />
     </div>
   );
 }
@@ -525,6 +566,12 @@ export default function Home() {
   useEffect(() => {
     if (tab === "ligue2" && !dataL2 && !errorL2) fetchL2();
   }, [tab, dataL2, errorL2, fetchL2]);
+
+  // Prefetch L2 standings once so the sidebar shows positions immediately.
+  useEffect(() => {
+    if (!dataL2 && !errorL2 && !loadingL2) fetchL2();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     fetch("/api/auth/me").then(r => r.json()).then(d => setUser(d.user ?? null)).catch(() => setUser(null));
@@ -838,7 +885,7 @@ export default function Home() {
 
         {/* Club sidebar — always visible on lg+ */}
         <div className="hidden lg:block space-y-3" style={{ position: "sticky", top: "73px" }}>
-          <ClubSidebar standings={data?.standings} />
+          <ClubSidebar standings={data?.standings} standingsL2={dataL2?.standings} />
         </div>
         </div>{/* end grid */}
       </div>{/* end max-w */}
