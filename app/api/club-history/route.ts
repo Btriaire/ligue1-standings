@@ -15,11 +15,26 @@ export interface ClubHistory {
   updatedAt: string;
 }
 
-function fallback(name: string, founded?: string): ClubHistory {
-  const f = founded ? ` Le club est fondé en ${founded}.` : "";
+// Deterministic fallback assembled from the data we already have on hand
+// (name / founded / league / stadium / city). Used when Gemini is unreachable
+// — the user shouldn't see infra messages.
+function fallback(name: string, founded?: string, league?: string, stadium?: string, city?: string): ClubHistory {
+  const lg = league === "L2" ? "Ligue 2" : league === "L1" ? "Ligue 1" : null;
+  const parts: string[] = [];
+  if (founded && city) parts.push(`${name} est un club de football français fondé en ${founded} à ${city}.`);
+  else if (founded)    parts.push(`${name} est un club de football français fondé en ${founded}.`);
+  else if (city)       parts.push(`${name} est un club de football français basé à ${city}.`);
+  else                 parts.push(`${name} est un club de football français.`);
+  if (stadium)         parts.push(`Il évolue au ${stadium}.`);
+  if (lg)              parts.push(`Le club dispute actuellement la ${lg}.`);
+  parts.push("Pour un historique complet, consultez la fiche Wikipédia ou le site officiel du club.");
+  const bullets: string[] = [];
+  if (founded) bullets.push(`${founded} — Fondation du club`);
+  if (stadium) bullets.push(`Stade — ${stadium}`);
+  if (lg)      bullets.push(`Saison en cours — ${lg}`);
   return {
-    history: `Historique détaillé indisponible pour ${name}.${f} Activez la clé Gemini pour générer un résumé.`,
-    bullets: [],
+    history: parts.join(" "),
+    bullets,
     updatedAt: new Date().toISOString(),
   };
 }
@@ -37,7 +52,7 @@ export async function GET(req: Request) {
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return NextResponse.json(fallback(name, founded));
+  if (!apiKey) return NextResponse.json(fallback(name, founded, league, stadium, city));
 
   const ctx = [
     `Club : ${name}`,
@@ -62,7 +77,7 @@ Les jalons sont 3 à 5 dates clés au format "ANNÉE — événement court" (ex:
     const result = await model.generateContent(ctx);
     const text = result.response.text();
     const json = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] ?? "{}");
-    if (!json.history) return NextResponse.json(fallback(name, founded));
+    if (!json.history) return NextResponse.json(fallback(name, founded, league, stadium, city));
     return NextResponse.json({
       history: String(json.history).slice(0, 1400),
       bullets: Array.isArray(json.bullets)
@@ -72,6 +87,6 @@ Les jalons sont 3 à 5 dates clés au format "ANNÉE — événement court" (ex:
     } satisfies ClubHistory);
   } catch (err) {
     console.warn("[/api/club-history] gemini failed:", err);
-    return NextResponse.json(fallback(name, founded));
+    return NextResponse.json(fallback(name, founded, league, stadium, city));
   }
 }

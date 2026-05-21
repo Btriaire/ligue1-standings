@@ -573,6 +573,109 @@ function ClubHistoryCard({ name, profile }: { name: string; profile?: ClubProfil
   );
 }
 
+// Modal that opens when a mercato news item is clicked. Shows the headline
+// in full, source, date, an IA short summary, and a CTA to open the article.
+function NewsModal({ item, clubName, onClose }: {
+  item: { title: string; pubDate: string; source: string; url: string; type: "arrival" | "departure" | "rumor" | "news" };
+  clubName: string;
+  onClose: () => void;
+}) {
+  const [summary, setSummary] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const qs = new URLSearchParams({ title: item.title, club: clubName, type: item.type });
+    fetch(`/api/news-summary?${qs.toString()}`)
+      .then(r => r.json())
+      .then((j: { summary?: string }) => { if (!cancelled) setSummary(j.summary ?? ""); })
+      .catch(() => { if (!cancelled) setSummary(""); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [item.title, item.type, clubName]);
+
+  // Close on Escape.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const cfg = TR_CFG[item.type];
+  const date = (() => {
+    const d = new Date(item.pubDate);
+    if (Number.isNaN(d.getTime())) return item.pubDate;
+    return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  })();
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      onClick={onClose}
+      style={{ background: "rgba(8,12,20,0.78)", backdropFilter: "blur(4px)" }}>
+      <div className="w-full max-w-xl rounded-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+        style={{ background: "#0d1421", border: "1px solid #1e2d42", maxHeight: "90vh", overflowY: "auto" }}>
+        <div className="flex items-start gap-3 px-4 py-3" style={{ borderBottom: "1px solid #1e2d42", background: `${cfg.color}08` }}>
+          <span className="text-[10px] font-bold px-2 py-1 rounded-full flex-shrink-0"
+            style={{ color: cfg.color, background: `${cfg.color}18`, border: `1px solid ${cfg.color}30` }}>
+            {cfg.emoji} {cfg.label}
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] uppercase tracking-widest mb-0.5" style={{ color: "#6b7c96" }}>
+              {item.source} · {date}
+            </p>
+            <h3 className="text-sm font-bold leading-snug" style={{ color: "#e8edf5" }}>{item.title}</h3>
+          </div>
+          <button onClick={onClose}
+            className="flex-shrink-0 p-1 rounded-lg hover:bg-white/10 transition-colors"
+            aria-label="Fermer">
+            <X size={14} style={{ color: "#94a3b8" }} />
+          </button>
+        </div>
+
+        <div className="px-4 py-3 space-y-3">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#60a5fa" }}>
+              ✨ Résumé IA
+            </p>
+            {loading
+              ? <p className="text-xs" style={{ color: "#6b7c96" }}>Génération du résumé…</p>
+              : summary
+                ? <p className="text-xs leading-relaxed" style={{ color: "#cbd5e1" }}>{summary}</p>
+                : <p className="text-xs" style={{ color: "#6b7c96" }}>Aucun résumé IA disponible (clé Gemini absente ou titre trop court).</p>
+            }
+            {summary && (
+              <p className="text-[9px] mt-1.5" style={{ color: "#475569" }}>
+                Résumé généré par IA à partir du titre · à recouper avec l&apos;article original.
+              </p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="rounded-lg px-3 py-2" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <p className="text-[10px] uppercase tracking-widest" style={{ color: "#6b7c96" }}>Source</p>
+              <p className="font-semibold mt-0.5" style={{ color: "#e8edf5" }}>{item.source}</p>
+            </div>
+            <div className="rounded-lg px-3 py-2" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <p className="text-[10px] uppercase tracking-widest" style={{ color: "#6b7c96" }}>Date</p>
+              <p className="font-semibold mt-0.5" style={{ color: "#e8edf5" }}>{date}</p>
+            </div>
+          </div>
+
+          {item.url && (
+            <a href={item.url} target="_blank" rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-xl text-xs font-bold transition-all hover:opacity-90 active:scale-[0.98]"
+              style={{ background: cfg.color, color: "#0d1421" }}>
+              Ouvrir l&apos;article complet
+              <ArrowSquareOut size={12} weight="bold" />
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FormDot({ result }: { result: "W" | "D" | "L" }) {
   const c = result === "W" ? "#22c55e" : result === "L" ? "#ef4444" : "#f59e0b";
   const l = result === "W" ? "V" : result === "L" ? "D" : "N";
@@ -1052,6 +1155,7 @@ export default function ClubPage() {
   const [stadiumErr, setStadiumErr] = useState(false);
   const [expandedPlayer, setExpandedPlayer] = useState<SquadPlayer | null>(null);
   const [econOpen, setEconOpen] = useState(true);
+  const [openNews, setOpenNews] = useState<TransferItem | null>(null);
 
   useEffect(() => {
     if (!teamId) return;
@@ -1184,6 +1288,7 @@ export default function ClubPage() {
   return (
     <main className="min-h-screen" style={{ background: "#080c14" }}>
       {expandedPlayer && <PlayerModal player={expandedPlayer} onClose={() => setExpandedPlayer(null)} />}
+      {openNews && <NewsModal item={openNews} clubName={profile?.name ?? team.name ?? ""} onClose={() => setOpenNews(null)} />}
 
       {/* ── Sticky header ── */}
       <header className="sticky top-0 z-40 backdrop-blur-xl border-b"
@@ -1452,10 +1557,10 @@ export default function ClubPage() {
                     {arrivals.length === 0
                       ? <p className="text-[10px]" style={{ color: "#6b7c96" }}>Aucune</p>
                       : arrivals.slice(0, 4).map((t, i) => (
-                          <a key={i} href={t.url || "#"} target="_blank" rel="noopener noreferrer"
-                            className="block text-[10px] leading-snug mb-1 hover:opacity-70 truncate" style={{ color: "#cbd5e1" }}>
+                          <button key={i} type="button" onClick={() => setOpenNews(t)}
+                            className="block w-full text-left text-[10px] leading-snug mb-1 hover:opacity-70 truncate" style={{ color: "#cbd5e1" }}>
                             ↗ {t.title.slice(0, 45)}{t.title.length > 45 ? "…" : ""}
-                          </a>
+                          </button>
                         ))
                     }
                   </div>
@@ -1464,10 +1569,10 @@ export default function ClubPage() {
                     {departures.length === 0
                       ? <p className="text-[10px]" style={{ color: "#6b7c96" }}>Aucun</p>
                       : departures.slice(0, 4).map((t, i) => (
-                          <a key={i} href={t.url || "#"} target="_blank" rel="noopener noreferrer"
-                            className="block text-[10px] leading-snug mb-1 hover:opacity-70 truncate" style={{ color: "#cbd5e1" }}>
+                          <button key={i} type="button" onClick={() => setOpenNews(t)}
+                            className="block w-full text-left text-[10px] leading-snug mb-1 hover:opacity-70 truncate" style={{ color: "#cbd5e1" }}>
                             ↙ {t.title.slice(0, 45)}{t.title.length > 45 ? "…" : ""}
-                          </a>
+                          </button>
                         ))
                     }
                   </div>
@@ -1478,8 +1583,8 @@ export default function ClubPage() {
                 {transfers.map((item, i) => {
                   const cfg = TR_CFG[item.type];
                   return (
-                    <a key={i} href={item.url || "#"} target="_blank" rel="noopener noreferrer"
-                      className="flex items-start gap-2 py-1.5 px-2 rounded-lg hover:bg-white/[0.03] transition-colors group">
+                    <button key={i} type="button" onClick={() => setOpenNews(item)}
+                      className="w-full flex items-start gap-2 py-1.5 px-2 rounded-lg hover:bg-white/[0.03] transition-colors group text-left">
                       <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 mt-0.5"
                         style={{ color: cfg.color, background: `${cfg.color}15`, border: `1px solid ${cfg.color}25` }}>
                         {cfg.emoji} {cfg.label}
@@ -1487,9 +1592,9 @@ export default function ClubPage() {
                       <p className="flex-1 text-xs leading-snug" style={{ color: "#cbd5e1" }}>{item.title}</p>
                       <div className="flex items-center gap-1 flex-shrink-0 opacity-50 group-hover:opacity-100">
                         <span className="text-[9px]" style={{ color: "#6b7c96" }}>{item.source}</span>
-                        <ArrowSquareOut size={9} style={{ color: "#6b7c96" }} />
+                        <Info size={10} style={{ color: "#60a5fa" }} />
                       </div>
-                    </a>
+                    </button>
                   );
                 })}
               </div>
