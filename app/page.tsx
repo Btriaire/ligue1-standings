@@ -167,13 +167,32 @@ function StandingsTable({ standings }: { standings: Standing[] }) {
                 animationDelay: `${idx * 30}ms`,
               }}
             >
-              <div className="flex justify-center"><PositionBadge position={s.position} /></div>
+              {/* Position column — number badge on desktop, team crest on mobile.
+                  Keeps the column compact on small screens (logos are more
+                  scannable than abbreviations) without losing positional info,
+                  which still shows up via the zone-coloured row border. */}
+              <div className="flex justify-center">
+                <div className="hidden sm:block"><PositionBadge position={s.position} /></div>
+                <div className="sm:hidden relative w-8 h-8 flex items-center justify-center">
+                  {s.team.crest
+                    // eslint-disable-next-line @next/next/no-img-element
+                    ? <img src={s.team.crest} alt={s.team.shortName} className="w-7 h-7 object-contain" loading="lazy" />
+                    : <span className="text-xs font-bold text-white/60">{s.team.tla?.slice(0, 2)}</span>
+                  }
+                  {/* tiny position chip in the corner so rank stays legible */}
+                  <span className="absolute -bottom-1 -right-1 text-[8px] font-black leading-none px-1 py-0.5 rounded"
+                    style={{ background: zone?.color ?? "#1e2d42", color: "#0b0f12" }}>
+                    {s.position}
+                  </span>
+                </div>
+              </div>
 
               <div className="flex items-center gap-3 min-w-0">
+                {/* Crest duplicated only on sm+ — on mobile it now lives in the # column. */}
                 {s.team.crest
                   // eslint-disable-next-line @next/next/no-img-element
-                  ? <img src={s.team.crest} alt={s.team.shortName} className="w-8 h-8 object-contain flex-shrink-0" loading="lazy" />
-                  : <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center text-xs font-bold text-white/40 flex-shrink-0">{s.team.tla?.slice(0, 2)}</div>
+                  ? <img src={s.team.crest} alt={s.team.shortName} className="hidden sm:block w-8 h-8 object-contain flex-shrink-0" loading="lazy" />
+                  : <div className="hidden sm:flex w-8 h-8 rounded bg-white/5 items-center justify-center text-xs font-bold text-white/40 flex-shrink-0">{s.team.tla?.slice(0, 2)}</div>
                 }
                 <div className="min-w-0">
                   <p className="font-semibold text-sm truncate" style={{ color: "#e8edf5" }}>

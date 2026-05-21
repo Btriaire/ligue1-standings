@@ -289,6 +289,119 @@ function ProbBar({ homeProb, drawProb, awayProb, winner }: { homeProb: number; d
   );
 }
 
+// ── Spider chart ──────────────────────────────────────────────────────────────
+// Pure-SVG hexagonal radar comparing the home and away teams across 6 axes:
+// attaque, défense, forme, régularité, xG, classement. Each axis is normalized
+// to 0..1 so the two polygons are directly comparable regardless of league.
+function TeamSpiderChart({ match, pred }: { match: MatchPrediction; pred: Prediction }) {
+  const home = match.homeTeam;
+  const away = match.awayTeam;
+
+  // Normalize a value to 0..1 with a sensible upper bound for L1/L2 ranges.
+  const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+  const perGame = (n: number, gp: number) => (gp > 0 ? n / gp : 0);
+
+  // Position rank → 0..1 (1st = 1.0, 20th = 0.05). Total teams unknown, use 20.
+  const rank = (pos: number) => clamp01(1 - (pos - 1) / 19);
+
+  const axes: Array<{ label: string; h: number; a: number }> = [
+    { label: "Attaque",
+      h: clamp01(perGame(home.goalsFor, home.playedGames) / 3),
+      a: clamp01(perGame(away.goalsFor, away.playedGames) / 3) },
+    { label: "Défense",
+      h: clamp01(1 - perGame(home.goalsAgainst, home.playedGames) / 3),
+      a: clamp01(1 - perGame(away.goalsAgainst, away.playedGames) / 3) },
+    { label: "Forme",
+      h: clamp01(formScore(home.form)),
+      a: clamp01(formScore(away.form)) },
+    { label: "Régularité",
+      h: clamp01(home.ppg / 3),
+      a: clamp01(away.ppg / 3) },
+    { label: "xG",
+      h: clamp01(pred.homeXG / 3),
+      a: clamp01(pred.awayXG / 3) },
+    { label: "Rang",
+      h: rank(home.position),
+      a: rank(away.position) },
+  ];
+
+  // Geometry — 220×200 viewBox, hexagon centred at (110, 100), max radius 70.
+  const cx = 110, cy = 100, R = 70;
+  const N = axes.length;
+  const angle = (i: number) => -Math.PI / 2 + (i * 2 * Math.PI) / N;
+  const point = (i: number, r: number) => [cx + r * Math.cos(angle(i)), cy + r * Math.sin(angle(i))];
+
+  // Concentric rings for the grid (4 levels).
+  const rings = [0.25, 0.5, 0.75, 1].map(t =>
+    Array.from({ length: N }, (_, i) => point(i, R * t).join(",")).join(" ")
+  );
+  // Spokes from centre.
+  const spokes = Array.from({ length: N }, (_, i) => point(i, R));
+
+  // Polygon for each team.
+  const polyPoints = (vals: number[]) =>
+    vals.map((v, i) => point(i, R * v).join(",")).join(" ");
+
+  return (
+    <div className="mt-4 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#6b7c96" }}>
+          Profil tactique comparé
+        </span>
+        <div className="flex items-center gap-3 text-[10px]">
+          <span className="flex items-center gap-1" style={{ color: "#00d4ff" }}>
+            <span className="inline-block w-2 h-2 rounded-sm" style={{ background: "#00d4ff" }} />
+            {home.shortName || home.tla}
+          </span>
+          <span className="flex items-center gap-1" style={{ color: "#a78bfa" }}>
+            <span className="inline-block w-2 h-2 rounded-sm" style={{ background: "#a78bfa" }} />
+            {away.shortName || away.tla}
+          </span>
+        </div>
+      </div>
+      <svg viewBox="0 0 220 200" className="w-full h-44">
+        {/* Grid rings */}
+        {rings.map((pts, i) => (
+          <polygon key={i} points={pts} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={0.5} />
+        ))}
+        {/* Spokes */}
+        {spokes.map((p, i) => (
+          <line key={i} x1={cx} y1={cy} x2={p[0]} y2={p[1]} stroke="rgba(255,255,255,0.06)" strokeWidth={0.5} />
+        ))}
+        {/* Away polygon (back) */}
+        <polygon points={polyPoints(axes.map(a => a.a))}
+          fill="rgba(167,139,250,0.22)" stroke="#a78bfa" strokeWidth={1.5} strokeLinejoin="round" />
+        {/* Home polygon (front) */}
+        <polygon points={polyPoints(axes.map(a => a.h))}
+          fill="rgba(0,212,255,0.22)" stroke="#00d4ff" strokeWidth={1.5} strokeLinejoin="round" />
+        {/* Axis dots */}
+        {axes.map((a, i) => {
+          const ph = point(i, R * a.h);
+          const pa = point(i, R * a.a);
+          return (
+            <g key={i}>
+              <circle cx={pa[0]} cy={pa[1]} r={2} fill="#a78bfa" />
+              <circle cx={ph[0]} cy={ph[1]} r={2} fill="#00d4ff" />
+            </g>
+          );
+        })}
+        {/* Axis labels */}
+        {axes.map((a, i) => {
+          const labelR = R + 14;
+          const [lx, ly] = point(i, labelR);
+          // Anchor text by angle so labels don't overlap the polygon.
+          const ang = angle(i);
+          const anchor = Math.cos(ang) > 0.3 ? "start" : Math.cos(ang) < -0.3 ? "end" : "middle";
+          return (
+            <text key={i} x={lx} y={ly + 3} textAnchor={anchor}
+              fontSize="9" fill="#9aa7ba" fontWeight="600">{a.label}</text>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
 function Toggle({ enabled, onToggle, label, color = "#06b6d4" }: { enabled: boolean; onToggle: () => void; label: string; color?: string }) {
   return (
     <button onClick={onToggle} className="flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all"
@@ -589,6 +702,9 @@ function MatchCard({
             </div>
           ))}
         </div>
+
+        {/* Spider chart — head-to-head profile across 6 normalized axes */}
+        <TeamSpiderChart match={match} pred={pred} />
 
         {/* Form */}
         <div className="flex items-center justify-between mt-4 pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
