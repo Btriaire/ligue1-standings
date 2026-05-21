@@ -1320,6 +1320,72 @@ function QualifBar({ raw, teamName, side }: { raw: string; teamName: string; sid
   );
 }
 
+// 6-axis radar for a WC match — same vibe as MonClub's ConfrontationSpiderChart
+function WCSpiderChart({ m }: { m: WCMatch }) {
+  const c01 = (v: number) => Math.max(0, Math.min(1, v));
+  const qh = parseQualif(m.momentumHome);
+  const qa = parseQualif(m.momentumAway);
+  const eh = WC_EMO[teamKey(m.home)];
+  const ea = WC_EMO[teamKey(m.away)];
+  const confMap = { high: 1, medium: 0.66, low: 0.33 } as const;
+  const axes = [
+    { label: "Probabilité", h: c01(m.hP / 100),                 a: c01(m.aP / 100) },
+    { label: "xG",          h: c01(m.xgHome / 3),               a: c01(m.xgAway / 3) },
+    { label: "Forme quali", h: c01(qh.score / 100),             a: c01(qa.score / 100) },
+    { label: "Facteur Add.",h: c01((eh?.score ?? 50) / 100),    a: c01((ea?.score ?? 50) / 100) },
+    { label: "BTTS",        h: m.btts ? 0.85 : 0.3,             a: m.btts ? 0.85 : 0.3 },
+    { label: "Confiance",   h: confMap[m.conf],                 a: confMap[m.conf] },
+  ];
+  const cx = 110, cy = 100, R = 70, N = axes.length;
+  const angle = (i: number) => -Math.PI / 2 + (i * 2 * Math.PI) / N;
+  const pt = (i: number, v: number) => [cx + Math.cos(angle(i)) * R * v, cy + Math.sin(angle(i)) * R * v] as const;
+  const poly = (key: "h" | "a") => axes.map((ax, i) => pt(i, ax[key]).join(",")).join(" ");
+  const homeColor = "#22c55e";
+  const awayColor = "#ef4444";
+  return (
+    <div className="rounded-xl px-3 py-3" style={{ background: "rgba(168,85,247,0.04)", border: "1px solid rgba(168,85,247,0.15)" }}>
+      <div className="flex items-center justify-between mb-1.5">
+        <p className="text-[10px] uppercase font-bold" style={{ color: "#a78bfa" }}>🕸️ Profil comparé · 6 axes</p>
+        <div className="flex items-center gap-2 text-[10px]">
+          <span className="flex items-center gap-1" style={{ color: homeColor }}><span className="inline-block w-2 h-2 rounded-full" style={{ background: homeColor }} />DOM</span>
+          <span className="flex items-center gap-1" style={{ color: awayColor }}><span className="inline-block w-2 h-2 rounded-full" style={{ background: awayColor }} />EXT</span>
+        </div>
+      </div>
+      <svg viewBox="0 0 220 200" className="w-full" style={{ maxHeight: 200 }}>
+        {[0.25, 0.5, 0.75, 1].map(r => (
+          <polygon key={r}
+            points={axes.map((_, i) => pt(i, r).join(",")).join(" ")}
+            fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={0.6} />
+        ))}
+        {axes.map((_, i) => {
+          const [x, y] = pt(i, 1);
+          return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="rgba(255,255,255,0.06)" strokeWidth={0.6} />;
+        })}
+        <polygon points={poly("a")} fill={`${awayColor}25`} stroke={awayColor} strokeWidth={1.2} />
+        <polygon points={poly("h")} fill={`${homeColor}25`} stroke={homeColor} strokeWidth={1.4} />
+        {axes.map((ax, i) => {
+          const [hx, hy] = pt(i, ax.h);
+          const [ax2, ay2] = pt(i, ax.a);
+          return (
+            <g key={i}>
+              <circle cx={ax2} cy={ay2} r={2} fill={awayColor} />
+              <circle cx={hx} cy={hy} r={2.2} fill={homeColor} />
+            </g>
+          );
+        })}
+        {axes.map((ax, i) => {
+          const [lx, ly] = pt(i, 1.22);
+          return (
+            <text key={i} x={lx} y={ly} fontSize={8} fill="#94a3b8" textAnchor="middle" dominantBaseline="middle" fontWeight={600}>
+              {ax.label}
+            </text>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
 function WCPredictionsView() {
   const [groupFilter, setGroupFilter] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -1518,6 +1584,9 @@ function WCPredictionsView() {
                     </div>
                     <p className="text-xs leading-relaxed" style={{ color: "#94a3b8" }}>{factor.desc}</p>
                   </div>
+
+                  {/* Spider chart — head-to-head 6-axis profile */}
+                  <WCSpiderChart m={m} />
 
                   {/* Key players */}
                   <div className="grid grid-cols-2 gap-2">

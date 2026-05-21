@@ -180,6 +180,76 @@ function calcProba(t:Standing,o:Standing):{w:number;d:number;l:number} {
   const d=Math.max(0.12,1-w-l),tot=w+d+l;
   return {w:Math.round(w/tot*100),d:Math.round(d/tot*100),l:Math.round(l/tot*100)};
 }
+// ── Spider chart (head-to-head, 6 normalized axes) ─────────────────────────
+// Reused inside the L2/L1 predOpps cards so each confrontation gets the same
+// hexagonal radar we ship in the main Prédictions tab. Pure SVG, no deps.
+function ConfrontationSpiderChart({ me, opp, myColor }: {
+  me: Standing; opp: Standing; myColor: string;
+}) {
+  const c01 = (v: number) => Math.max(0, Math.min(1, v));
+  const pg = (n: number, gp: number) => (gp > 0 ? n / gp : 0);
+  const rank = (pos: number) => c01(1 - (pos - 1) / 19);
+  const axes = [
+    { label: "Attaque",    h: c01(pg(me.goalsFor, me.playedGames) / 3),
+                            a: c01(pg(opp.goalsFor, opp.playedGames) / 3) },
+    { label: "Défense",    h: c01(1 - pg(me.goalsAgainst, me.playedGames) / 3),
+                            a: c01(1 - pg(opp.goalsAgainst, opp.playedGames) / 3) },
+    { label: "Forme",      h: c01(formScore(me.form) / 100),
+                            a: c01(formScore(opp.form) / 100) },
+    { label: "Pts/match",  h: c01((me.points / Math.max(1, me.playedGames)) / 3),
+                            a: c01((opp.points / Math.max(1, opp.playedGames)) / 3) },
+    { label: "Diff. buts", h: c01((me.goalDifference + 40) / 80),
+                            a: c01((opp.goalDifference + 40) / 80) },
+    { label: "Rang",       h: rank(me.position), a: rank(opp.position) },
+  ];
+  const cx = 110, cy = 100, R = 70, N = axes.length;
+  const ang = (i: number) => -Math.PI / 2 + (i * 2 * Math.PI) / N;
+  const pt = (i: number, r: number) => [cx + r * Math.cos(ang(i)), cy + r * Math.sin(ang(i))];
+  const rings = [0.25, 0.5, 0.75, 1].map(t =>
+    Array.from({ length: N }, (_, i) => pt(i, R * t).join(",")).join(" ")
+  );
+  const spokes = Array.from({ length: N }, (_, i) => pt(i, R));
+  const poly = (vs: number[]) => vs.map((v, i) => pt(i, R * v).join(",")).join(" ");
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: "#6b7c96" }}>
+          Profil tactique comparé
+        </span>
+        <div className="flex items-center gap-2 text-[9px]">
+          <span className="flex items-center gap-1" style={{ color: myColor }}>
+            <span className="inline-block w-2 h-2 rounded-sm" style={{ background: myColor }}/>{me.team.shortName}
+          </span>
+          <span className="flex items-center gap-1" style={{ color: "#a78bfa" }}>
+            <span className="inline-block w-2 h-2 rounded-sm" style={{ background: "#a78bfa" }}/>{opp.team.shortName}
+          </span>
+        </div>
+      </div>
+      <svg viewBox="0 0 220 200" className="w-full h-40">
+        {rings.map((p, i) => <polygon key={i} points={p} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={0.5}/>)}
+        {spokes.map((p, i) => <line key={i} x1={cx} y1={cy} x2={p[0]} y2={p[1]} stroke="rgba(255,255,255,0.06)" strokeWidth={0.5}/>)}
+        <polygon points={poly(axes.map(a => a.a))} fill="rgba(167,139,250,0.22)" stroke="#a78bfa" strokeWidth={1.5} strokeLinejoin="round"/>
+        <polygon points={poly(axes.map(a => a.h))} fill={`${myColor}38`} stroke={myColor} strokeWidth={1.5} strokeLinejoin="round"/>
+        {axes.map((a, i) => {
+          const ph = pt(i, R * a.h), pa = pt(i, R * a.a);
+          return (
+            <g key={i}>
+              <circle cx={pa[0]} cy={pa[1]} r={2} fill="#a78bfa"/>
+              <circle cx={ph[0]} cy={ph[1]} r={2} fill={myColor}/>
+            </g>
+          );
+        })}
+        {axes.map((a, i) => {
+          const [lx, ly] = pt(i, R + 14);
+          const ax = ang(i);
+          const anchor = Math.cos(ax) > 0.3 ? "start" : Math.cos(ax) < -0.3 ? "end" : "middle";
+          return <text key={i} x={lx} y={ly + 3} textAnchor={anchor} fontSize="9" fill="#9aa7ba" fontWeight="600">{a.label}</text>;
+        })}
+      </svg>
+    </div>
+  );
+}
+
 function getSessionId():string {
   let id=localStorage.getItem("fp_session_id");
   if(!id){id=Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem("fp_session_id",id);}
@@ -1142,6 +1212,9 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                               </div>
                             ))}
                           </div>
+                          {/* Spider chart — head-to-head 6-axis profile */}
+                          <ConfrontationSpiderChart me={standing!} opp={opp} myColor={club.color}/>
+
                           <div className="rounded-xl px-4 py-3 flex items-center justify-between" style={{background:`${vc}0d`,border:`1px solid ${vc}25`}}>
                             <div>
                               <p className="text-xs font-black" style={{color:vc}}>Verdict : {verdict}</p>
