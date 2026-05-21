@@ -611,6 +611,20 @@ export const FAN_CLUBS_L2: Record<number, FanEntry> = {
   ),
 };
 
+// League-wide account: @L2Actu_ covers every Ligue 2 club, so we prepend it
+// to every L2 fan entry rather than duplicating the line in 18 places.
+const L2_LEAGUE_ACCOUNT: FanAccount = {
+  handle: "L2Actu_",
+  name: "Ligue 2 Actu",
+  kind: "media",
+  followers: "60k",
+};
+for (const entry of Object.values(FAN_CLUBS_L2)) {
+  if (!entry.twitter.some(a => a.handle.toLowerCase() === L2_LEAGUE_ACCOUNT.handle.toLowerCase())) {
+    entry.twitter.push(L2_LEAGUE_ACCOUNT);
+  }
+}
+
 /* ══════════════════════════════════ World Cup nations ══ */
 
 export const FAN_NATIONS: Record<string, FanEntry> = {
