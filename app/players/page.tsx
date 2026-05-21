@@ -216,52 +216,87 @@ function PlayersPageInner() {
   useEffect(() => {
     if (teamIds.length === 0) return;
     let cancelled = false;
-    let done = 0;
-    const total = teamIds.length;
     const squadEndpoint = league === "FL2" ? "/api/squad-l2" : "/api/squad";
 
-    // Throttle: football-data.org free tier is 10 req/min. Run in small
-    // concurrent batches so we don't burn through the quota and get most
-    // squads back as 429s (which previously surfaced as "5 clubs · 155 joueurs").
-    const CONCURRENCY = 3;
-    const queue = [...teamIds];
+    // Throttle: football-data.org free tier is 10 req/min. Small concurrent
+    // batches + retry-with-backoff for failed/empty squads so a cold cache
+    // doesn't show "5 clubs · 155 joueurs". L1 is heavier upstream (FD +
+    // Transfermarkt + Understat + Datamb) so we keep it low.
+    const CONCURRENCY = league === "FL2" ? 4 : 2;
+    const MAX_ATTEMPTS = 3;
+    const wait = (ms: number) => new Promise(res => setTimeout(res, ms));
+    type QItem = { id: number; attempt: number };
+    const queue: QItem[] = teamIds.map(id => ({ id, attempt: 0 }));
+    const ok = new Set<number>();
+    const failed = new Set<number>();
 
-    const fetchOne = async (id: number) => {
+    const updateProgress = () => {
+      if (cancelled) return;
+      setLoadedCount(ok.size + failed.size);
+      if (ok.size + failed.size === teamIds.length) setLoading(false);
+    };
+
+    const fetchOne = async ({ id, attempt }: QItem) => {
       try {
         const r = await fetch(`${squadEndpoint}/${id}`);
         if (!r.ok) {
-          console.warn(`[players] squad ${id} HTTP ${r.status}`);
-        } else {
-          const data = await r.json();
-          if (cancelled) return;
-          const players: PlayerEntry[] = (data?.squad ?? []).map(
-            (p: Omit<PlayerEntry, "clubId" | "club">) => ({ ...p, clubId: id, club: data.team })
-          );
-          if (players.length > 0) {
-            setAllPlayers(prev => [...prev, ...players]);
-          } else {
-            console.warn(`[players] squad ${id} empty`);
+          // 429 / 5xx → re-queue with backoff
+          if ((r.status === 429 || r.status >= 500) && attempt + 1 < MAX_ATTEMPTS) {
+            await wait(1500 * (attempt + 1) + Math.random() * 800);
+            if (!cancelled) queue.push({ id, attempt: attempt + 1 });
+            return;
           }
+          console.warn(`[players] squad ${id} HTTP ${r.status} (attempt ${attempt + 1})`);
+          failed.add(id);
+          updateProgress();
+          return;
+        }
+        const data = await r.json();
+        if (cancelled) return;
+        const players: PlayerEntry[] = (data?.squad ?? []).map(
+          (p: Omit<PlayerEntry, "clubId" | "club">) => ({ ...p, clubId: id, club: data.team })
+        );
+        if (players.length > 0) {
+          setAllPlayers(prev => [...prev, ...players]);
+          ok.add(id);
+          updateProgress();
+        } else if (attempt + 1 < MAX_ATTEMPTS) {
+          // Empty squad — likely a cold upstream cache. Retry once.
+          await wait(1200 * (attempt + 1) + Math.random() * 500);
+          if (!cancelled) queue.push({ id, attempt: attempt + 1 });
+        } else {
+          console.warn(`[players] squad ${id} empty after ${MAX_ATTEMPTS} attempts`);
+          failed.add(id);
+          updateProgress();
         }
       } catch (err) {
+        if (attempt + 1 < MAX_ATTEMPTS) {
+          await wait(1500 * (attempt + 1));
+          if (!cancelled) queue.push({ id, attempt: attempt + 1 });
+          return;
+        }
         console.warn(`[players] squad ${id} fetch failed:`, err);
-      } finally {
-        if (cancelled) return;
-        done++;
-        setLoadedCount(done);
-        if (done === total) setLoading(false);
+        failed.add(id);
+        updateProgress();
       }
     };
 
     const worker = async () => {
       while (!cancelled) {
-        const id = queue.shift();
-        if (id === undefined) return;
-        await fetchOne(id);
+        const item = queue.shift();
+        if (!item) {
+          // Queue drained — but other workers may still be re-queuing.
+          // Give them a moment, then exit if the queue is still empty.
+          await wait(300);
+          if (queue.length === 0) return;
+        } else {
+          await fetchOne(item);
+        }
       }
     };
 
-    for (let i = 0; i < CONCURRENCY; i++) worker();
+    const workers = Array.from({ length: CONCURRENCY }, () => worker());
+    Promise.all(workers).then(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
   }, [teamIds, league]);
