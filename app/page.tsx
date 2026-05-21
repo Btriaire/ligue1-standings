@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { ArrowsClockwise, TrendUp, TrendDown, Minus, Trophy, WifiHigh, WifiSlash, Clock, Lightning, ChartBar, Shield, Pulse, Globe, GearSix, Target, ArrowsLeftRight, CaretRight, Users, Lock, SignIn, SignOut, Fire } from "@phosphor-icons/react";
+import { ArrowsClockwise, TrendUp, TrendDown, Minus, Trophy, WifiHigh, WifiSlash, Clock, Lightning, ChartBar, Shield, Pulse, Globe, GearSix, Target, ArrowsLeftRight, CaretRight, Users, Lock, SignIn, SignOut, Fire, Sun, MoonStars } from "@phosphor-icons/react";
 import { isWorldCupHot, worldCupPhase, daysUntilWorldCup } from "./lib/worldCup";
 import dynamic from "next/dynamic";
 const TeamPanel = dynamic(() => import("./components/TeamPanel"), { ssr: false });
@@ -503,6 +503,41 @@ function AuthGate({ label, icon }: { label: string; icon: React.ReactNode }) {
   );
 }
 
+// Day/Night-style toggle that flips the whole site between colour and
+// monochrome via a class on <html>. Persisted in localStorage.
+function MonochromeToggle() {
+  const [mono, setMono] = useState(false);
+  useEffect(() => {
+    const saved = typeof window !== "undefined" && localStorage.getItem("ui:monochrome") === "1";
+    if (saved) {
+      document.documentElement.classList.add("monochrome");
+      setMono(true);
+    }
+  }, []);
+  const toggle = () => {
+    const next = !mono;
+    setMono(next);
+    document.documentElement.classList.toggle("monochrome", next);
+    try { localStorage.setItem("ui:monochrome", next ? "1" : "0"); } catch {}
+  };
+  return (
+    <button
+      onClick={toggle}
+      data-mono-keep
+      title={mono ? "Mode couleur" : "Mode monochrome"}
+      aria-label={mono ? "Activer le mode couleur" : "Activer le mode monochrome"}
+      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 active:scale-95"
+      style={{
+        background: mono ? "rgba(148,163,184,0.10)" : "rgba(234,179,8,0.10)",
+        border: `1px solid ${mono ? "rgba(148,163,184,0.30)" : "rgba(234,179,8,0.30)"}`,
+        color: mono ? "#cbd5e1" : "#eab308",
+      }}>
+      {mono ? <MoonStars size={12} weight="fill" /> : <Sun size={12} weight="fill" />}
+      <span className="hidden sm:inline">{mono ? "Mono" : "Couleur"}</span>
+    </button>
+  );
+}
+
 export default function Home() {
   const [tab, setTab] = useState<TabId>("ligue1");
   const [l1SubTab, setL1SubTab] = useState<L1SubTab>("classement");
@@ -613,6 +648,8 @@ export default function Home() {
             )}
 
             <LiveDirectButton />
+
+            <MonochromeToggle />
 
             <button onClick={() => fetchStandings(true)} disabled={refreshing}
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 active:scale-95"

@@ -54,3 +54,14 @@ body {
 .wc-hot-tab {
   animation: wc-hot-glow 2.4s ease-in-out infinite;
 }
+
+/* ── Monochrome mode ──────────────────────────────────────────────────────────
+   Desaturates the whole UI via a CSS filter on <html>. Applies to images,
+   SVGs and inline-style colours alike. Toggled from the header. */
+html.monochrome {
+  filter: grayscale(1) contrast(0.95) brightness(0.95);
+}
+/* Keep the toggle button itself in colour so users can see what they're doing. */
+html.monochrome [data-mono-keep] {
+  filter: grayscale(0) contrast(1) brightness(1);
+}
