@@ -7,8 +7,9 @@ import {
   ArrowLeft, Users, Warning, Trophy, TrendUp,
   ArrowsLeftRight, Star, Calendar, Heart,
   Info, CaretDown, ArrowSquareOut, Briefcase, CurrencyDollar,
-  TrendDown, X,
+  TrendDown, X, MapPin, Buildings, IdentificationCard, Crown, TShirt, Flag,
 } from "@phosphor-icons/react";
+import { clubProfile, commonsUrl, type ClubProfile } from "@/app/lib/clubProfile";
 
 // ── Static data ────────────────────────────────────────────────────────────────
 
@@ -78,10 +79,24 @@ const CLUB_COLORS: Record<number, { primary: string; secondary: string }> = {
 };
 
 function stadiumUrl(id: number): string {
-  // Use the direct CDN URL first, fall back to Special:FilePath
-  return CLUB_BANNERS[id] ?? (STADIUM_IMAGES[id]?.file
-    ? `https://commons.wikimedia.org/wiki/Special:FilePath/${STADIUM_IMAGES[id].file}?width=1000`
-    : "");
+  // Priority: hand-tuned CDN URL (L1 — fastest, known-good size) →
+  // STADIUM_IMAGES legacy entry → clubProfile().stade.photo (handles L2)
+  if (CLUB_BANNERS[id]) return CLUB_BANNERS[id];
+  if (STADIUM_IMAGES[id]?.file) {
+    return commonsUrl(STADIUM_IMAGES[id].file, 1000);
+  }
+  const prof = clubProfile(id);
+  if (prof?.stade.photoUrl) return prof.stade.photoUrl;
+  if (prof?.stade.photo)    return commonsUrl(prof.stade.photo, 1000);
+  return "";
+}
+
+function clubColor(id: number): { primary: string; secondary: string } {
+  return CLUB_COLORS[id] ?? clubProfile(id)?.couleurs ?? { primary: "#0033a0", secondary: "#ffffff" };
+}
+
+function clubStadiumName(id: number): string | undefined {
+  return STADIUM_IMAGES[id]?.name ?? clubProfile(id)?.stade.nom;
 }
 
 interface AdminEntry {
@@ -381,6 +396,85 @@ function Chip({ children, color }: { children: React.ReactNode; color: string })
       style={{ background: `${color}18`, color, border: `1px solid ${color}30` }}>
       {children}
     </span>
+  );
+}
+
+// ── Club identity card — ville, fondation, surnom, équipementier ───────────
+function ClubProfileCard({ profile }: { profile: ClubProfile }) {
+  const items: { icon: React.ReactNode; label: string; value: string; color: string }[] = [
+    { icon: <MapPin size={11} weight="fill" />, label: "Ville",       value: profile.population ? `${profile.ville} (${profile.population})` : profile.ville, color: "#00d4ff" },
+    { icon: <Calendar size={11} weight="fill" />, label: "Fondation", value: String(profile.fondation), color: "#a78bfa" },
+    { icon: <Buildings size={11} weight="fill" />, label: "Stade",    value: profile.stade.capacite ? `${profile.stade.nom} · ${profile.stade.capacite} pl.` : profile.stade.nom, color: "#22c55e" },
+  ];
+  if (profile.region)       items.push({ icon: <Flag size={11} weight="fill" />, label: "Région",  value: profile.region, color: "#f59e0b" });
+  if (profile.surnom)       items.push({ icon: <Star size={11} weight="fill" />, label: "Surnom",  value: profile.surnom, color: "#f59e0b" });
+  if (profile.equipementier) items.push({ icon: <TShirt size={11} weight="fill" />, label: "Équipementier", value: profile.equipementier, color: "#ef4444" });
+  if (profile.sponsorMaillot) items.push({ icon: <Briefcase size={11} weight="fill" />, label: "Sponsor", value: profile.sponsorMaillot, color: "#94a3b8" });
+
+  return (
+    <div className="rounded-xl px-3 py-2 mb-2"
+      style={{ border: "1px solid rgba(255,255,255,0.06)", background: "rgba(0,212,255,0.03)" }}>
+      <div className="flex items-center gap-1.5 mb-2">
+        <IdentificationCard size={11} weight="fill" style={{ color: "#00d4ff" }} />
+        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#00d4ff" }}>Identité du club</p>
+        {profile.devise && (
+          <span className="text-[10px] italic ml-auto" style={{ color: "#94a3b8" }}>« {profile.devise} »</span>
+        )}
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1.5">
+        {items.map((it, i) => (
+          <div key={i} className="flex items-start gap-1.5 min-w-0">
+            <span style={{ color: it.color }} className="mt-0.5 flex-shrink-0">{it.icon}</span>
+            <div className="min-w-0">
+              <p className="text-[9px] uppercase tracking-wide font-semibold" style={{ color: "#6b7c96" }}>{it.label}</p>
+              <p className="text-[11px] font-bold truncate" style={{ color: "#e8edf5" }} title={it.value}>{it.value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Leadership card — président, actionnaire, directeur sportif, entraîneur ─
+function ClubLeadershipCard({ profile }: { profile: ClubProfile }) {
+  // Each role gets a colored "avatar" with the person's initials when no
+  // photo URL is available. Keeps the layout consistent across all clubs.
+  const people: { role: string; name: string; sub?: string; color: string }[] = [
+    { role: "Président", name: profile.president, sub: profile.presidentDepuis ? `depuis ${profile.presidentDepuis}` : undefined, color: "#fbbf24" },
+  ];
+  if (profile.actionnaire)      people.push({ role: "Actionnaire",      name: profile.actionnaire,      color: "#a78bfa" });
+  if (profile.directeurSportif) people.push({ role: "Directeur sportif", name: profile.directeurSportif, color: "#00d4ff" });
+  if (profile.entraineur)       people.push({ role: "Entraîneur",       name: profile.entraineur,       color: "#22c55e" });
+  if (profile.capitaine)        people.push({ role: "Capitaine",        name: profile.capitaine,        color: "#ef4444" });
+
+  return (
+    <div className="rounded-xl px-3 py-2 mb-2"
+      style={{ border: "1px solid rgba(255,255,255,0.06)", background: "rgba(167,139,250,0.04)" }}>
+      <div className="flex items-center gap-1.5 mb-2">
+        <Crown size={11} weight="fill" style={{ color: "#a78bfa" }} />
+        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#a78bfa" }}>Direction & acteurs clés</p>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        {people.map((p, i) => {
+          const initials = p.name.split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
+          return (
+            <div key={i} className="flex items-center gap-2 rounded-lg px-2 py-1.5"
+              style={{ background: "rgba(13,20,33,0.55)", border: "1px solid rgba(255,255,255,0.04)" }}>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-black"
+                style={{ background: `${p.color}22`, color: p.color, border: `1px solid ${p.color}40` }}>
+                {initials || "?"}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[9px] uppercase tracking-wide font-bold" style={{ color: p.color }}>{p.role}</p>
+                <p className="text-[11px] font-bold truncate" style={{ color: "#e8edf5" }} title={p.name}>{p.name}</p>
+                {p.sub && <p className="text-[9px]" style={{ color: "#6b7c96" }}>{p.sub}</p>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -942,7 +1036,22 @@ export default function ClubPage() {
   const team = squad?.team ?? { id: teamId, name: null as string | null, shortName: null, crest: null as string | null, venue: null as string | null, founded: null as number | null, coach: null as string | null };
   const squadStats = squad?.stats ?? { totalValue: 0, avgValue: 0, playerCount: 0, injuredCount: 0, injuryRate: 0, injured: [] as { name: string; status?: string }[], recentMatchCount: 0, teamWins: 0, teamDraws: 0, teamLosses: 0 };
 
-  const admin = CLUB_ADMIN[teamId];
+  const profile = clubProfile(teamId);
+  // Fall back to the new ClubProfile when no hand-authored CLUB_ADMIN entry exists
+  // (L2 clubs were never in CLUB_ADMIN — profile fills the gap).
+  const admin = CLUB_ADMIN[teamId] ?? (profile ? {
+    siren: profile.siren,
+    forme: profile.forme,
+    siege: profile.siege,
+    president: profile.president,
+    ca: profile.ca ?? "—",
+    employes: profile.employes ?? "—",
+    legalNote: profile.legalNote,
+    dette: profile.dette,
+    billetterie: profile.billetterie,
+    droitsTv: profile.droitsTv,
+    sources: profile.sources,
+  } as AdminEntry : undefined);
   const stadImg = stadiumErr ? "" : stadiumUrl(teamId);
 
   const recentForm = matches?.recent
@@ -1038,15 +1147,15 @@ export default function ClubPage() {
         {/* ── HERO: stadium photo + club identity ── */}
         <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42" }}>
           {(() => {
-            const clubColor = CLUB_COLORS[teamId];
-            const primary = clubColor?.primary ?? "#0033a0";
-            const secondary = clubColor?.secondary ?? "#ffffff";
+            const cc = clubColor(teamId);
+            const primary = cc.primary;
+            const secondary = cc.secondary;
             return (
               <div className="relative h-52 overflow-hidden">
                 {/* Photo du stade / club */}
                 {stadImg && !stadiumErr ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={stadImg} alt={STADIUM_IMAGES[teamId]?.name ?? team.name ?? ""}
+                  <img src={stadImg} alt={clubStadiumName(teamId) ?? team.name ?? ""}
                     className="w-full h-full object-cover"
                     onError={() => setStadiumErr(true)}
                   />
@@ -1076,9 +1185,9 @@ export default function ClubPage() {
                         <img src={team.crest} alt="" className="w-14 h-14 object-contain flex-shrink-0 drop-shadow-lg" />
                       )}
                       <div>
-                        {STADIUM_IMAGES[teamId] && (
+                        {clubStadiumName(teamId) && (
                           <p className="text-[10px] font-semibold uppercase tracking-widest mb-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>
-                            {STADIUM_IMAGES[teamId].name}
+                            {clubStadiumName(teamId)}
                           </p>
                         )}
                         <h1 className="text-2xl font-black leading-tight" style={{ color: "#ffffff", textShadow: "0 2px 12px rgba(0,0,0,0.8)" }}>
@@ -1095,7 +1204,7 @@ export default function ClubPage() {
                       <div className="flex gap-1">{recentForm.map((r, i) => <FormDot key={i} result={r} />)}</div>
                       <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
                         style={{ background: `${primary}99`, color: "#ffffff", border: `1px solid ${primary}` }}>
-                        Ligue 1
+                        {L2_TEAM_IDS.has(teamId) ? "Ligue 2" : "Ligue 1"}
                       </span>
                     </div>
                   </div>
@@ -1115,6 +1224,31 @@ export default function ClubPage() {
                   <p className="font-black mt-0.5" style={{ color: "#00d4ff" }}>{fv(squadStats.totalValue)}</p></div>
               )}
             </div>
+
+            {/* Fiche identité — ville, fondation, surnom, équipementier */}
+            {profile && <ClubProfileCard profile={profile} />}
+
+            {/* Direction & acteurs clés — président, DS, coach, capitaine */}
+            {profile && <ClubLeadershipCard profile={profile} />}
+
+            {/* Palmarès du club */}
+            {profile?.palmares && profile.palmares.length > 0 && (
+              <div className="rounded-xl px-3 py-2 mb-2"
+                style={{ border: "1px solid rgba(255,255,255,0.06)", background: "rgba(251,191,36,0.04)" }}>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Trophy size={11} weight="fill" style={{ color: "#fbbf24" }} />
+                  <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#fbbf24" }}>Palmarès</p>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {profile.palmares.map((p, i) => (
+                    <span key={i} className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                      style={{ background: "rgba(251,191,36,0.10)", color: "#fde68a", border: "1px solid rgba(251,191,36,0.25)" }}>
+                      {p}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Admin data (collapsible économique) */}
             {admin && (

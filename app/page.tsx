@@ -1,828 +1,696 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
-import Link from "next/link";
-import { ArrowsClockwise, TrendUp, TrendDown, Minus, Trophy, WifiHigh, WifiSlash, Clock, Lightning, ChartBar, Shield, Pulse, Globe, GearSix, Target, ArrowsLeftRight, CaretRight, Users, Lock, SignIn, SignOut, Fire } from "@phosphor-icons/react";
-import { isWorldCupHot, worldCupPhase, daysUntilWorldCup } from "./lib/worldCup";
-import dynamic from "next/dynamic";
-const TeamPanel = dynamic(() => import("./components/TeamPanel"), { ssr: false });
-import { TipText } from "./components/Tooltip";
-import PredictionsTab from "./components/PredictionsTab";
-import EmotionalScoreTab from "./components/EmotionalScoreTab";
-import ResultsTab from "./components/ResultsTab";
-import ConfigTab from "./components/ConfigTab";
-import TransfersTab from "./components/TransfersTab";
-import WorldCupTab from "./components/WorldCupTab";
-import MonClubTab from "./components/MonClubTab";
-import RefereesL1Tab from "./components/RefereesL1Tab";
-import NewsBanner from "./components/NewsBanner";
-import ActuFootBanner from "./components/ActuFootBanner";
-import ImageOfTheDay from "./components/ImageOfTheDay";
-import LiveDirectButton from "./components/LiveDirectButton";
-import FunFact from "./components/FunFact";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ArrowSquareOut,
+  AppleLogo,
+  Barbell,
+  BowlFood,
+  ChartLineUp,
+  Check,
+  CloudArrowUp,
+  CookingPot,
+  Database,
+  Desktop,
+  Drop,
+  Fire,
+  ForkKnife,
+  GoogleLogo,
+  Heartbeat,
+  MagnifyingGlass,
+  Minus,
+  PersonSimpleRun,
+  Plus,
+  Scales,
+  Trash,
+} from "@phosphor-icons/react";
 
-interface Team {
-  id: number;
+type MealType = "Petit dej" | "Dejeuner" | "Diner" | "Snack";
+
+type Meal = {
+  id: string;
   name: string;
-  shortName: string;
-  tla: string;
-  crest: string;
-}
+  type: MealType;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  time: string;
+};
 
-interface Standing {
-  position: number;
-  team: Team;
-  playedGames: number;
-  won: number;
-  draw: number;
-  lost: number;
-  points: number;
-  goalsFor: number;
-  goalsAgainst: number;
-  goalDifference: number;
-  form: string;
-}
+type Goal = {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  water: number;
+  steps: number;
+};
 
-interface StandingsData {
-  standings: Standing[];
-  season: number | null;
-  updatedAt: string;
-}
+type StoredState = {
+  meals?: Meal[];
+  goal?: Goal;
+  water?: number;
+  steps?: number;
+  connected?: { healthConnect: boolean; appleHealth: boolean };
+};
 
-type TabId = "ligue1" | "ligue2" | "worldcup" | "monclub" | "predictions" | "results" | "emotional" | "config";
-type L1SubTab = "classement" | "mercato" | "joueurs" | "transfert" | "arbitres";
+const mealTypes: MealType[] = ["Petit dej", "Dejeuner", "Diner", "Snack"];
 
-const ZONE_CONFIG = [
-  { label: "Champion",            positions: [1],          color: "#60a5fa", bg: "rgba(96,165,250,0.05)"  },
-  { label: "Ligue des Champions", positions: [2, 3],       color: "#34d399", bg: "rgba(52,211,153,0.05)"  },
-  { label: "Ligue Europa",        positions: [4],           color: "#fbbf24", bg: "rgba(251,191,36,0.05)"  },
-  { label: "Conf. League",        positions: [5],           color: "#a78bfa", bg: "rgba(167,139,250,0.05)" },
-  { label: "Relégation",          positions: [16, 17, 18], color: "#f87171", bg: "rgba(248,113,113,0.05)" },
+const presets = [
+  { name: "Bol skyr, avoine, fruits rouges", type: "Petit dej" as MealType, calories: 410, protein: 32, carbs: 48, fat: 9 },
+  { name: "Poulet, riz complet, legumes", type: "Dejeuner" as MealType, calories: 620, protein: 46, carbs: 72, fat: 16 },
+  { name: "Saumon, patate douce, salade", type: "Diner" as MealType, calories: 570, protein: 38, carbs: 46, fat: 24 },
+  { name: "Pomme et beurre de cacahuete", type: "Snack" as MealType, calories: 210, protein: 6, carbs: 26, fat: 10 },
 ];
 
-function getZone(position: number) {
-  return ZONE_CONFIG.find((z) => z.positions.includes(position)) ?? null;
-}
+const foodSources = [
+  {
+    name: "Open Food Facts",
+    url: "https://world.openfoodfacts.org/",
+    description: "Base ouverte mondiale, tres forte pour les produits emballes, codes-barres, labels, ingredients et Nutri-Score.",
+    accent: "#dff763",
+  },
+  {
+    name: "USDA FoodData Central",
+    url: "https://fdc.nal.usda.gov/",
+    description: "Reference officielle tres detaillee pour nutriments, aliments generiques, aliments de marque et donnees de recherche.",
+    accent: "#7dd3fc",
+  },
+];
 
-function FormBadge({ result }: { result: string }) {
-  const colors: Record<string, string> = {
-    W: "bg-green-500/20 text-green-400 border border-green-500/30",
-    D: "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30",
-    L: "bg-red-500/20 text-red-400 border border-red-500/30",
-  };
-  return (
-    <span className={`inline-flex items-center justify-center w-6 h-6 rounded text-xs font-bold ${colors[result] ?? "bg-white/5 text-white/40"}`}>
-      {result === "W" ? "V" : result === "L" ? "D" : "N"}
-    </span>
-  );
-}
+const defaultMeals: Meal[] = [
+  { id: "seed-1", name: "Omelette epinards et pain complet", type: "Petit dej", calories: 430, protein: 31, carbs: 34, fat: 18, time: "08:15" },
+  { id: "seed-2", name: "Bowl poulet quinoa avocat", type: "Dejeuner", calories: 685, protein: 48, carbs: 62, fat: 25, time: "12:42" },
+  { id: "seed-3", name: "Yaourt grec, miel, noix", type: "Snack", calories: 260, protein: 22, carbs: 24, fat: 9, time: "16:20" },
+];
 
-function FormStreak({ form }: { form: string }) {
-  if (!form) return <span className="text-white/20 text-xs">—</span>;
-  const results = form.split(",").filter(Boolean).slice(-5);
-  return (
-    <div className="flex gap-1 justify-center">
-      {results.map((r, i) => <FormBadge key={i} result={r} />)}
-    </div>
-  );
-}
+const defaultGoal: Goal = {
+  calories: 2300,
+  protein: 155,
+  carbs: 255,
+  fat: 75,
+  water: 2500,
+  steps: 9000,
+};
 
-function PositionBadge({ position }: { position: number }) {
-  if (position === 1) {
-    return (
-      <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#3b82f6]/10 border border-[#3b82f6]/30">
-        <Trophy size={14} className="text-[#3b82f6]" />
-      </div>
-    );
+function loadStoredState(): StoredState {
+  if (typeof window === "undefined") return {};
+  const stored = window.localStorage.getItem("mealflow-state");
+  if (!stored) return {};
+  try {
+    return JSON.parse(stored) as StoredState;
+  } catch {
+    window.localStorage.removeItem("mealflow-state");
+    return {};
   }
-  const zone = getZone(position);
-  return (
-    <div className="flex items-center justify-center w-8 h-8 rounded-lg text-sm font-bold"
-      style={{
-        background: zone ? zone.bg : "rgba(255,255,255,0.03)",
-        color: zone ? zone.color : "rgba(255,255,255,0.5)",
-        border: zone ? `1px solid ${zone.color}30` : "1px solid rgba(255,255,255,0.08)",
-      }}>
-      {position}
-    </div>
+}
+
+function clampPercent(value: number, target: number) {
+  return Math.min(100, Math.round((value / target) * 100));
+}
+
+function sumMeals(meals: Meal[]) {
+  return meals.reduce(
+    (acc, meal) => ({
+      calories: acc.calories + meal.calories,
+      protein: acc.protein + meal.protein,
+      carbs: acc.carbs + meal.carbs,
+      fat: acc.fat + meal.fat,
+    }),
+    { calories: 0, protein: 0, carbs: 0, fat: 0 },
   );
 }
 
-function GDIndicator({ gd }: { gd: number }) {
-  if (gd > 0) return <span className="text-green-400 font-mono font-semibold">+{gd}</span>;
-  if (gd < 0) return <span className="text-red-400 font-mono font-semibold">{gd}</span>;
-  return <span className="text-white/40 font-mono">0</span>;
-}
-
-function Trend({ form }: { form: string }) {
-  if (!form) return <Minus size={14} className="text-white/20" />;
-  const results = form.split(",").filter(Boolean).slice(-3);
-  const score = results.reduce((acc, r) => acc + (r === "W" ? 1 : r === "L" ? -1 : 0), 0);
-  if (score > 0) return <TrendUp size={14} className="text-green-400" />;
-  if (score < 0) return <TrendDown size={14} className="text-red-400" />;
-  return <Minus size={14} className="text-yellow-400" />;
-}
-
-function StandingsTable({ standings }: { standings: Standing[] }) {
-  const [expandedId, setExpandedId] = useState<number | null>(null);
-
+function MacroRing({ label, value, target, color }: { label: string; value: number; target: number; color: string }) {
+  const percent = clampPercent(value, target);
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42" }}>
-      {/* Header */}
-      <div className="grid items-center px-4 py-3 text-xs font-semibold uppercase tracking-widest"
-        style={{
-          background: "#0d1421",
-          color: "#6b7c96",
-          gridTemplateColumns: "44px 1fr 40px 90px 40px 40px 48px 56px 100px 40px",
-          borderBottom: "1px solid #1e2d42",
-        }}>
-        <span className="text-center">#</span>
-        <span>Équipe</span>
-        <span className="text-center"><TipText>J</TipText></span>
-        <span className="text-center hidden sm:block"><TipText>V</TipText> · <TipText>N</TipText> · <TipText>D</TipText></span>
-        <span className="text-center hidden md:block"><TipText>BP</TipText></span>
-        <span className="text-center hidden md:block"><TipText>BC</TipText></span>
-        <span className="text-center"><TipText>DB</TipText></span>
-        <span className="text-center font-bold" style={{ color: "#e8edf5" }}><TipText>Pts</TipText></span>
-        <span className="text-center hidden sm:block"><TipText>Forme</TipText></span>
-        <span className="hidden lg:block" />
+    <div className="rounded-[8px] border border-white/10 bg-white/[0.045] p-3">
+      <div className="mb-3 flex items-center justify-between text-xs font-bold uppercase tracking-[0.12em] text-white/45">
+        <span>{label}</span>
+        <span>{percent}%</span>
       </div>
-
-      {standings.map((s, idx) => {
-        const zone = getZone(s.position);
-        const isExpanded = expandedId === s.team.id;
-        return (
-          <React.Fragment key={s.team.id}>
-            {/* Row */}
-            <div
-              onClick={() => setExpandedId(isExpanded ? null : s.team.id)}
-              className="group grid items-center px-4 py-3 transition-all duration-200 hover:brightness-125 animate-fade-in-up cursor-pointer select-none"
-              style={{
-                gridTemplateColumns: "44px 1fr 40px 90px 40px 40px 48px 56px 100px 40px",
-                background: isExpanded
-                  ? "rgba(59,130,246,0.07)"
-                  : zone ? zone.bg : idx % 2 === 0 ? "rgba(13,20,33,0.6)" : "transparent",
-                borderBottom: isExpanded ? "none" : "1px solid rgba(30,45,66,0.4)",
-                borderLeft: zone ? `3px solid ${zone.color}` : "3px solid transparent",
-                animationDelay: `${idx * 30}ms`,
-              }}
-            >
-              <div className="flex justify-center"><PositionBadge position={s.position} /></div>
-
-              <div className="flex items-center gap-3 min-w-0">
-                {s.team.crest
-                  // eslint-disable-next-line @next/next/no-img-element
-                  ? <img src={s.team.crest} alt={s.team.shortName} className="w-8 h-8 object-contain flex-shrink-0" loading="lazy" />
-                  : <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center text-xs font-bold text-white/40 flex-shrink-0">{s.team.tla?.slice(0, 2)}</div>
-                }
-                <div className="min-w-0">
-                  <p className="font-semibold text-sm truncate" style={{ color: "#e8edf5" }}>
-                    <span className="hidden md:inline">{s.team.name}</span>
-                    <span className="md:hidden">{s.team.shortName || s.team.tla}</span>
-                  </p>
-                </div>
-              </div>
-
-              <span className="text-center text-sm font-mono" style={{ color: "#94a3b8" }}>{s.playedGames}</span>
-
-              <div className="hidden sm:flex justify-center gap-1.5 text-xs font-mono">
-                <span style={{ color: "#22c55e" }}>{s.won}</span>
-                <span style={{ color: "#6b7c96" }}>·</span>
-                <span style={{ color: "#f59e0b" }}>{s.draw}</span>
-                <span style={{ color: "#6b7c96" }}>·</span>
-                <span style={{ color: "#ef4444" }}>{s.lost}</span>
-              </div>
-
-              <span className="hidden md:block text-center text-sm font-mono" style={{ color: "#94a3b8" }}>{s.goalsFor}</span>
-              <span className="hidden md:block text-center text-sm font-mono" style={{ color: "#94a3b8" }}>{s.goalsAgainst}</span>
-
-              <div className="flex justify-center text-sm"><GDIndicator gd={s.goalDifference} /></div>
-
-              <div className="flex justify-center">
-                <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl text-base font-black"
-                  style={{
-                    background: zone ? `${zone.color}15` : "rgba(255,255,255,0.04)",
-                    color: zone ? zone.color : "#e8edf5",
-                    border: zone ? `1px solid ${zone.color}25` : "1px solid rgba(255,255,255,0.06)",
-                  }}>
-                  {s.points}
-                </span>
-              </div>
-
-              <div className="hidden sm:flex justify-center"><FormStreak form={s.form} /></div>
-              <div className="hidden lg:flex justify-center"><Trend form={s.form} /></div>
-            </div>
-
-            {/* Inline compact panel */}
-            {isExpanded && (
-              <div style={{ borderBottom: "1px solid rgba(30,45,66,0.6)", borderLeft: zone ? `3px solid ${zone.color}` : "3px solid rgba(59,130,246,0.4)" }}>
-                <TeamPanel standing={s} zoneColor={zone?.color ?? "#3b82f6"} />
-              </div>
-            )}
-          </React.Fragment>
-        );
-      })}
-    </div>
-  );
-}
-
-function LoadingSkeleton() {
-  return (
-    <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42" }}>
-      {Array.from({ length: 18 }).map((_, i) => (
-        <div key={i} className="flex items-center gap-4 px-4 py-3"
-          style={{ borderBottom: "1px solid rgba(30,45,66,0.4)", background: i % 2 === 0 ? "rgba(13,20,33,0.6)" : "transparent" }}>
-          <div className="w-8 h-8 rounded-lg animate-pulse" style={{ background: "#1e2d42" }} />
-          <div className="w-8 h-8 rounded-full animate-pulse" style={{ background: "#1e2d42" }} />
-          <div className="flex-1 h-4 rounded animate-pulse" style={{ background: "#1e2d42", maxWidth: "180px" }} />
-          <div className="ml-auto flex gap-6">
-            {Array.from({ length: 4 }).map((_, j) => (
-              <div key={j} className="w-8 h-4 rounded animate-pulse" style={{ background: "#1e2d42" }} />
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function ErrorState({ error, onRetry }: { error: string; onRetry: () => void }) {
-  return (
-    <div className="rounded-2xl p-12 text-center" style={{ border: "1px solid #ef444430", background: "rgba(239,68,68,0.05)" }}>
-      <WifiSlash size={40} className="text-red-400 mx-auto mb-4 opacity-60" />
-      <h2 className="text-lg font-bold mb-2" style={{ color: "#e8edf5" }}>Impossible de charger les données</h2>
-      <p className="text-sm mb-6" style={{ color: "#6b7c96" }}>{error}</p>
-      <button onClick={onRetry} className="px-6 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-80"
-        style={{ background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.3)", color: "#3b82f6" }}>
-        Réessayer
-      </button>
-      <p className="mt-4 text-xs" style={{ color: "#6b7c96" }}>
-        Configurez <code className="text-yellow-400 bg-yellow-400/10 px-1 rounded">FOOTBALL_DATA_API_KEY</code> dans vos variables Vercel.
+      <div className="h-2 rounded-full bg-white/10">
+        <div className="h-2 rounded-full" style={{ width: `${percent}%`, background: color }} />
+      </div>
+      <p className="mt-3 text-sm font-semibold text-white">
+        {value}g <span className="text-white/35">/ {target}g</span>
       </p>
     </div>
   );
 }
 
-// ── Logo SVG ───────────────────────────────────────────────────────────────────
-function FootPredictomLogo() {
+function StatCard({
+  icon,
+  label,
+  value,
+  detail,
+  tone,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  detail: string;
+  tone: string;
+}) {
   return (
-    <div className="flex items-center gap-3">
-      {/* Ball icon */}
-      <div className="relative w-10 h-10 flex-shrink-0">
-        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <radialGradient id="ball-grad" cx="40%" cy="35%" r="60%">
-              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.8" />
-              <stop offset="100%" stopColor="#6366f1" stopOpacity="0.8" />
-            </radialGradient>
-            <radialGradient id="glow-grad" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.15" />
-              <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
-            </radialGradient>
-          </defs>
-          {/* Glow */}
-          <circle cx="20" cy="20" r="19" fill="url(#glow-grad)" />
-          {/* Ball body */}
-          <circle cx="20" cy="20" r="16" fill="url(#ball-grad)" opacity="0.15" />
-          <circle cx="20" cy="20" r="16" stroke="url(#ball-grad)" strokeWidth="1.5" fill="none" />
-          {/* Pentagon pattern */}
-          <path d="M20 6 L25 14 L20 18 L15 14 Z" fill="#3b82f6" opacity="0.7" />
-          <path d="M28 13 L34 16 L32 22 L26 20 L25 14 Z" fill="#6366f1" opacity="0.5" />
-          <path d="M12 13 L15 14 L14 20 L8 22 L6 16 Z" fill="#6366f1" opacity="0.5" />
-          <path d="M26 20 L32 22 L30 28 L24 27 L20 22 Z" fill="#3b82f6" opacity="0.4" />
-          <path d="M14 20 L20 22 L16 27 L10 28 L8 22 Z" fill="#3b82f6" opacity="0.4" />
-          <path d="M20 22 L24 27 L20 32 L16 27 Z" fill="#6366f1" opacity="0.6" />
-          {/* Shine */}
-          <ellipse cx="15" cy="13" rx="4" ry="2.5" fill="white" opacity="0.15" transform="rotate(-20 15 13)" />
-          {/* AI badge */}
-          <circle cx="30" cy="10" r="7" fill="#080c14" />
-          <circle cx="30" cy="10" r="6.5" stroke="#3b82f6" strokeWidth="1" fill="rgba(59,130,246,0.1)" />
-          <text x="30" y="13.5" textAnchor="middle" fontSize="7" fontWeight="900" fill="#3b82f6">AI</text>
-        </svg>
-      </div>
-      {/* Text */}
-      <div>
-        <div className="flex items-baseline gap-1">
-          <span className="text-lg font-black tracking-tight leading-none"
-            style={{ color: "#e8edf5", letterSpacing: "-0.02em" }}>
-            Foot
-          </span>
-          <span className="text-lg font-black tracking-tight leading-none"
-            style={{ color: "#60a5fa" }}>
-            Predictom
-          </span>
+    <div className="rounded-[8px] border border-white/10 bg-[#12161b] p-4 shadow-[0_18px_60px_rgba(0,0,0,0.18)]">
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex h-10 w-10 items-center justify-center rounded-[8px]" style={{ background: `${tone}18`, color: tone }}>
+          {icon}
         </div>
-        <p className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: "#6b7c96", marginTop: 1 }}>
-          Ligue 1 · IA Prédictive
-        </p>
+        <span className="text-xs font-bold uppercase tracking-[0.14em] text-white/35">{label}</span>
+      </div>
+      <p className="text-2xl font-black tracking-tight text-white">{value}</p>
+      <p className="mt-1 text-sm font-medium text-white/45">{detail}</p>
+    </div>
+  );
+}
+
+function MealPlate() {
+  return (
+    <div className="relative min-h-[250px] overflow-hidden rounded-[8px] border border-white/10 bg-[#eef7ef] p-6 text-[#143528]">
+      <div className="absolute right-5 top-5 flex gap-1.5">
+        <span className="h-2 w-2 rounded-full bg-[#ff7058]" />
+        <span className="h-2 w-2 rounded-full bg-[#f3c14b]" />
+        <span className="h-2 w-2 rounded-full bg-[#57b97b]" />
+      </div>
+      <div className="relative mx-auto mt-8 flex h-44 w-44 items-center justify-center rounded-full bg-white shadow-[0_24px_60px_rgba(38,84,62,0.18)]">
+        <div className="absolute h-36 w-36 rounded-full border-[14px] border-[#f4f1e8]" />
+        <div className="absolute left-12 top-12 h-16 w-20 rounded-[45%] bg-[#ef6f4f]" />
+        <div className="absolute bottom-11 right-12 h-16 w-16 rounded-full bg-[#f6c85f]" />
+        <div className="absolute right-10 top-11 h-16 w-12 rounded-[45%] bg-[#5faf78]" />
+        <div className="absolute bottom-14 left-12 h-10 w-14 rounded-full bg-[#76bd8b]" />
+        <ForkKnife size={42} weight="duotone" className="relative text-[#173d30]" />
+      </div>
+      <div className="absolute bottom-5 left-5 right-5 flex items-end justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-[#5d7c6b]">Assiette du jour</p>
+          <p className="mt-1 max-w-[220px] text-xl font-black leading-tight">Proteines, fibres et plaisir au meme endroit.</p>
+        </div>
+        <CookingPot size={34} weight="duotone" className="hidden text-[#ff7058] sm:block" />
       </div>
     </div>
   );
 }
 
-// ── Club sidebar ───────────────────────────────────────────────────────────────
-
-const SIDEBAR_CLUBS = [
-  { id: 524,  shortName: "PSG",        crest: "https://crests.football-data.org/524.png" },
-  { id: 548,  shortName: "Monaco",     crest: "https://crests.football-data.org/548.png" },
-  { id: 516,  shortName: "Marseille",  crest: "https://crests.football-data.org/516.png" },
-  { id: 521,  shortName: "Lille",      crest: "https://crests.football-data.org/521.png" },
-  { id: 529,  shortName: "Rennes",     crest: "https://crests.football-data.org/529.png" },
-  { id: 522,  shortName: "Nice",       crest: "https://crests.football-data.org/522.png" },
-  { id: 546,  shortName: "Lens",       crest: "https://crests.football-data.org/546.png" },
-  { id: 523,  shortName: "Lyon",       crest: "https://crests.football-data.org/523.png" },
-  { id: 576,  shortName: "Strasbourg", crest: "https://crests.football-data.org/576.png" },
-  { id: 511,  shortName: "Toulouse",   crest: "https://crests.football-data.org/511.png" },
-  { id: 512,  shortName: "Brest",      crest: "https://crests.football-data.org/512.png" },
-  { id: 532,  shortName: "Angers",     crest: "https://crests.football-data.org/532.png" },
-  { id: 533,  shortName: "Le Havre",   crest: "https://crests.football-data.org/533.png" },
-  { id: 519,  shortName: "Auxerre",    crest: "https://crests.football-data.org/519.png" },
-  { id: 543,  shortName: "Nantes",     crest: "https://crests.football-data.org/543.png" },
-  { id: 545,  shortName: "Metz",       crest: "https://crests.football-data.org/545.png" },
-  { id: 525,  shortName: "Lorient",    crest: "https://crests.football-data.org/525.png" },
-  { id: 1045, shortName: "Paris FC",   crest: "https://crests.football-data.org/1045.png" },
-];
-
-function ClubSidebar({ standings }: { standings?: Standing[] }) {
-  const posMap = new Map(standings?.map((s) => [s.team.id, s.position]) ?? []);
-  const formMap = new Map(standings?.map((s) => [s.team.id, s.form]) ?? []);
-
-  // Sort by standings position if available, otherwise use default order
-  const sorted = standings
-    ? [...SIDEBAR_CLUBS].sort((a, b) => (posMap.get(a.id) ?? 99) - (posMap.get(b.id) ?? 99))
-    : SIDEBAR_CLUBS;
+function FoodDatabasePanel({ query, onQueryChange }: { query: string; onQueryChange: (value: string) => void }) {
+  const cleanedQuery = query.trim();
+  const openFoodFactsSearch = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(cleanedQuery || "poulet riz")}&search_simple=1&action=process`;
+  const usdaSearch = `https://fdc.nal.usda.gov/fdc-app.html#/?query=${encodeURIComponent(cleanedQuery || "chicken rice")}`;
 
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42", background: "#0d1421" }}>
-      <div className="px-3 py-2.5 flex items-center justify-between" style={{ borderBottom: "1px solid #1e2d42" }}>
-        <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "#6b7c96" }}>Clubs L1</p>
-        <CaretRight size={12} style={{ color: "#6b7c96" }} />
+    <div className="rounded-[8px] border border-[#dff763]/25 bg-[#132014] p-5 shadow-[0_24px_80px_rgba(101,140,45,0.12)]">
+      <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="grid h-11 w-11 place-items-center rounded-[8px] bg-[#dff763] text-[#132014]">
+            <Database size={24} weight="fill" />
+          </div>
+          <div>
+            <h2 className="text-xl font-black tracking-tight">Base aliments</h2>
+            <p className="text-sm font-medium text-white/50">Recherche externe pour completer tes repas.</p>
+          </div>
+        </div>
+        <a
+          href="https://world.openfoodfacts.org/"
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center justify-center gap-2 rounded-[8px] bg-[#dff763] px-4 py-3 text-sm font-black text-[#132014] transition hover:brightness-95"
+        >
+          Open Food Facts <ArrowSquareOut size={16} weight="bold" />
+        </a>
       </div>
-      <div className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 140px)" }}>
-        {sorted.map((club) => {
-          const pos = posMap.get(club.id);
-          const form = formMap.get(club.id);
-          const lastResult = form ? form.split(",").filter(Boolean).slice(-1)[0] : null;
-          const resultColor = lastResult === "W" ? "#22c55e" : lastResult === "L" ? "#ef4444" : lastResult === "D" ? "#f59e0b" : null;
-          return (
-            <a key={club.id} href={`/club/${club.id}`}
-              className="flex items-center gap-2 px-3 py-2 transition-all hover:bg-white/[0.04] group"
-              style={{ borderBottom: "1px solid rgba(30,45,66,0.3)" }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={club.crest} alt={club.shortName} className="w-6 h-6 object-contain flex-shrink-0" loading="lazy" />
-              <span className="flex-1 text-xs font-medium truncate transition-colors" style={{ color: "#94a3b8" }}>
-                {club.shortName}
-              </span>
-              {pos && (
-                <span className="text-xs font-mono flex-shrink-0 w-4 text-right"
-                  style={{ color: pos <= 3 ? "#22c55e" : pos >= 16 ? "#ef4444" : "#6b7c96" }}>
-                  {pos}
-                </span>
-              )}
-              {lastResult && resultColor && (
-                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: resultColor }} />
-              )}
+
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="rounded-[8px] border border-white/10 bg-black/20 p-4">
+          <label className="grid gap-2 text-xs font-black uppercase tracking-[0.14em] text-white/42">
+            Chercher un aliment en ligne
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="relative min-w-0 flex-1">
+                <MagnifyingGlass size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/35" />
+                <input
+                  value={query}
+                  onChange={(event) => onQueryChange(event.target.value)}
+                  placeholder="Ex: skyr, saumon, riz basmati, barcode..."
+                  className="w-full min-w-0 rounded-[8px] border border-white/10 bg-white/[0.06] py-3 pl-10 pr-3 text-sm font-semibold normal-case tracking-normal text-white outline-none transition placeholder:text-white/28 focus:border-[#dff763]/70"
+                />
+              </div>
+              <a
+                href={openFoodFactsSearch}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-[8px] bg-white px-4 py-3 text-sm font-black text-[#132014] transition hover:bg-[#efffb2]"
+              >
+                Rechercher <ArrowSquareOut size={16} weight="bold" />
+              </a>
+            </div>
+          </label>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <a href={openFoodFactsSearch} target="_blank" rel="noreferrer" className="rounded-[8px] border border-white/10 px-3 py-2 text-xs font-black text-white/70 transition hover:bg-white/10">
+              Produits et codes-barres
             </a>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+            <a href={usdaSearch} target="_blank" rel="noreferrer" className="rounded-[8px] border border-white/10 px-3 py-2 text-xs font-black text-white/70 transition hover:bg-white/10">
+              Nutriments USDA
+            </a>
+            <a href="https://openfoodfacts.github.io/openfoodfacts-server/api/" target="_blank" rel="noreferrer" className="rounded-[8px] border border-white/10 px-3 py-2 text-xs font-black text-white/70 transition hover:bg-white/10">
+              API Open Food Facts
+            </a>
+          </div>
+        </div>
 
-const L1_SUBTABS: { id: L1SubTab; label: string; icon: React.ReactNode }[] = [
-  { id: "classement", label: "Classement",   icon: <ChartBar size={13} /> },
-  { id: "mercato",    label: "Mercato",      icon: <ArrowsLeftRight size={13} /> },
-  { id: "joueurs",    label: "Stats Joueurs",icon: <Users size={13} /> },
-  { id: "transfert",  label: "Transferts",   icon: <ArrowsLeftRight size={13} /> },
-  { id: "arbitres",   label: "🟨 Arbitres",  icon: <Target size={13} /> },
-];
-
-const TABS: { id: TabId; label: string; icon: React.ReactNode; shortLabel?: string }[] = [
-  { id: "ligue1",      label: "Ligue 1",            icon: <Trophy size={14} />,          shortLabel: "L1" },
-  { id: "ligue2",      label: "Ligue 2",            icon: <Trophy size={14} />,          shortLabel: "L2" },
-  { id: "worldcup",    label: "Coupe du Monde",      icon: <Globe size={14} />,           shortLabel: "CdM" },
-  { id: "monclub",     label: "Mon Club",            icon: <Shield size={14} />,          shortLabel: "Mon Club" },
-  { id: "predictions", label: "AI FootPredictom",   icon: <Lightning size={14} />,             shortLabel: "AI Foot" },
-  { id: "results",     label: "Résultats",           icon: <Target size={14} /> },
-  { id: "emotional",   label: "Facteur additionnel", icon: <Pulse size={14} />,        shortLabel: "Fact. add." },
-  { id: "config",      label: "Configuration",       icon: <GearSix size={14} />,        shortLabel: "Config" },
-];
-
-interface AuthUser { id: string; email: string; name: string }
-
-function AuthGate({ label, icon }: { label: string; icon: React.ReactNode }) {
-  return (
-    <div className="rounded-2xl flex flex-col items-center justify-center py-20 gap-5"
-      style={{ border: "1px solid #1e2d42", background: "rgba(13,20,33,0.6)" }}>
-      <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
-        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid #1e2d42" }}>
-        <Lock size={22} style={{ color: "#64748b" }} />
-      </div>
-      <div className="text-center">
-        <p className="font-black text-base mb-1" style={{ color: "#e8edf5" }}>
-          {icon} <span className="ml-1">{label}</span> réservé aux membres
-        </p>
-        <p className="text-sm" style={{ color: "#6b7c96" }}>
-          Créez un compte gratuit pour accéder à cette section.
-        </p>
-      </div>
-      <div className="flex gap-3">
-        <Link href="/login"
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black hover:opacity-90 transition-all"
-          style={{ background: "#3b82f6", color: "#fff" }}>
-          <SignIn size={14} /> Se connecter
-        </Link>
-        <Link href="/login?tab=register"
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold hover:opacity-80 transition-all"
-          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid #1e2d42", color: "#94a3b8" }}>
-          S&apos;inscrire
-        </Link>
+        <div className="grid gap-2">
+          {foodSources.map((source) => (
+            <a
+              key={source.name}
+              href={source.url}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-[8px] border border-white/10 bg-white/[0.04] p-3 transition hover:bg-white/[0.08]"
+            >
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <p className="text-sm font-black" style={{ color: source.accent }}>{source.name}</p>
+                <ArrowSquareOut size={15} className="text-white/35" />
+              </div>
+              <p className="text-sm font-medium leading-5 text-white/48">{source.description}</p>
+            </a>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
 export default function Home() {
-  const [tab, setTab] = useState<TabId>("ligue1");
-  const [l1SubTab, setL1SubTab] = useState<L1SubTab>("classement");
-  const [l2SubTab, setL2SubTab] = useState<L1SubTab>("classement");
-  const [data, setData] = useState<StandingsData | null>(null);
-  const [dataL2, setDataL2] = useState<StandingsData | null>(null);
-  const [errorL2, setErrorL2] = useState<string | null>(null);
-  const [loadingL2, setLoadingL2] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [countdown, setCountdown] = useState(60);
-  const [user, setUser] = useState<AuthUser | null | undefined>(undefined); // undefined = loading
+  const hasLoadedStorage = useRef(false);
+  const [meals, setMeals] = useState<Meal[]>(defaultMeals);
+  const [goal, setGoal] = useState<Goal>(defaultGoal);
+  const [water, setWater] = useState(1500);
+  const [steps, setSteps] = useState(6400);
+  const [connected, setConnected] = useState({ healthConnect: false, appleHealth: false });
+  const [form, setForm] = useState({
+    name: "",
+    type: "Dejeuner" as MealType,
+    calories: "520",
+    protein: "35",
+    carbs: "50",
+    fat: "16",
+  });
+  const [foodSearch, setFoodSearch] = useState("");
 
-  const fetchStandings = useCallback(async (manual = false) => {
-    if (manual) setRefreshing(true);
-    try {
-      const res = await fetch("/api/standings?t=" + Date.now());
-      if (!res.ok) throw new Error("Erreur de chargement");
-      const json = await res.json();
-      if (json.error) throw new Error(json.error);
-      setData(json);
-      setLastUpdated(new Date());
-      setError(null);
-      setCountdown(60);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Erreur inconnue");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const storedState = loadStoredState();
+      if (storedState.meals) setMeals(storedState.meals);
+      if (storedState.goal) setGoal(storedState.goal);
+      if (typeof storedState.water === "number") setWater(storedState.water);
+      if (typeof storedState.steps === "number") setSteps(storedState.steps);
+      if (storedState.connected) setConnected(storedState.connected);
+      hasLoadedStorage.current = true;
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    fetchStandings();
-    const interval = setInterval(() => fetchStandings(), 60_000);
-    return () => clearInterval(interval);
-  }, [fetchStandings]);
+    if (!hasLoadedStorage.current) return;
+    window.localStorage.setItem("mealflow-state", JSON.stringify({ meals, goal, water, steps, connected }));
+  }, [meals, goal, water, steps, connected]);
 
-  // Fetch Ligue 2 standings lazily when the tab is opened.
-  const fetchL2 = useCallback(async () => {
-    setLoadingL2(true);
-    try {
-      const res = await fetch("/api/standings?competition=FL2&t=" + Date.now());
-      const json = await res.json();
-      if (json.error && (!json.standings || json.standings.length === 0)) {
-        setErrorL2(json.error);
-        setDataL2(null);
-      } else {
-        setDataL2(json);
-        setErrorL2(null);
-      }
-    } catch (e: unknown) {
-      setErrorL2(e instanceof Error ? e.message : "Erreur inconnue");
-    } finally {
-      setLoadingL2(false);
-    }
-  }, []);
+  const totals = useMemo(() => sumMeals(meals), [meals]);
+  const remaining = Math.max(0, goal.calories - totals.calories);
+  const caloriePercent = clampPercent(totals.calories, goal.calories);
+  const mealGroups = mealTypes.map((type) => ({ type, items: meals.filter((meal) => meal.type === type) }));
 
-  useEffect(() => {
-    if (tab === "ligue2" && !dataL2 && !errorL2) fetchL2();
-  }, [tab, dataL2, errorL2, fetchL2]);
-
-  useEffect(() => {
-    fetch("/api/auth/me").then(r => r.json()).then(d => setUser(d.user ?? null)).catch(() => setUser(null));
-  }, []);
-
-  useEffect(() => {
-    const tick = setInterval(() => setCountdown((c) => (c <= 1 ? 60 : c - 1)), 1000);
-    return () => clearInterval(tick);
-  }, [lastUpdated]);
-
-  const formatTime = (date: Date) =>
-    date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const addMeal = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const meal: Meal = {
+      id: crypto.randomUUID(),
+      name: form.name.trim() || "Repas personnalise",
+      type: form.type,
+      calories: Number(form.calories) || 0,
+      protein: Number(form.protein) || 0,
+      carbs: Number(form.carbs) || 0,
+      fat: Number(form.fat) || 0,
+      time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+    };
+    setMeals((current) => [meal, ...current]);
+    setForm((current) => ({ ...current, name: "" }));
+  };
 
   return (
-    <main className="min-h-screen" style={{ background: "#080c14" }}>
-      {/* Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl border-b"
-        style={{ borderColor: "#1e2d42", background: "rgba(8,12,20,0.92)" }}>
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-          <FootPredictomLogo />
-
+    <main className="min-h-screen bg-[#0b0f12] text-white">
+      <section className="mx-auto flex w-full max-w-[1540px] flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8 2xl:px-10">
+        <header className="flex flex-col gap-5 rounded-[8px] border border-white/10 bg-[#11161a] p-4 lg:flex-row lg:items-center lg:justify-between lg:p-5">
           <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2">
-              {error
-                ? <WifiSlash size={14} className="text-red-400" />
-                : <>
-                    <span className="w-1.5 h-1.5 rounded-full live-pulse" style={{ background: "#34d399", boxShadow: "0 0 4px #34d399" }} />
-                    <span className="text-xs font-medium tracking-widest" style={{ color: "#64748b" }}>EN DIRECT</span>
-                  </>
-              }
+            <div className="flex h-12 w-12 items-center justify-center rounded-[8px] bg-[#dff763] text-[#142014]">
+              <BowlFood size={27} weight="fill" />
             </div>
-
-            {lastUpdated && (
-              <div className="hidden md:flex items-center gap-1.5 text-xs" style={{ color: "#6b7c96" }}>
-                <Clock size={11} />
-                <span>{formatTime(lastUpdated)}</span>
-                <span className="opacity-40">· {countdown}s</span>
-              </div>
-            )}
-
-            <LiveDirectButton />
-
-            <button onClick={() => fetchStandings(true)} disabled={refreshing}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 active:scale-95"
-              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid #1e2d42", color: "#94a3b8" }}>
-              <ArrowsClockwise size={12} className={refreshing ? "animate-spin" : ""} />
-              <span className="hidden sm:inline">Actualiser</span>
+            <div>
+              <h1 className="text-2xl font-black tracking-tight sm:text-3xl">MealFlow</h1>
+              <p className="text-sm font-medium text-white/45">Tracker repas, macros, eau et activite.</p>
+            </div>
+          </div>
+          <div className="hidden flex-1 grid-cols-3 gap-2 lg:grid lg:max-w-xl">
+            <div className="rounded-[8px] border border-white/10 bg-white/[0.04] px-3 py-2">
+              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-white/30">Web app</p>
+              <p className="mt-1 flex items-center gap-2 text-sm font-black text-white"><Desktop size={16} /> Desktop ready</p>
+            </div>
+            <div className="rounded-[8px] border border-white/10 bg-white/[0.04] px-3 py-2">
+              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-white/30">Food DB</p>
+              <p className="mt-1 flex items-center gap-2 text-sm font-black text-[#dff763]"><Database size={16} /> Open Food Facts</p>
+            </div>
+            <div className="rounded-[8px] border border-white/10 bg-white/[0.04] px-3 py-2">
+              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-white/30">Deploy</p>
+              <p className="mt-1 flex items-center gap-2 text-sm font-black text-white"><CloudArrowUp size={16} /> Vercel OK</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:flex lg:min-w-[310px]">
+            <button
+              onClick={() => setConnected((value) => ({ ...value, healthConnect: !value.healthConnect }))}
+              className="flex items-center justify-center gap-2 rounded-[8px] border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-bold text-white/80 transition hover:bg-white/10"
+            >
+              <GoogleLogo size={16} weight="bold" />
+              Health Connect
             </button>
-
-            {user === undefined ? null : user ? (
-              <div className="flex items-center gap-2">
-                <span className="hidden sm:inline text-xs font-semibold px-2 py-1 rounded-lg"
-                  style={{ background: "rgba(255,255,255,0.05)", border: "1px solid #1e2d42", color: "#e2e8f0" }}>
-                  {user.name}
-                </span>
-                {user.id === "owner" && (
-                  <Link href="/admin" title="Panel Admin"
-                    className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs hover:opacity-80 transition-all"
-                    style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#ef4444" }}>
-                    <Shield size={12} />
-                    <span className="hidden sm:inline">Admin</span>
-                  </Link>
-                )}
-                <form action="/api/auth/logout" method="POST">
-                  <button type="submit" title="Déconnexion"
-                    className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs hover:opacity-80 transition-all"
-                    style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#ef4444" }}>
-                    <SignOut size={12} />
-                  </button>
-                </form>
-              </div>
-            ) : (
-              <Link href="/login"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-80 transition-all"
-                style={{ background: "rgba(255,255,255,0.05)", border: "1px solid #1e2d42", color: "#94a3b8" }}>
-                <SignIn size={12} /> <span className="hidden sm:inline">Connexion</span>
-              </Link>
-            )}
+            <button
+              onClick={() => setConnected((value) => ({ ...value, appleHealth: !value.appleHealth }))}
+              className="flex items-center justify-center gap-2 rounded-[8px] border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-bold text-white/80 transition hover:bg-white/10"
+            >
+              <AppleLogo size={16} weight="fill" />
+              Apple Health
+            </button>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* ── NEWS BANNER ── */}
-      <NewsBanner standings={data?.standings ?? []} />
-
-      {/* ── @ActuFoot_ live ticker ── */}
-      <ActuFootBanner />
-
-      {/* ── Image of the Day — freshest media-bearing tweet (last 24h) ── */}
-      <ImageOfTheDay />
-
-      <div className="max-w-[1300px] mx-auto px-4 py-6">
-        <div className="lg:grid lg:gap-5 lg:items-start" style={{ gridTemplateColumns: "1fr 196px" }}>
-        <div className="min-w-0">
-        {/* Tab switcher */}
-        <div className="flex gap-0.5 mb-6 p-1 rounded-xl overflow-x-auto" style={{ background: "#0d1421", border: "1px solid #1a2235" }}>
-          {TABS.map((t) => {
-            const isProtected = (t.id === "predictions" || t.id === "emotional") && !user;
-            const active = tab === t.id;
-            const isHotWC = t.id === "worldcup" && isWorldCupHot();
-            const wcPhase = isHotWC ? worldCupPhase() : "off";
-            const wcBadge = isHotWC && wcPhase === "before"
-              ? `J-${Math.max(0, daysUntilWorldCup())}`
-              : isHotWC && wcPhase === "live" ? "LIVE" : null;
-            return (
-              <button key={t.id} onClick={() => setTab(t.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${isHotWC ? "wc-hot-tab" : ""}`}
-                style={{
-                  background: isHotWC
-                    ? (active
-                        ? "linear-gradient(135deg, rgba(251,191,36,0.18), rgba(239,68,68,0.18))"
-                        : "linear-gradient(135deg, rgba(251,191,36,0.08), rgba(239,68,68,0.08))")
-                    : active ? "rgba(255,255,255,0.07)" : "transparent",
-                  color: isHotWC ? "#fbbf24" : active ? "#e2e8f0" : "#64748b",
-                  border: isHotWC
-                    ? `1px solid ${active ? "rgba(251,191,36,0.5)" : "rgba(251,191,36,0.3)"}`
-                    : active ? "1px solid rgba(255,255,255,0.08)" : "1px solid transparent",
-                  boxShadow: isHotWC ? "0 0 12px rgba(251,191,36,0.18)" : undefined,
-                }}>
-                {isHotWC ? <Fire size={14} weight="fill" style={{ color: "#fbbf24" }} /> : t.icon}
-                <span className="hidden sm:inline">{t.label}</span>
-                <span className="sm:hidden">{t.shortLabel ?? t.label}</span>
-                {wcBadge && (
-                  <span className="ml-1 text-[9px] font-black px-1.5 py-0.5 rounded-full"
-                    style={{
-                      background: wcPhase === "live" ? "#ef4444" : "rgba(251,191,36,0.2)",
-                      color: wcPhase === "live" ? "#fff" : "#fbbf24",
-                      border: wcPhase === "live" ? "none" : "1px solid rgba(251,191,36,0.4)",
-                    }}>
-                    {wcPhase === "live" && (
-                      <span className="inline-block w-1 h-1 rounded-full mr-1 align-middle"
-                        style={{ background: "#fff", animation: "wc-pulse 1.2s ease-in-out infinite" }} />
-                    )}
-                    {wcBadge}
-                  </span>
-                )}
-                {isProtected && <Lock size={9} style={{ color: "#475569", marginLeft: 1 }} />}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Ligue 1 tab */}
-        {tab === "ligue1" && (
-          <div>
-            {/* L1 Sub-tabs */}
-            <div className="flex gap-1 mb-5 p-1 rounded-xl overflow-x-auto" style={{ background: "#0a0f1c", border: "1px solid #1a2235" }}>
-              {L1_SUBTABS.map((st) => {
-                const active = l1SubTab === st.id;
-                return (
-                  <button key={st.id} onClick={() => setL1SubTab(st.id)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap flex-shrink-0"
-                    style={{
-                      background: active ? "rgba(255,255,255,0.08)" : "transparent",
-                      color: active ? "#e2e8f0" : "#64748b",
-                      border: active ? "1px solid rgba(255,255,255,0.1)" : "1px solid transparent",
-                    }}>
-                    {st.icon}
-                    {st.label}
-                  </button>
-                );
-              })}
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_440px] 2xl:grid-cols-[minmax(0,1.7fr)_460px]">
+          <section className="grid gap-6">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <StatCard icon={<Fire size={22} weight="fill" />} label="Calories" value={`${totals.calories}`} detail={`${remaining} kcal restantes`} tone="#ff7058" />
+              <StatCard icon={<Barbell size={22} weight="fill" />} label="Proteines" value={`${totals.protein}g`} detail={`Objectif ${goal.protein}g`} tone="#7dd3fc" />
+              <StatCard icon={<PersonSimpleRun size={22} weight="fill" />} label="Pas" value={steps.toLocaleString("fr-FR")} detail={`${goal.steps.toLocaleString("fr-FR")} vises`} tone="#dff763" />
+              <StatCard icon={<Database size={22} weight="fill" />} label="Food DB" value="2 sources" detail="Open Food Facts + USDA" tone="#c4b5fd" />
             </div>
 
-            {/* Classement */}
-            {l1SubTab === "classement" && (
-              <div>
-                <div className="flex flex-wrap gap-x-5 gap-y-1.5 mb-3 px-1">
-                  {ZONE_CONFIG.map((z) => (
-                    <div key={z.label} className="flex items-center gap-1.5 text-xs">
-                      <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: z.color, opacity: 0.8 }} />
-                      <span style={{ color: z.color }}>{z.label}</span>
+            <div className="rounded-[8px] border border-white/10 bg-[#11161a] p-5">
+              <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h2 className="text-xl font-black tracking-tight">Aujourd&apos;hui</h2>
+                  <p className="text-sm font-medium text-white/45">Vue rapide inspiree de Lose It et MyFitnessPal.</p>
+                </div>
+                <p className="text-sm font-bold text-[#dff763]">{caloriePercent}% de ton objectif</p>
+              </div>
+              <div className="grid gap-5 lg:grid-cols-[230px_1fr]">
+                <div className="flex flex-col items-center justify-center rounded-[8px] bg-white/[0.04] p-5">
+                  <div
+                    className="grid h-40 w-40 place-items-center rounded-full"
+                    style={{
+                      background: `conic-gradient(#dff763 ${caloriePercent * 3.6}deg, rgba(255,255,255,0.1) 0deg)`,
+                    }}
+                  >
+                    <div className="grid h-28 w-28 place-items-center rounded-full bg-[#11161a] text-center">
+                      <div>
+                        <p className="text-3xl font-black">{remaining}</p>
+                        <p className="text-xs font-bold uppercase tracking-[0.14em] text-white/40">kcal left</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-4 grid w-full grid-cols-2 gap-2 text-center text-sm">
+                    <div className="rounded-[8px] bg-white/[0.04] p-2">
+                      <p className="font-black">{totals.calories}</p>
+                      <p className="text-xs text-white/40">mangees</p>
+                    </div>
+                    <div className="rounded-[8px] bg-white/[0.04] p-2">
+                      <p className="font-black">320</p>
+                      <p className="text-xs text-white/40">brulees</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <MacroRing label="Proteines" value={totals.protein} target={goal.protein} color="#7dd3fc" />
+                  <MacroRing label="Glucides" value={totals.carbs} target={goal.carbs} color="#dff763" />
+                  <MacroRing label="Lipides" value={totals.fat} target={goal.fat} color="#ffb86b" />
+                </div>
+              </div>
+            </div>
+
+            <FoodDatabasePanel query={foodSearch} onQueryChange={setFoodSearch} />
+
+            <div className="grid gap-6 xl:grid-cols-[1fr_340px]">
+              <div className="rounded-[8px] border border-white/10 bg-[#11161a] p-5">
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="text-xl font-black tracking-tight">Journal</h2>
+                  <span className="rounded-[8px] bg-white/[0.06] px-3 py-1 text-xs font-bold text-white/50">{meals.length} entrees</span>
+                </div>
+                <div className="space-y-4">
+                  {mealGroups.map(({ type, items }) => (
+                    <div key={type}>
+                      <div className="mb-2 flex items-center justify-between text-sm">
+                        <p className="font-black text-white/75">{type}</p>
+                        <p className="font-bold text-white/35">{sumMeals(items).calories} kcal</p>
+                      </div>
+                      <div className="space-y-2">
+                        {items.length === 0 ? (
+                          <div className="rounded-[8px] border border-dashed border-white/10 p-3 text-sm font-medium text-white/30">Aucun repas ajoute.</div>
+                        ) : (
+                          items.map((meal) => (
+                            <div key={meal.id} className="grid grid-cols-[1fr_auto] gap-3 rounded-[8px] border border-white/10 bg-white/[0.035] p-3">
+                              <div>
+                                <p className="font-bold text-white">{meal.name}</p>
+                                <p className="mt-1 text-xs font-semibold text-white/38">
+                                  {meal.time} · P {meal.protein}g · G {meal.carbs}g · L {meal.fat}g
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <p className="text-right text-sm font-black text-[#dff763]">{meal.calories} kcal</p>
+                                <button
+                                  aria-label={`Supprimer ${meal.name}`}
+                                  onClick={() => setMeals((current) => current.filter((item) => item.id !== meal.id))}
+                                  className="grid h-8 w-8 place-items-center rounded-[8px] text-white/35 transition hover:bg-red-400/10 hover:text-red-300"
+                                >
+                                  <Trash size={16} />
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
-                {loading && !data ? (
-                  <LoadingSkeleton />
-                ) : error && !data ? (
-                  <ErrorState error={error} onRetry={() => fetchStandings(true)} />
-                ) : data ? (
-                  <StandingsTable standings={data.standings} />
-                ) : null}
-                <div className="mt-3">
-                  <FunFact section="ligue1" />
-                </div>
               </div>
-            )}
 
-            {/* Mercato — single unified dashboard with L1/L2 internal tabs + Boursier board */}
-            {l1SubTab === "mercato" && <TransfersTab defaultLeague="FL1" />}
-
-            {/* Stats Joueurs */}
-            {l1SubTab === "joueurs" && (
-              <div>
-                <Link href="/players"
-                  className="flex items-center justify-between px-5 py-4 rounded-2xl hover:opacity-80 transition-opacity"
-                  style={{ background: "rgba(0,212,255,0.06)", border: "1px solid rgba(0,212,255,0.2)" }}>
-                  <div className="flex items-center gap-3">
-                    <Users size={18} style={{ color: "#00d4ff" }} />
+              <aside className="grid gap-6">
+                <MealPlate />
+                <div className="rounded-[8px] border border-white/10 bg-[#11161a] p-5">
+                  <h2 className="mb-4 text-xl font-black tracking-tight">Hydratation</h2>
+                  <div className="mb-4 flex items-center gap-3">
+                    <div className="grid h-12 w-12 place-items-center rounded-[8px] bg-sky-300/15 text-sky-200">
+                      <Drop size={24} weight="fill" />
+                    </div>
                     <div>
-                      <p className="text-sm font-bold" style={{ color: "#e8edf5" }}>Statistiques joueurs</p>
-                      <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>xG, xA, buts, passes déc. — tous les clubs</p>
+                      <p className="text-2xl font-black">{water} ml</p>
+                      <p className="text-sm font-medium text-white/40">Objectif {goal.water} ml</p>
                     </div>
                   </div>
-                  <CaretRight size={16} style={{ color: "#00d4ff" }} />
-                </Link>
-              </div>
-            )}
-
-            {/* Transferts (alias) */}
-            {l1SubTab === "transfert" && <TransfersTab defaultLeague="FL1" />}
-
-            {/* Arbitres */}
-            {l1SubTab === "arbitres" && <RefereesL1Tab />}
-          </div>
-        )}
-
-        {/* Ligue 2 tab — same layout, only Classement is wired today.
-            Mercato / Stats Joueurs / Transferts / Arbitres are hard-coded
-            on L1 clubs and show a "bientôt" placeholder for L2. */}
-        {tab === "ligue2" && (
-          <div>
-            <div className="flex gap-1 mb-5 p-1 rounded-xl overflow-x-auto" style={{ background: "#0a0f1c", border: "1px solid #1a2235" }}>
-              {L1_SUBTABS.map((st) => {
-                const active = l2SubTab === st.id;
-                return (
-                  <button key={st.id} onClick={() => setL2SubTab(st.id)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex-shrink-0"
-                    style={{
-                      background: active ? "rgba(255,255,255,0.07)" : "transparent",
-                      color: active ? "#e2e8f0" : "#64748b",
-                      border: active ? "1px solid rgba(255,255,255,0.08)" : "1px solid transparent",
-                    }}>
-                    {st.icon}
-                    <span>{st.label}</span>
-                  </button>
-                );
-              })}
+                  <div className="mb-4 h-2 rounded-full bg-white/10">
+                    <div className="h-2 rounded-full bg-sky-300" style={{ width: `${clampPercent(water, goal.water)}%` }} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button onClick={() => setWater((value) => Math.max(0, value - 250))} className="flex items-center justify-center gap-2 rounded-[8px] bg-white/[0.06] py-2 text-sm font-bold transition hover:bg-white/10">
+                      <Minus size={15} /> 250 ml
+                    </button>
+                    <button onClick={() => setWater((value) => value + 250)} className="flex items-center justify-center gap-2 rounded-[8px] bg-[#dff763] py-2 text-sm font-black text-[#132013] transition hover:brightness-95">
+                      <Plus size={15} /> 250 ml
+                    </button>
+                  </div>
+                </div>
+              </aside>
             </div>
+          </section>
 
-            {l2SubTab === "classement" && (
-              <div>
-                <div className="flex flex-wrap gap-x-5 gap-y-1.5 mb-3 px-1">
-                  {ZONE_CONFIG.map((z) => (
-                    <div key={z.label} className="flex items-center gap-1.5 text-xs">
-                      <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: z.color, opacity: 0.8 }} />
-                      <span style={{ color: z.color }}>{z.label}</span>
-                    </div>
+          <section className="grid content-start gap-6">
+            <form onSubmit={addMeal} className="rounded-[8px] border border-white/10 bg-[#11161a] p-5">
+              <h2 className="text-xl font-black tracking-tight">Ajouter un repas</h2>
+              <p className="mt-1 text-sm font-medium text-white/45">Saisie rapide avec macros modifiables.</p>
+              <div className="mt-5 grid gap-3">
+                <label className="grid min-w-0 gap-2 text-sm font-bold text-white/70">
+                  Aliment ou repas
+                  <input
+                    value={form.name}
+                    onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+                    placeholder="Ex: pates pesto et poulet"
+                    className="w-full min-w-0 rounded-[8px] border border-white/10 bg-white/[0.05] px-3 py-3 text-sm font-semibold text-white outline-none transition placeholder:text-white/25 focus:border-[#dff763]/70"
+                  />
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {mealTypes.map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setForm((current) => ({ ...current, type }))}
+                      className="rounded-[8px] border px-3 py-2 text-sm font-bold transition"
+                      style={{
+                        borderColor: form.type === type ? "#dff763" : "rgba(255,255,255,0.1)",
+                        background: form.type === type ? "rgba(223,247,99,0.12)" : "rgba(255,255,255,0.04)",
+                        color: form.type === type ? "#efffb2" : "rgba(255,255,255,0.58)",
+                      }}
+                    >
+                      {type}
+                    </button>
                   ))}
                 </div>
-                {loadingL2 && !dataL2 ? (
-                  <LoadingSkeleton />
-                ) : errorL2 && !dataL2 ? (
-                  <ErrorState error={errorL2} onRetry={fetchL2} />
-                ) : dataL2 ? (
-                  <StandingsTable standings={dataL2.standings} />
-                ) : null}
+                <div className="grid grid-cols-2 gap-3">
+                  {(["calories", "protein", "carbs", "fat"] as const).map((key) => (
+                    <label key={key} className="grid min-w-0 gap-2 text-xs font-black uppercase tracking-[0.12em] text-white/38">
+                      {key === "calories" ? "Kcal" : key === "protein" ? "Prot." : key === "carbs" ? "Gluc." : "Lip."}
+                      <input
+                        type="number"
+                        min="0"
+                        value={form[key]}
+                        onChange={(event) => setForm((current) => ({ ...current, [key]: event.target.value }))}
+                        className="w-full min-w-0 rounded-[8px] border border-white/10 bg-white/[0.05] px-3 py-3 text-sm font-bold text-white outline-none transition focus:border-[#dff763]/70"
+                      />
+                    </label>
+                  ))}
+                </div>
+                <button className="mt-2 flex items-center justify-center gap-2 rounded-[8px] bg-[#dff763] px-4 py-3 text-sm font-black text-[#132013] transition hover:brightness-95">
+                  <Plus size={17} weight="bold" /> Ajouter au journal
+                </button>
               </div>
-            )}
+            </form>
 
-            {l2SubTab === "mercato" && <TransfersTab defaultLeague="FL2" />}
+            <div className="rounded-[8px] border border-white/10 bg-[#11161a] p-5">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-xl font-black tracking-tight">Favoris</h2>
+                <ForkKnife size={20} className="text-white/35" />
+              </div>
+              <div className="grid gap-2">
+                {presets.map((preset) => (
+                  <button
+                    key={preset.name}
+                    onClick={() =>
+                      setMeals((current) => [
+                        { ...preset, id: crypto.randomUUID(), time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) },
+                        ...current,
+                      ])
+                    }
+                    className="grid grid-cols-[1fr_auto] gap-3 rounded-[8px] border border-white/10 bg-white/[0.035] p-3 text-left transition hover:bg-white/[0.07]"
+                  >
+                    <span>
+                      <span className="block text-sm font-bold text-white">{preset.name}</span>
+                      <span className="mt-1 block text-xs font-semibold text-white/35">{preset.type} · {preset.protein}g proteines</span>
+                    </span>
+                    <span className="text-sm font-black text-[#dff763]">{preset.calories}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
 
-            {l2SubTab === "joueurs" && (
-              <div>
-                <Link href="/players?league=FL2"
-                  className="flex items-center justify-between px-5 py-4 rounded-2xl hover:opacity-80 transition-opacity"
-                  style={{ background: "rgba(0,212,255,0.06)", border: "1px solid rgba(0,212,255,0.2)" }}>
-                  <div className="flex items-center gap-3">
-                    <Users size={18} style={{ color: "#00d4ff" }} />
-                    <div>
-                      <p className="text-sm font-bold" style={{ color: "#e8edf5" }}>Statistiques joueurs Ligue 2</p>
-                      <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>Top buteurs, passeurs, notation — source FotMob</p>
-                    </div>
+            <div className="rounded-[8px] border border-white/10 bg-[#11161a] p-5">
+              <h2 className="text-xl font-black tracking-tight">Objectifs</h2>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                {(["calories", "protein", "carbs", "fat"] as const).map((key) => (
+                  <label key={key} className="grid min-w-0 gap-2 text-xs font-black uppercase tracking-[0.12em] text-white/38">
+                    {key === "calories" ? "Calories" : key === "protein" ? "Proteines" : key === "carbs" ? "Glucides" : "Lipides"}
+                    <input
+                      type="number"
+                      value={goal[key]}
+                      onChange={(event) => setGoal((current) => ({ ...current, [key]: Number(event.target.value) || 0 }))}
+                      className="w-full min-w-0 rounded-[8px] border border-white/10 bg-white/[0.05] px-3 py-3 text-sm font-bold text-white outline-none transition focus:border-[#dff763]/70"
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-[8px] border border-white/10 bg-[#11161a] p-5">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-[8px] bg-[#dff763]/15 text-[#dff763]">
+                  <Heartbeat size={22} weight="fill" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black tracking-tight">Sante connectee</h2>
+                  <p className="text-sm font-medium text-white/40">Pret pour les ponts natifs mobile.</p>
+                </div>
+              </div>
+              <div className="grid gap-3">
+                <div className="rounded-[8px] border border-white/10 bg-white/[0.035] p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="flex items-center gap-2 text-sm font-black"><GoogleLogo size={18} /> Android Health Connect</p>
+                    <span className={`flex items-center gap-1 rounded-[8px] px-2 py-1 text-xs font-black ${connected.healthConnect ? "bg-[#dff763]/15 text-[#dff763]" : "bg-white/10 text-white/38"}`}>
+                      {connected.healthConnect ? <Check size={13} weight="bold" /> : <Scales size={13} />} {connected.healthConnect ? "Connecte" : "A relier"}
+                    </span>
                   </div>
-                  <CaretRight size={16} style={{ color: "#00d4ff" }} />
-                </Link>
+                  <p className="mt-2 text-sm font-medium leading-6 text-white/42">Google Fit API est remplace par les APIs Android Health. Le bon chemin produit est une app Android ou PWA companion qui lit pas, depense et poids via Health Connect.</p>
+                </div>
+                <div className="rounded-[8px] border border-white/10 bg-white/[0.035] p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="flex items-center gap-2 text-sm font-black"><AppleLogo size={18} weight="fill" /> Apple HealthKit</p>
+                    <span className={`flex items-center gap-1 rounded-[8px] px-2 py-1 text-xs font-black ${connected.appleHealth ? "bg-[#dff763]/15 text-[#dff763]" : "bg-white/10 text-white/38"}`}>
+                      {connected.appleHealth ? <Check size={13} weight="bold" /> : <Scales size={13} />} {connected.appleHealth ? "Connecte" : "A relier"}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm font-medium leading-6 text-white/42">Apple Health n&apos;a pas d&apos;API web directe. Il faut une app iOS avec HealthKit pour lire/ecrire calories alimentaires, poids, pas et energie active.</p>
+                </div>
               </div>
-            )}
+            </div>
 
-            {l2SubTab === "transfert" && <TransfersTab defaultLeague="FL2" />}
-
-            {l2SubTab === "arbitres" && (
-              <div className="rounded-2xl p-10 text-center" style={{ border: "1px solid #1e2d42", background: "rgba(13,20,33,0.6)" }}>
-                <p className="text-sm font-bold mb-1" style={{ color: "#e8edf5" }}>Bientôt disponible</p>
-                <p className="text-xs" style={{ color: "#6b7c96" }}>
-                  Les statistiques arbitrales Ligue 2 seront ajoutées prochainement.
+            <div className="rounded-[8px] border border-white/10 bg-[#11161a] p-5">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-[8px] bg-white/10 text-white">
+                  <CloudArrowUp size={22} weight="fill" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black tracking-tight">Projet Vercel</h2>
+                  <p className="text-sm font-medium text-white/40">Pret a pusher en preview ou prod.</p>
+                </div>
+              </div>
+              <div className="rounded-[8px] border border-white/10 bg-white/[0.035] p-3">
+                <p className="text-sm font-medium leading-6 text-white/50">
+                  Oui, tu peux creer un projet Vercel depuis ce repo. Le plus simple: connecter le repo GitHub a Vercel, ou lancer le CLI pour linker puis deployer.
                 </p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <a
+                    href="https://vercel.com/docs/projects/deploy-from-cli"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center gap-2 rounded-[8px] border border-white/10 bg-white/[0.06] px-3 py-2 text-xs font-black text-white/75 transition hover:bg-white/10"
+                  >
+                    Docs CLI <ArrowSquareOut size={14} weight="bold" />
+                  </a>
+                  <a
+                    href="https://vercel.com/docs/getting-started-with-vercel/import"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center gap-2 rounded-[8px] bg-[#dff763] px-3 py-2 text-xs font-black text-[#132014] transition hover:brightness-95"
+                  >
+                    Import Git <ArrowSquareOut size={14} weight="bold" />
+                  </a>
+                </div>
               </div>
-            )}
-          </div>
-        )}
+            </div>
 
-        {tab === "worldcup" && <WorldCupTab />}
-        {tab === "monclub" && <MonClubTab />}
-        {tab === "predictions" && (user ? <PredictionsTab /> : <AuthGate label="AI FootPredictom" icon={<Lightning size={16} className="inline" style={{ color: "#3b82f6" }} />} />)}
-        {tab === "results" && <ResultsTab />}
-        {tab === "emotional" && (user ? <EmotionalScoreTab /> : <AuthGate label="Facteur additionnel" icon={<Pulse size={16} className="inline" style={{ color: "#a78bfa" }} />} />)}
-        {tab === "config" && <ConfigTab />}
-
-        {/* Footer */}
-        <div className="mt-4 flex items-center justify-between text-xs" style={{ color: "#6b7c96" }}>
-          <div className="flex items-center gap-1.5">
-            {error
-              ? <><WifiSlash size={11} className="text-red-400" /><span className="text-red-400 ml-1">Hors ligne</span></>
-              : <><WifiHigh size={11} /><span className="ml-1">Données en direct · Ligue 1</span></>
-            }
-          </div>
-          {data?.season && <span>Saison {data.season}</span>}
+            <div className="rounded-[8px] border border-white/10 bg-[#11161a] p-5">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h2 className="flex items-center gap-2 text-xl font-black tracking-tight"><ChartLineUp size={21} /> Tendance</h2>
+                <button
+                  onClick={() => setSteps((value) => value + 1000)}
+                  className="rounded-[8px] bg-white/[0.06] px-3 py-2 text-xs font-black text-white/65 transition hover:bg-white/10"
+                >
+                  +1000 pas
+                </button>
+              </div>
+              <div className="flex h-28 items-end gap-2">
+                {[64, 72, 58, 83, 77, 91, caloriePercent].map((height, index) => (
+                  <div key={index} className="flex h-full flex-1 flex-col items-center justify-end gap-2">
+                    <div data-trend-bar className="w-full rounded-t-[8px] bg-[#dff763]" style={{ height: `${height}%`, opacity: 0.45 + index * 0.07 }} />
+                    <span className="text-[10px] font-black text-white/30">{["L", "M", "M", "J", "V", "S", "D"][index]}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
         </div>
-        </div>{/* end main-content col */}
-
-        {/* Club sidebar — always visible on lg+ */}
-        <div className="hidden lg:block space-y-3" style={{ position: "sticky", top: "73px" }}>
-          <ClubSidebar standings={data?.standings} />
-        </div>
-        </div>{/* end grid */}
-      </div>{/* end max-w */}
+      </section>
     </main>
   );
 }
