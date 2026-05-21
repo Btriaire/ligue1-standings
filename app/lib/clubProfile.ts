@@ -146,6 +146,28 @@ const PERSON_PHOTOS: Record<string, string> = {
   "vahid halilhodzic":     "https://upload.wikimedia.org/wikipedia/commons/e/e5/Alg%C3%A9rie_-_Arm%C3%A9nie_-_20140531_-_Vahid_Halilodzic_1_%28cropped%29.jpg",
   "dmitri rybolovlev":     "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/DmitryRybolovlev1.JPG/1024px-DmitryRybolovlev1.JPG",
   "dmitry rybolovlev":     "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/DmitryRybolovlev1.JPG/1024px-DmitryRybolovlev1.JPG",
+  // ── Ligue 1 (suite) ──
+  "eric roy":              "https://upload.wikimedia.org/wikipedia/commons/c/c5/Eric_ROY.jpg",
+  "carles martinez novell":"https://upload.wikimedia.org/wikipedia/commons/e/e2/RC_Lens_-_Toulouse_FC_%2824-09-2023%29_69.jpg",
+  "alexandre dujeux":      "https://upload.wikimedia.org/wikipedia/commons/2/2b/Alexandre_Dujeux_2025.png",
+  "didier digard":         "https://upload.wikimedia.org/wikipedia/commons/4/49/Didier_Digard_2025.png",
+  "olivier pantaloni":     "https://upload.wikimedia.org/wikipedia/commons/0/05/RC_Lens_-_AC_Ajaccio_%2822-12-2018%29_98.jpg",
+  "waldemar kita":         "https://upload.wikimedia.org/wikipedia/commons/e/ee/Waldemar_Kita.jpg",
+  // ── Ligue 2 ──
+  "philippe montanier":    "https://upload.wikimedia.org/wikipedia/commons/3/31/Philippe_Montanier_2020_%28cropped%29.jpg",
+  "adrien thomasson":      "https://upload.wikimedia.org/wikipedia/commons/f/ff/Adrien_Thomasson_ASSE_RCL_2425.jpg",
+  "anthony briancon":      "https://upload.wikimedia.org/wikipedia/commons/1/1e/Briancon.png",
+  "jean-pierre caillot":   "https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/JPCaillotMadrid.jpg/1024px-JPCaillotMadrid.jpg",
+  "pablo correa":          "https://upload.wikimedia.org/wikipedia/commons/5/5c/Pablo_correa.jpg",
+  "zoumana camara":        "https://upload.wikimedia.org/wikipedia/commons/c/c2/Zoumana_Camara.jpg",
+  "omar daf":              "https://upload.wikimedia.org/wikipedia/commons/d/d8/FV3vy3sWIAI5zqn_%281%29.jpg",
+  "vincent hognon":        "https://upload.wikimedia.org/wikipedia/commons/1/17/RC_Lens_-_FC_Metz_%2809-02-2019%29_102.jpg",
+  "samba diawara":         "https://upload.wikimedia.org/wikipedia/commons/b/bb/S.Diawara_-_Troyes_2002-2003%27.jpg",
+  "didier santini":        "https://upload.wikimedia.org/wikipedia/commons/2/2d/Didier_Santini_USLD.jpg",
+  "gregory poirier":       "https://upload.wikimedia.org/wikipedia/commons/6/68/IMG-20230310-WA0000.jpg",
+  "anthony robic":         "https://upload.wikimedia.org/wikipedia/commons/2/29/Anciens_du_RC_Lens_-_Anciens_du_Lille_OSC_%2801-04-2017%29_17.jpg",
+  "patrice haddad":        "https://upload.wikimedia.org/wikipedia/commons/4/44/RC_Lens_-_AS_Nancy-Lorraine_%2819-01-2019%2997.jpg",
+  "pascal gastien":        "https://upload.wikimedia.org/wikipedia/commons/d/d8/RC_Lens_-_Clermont_Foot_63_%2804-05-2019%29_81.jpg",
 };
 
 function normalizeName(name: string): string {
