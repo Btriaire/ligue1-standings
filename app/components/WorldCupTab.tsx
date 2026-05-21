@@ -1005,6 +1005,59 @@ function parseFrDate(s: string): Date {
   return new Date(2026, month, parseInt(d));
 }
 
+// AI pre-match commentary for the World Cup featured match — Gemini-backed
+// via /api/match-preview, falls back to a deterministic template server-side.
+function AICdMMatchPreview({ teams, group, date, note }: {
+  teams: string; group: string; date: string; note?: string;
+}) {
+  const [data, setData] = useState<{ preview: string; pick: string; confidence: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // "France vs Allemagne" → ["France", "Allemagne"]
+  const [home, away] = teams.split(/\s+vs?\s+|\s+-\s+/i);
+
+  useEffect(() => {
+    if (!home || !away) { setLoading(false); return; }
+    const sp = new URLSearchParams({
+      home, away,
+      context: `Coupe du Monde 2026 · ${group}${note ? ` · ${note}` : ""} · ${date}`,
+    });
+    let cancelled = false;
+    fetch(`/api/match-preview?${sp}`)
+      .then(r => r.json())
+      .then(d => { if (!cancelled) setData(d); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [home, away, group, date, note]);
+
+  return (
+    <div className="rounded-xl p-4" style={{ background: "rgba(139,92,246,0.06)", border: "1px solid rgba(139,92,246,0.25)" }}>
+      <div className="flex items-center gap-2 mb-2">
+        <Lightning size={12} weight="bold" style={{ color: "#a78bfa" }}/>
+        <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "#a78bfa" }}>
+          Commentaire pré-match · IA Gemini
+        </span>
+        {data && (
+          <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded"
+            style={{ background: "rgba(251,191,36,0.12)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.35)" }}>
+            {data.confidence === "high" ? "★★★" : data.confidence === "medium" ? "★★" : "★"}
+          </span>
+        )}
+      </div>
+      {loading
+        ? <div className="space-y-1.5">
+            <div className="h-3 w-full rounded animate-pulse" style={{ background: "rgba(139,92,246,0.18)" }} />
+            <div className="h-3 w-2/3 rounded animate-pulse" style={{ background: "rgba(139,92,246,0.18)" }} />
+          </div>
+        : <p className="text-[12px] leading-relaxed" style={{ color: "#cbd5e1" }}>
+            {data?.preview ?? "Pronostic indisponible pour le moment."}
+          </p>
+      }
+    </div>
+  );
+}
+
 function AfficheTab() {
   // Pick the next upcoming notable match (or the most recent if all past)
   const now = new Date();
@@ -1043,19 +1096,8 @@ function AfficheTab() {
         </div>
       </div>
 
-      {/* Predictions CTA */}
-      <div className="rounded-xl p-4" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
-        <div className="flex items-center gap-2 mb-2">
-          <Lightning size={14} weight="bold" style={{ color: "#fbbf24" }}/>
-          <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "#6b7c96" }}>
-            Pronostic IA
-          </span>
-        </div>
-        <p className="text-[11px]" style={{ color: "#94a3b8" }}>
-          Retrouvez le pronostic détaillé (xG, scénarios, joueurs clés) dans
-          l&apos;onglet <span style={{ color: "#fbbf24" }}>AI Predictions → Coupe du Monde</span>.
-        </p>
-      </div>
+      {/* Live AI commentary — Gemini, generated from the featured match context */}
+      <AICdMMatchPreview teams={upcoming.teams} group={upcoming.group} date={upcoming.date} note={upcoming.note ?? undefined} />
 
       {/* Next matches */}
       {next3.length > 0 && (

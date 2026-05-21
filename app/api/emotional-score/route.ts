@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { TEAM_TM_MAP, ECONOMIC_SCORES, CLUB_SEARCH_TERMS, CLUB_SUBREDDITS } from "@/app/lib/teamMapping";
 
-// LLM provider: Groq (OpenAI-compatible). Free tier ~14k requests/day,
-// no card required. We send one batched chat completion for all clubs
-// per /api/emotional-score call (1 request per 30-min revalidate window).
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
-// llama-3.1-8b-instant has a 30k TPM free-tier ceiling (vs 12k for 70b),
-// which our batched 18-club prompt needs even after trimming.
-const GROQ_MODEL = "llama-3.1-8b-instant";
+// LLM provider: Gemini (Google Generative AI). Unified across the whole app
+// — same key + same SDK used by /api/club-analysis, /api/fan-buzz and
+// /api/match-preview. One batched call per 30-min revalidate window for all
+// 18 clubs keeps us comfortably under the free-tier request quota.
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_MODEL = "gemini-2.0-flash";
 
 const API_KEY = process.env.FOOTBALL_DATA_API_KEY;
 const ODDS_API_KEY = process.env.THE_ODDS_API_KEY;
@@ -234,7 +234,7 @@ interface GeminiClubInput {
 // Drastically cuts request count (1 vs 18) — keeps us well under free-tier limits.
 async function scoreClubsBatch(clubs: GeminiClubInput[]): Promise<Map<string, GeminiResult>> {
   const out = new Map<string, GeminiResult>();
-  if (!GROQ_API_KEY) { console.warn("[llm] GROQ_API_KEY missing"); return out; }
+  if (!GEMINI_API_KEY) { console.warn("[llm] GEMINI_API_KEY missing"); return out; }
   const eligible = clubs.filter(c => c.items.length > 0);
   if (eligible.length === 0) return out;
 
@@ -261,30 +261,17 @@ async function scoreClubsBatch(clubs: GeminiClubInput[]): Promise<Map<string, Ge
     " où per_item a la même longueur que la liste d'items du club. 50 = neutre, 100 = très positif, 0 = très négatif.";
 
   try {
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${GROQ_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: GROQ_MODEL,
-        temperature: 0.4,
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: blocks },
-        ],
-      }),
-      signal: AbortSignal.timeout(15000),
+    const genai = new GoogleGenerativeAI(GEMINI_API_KEY);
+    const model = genai.getGenerativeModel({
+      model: GEMINI_MODEL,
+      systemInstruction: system,
+      generationConfig: { temperature: 0.4, responseMimeType: "application/json" },
     });
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error(`[llm] batch HTTP ${res.status}: ${errText.slice(0, 300)}`);
-      return out;
-    }
-    const data = await res.json();
-    const text: string = data.choices?.[0]?.message?.content ?? "";
+    const result = await Promise.race([
+      model.generateContent(blocks),
+      new Promise<never>((_, rej) => setTimeout(() => rej(new Error("gemini timeout 15s")), 15000)),
+    ]);
+    const text = result.response.text();
     console.log(`[llm] batch raw len=${text.length}`);
     const json = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] ?? "{}");
     const arr: { club?: string; score?: number; positive?: number; negative?: number; summary?: string; per_item?: string[] }[] =

@@ -402,6 +402,76 @@ function TeamSpiderChart({ match, pred }: { match: MatchPrediction; pred: Predic
   );
 }
 
+// ── AI pre-match commentary ──────────────────────────────────────────────────
+// Lightweight Gemini-powered preview card. Streams in below the spider chart
+// and falls back to a deterministic template if the API key is missing.
+interface MatchPreviewPayload {
+  preview: string;
+  pick: "home" | "draw" | "away";
+  confidence: "low" | "medium" | "high";
+}
+function AIMatchPreview({ match }: { match: MatchPrediction }) {
+  const [data, setData] = useState<MatchPreviewPayload | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const sp = new URLSearchParams({
+      home:     match.homeTeam.shortName || match.homeTeam.tla,
+      away:     match.awayTeam.shortName || match.awayTeam.tla,
+      homePos:  String(match.homeTeam.position),
+      awayPos:  String(match.awayTeam.position),
+      homePts:  String(match.homeTeam.points),
+      awayPts:  String(match.awayTeam.points),
+      homeGF:   String(match.homeTeam.goalsFor),
+      homeGA:   String(match.homeTeam.goalsAgainst),
+      awayGF:   String(match.awayTeam.goalsFor),
+      awayGA:   String(match.awayTeam.goalsAgainst),
+      homeForm: match.homeTeam.form ?? "",
+      awayForm: match.awayTeam.form ?? "",
+      context:  `Ligue 1${match.matchday ? ` · J${match.matchday}` : ""}`,
+    });
+    let cancelled = false;
+    fetch(`/api/match-preview?${sp}`)
+      .then(r => r.json())
+      .then((d: MatchPreviewPayload) => { if (!cancelled) setData(d); })
+      .catch(() => { /* silent — fallback already happens server-side */ })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [match]);
+
+  const pickColor = data?.pick === "home" ? "#00d4ff" : data?.pick === "away" ? "#a78bfa" : "#fbbf24";
+  const pickLabel = data?.pick === "home"
+    ? `Vic. ${match.homeTeam.shortName || match.homeTeam.tla}`
+    : data?.pick === "away"
+    ? `Vic. ${match.awayTeam.shortName || match.awayTeam.tla}`
+    : "Match nul";
+
+  return (
+    <div className="mt-4 rounded-xl px-3 py-2.5"
+      style={{ background: "rgba(139,92,246,0.06)", border: "1px solid rgba(139,92,246,0.25)" }}>
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded"
+          style={{ background: "rgba(139,92,246,0.18)", color: "#a78bfa", border: "1px solid rgba(139,92,246,0.35)" }}>
+          IA · Gemini
+        </span>
+        <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#6b7c96" }}>
+          Commentaire pré-match
+        </span>
+        {data && (
+          <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded"
+            style={{ background: `${pickColor}1a`, color: pickColor, border: `1px solid ${pickColor}55` }}>
+            {pickLabel} · {data.confidence === "high" ? "★★★" : data.confidence === "medium" ? "★★" : "★"}
+          </span>
+        )}
+      </div>
+      {loading
+        ? <div className="h-3 w-3/4 rounded animate-pulse" style={{ background: "rgba(139,92,246,0.18)" }} />
+        : <p className="text-[12px] leading-relaxed" style={{ color: "#cbd5e1" }}>{data?.preview}</p>
+      }
+    </div>
+  );
+}
+
 function Toggle({ enabled, onToggle, label, color = "#06b6d4" }: { enabled: boolean; onToggle: () => void; label: string; color?: string }) {
   return (
     <button onClick={onToggle} className="flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all"
@@ -705,6 +775,9 @@ function MatchCard({
 
         {/* Spider chart — head-to-head profile across 6 normalized axes */}
         <TeamSpiderChart match={match} pred={pred} />
+
+        {/* AI pre-match commentary — Gemini-powered, 2-3 sentences */}
+        <AIMatchPreview match={match} />
 
         {/* Form */}
         <div className="flex items-center justify-between mt-4 pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
