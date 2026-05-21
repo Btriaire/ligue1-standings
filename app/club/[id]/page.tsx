@@ -8,7 +8,7 @@ import {
   ArrowsLeftRight, Star, Calendar, Heart,
   Info, CaretDown, ArrowSquareOut, Briefcase, CurrencyDollar,
   TrendDown, X, MapPin, Buildings, IdentificationCard, Crown, TShirt, Flag,
-  MagnifyingGlass,
+  MagnifyingGlass, ClockClockwise, Sparkle,
 } from "@phosphor-icons/react";
 import { clubProfile, clubStadiumPhoto, commonsUrl, personPhoto, type ClubProfile } from "@/app/lib/clubProfile";
 
@@ -485,6 +485,90 @@ function ClubLeadershipCard({ profile }: { profile: ClubProfile }) {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// Collapsible "Historique du club" — fetches a Gemini-generated blurb on
+// first open. Works for both L1 and L2 clubs. Designed to be lightweight:
+// no fetch until the user clicks the button.
+interface ClubHistoryPayload { history: string; bullets: string[]; updatedAt: string }
+function ClubHistoryCard({ name, profile }: { name: string; profile?: ClubProfile | null }) {
+  const [open, setOpen] = useState(false);
+  const [data, setData] = useState<ClubHistoryPayload | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = async () => {
+    if (data || loading) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const qs = new URLSearchParams({ name });
+      if (profile?.fondation) qs.set("founded", String(profile.fondation));
+      if (profile?.league)    qs.set("league", profile.league);
+      if (profile?.stade?.nom) qs.set("stadium", profile.stade.nom);
+      if (profile?.ville)     qs.set("city", profile.ville);
+      const r = await fetch(`/api/club-history?${qs.toString()}`);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const json = (await r.json()) as ClubHistoryPayload;
+      setData(json);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erreur");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onToggle = () => {
+    const next = !open;
+    setOpen(next);
+    if (next) load();
+  };
+
+  return (
+    <div className="rounded-xl mb-2" style={{ border: "1px solid rgba(255,255,255,0.06)", background: "rgba(96,165,250,0.04)" }}>
+      <button onClick={onToggle}
+        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-white/[0.03] transition-colors rounded-xl"
+        aria-expanded={open}>
+        <ClockClockwise size={12} weight="fill" style={{ color: "#60a5fa" }} />
+        <p className="text-[10px] font-bold uppercase tracking-widest flex-1" style={{ color: "#60a5fa" }}>
+          Historique du club
+        </p>
+        <span className="text-[10px] font-semibold" style={{ color: "#94a3b8" }}>
+          {open ? "Masquer" : "Détailler"}
+        </span>
+        <CaretDown size={11} style={{ color: "#60a5fa", transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
+      </button>
+
+      {open && (
+        <div className="px-3 pb-3 pt-1">
+          {loading && (
+            <p className="text-[11px]" style={{ color: "#94a3b8" }}>Chargement de l&apos;historique…</p>
+          )}
+          {error && !loading && (
+            <p className="text-[11px]" style={{ color: "#ef4444" }}>Impossible de charger l&apos;historique ({error}).</p>
+          )}
+          {data && !loading && (
+            <div className="space-y-2">
+              <p className="text-xs leading-relaxed" style={{ color: "#cbd5e1" }}>{data.history}</p>
+              {data.bullets.length > 0 && (
+                <ul className="space-y-1 mt-2">
+                  {data.bullets.map((b, i) => (
+                    <li key={i} className="flex items-start gap-1.5 text-[11px]" style={{ color: "#94a3b8" }}>
+                      <Sparkle size={9} weight="fill" style={{ color: "#fbbf24", marginTop: 3, flexShrink: 0 }} />
+                      <span>{b}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="text-[9px] mt-1" style={{ color: "#475569" }}>
+                Résumé généré par IA · à recouper avec les sources officielles.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -1246,6 +1330,9 @@ export default function ClubPage() {
 
             {/* Direction & acteurs clés — président, DS, coach, capitaine */}
             {profile && <ClubLeadershipCard profile={profile} />}
+
+            {/* Historique du club — collapsible, IA on-demand. Works for any L1/L2 club. */}
+            <ClubHistoryCard name={profile?.name ?? team.name ?? ""} profile={profile ?? null} />
 
             {/* Palmarès du club */}
             {profile?.palmares && profile.palmares.length > 0 && (
