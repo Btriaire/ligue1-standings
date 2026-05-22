@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, type ReactNode } from "react";
 import dynamic from "next/dynamic";
-import { Calendar, Trophy, Users, MapPin, Globe, Star, Lightning, TrendUp, Target, Shield, MagnifyingGlass, X, ListBullets, SquaresFour, CaretDown, Flame, SoccerBall, Medal, Flag, Warning, Crosshair, Crown, Newspaper, TwitterLogo, Clock, ArrowSquareOut } from "@phosphor-icons/react";
+import { Calendar, Trophy, Users, MapPin, Globe, Star, Lightning, TrendUp, Target, Shield, MagnifyingGlass, X, ListBullets, SquaresFour, CaretDown, Flame, SoccerBall, Medal, Flag, Warning, Crosshair, Crown, Newspaper, TwitterLogo, Clock, ArrowSquareOut, IdentificationCard, Sparkle, ArrowsClockwise, Check, BookOpen, Hand, LockKey } from "@phosphor-icons/react";
 import RefereesWCTab from "./RefereesWCTab";
 import { isWorldCupHot, NATIONS } from "@/app/lib/worldCup";
 import { FORMATIONS, F_KEYS, type FKey } from "@/app/lib/formations";
@@ -1582,10 +1582,11 @@ function FanXTab() {
 
 // ─── Sub-tabs ────────────────────────────────────────────────────────────────
 
-type SubTab = "groupes" | "calendrier" | "joueurs" | "france" | "favoris" | "tableau" | "arbitres" | "news" | "affiche" | "macompo" | "fanx";
+type SubTab = "groupes" | "calendrier" | "joueurs" | "france" | "favoris" | "tableau" | "arbitres" | "news" | "affiche" | "macompo" | "fanx" | "panini";
 
 const SUB_TABS: { id: SubTab; label: string }[] = [
   { id: "news",       label: "📰 News CdM" },
+  { id: "panini",     label: "🃏 Panini" },
   { id: "affiche",    label: "🎬 L'affiche" },
   { id: "macompo",    label: "📋 Ma Compo CdM" },
   { id: "fanx",       label: "🐦 FanX" },
@@ -2306,6 +2307,601 @@ function FavorisTab() {
   );
 }
 
+// ─── Panini tab ──────────────────────────────────────────────────────────────
+//
+// Daily Player of the Day delivered as an interactive Panini-style card:
+//  • Front is face-down (mystery) — clicking spins the card 1.5 turns and
+//    reveals an oversized stat sheet (the "card back" in Panini terms is
+//    actually the face-side, but UX-wise the reveal is the goal).
+//  • Each click adds 540deg of Y-rotation so re-clicks always feel like a
+//    fresh spin instead of a flat 180° flip.
+//  • The player rotation is deterministic by local YYYY-MM-DD, so every
+//    visitor on the same day sees the same star. Across day boundaries the
+//    card refreshes automatically.
+//  • Album state (collected player names) lives in localStorage under
+//    `wc-panini-album`. The album view below the daily card grids every
+//    collected star + lets the user re-flip each one. Click on a non-
+//    collected slot to add to album (free pick) — keeps the album feature
+//    accessible even outside the Player-of-the-Day window.
+
+const PANINI_KEY = "wc-panini-album";
+
+function ymdLocal(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+}
+
+function hashString(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function playerOfTheDay(date: Date): WCPlayer {
+  // Bias the daily pick toward higher-impact players: weight = impact^2.
+  const seed = hashString(ymdLocal(date));
+  const weights = PLAYERS.map(p => p.impact * p.impact);
+  const total = weights.reduce((a, b) => a + b, 0);
+  let target = (seed % total + total) % total;
+  for (let i = 0; i < PLAYERS.length; i++) {
+    target -= weights[i];
+    if (target < 0) return PLAYERS[i];
+  }
+  return PLAYERS[0];
+}
+
+function useAlbum(): {
+  collected: Set<string>;
+  add: (name: string) => void;
+  remove: (name: string) => void;
+  hydrated: boolean;
+} {
+  const [collected, setCollected] = useState<Set<string>>(() => new Set());
+  const [hydrated, setHydrated] = useState(false);
+
+  // Loads on mount, then never re-runs. We intentionally setState in the effect
+  // body to flip the hydrated flag and seed initial localStorage state — this
+  // is the same pattern used elsewhere in this file (e.g. MaCompoTab) and is
+  // safe here because it runs once and only on the client.
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(PANINI_KEY);
+      if (raw) {
+        const arr = JSON.parse(raw) as string[];
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setCollected(new Set(arr));
+      }
+    } catch { /* ignore */ }
+    setHydrated(true);
+  }, []);
+
+  const persist = (next: Set<string>) => {
+    setCollected(next);
+    try { window.localStorage.setItem(PANINI_KEY, JSON.stringify([...next])); } catch { /* ignore */ }
+  };
+
+  return {
+    collected,
+    add:    (name) => persist(new Set([...collected, name])),
+    remove: (name) => { const n = new Set(collected); n.delete(name); persist(n); },
+    hydrated,
+  };
+}
+
+/** Big Panini card with click-to-spin reveal. Used as the Player-of-the-Day
+ *  hero. Compact variant lives in `PaniniMiniCard`. */
+function PaniniCardHero({
+  player,
+  collected,
+  onCollect,
+  onUncollect,
+  badge,
+}: {
+  player: WCPlayer;
+  collected: boolean;
+  onCollect: () => void;
+  onUncollect: () => void;
+  badge: string;
+}) {
+  const [angle, setAngle] = useState(0);
+  const revealed = (((angle % 360) + 360) % 360) === 180;
+  const cat = CAT_CFG[player.cat];
+  const pos = POS_CFG[player.pos];
+
+  const toggle = () => setAngle(a => a + 540);
+
+  return (
+    <div className="w-full" style={{ perspective: "1600px" }}>
+      <div
+        className="relative mx-auto"
+        style={{
+          width: "100%",
+          maxWidth: 360,
+          aspectRatio: "3 / 4.4",
+          transformStyle: "preserve-3d",
+          transform: `rotateY(${angle}deg)`,
+          transition: "transform 1.3s cubic-bezier(0.32, 0.08, 0.24, 1)",
+        }}
+      >
+        {/* ── FRONT (face down — mystery) ─────────────────────────────────── */}
+        <button
+          onClick={toggle}
+          aria-label="Révéler la carte"
+          className="absolute inset-0 rounded-3xl overflow-hidden group"
+          style={{
+            backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
+            background:
+              "radial-gradient(circle at 20% 0%, rgba(251,191,36,0.18), transparent 55%)," +
+              "radial-gradient(circle at 80% 100%, rgba(0,212,255,0.18), transparent 55%)," +
+              "linear-gradient(135deg, #1a1f3a 0%, #0d1325 60%, #060c16 100%)",
+            border: "1px solid rgba(251,191,36,0.4)",
+            boxShadow: "0 18px 48px -8px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04) inset",
+          }}
+        >
+          {/* Diagonal shimmer */}
+          <div
+            className="absolute inset-0 opacity-50 transition-opacity group-hover:opacity-80"
+            style={{
+              background:
+                "repeating-linear-gradient(45deg, rgba(255,255,255,0.02) 0 12px, rgba(255,255,255,0.05) 12px 14px)",
+            }}
+          />
+          {/* Top badge */}
+          <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
+            <span className="text-[9px] font-black uppercase tracking-[0.18em] px-2 py-1 rounded-full"
+              style={{ background: "rgba(251,191,36,0.18)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.35)" }}>
+              <Trophy size={9} weight="bold" style={{ display: "inline", marginRight: 4, marginBottom: 2 }} />
+              FIFA 2026
+            </span>
+            <span className="text-[9px] font-bold px-2 py-1 rounded-full"
+              style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8", border: "1px solid rgba(255,255,255,0.08)" }}>
+              {badge}
+            </span>
+          </div>
+
+          {/* Centered ?  */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+            <div
+              className="flex items-center justify-center"
+              style={{
+                width: 130, height: 130, borderRadius: "50%",
+                background: "radial-gradient(circle, rgba(251,191,36,0.18), rgba(251,191,36,0) 70%)",
+                animation: "paniniPulse 2.4s ease-in-out infinite",
+              }}
+            >
+              <span className="text-7xl font-black"
+                style={{
+                  background: "linear-gradient(180deg, #fbbf24, #f97316)",
+                  WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+                  filter: "drop-shadow(0 6px 16px rgba(251,191,36,0.45))",
+                }}>?</span>
+            </div>
+            <p className="text-base font-black tracking-tight" style={{ color: "#e8edf5" }}>Carte du jour</p>
+            <p className="text-[11px] px-6 text-center leading-relaxed" style={{ color: "#94a3b8" }}>
+              Une star à découvrir aujourd&apos;hui
+            </p>
+            <div
+              className="mt-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full"
+              style={{ background: "rgba(0,212,255,0.1)", color: "#00d4ff", border: "1px solid rgba(0,212,255,0.25)" }}
+            >
+              <Hand size={11} weight="bold" /> Cliquer pour révéler
+            </div>
+          </div>
+
+          {/* Bottom ribbon */}
+          <div className="absolute bottom-0 inset-x-0 px-4 py-2 flex items-center justify-between"
+            style={{ background: "rgba(0,0,0,0.35)", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+            <span className="text-[9px] uppercase font-bold tracking-widest" style={{ color: "#fbbf24" }}>
+              <Sparkle size={9} weight="fill" style={{ display: "inline", marginRight: 4 }} /> Édition limitée
+            </span>
+            <span className="text-[9px] uppercase font-bold tracking-widest" style={{ color: "#64748b" }}>N°{(hashString(player.name) % 999).toString().padStart(3, "0")}</span>
+          </div>
+        </button>
+
+        {/* ── BACK (revealed Panini fiche) ────────────────────────────────── */}
+        <div
+          className="absolute inset-0 rounded-3xl overflow-hidden flex flex-col"
+          style={{
+            backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
+            transform: "rotateY(180deg)",
+            background:
+              `radial-gradient(circle at 15% 0%, ${cat.color}28, transparent 55%),` +
+              `radial-gradient(circle at 85% 100%, ${pos.color}22, transparent 55%),` +
+              "linear-gradient(160deg, #11182d 0%, #0a0f1c 100%)",
+            border: `1px solid ${cat.color}55`,
+            boxShadow: `0 18px 48px -8px rgba(0,0,0,0.6), 0 0 32px -8px ${cat.color}40, 0 0 0 1px rgba(255,255,255,0.04) inset`,
+          }}
+        >
+          {/* Top strip: cat + n° */}
+          <div className="px-4 pt-3 flex items-center justify-between">
+            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-full"
+              style={{ background: `${cat.color}1f`, color: cat.color, border: `1px solid ${cat.color}45` }}>
+              <cat.Icon size={10} /> {cat.label}
+            </span>
+            <span className="text-[10px] font-mono font-bold" style={{ color: "#64748b" }}>
+              N°{(hashString(player.name) % 999).toString().padStart(3, "0")}
+            </span>
+          </div>
+
+          {/* Mega flag avatar */}
+          <div className="flex-1 flex flex-col items-center justify-center px-4 pt-1">
+            <div
+              className="relative flex items-center justify-center mb-2"
+              style={{
+                width: 120, height: 120, borderRadius: "50%",
+                background: `radial-gradient(circle, ${cat.color}28, transparent 70%)`,
+                border: `2px solid ${cat.color}40`,
+              }}
+            >
+              <span style={{ fontSize: 78, filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.5))" }}>{player.flag}</span>
+              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider"
+                style={{ background: pos.bg, color: pos.color, border: `1px solid ${pos.color}55` }}>
+                {pos.label}
+              </div>
+            </div>
+            <h2 className="text-xl font-black tracking-tight text-center leading-tight" style={{ color: "#e8edf5" }}>
+              {player.name}
+            </h2>
+            <p className="text-[11px] font-semibold mt-0.5" style={{ color: "#94a3b8" }}>
+              {player.club} · {player.age} ans
+            </p>
+            <p className="text-[10px] text-center mt-1 px-3 leading-snug" style={{ color: "#64748b" }}>
+              {player.role}
+            </p>
+          </div>
+
+          {/* Stats grid */}
+          <div className="px-4 pt-2 grid grid-cols-4 gap-1.5">
+            {[
+              { label: "VIT", value: player.vitesse,   color: "#00d4ff" },
+              { label: "TEC", value: player.technique, color: "#a78bfa" },
+              { label: "BUT", value: player.buts,      color: "#ef4444" },
+              { label: "IMP", value: player.impact,    color: cat.color },
+            ].map(s => (
+              <div key={s.label} className="rounded-lg p-1.5 text-center"
+                style={{ background: `${s.color}10`, border: `1px solid ${s.color}30` }}>
+                <p className="text-[8px] font-bold tracking-wider" style={{ color: s.color, opacity: 0.85 }}>{s.label}</p>
+                <p className="text-base font-black leading-none mt-0.5" style={{ color: s.color }}>{s.value}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Key stat ribbon */}
+          <div className="mx-4 mt-2 px-2.5 py-1.5 rounded-lg flex items-center justify-between"
+            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
+            <span className="text-[9px] uppercase font-bold tracking-wider" style={{ color: "#64748b" }}>
+              {player.statLabel}
+            </span>
+            <span className="text-xs font-black" style={{ color: "#e8edf5" }}>{player.statValue}</span>
+          </div>
+
+          {/* Pronostic */}
+          <div className="mx-4 mt-1.5 mb-2 px-2.5 py-1.5 rounded-lg"
+            style={{ background: `${cat.color}10`, border: `1px solid ${cat.color}25` }}>
+            <p className="text-[8px] uppercase font-bold tracking-widest mb-0.5" style={{ color: cat.color }}>Pronostic</p>
+            <p className="text-[10px] leading-snug" style={{ color: "#cbd5e1" }}>{player.pronostic}</p>
+          </div>
+
+          {/* Actions */}
+          <div className="px-4 pb-3 flex items-center gap-2">
+            <button
+              onClick={(e) => { e.stopPropagation(); if (collected) onUncollect(); else onCollect(); }}
+              className="flex-1 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5"
+              style={{
+                background: collected ? "rgba(34,197,94,0.15)" : "linear-gradient(135deg, #fbbf24, #f97316)",
+                color: collected ? "#22c55e" : "#080c14",
+                border: collected ? "1px solid rgba(34,197,94,0.4)" : "1px solid rgba(251,191,36,0.6)",
+                boxShadow: collected ? "none" : "0 4px 14px -2px rgba(251,191,36,0.45)",
+              }}
+            >
+              {collected ? <><Check size={12} weight="bold" /> Dans l&apos;album</> : <><BookOpen size={12} weight="bold" /> Collectionner</>}
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); toggle(); }}
+              aria-label="Retourner la carte"
+              className="p-2 rounded-xl transition-colors hover:bg-white/[0.06]"
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+            >
+              <ArrowsClockwise size={14} weight="bold" style={{ color: "#94a3b8" }} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Hint under the card */}
+      <p className="text-[10px] text-center mt-3" style={{ color: "#64748b" }}>
+        {revealed ? "✨ Carte révélée — collectionne-la pour ton album" : "👆 Touche la carte pour la révéler"}
+      </p>
+
+      <style jsx>{`
+        @keyframes paniniPulse {
+          0%, 100% { transform: scale(1); opacity: 0.95; }
+          50%      { transform: scale(1.08); opacity: 1; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/** Compact album thumbnail. Click-to-flip in place (no album-wide overlay). */
+function PaniniMiniCard({ player, onRemove }: { player: WCPlayer; onRemove: () => void }) {
+  const [angle, setAngle] = useState(0);
+  const cat = CAT_CFG[player.cat];
+  const pos = POS_CFG[player.pos];
+  const toggle = () => setAngle(a => a + 540);
+
+  return (
+    <div className="relative" style={{ perspective: "1000px" }}>
+      <div
+        className="relative w-full"
+        style={{
+          aspectRatio: "3 / 4.4",
+          transformStyle: "preserve-3d",
+          transform: `rotateY(${angle}deg)`,
+          transition: "transform 1.1s cubic-bezier(0.32, 0.08, 0.24, 1)",
+        }}
+      >
+        {/* Mini front */}
+        <button onClick={toggle} aria-label={`Révéler ${player.name}`}
+          className="absolute inset-0 rounded-xl overflow-hidden text-left"
+          style={{
+            backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
+            background:
+              `radial-gradient(circle at 15% 0%, ${cat.color}22, transparent 60%),` +
+              "linear-gradient(160deg, #11182d, #0a0f1c)",
+            border: `1px solid ${cat.color}40`,
+            boxShadow: `0 6px 20px -6px rgba(0,0,0,0.5), 0 0 16px -6px ${cat.color}30`,
+          }}
+        >
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-2">
+            <span style={{ fontSize: 46, filter: "drop-shadow(0 4px 10px rgba(0,0,0,0.4))" }}>{player.flag}</span>
+            <p className="text-[10px] font-black mt-1 text-center leading-tight truncate w-full" style={{ color: "#e8edf5" }}>
+              {player.name}
+            </p>
+            <p className="text-[8px] mt-0.5 truncate w-full text-center" style={{ color: "#64748b" }}>{player.club}</p>
+          </div>
+          <div className="absolute top-1 left-1">
+            <span className="text-[7px] font-black px-1 py-0.5 rounded-full"
+              style={{ background: pos.bg, color: pos.color }}>
+              {pos.label}
+            </span>
+          </div>
+          <div className="absolute top-1 right-1">
+            <cat.Icon size={9} />
+          </div>
+        </button>
+
+        {/* Mini back */}
+        <button onClick={toggle} aria-label={`Cacher ${player.name}`}
+          className="absolute inset-0 rounded-xl overflow-hidden text-left p-2"
+          style={{
+            backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
+            transform: "rotateY(180deg)",
+            background:
+              `radial-gradient(circle at 15% 0%, ${cat.color}28, transparent 60%),` +
+              "linear-gradient(160deg, #1a1f3a, #0d1325)",
+            border: `1px solid ${cat.color}55`,
+          }}
+        >
+          <div className="flex items-center justify-between mb-1">
+            <span className="inline-flex items-center gap-0.5 text-[7px] font-black uppercase tracking-wider px-1 py-0.5 rounded-full"
+              style={{ background: `${cat.color}20`, color: cat.color }}>
+              <cat.Icon size={7} /> {cat.label}
+            </span>
+            <span style={{ fontSize: 14 }}>{player.flag}</span>
+          </div>
+          <p className="text-[10px] font-black leading-tight mb-1" style={{ color: "#e8edf5" }}>
+            {player.name}
+          </p>
+          <div className="grid grid-cols-2 gap-1">
+            {[
+              { l: "VIT", v: player.vitesse,   c: "#00d4ff" },
+              { l: "TEC", v: player.technique, c: "#a78bfa" },
+              { l: "BUT", v: player.buts,      c: "#ef4444" },
+              { l: "IMP", v: player.impact,    c: cat.color },
+            ].map(s => (
+              <div key={s.l} className="rounded text-center px-0.5 py-0.5"
+                style={{ background: `${s.c}10`, border: `1px solid ${s.c}25` }}>
+                <p className="text-[7px] font-bold" style={{ color: s.c }}>{s.l}</p>
+                <p className="text-[10px] font-black leading-none" style={{ color: s.c }}>{s.v}</p>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); onRemove(); }}
+            className="absolute bottom-1 right-1 p-1 rounded-full text-[8px]"
+            style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.25)" }}
+            aria-label="Retirer de l'album"
+          >
+            <X size={8} weight="bold" />
+          </button>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Locked album slot — invites a click to add a new player from the Joueurs tab.
+ *  Placeholder shows position icon stack for visual continuity. */
+function PaniniSlot({ index }: { index: number }) {
+  return (
+    <div
+      className="rounded-xl flex flex-col items-center justify-center"
+      style={{
+        aspectRatio: "3 / 4.4",
+        background: "rgba(255,255,255,0.02)",
+        border: "1px dashed rgba(255,255,255,0.08)",
+      }}
+    >
+      <LockKey size={18} weight="bold" style={{ color: "#334155" }} />
+      <p className="text-[8px] font-bold mt-1 tracking-widest" style={{ color: "#334155" }}>
+        {String(index + 1).padStart(2, "0")}
+      </p>
+    </div>
+  );
+}
+
+function PaniniTab() {
+  const album = useAlbum();
+  // Track "today" so the card refreshes if user keeps the tab open past midnight.
+  const [todayKey, setTodayKey] = useState(() => ymdLocal(new Date()));
+  useEffect(() => {
+    const id = setInterval(() => setTodayKey(ymdLocal(new Date())), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  const pod = useMemo(() => playerOfTheDay(new Date(todayKey + "T12:00:00")), [todayKey]);
+
+  // Collected players, sorted by impact (showcase the strongest first).
+  const collectedPlayers = useMemo(() => {
+    return PLAYERS
+      .filter(p => album.collected.has(p.name))
+      .sort((a, b) => b.impact - a.impact);
+  }, [album.collected]);
+
+  const total = PLAYERS.length;
+  const got = album.collected.size;
+  const pct = total ? Math.round((got / total) * 100) : 0;
+
+  // Album grid size: keep at least 12 slots for visual density.
+  const slotCount = Math.max(12, Math.ceil(got / 6) * 6);
+  const emptySlots = Math.max(0, slotCount - collectedPlayers.length);
+
+  // Suggest 3 not-yet-collected stars to fill the album. Highest impact first.
+  const suggestions = useMemo(() => {
+    return PLAYERS
+      .filter(p => !album.collected.has(p.name) && p.name !== pod.name)
+      .sort((a, b) => b.impact - a.impact)
+      .slice(0, 3);
+  }, [album.collected, pod.name]);
+
+  if (!album.hydrated) {
+    return (
+      <div className="rounded-2xl p-6 text-center" style={{ background: "#0a1120", border: "1px solid #1e2d42" }}>
+        <p className="text-xs" style={{ color: "#64748b" }}>Chargement de ton album…</p>
+      </div>
+    );
+  }
+
+  const todayLabel = new Date(todayKey + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+  const podCollected = album.collected.has(pod.name);
+
+  return (
+    <div className="space-y-5">
+      {/* ── Hero card ─────────────────────────────────────────────────────── */}
+      <div
+        className="rounded-3xl p-4 sm:p-6"
+        style={{
+          background:
+            "radial-gradient(circle at 0% 0%, rgba(251,191,36,0.08), transparent 50%)," +
+            "radial-gradient(circle at 100% 100%, rgba(0,212,255,0.08), transparent 50%)," +
+            "linear-gradient(180deg, #0d1421, #080c14)",
+          border: "1px solid rgba(251,191,36,0.18)",
+        }}
+      >
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <p className="text-[10px] uppercase font-bold tracking-[0.2em] mb-1" style={{ color: "#fbbf24" }}>
+              <Sparkle size={10} weight="fill" style={{ display: "inline", marginRight: 4 }} />
+              Carte du jour
+            </p>
+            <p className="text-xs font-semibold" style={{ color: "#94a3b8" }}>{todayLabel}</p>
+          </div>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold"
+            style={{ background: "rgba(0,212,255,0.08)", color: "#00d4ff", border: "1px solid rgba(0,212,255,0.2)" }}>
+            <IdentificationCard size={11} weight="bold" /> {got} / {total}
+          </div>
+        </div>
+
+        <PaniniCardHero
+          player={pod}
+          collected={podCollected}
+          onCollect={() => album.add(pod.name)}
+          onUncollect={() => album.remove(pod.name)}
+          badge={`J${(hashString(todayKey) % 31) + 1}/31`}
+        />
+      </div>
+
+      {/* ── Album section ─────────────────────────────────────────────────── */}
+      <div className="rounded-2xl p-4"
+        style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <BookOpen size={16} weight="bold" style={{ color: "#00d4ff" }} />
+            <h3 className="text-sm font-black tracking-tight" style={{ color: "#e8edf5" }}>
+              Mon album Panini
+            </h3>
+          </div>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+            style={{ background: "rgba(0,212,255,0.1)", color: "#00d4ff", border: "1px solid rgba(0,212,255,0.2)" }}>
+            {pct}%
+          </span>
+        </div>
+
+        {/* Progress bar */}
+        <div className="mb-3">
+          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.04)" }}>
+            <div className="h-full rounded-full transition-all duration-700"
+              style={{ width: `${pct}%`, background: "linear-gradient(90deg, #fbbf24, #f97316, #ef4444)" }} />
+          </div>
+          <p className="text-[10px] mt-1.5" style={{ color: "#64748b" }}>
+            {got === 0
+              ? "Album vide — révèle la carte du jour pour démarrer ta collection."
+              : got === total
+                ? "🎉 Bravo, ton album est complet !"
+                : `${total - got} carte${total - got > 1 ? "s" : ""} à découvrir`}
+          </p>
+        </div>
+
+        {/* Grid */}
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+          {collectedPlayers.map(p => (
+            <PaniniMiniCard key={p.name} player={p} onRemove={() => album.remove(p.name)} />
+          ))}
+          {Array.from({ length: emptySlots }).map((_, i) => (
+            <PaniniSlot key={`slot-${i}`} index={collectedPlayers.length + i} />
+          ))}
+        </div>
+
+        {/* Quick collect suggestions */}
+        {suggestions.length > 0 && got < total && (
+          <div className="mt-4 pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+            <p className="text-[10px] uppercase font-bold tracking-wider mb-2" style={{ color: "#6b7c96" }}>
+              ⭐ Cartes suggérées
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {suggestions.map(p => {
+                const cat = CAT_CFG[p.cat];
+                return (
+                  <button key={p.name} onClick={() => album.add(p.name)}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[10px] font-semibold transition-all hover:scale-105"
+                    style={{
+                      background: `${cat.color}10`,
+                      color: cat.color,
+                      border: `1px solid ${cat.color}30`,
+                    }}>
+                    <span style={{ fontSize: 12 }}>{p.flag}</span>
+                    {p.name}
+                    <span className="opacity-60">+</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function WorldCupTab() {
@@ -2353,6 +2949,7 @@ export default function WorldCupTab() {
 
       {/* Content */}
       {activeTab === "news"       && <NewsCdMTab />}
+      {activeTab === "panini"     && <PaniniTab />}
       {activeTab === "affiche"    && <AfficheTab />}
       {activeTab === "macompo"    && <MaCompoTab />}
       {activeTab === "fanx"       && <FanXTab />}
