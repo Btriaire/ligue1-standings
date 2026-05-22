@@ -5,7 +5,7 @@
 // Cached 24h server-side — club history doesn't move.
 
 import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { callGeminiJSON } from "@/app/lib/gemini";
 
 export const revalidate = 86400;
 
@@ -51,9 +51,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Missing 'name' query param" }, { status: 400 });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return NextResponse.json(fallback(name, founded, league, stadium, city));
-
   const ctx = [
     `Club : ${name}`,
     league && `Compétition actuelle : ${league === "L2" ? "Ligue 2" : "Ligue 1"}`,
@@ -62,31 +59,25 @@ export async function GET(req: Request) {
     city && `Ville : ${city}`,
   ].filter(Boolean).join(" | ");
 
-  try {
-    const genai = new GoogleGenerativeAI(apiKey);
-    const model = genai.getGenerativeModel({
-      model: "gemini-2.0-flash",
-      systemInstruction:
-        `Tu es un historien du football français. Rédige un historique court et factuel d'un club, en français.
+  const json = await callGeminiJSON<{ history?: string; bullets?: unknown[] }>({
+    label: "club-history",
+    temperature: 0.4,
+    systemInstruction:
+      `Tu es un historien du football français. Rédige un historique court et factuel d'un club, en français.
 Le résumé doit faire 5-6 phrases couvrant : fondation, époques marquantes, principaux titres et trophées, descentes/montées importantes, période récente.
 Sois précis sur les dates et les chiffres. Évite les superlatifs vides. Aucune invention.
 Réponds UNIQUEMENT en JSON: {"history":"<5-6 phrases>","bullets":["<jalon 1>","<jalon 2>","<jalon 3>","<jalon 4>"]}
 Les jalons sont 3 à 5 dates clés au format "ANNÉE — événement court" (ex: "1932 — Membre fondateur du championnat professionnel").`,
-      generationConfig: { temperature: 0.4, responseMimeType: "application/json" },
-    });
-    const result = await model.generateContent(ctx);
-    const text = result.response.text();
-    const json = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] ?? "{}");
-    if (!json.history) return NextResponse.json(fallback(name, founded, league, stadium, city));
-    return NextResponse.json({
-      history: String(json.history).slice(0, 1400),
-      bullets: Array.isArray(json.bullets)
-        ? json.bullets.slice(0, 6).map((b: unknown) => String(b).slice(0, 160))
-        : [],
-      updatedAt: new Date().toISOString(),
-    } satisfies ClubHistory);
-  } catch (err) {
-    console.warn("[/api/club-history] gemini failed:", err);
-    return NextResponse.json(fallback(name, founded, league, stadium, city));
-  }
+    prompt: ctx,
+  });
+
+  if (!json?.history) return NextResponse.json(fallback(name, founded, league, stadium, city));
+
+  return NextResponse.json({
+    history: String(json.history).slice(0, 1400),
+    bullets: Array.isArray(json.bullets)
+      ? json.bullets.slice(0, 6).map((b) => String(b).slice(0, 160))
+      : [],
+    updatedAt: new Date().toISOString(),
+  } satisfies ClubHistory);
 }

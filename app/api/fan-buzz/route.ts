@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { callGeminiJSON } from "@/app/lib/gemini";
 import { CLUB_SEARCH_TERMS } from "@/app/lib/teamMapping";
 
 export const revalidate = 3600; // 1h cache
-
-const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY ?? "");
 
 // Google News RSS (confirmed working) + RMC Sport (only live secondary feed)
 const GOOGLE_QUERIES: Record<number, string> = {
@@ -114,25 +112,23 @@ export async function GET(req: Request) {
       synthesis: "Aucun article récent trouvé.", updatedAt: new Date().toISOString() });
   }
 
-  // Gemini sentiment analysis (free tier)
+  // Gemini sentiment analysis (free tier) — falls back to keyword scan on null.
   let score = 50;
   let synthesis = "";
   let sentiment: "positive" | "negative" | "neutral" = "neutral";
 
-  try {
-    const model = genai.getGenerativeModel({
-      model: "gemini-2.0-flash-lite",
-      systemInstruction: 'Analyse sentiment foot. JSON uniquement: {"score":0-100,"sentiment":"positive|negative|neutral","summary":"1 phrase en français"}',
-    });
-    const result = await model.generateContent(
-      `Club:${googleQuery}\n${allTitles.map((t, i) => `${i + 1}.${t}`).join("\n")}`
-    );
-    const text = result.response.text();
-    const json = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] ?? "{}");
+  const json = await callGeminiJSON<{ score?: number; sentiment?: typeof sentiment; summary?: string }>({
+    label: "fan-buzz",
+    model: "gemini-2.0-flash-lite",
+    systemInstruction: 'Analyse sentiment foot. JSON uniquement: {"score":0-100,"sentiment":"positive|negative|neutral","summary":"1 phrase en français"}',
+    prompt: `Club:${googleQuery}\n${allTitles.map((t, i) => `${i + 1}.${t}`).join("\n")}`,
+  });
+
+  if (json) {
     score     = Math.max(10, Math.min(90, Number(json.score) || 50));
     synthesis = json.summary ?? "";
     sentiment = json.sentiment ?? "neutral";
-  } catch {
+  } else {
     const pos = allTitles.filter(t => /victoire|champion|titre|brillant|excellent|sacre/i.test(t)).length;
     const neg = allTitles.filter(t => /défaite|blessure|crise|humiliation|relégation|suspend/i.test(t)).length;
     score     = Math.max(10, Math.min(90, 50 + (pos - neg) * 8));

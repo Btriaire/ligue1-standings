@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { callGeminiJSON, geminiAvailable } from "@/app/lib/gemini";
 import { TEAM_TM_MAP, ECONOMIC_SCORES, CLUB_SEARCH_TERMS, CLUB_SUBREDDITS } from "@/app/lib/teamMapping";
 
-// LLM provider: Gemini (Google Generative AI). Unified across the whole app
-// — same key + same SDK used by /api/club-analysis, /api/fan-buzz and
-// /api/match-preview. One batched call per 30-min revalidate window for all
-// 18 clubs keeps us comfortably under the free-tier request quota.
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = "gemini-2.0-flash";
+// LLM provider: Gemini, accessed through app/lib/gemini.ts so every AI route
+// shares the same init / JSON-mode / timeout policy. We batch all 18 clubs in
+// a single call per 30-min revalidate window to stay under the free-tier
+// request quota.
 
 const API_KEY = process.env.FOOTBALL_DATA_API_KEY;
 const ODDS_API_KEY = process.env.THE_ODDS_API_KEY;
@@ -234,11 +232,11 @@ interface GeminiClubInput {
 // Drastically cuts request count (1 vs 18) — keeps us well under free-tier limits.
 async function scoreClubsBatch(clubs: GeminiClubInput[]): Promise<Map<string, GeminiResult>> {
   const out = new Map<string, GeminiResult>();
-  if (!GEMINI_API_KEY) { console.warn("[llm] GEMINI_API_KEY missing"); return out; }
+  if (!geminiAvailable()) { console.warn("[llm] GEMINI_API_KEY missing"); return out; }
   const eligible = clubs.filter(c => c.items.length > 0);
   if (eligible.length === 0) return out;
 
-  // Trim aggressively to stay under Groq's 30k TPM ceiling on the 8b free tier.
+  // Trim aggressively to stay under the 30k TPM ceiling on the free tier.
   // Per club: 6 items max, descriptions only on top-2 capped at 100 chars.
   const TRIMMED_PER_CLUB = 6;
   const blocks = eligible.map((c) => {
@@ -250,51 +248,40 @@ async function scoreClubsBatch(clubs: GeminiClubInput[]): Promise<Map<string, Ge
     return `## ${c.clubName}\n${numbered}`;
   }).join("\n\n");
 
-  const approxTokens = Math.round(blocks.length / 3.5);
-  console.log(`[llm] batch call clubs=${eligible.length} approxTokens=${approxTokens}`);
+  console.log(`[llm] batch call clubs=${eligible.length} approxTokens=${Math.round(blocks.length / 3.5)}`);
 
-  const system =
-    "Tu es un analyste sentiment foot français. Pour CHAQUE club fourni, évalue son climat médiatique global à partir de sa liste d'actualités. " +
-    "Considère: résultats sportifs, blessures, transferts, climat interne, comportement des fans, polémiques. " +
-    "Réponds en JSON STRICT: " +
-    `{"results":[{"club":"nom exact","score":0-100,"positive":int,"negative":int,"summary":"1 phrase fr","per_item":["positive"|"negative"|"neutral",...]},...]}` +
-    " où per_item a la même longueur que la liste d'items du club. 50 = neutre, 100 = très positif, 0 = très négatif.";
+  const json = await callGeminiJSON<{
+    results?: { club?: string; score?: number; positive?: number; negative?: number; summary?: string; per_item?: string[] }[];
+  }>({
+    label: "emotional-score",
+    temperature: 0.4,
+    timeoutMs: 15000,
+    systemInstruction:
+      "Tu es un analyste sentiment foot français. Pour CHAQUE club fourni, évalue son climat médiatique global à partir de sa liste d'actualités. " +
+      "Considère: résultats sportifs, blessures, transferts, climat interne, comportement des fans, polémiques. " +
+      "Réponds en JSON STRICT: " +
+      `{"results":[{"club":"nom exact","score":0-100,"positive":int,"negative":int,"summary":"1 phrase fr","per_item":["positive"|"negative"|"neutral",...]},...]}` +
+      " où per_item a la même longueur que la liste d'items du club. 50 = neutre, 100 = très positif, 0 = très négatif.",
+    prompt: blocks,
+  });
 
-  try {
-    const genai = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genai.getGenerativeModel({
-      model: GEMINI_MODEL,
-      systemInstruction: system,
-      generationConfig: { temperature: 0.4, responseMimeType: "application/json" },
-    });
-    const result = await Promise.race([
-      model.generateContent(blocks),
-      new Promise<never>((_, rej) => setTimeout(() => rej(new Error("gemini timeout 15s")), 15000)),
-    ]);
-    const text = result.response.text();
-    console.log(`[llm] batch raw len=${text.length}`);
-    const json = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] ?? "{}");
-    const arr: { club?: string; score?: number; positive?: number; negative?: number; summary?: string; per_item?: string[] }[] =
-      Array.isArray(json.results) ? json.results : [];
-    for (const r of arr) {
-      if (!r.club) continue;
-      const club = eligible.find(c => c.clubName === r.club)
-        ?? eligible.find(c => c.clubName.toLowerCase().includes(String(r.club).toLowerCase())
-                          || String(r.club).toLowerCase().includes(c.clubName.toLowerCase()));
-      if (!club) continue;
-      const score = Math.max(0, Math.min(100, Number(r.score) || 50));
-      const positive = Math.max(0, Number(r.positive) || 0);
-      const negative = Math.max(0, Number(r.negative) || 0);
-      const summary = String(r.summary ?? "").slice(0, 240);
-      const per_item = (Array.isArray(r.per_item) ? r.per_item : [])
-        .map(v => (v === "positive" || v === "negative") ? v : "neutral")
-        .slice(0, club.items.length) as ("positive" | "negative" | "neutral")[];
-      out.set(club.clubName, { score, positive, negative, summary, per_item });
-    }
-    console.log(`[llm] batch ok results=${out.size}/${eligible.length}`);
-  } catch (err) {
-    console.error("[llm] batch failed:", err instanceof Error ? err.message : err);
+  const arr = Array.isArray(json?.results) ? json!.results! : [];
+  for (const r of arr) {
+    if (!r.club) continue;
+    const club = eligible.find(c => c.clubName === r.club)
+      ?? eligible.find(c => c.clubName.toLowerCase().includes(String(r.club).toLowerCase())
+                        || String(r.club).toLowerCase().includes(c.clubName.toLowerCase()));
+    if (!club) continue;
+    const score = Math.max(0, Math.min(100, Number(r.score) || 50));
+    const positive = Math.max(0, Number(r.positive) || 0);
+    const negative = Math.max(0, Number(r.negative) || 0);
+    const summary = String(r.summary ?? "").slice(0, 240);
+    const per_item = (Array.isArray(r.per_item) ? r.per_item : [])
+      .map(v => (v === "positive" || v === "negative") ? v : "neutral")
+      .slice(0, club.items.length) as ("positive" | "negative" | "neutral")[];
+    out.set(club.clubName, { score, positive, negative, summary, per_item });
   }
+  console.log(`[llm] batch ok results=${out.size}/${eligible.length}`);
   return out;
 }
 

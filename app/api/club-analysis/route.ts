@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { callGeminiJSON } from "@/app/lib/gemini";
 
 export const revalidate = 7200; // 2h cache
 
@@ -100,9 +100,6 @@ export async function GET(req: Request) {
   const value   = p.get("value") ?? "";
   const recent  = p.get("recent") ?? "";
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return NextResponse.json(fallbackAnalysis(p));
-
   // Parse position to determine league context
   const posNum = parseInt(pos);
   const leagueCtx =
@@ -132,28 +129,21 @@ export async function GET(req: Request) {
     recent && `Résultats récents: ${recent}`,
   ].filter(Boolean).join(" | ");
 
-  try {
-    const genai = new GoogleGenerativeAI(apiKey);
-    const model = genai.getGenerativeModel({
-      model: "gemini-2.0-flash",
-      systemInstruction: `Tu es un analyste Ligue 1 expert. Rédige une analyse factuelle et précise en 2-3 phrases en français.
+  const json = await callGeminiJSON<{ analysis?: string; tag?: ClubAnalysis["tag"] }>({
+    label: "club-analysis",
+    systemInstruction: `Tu es un analyste Ligue 1 expert. Rédige une analyse factuelle et précise en 2-3 phrases en français.
 Utilise les données exactes fournies (position, points, buts, forme). Mentionne les points forts ET les points faibles.
 Sois précis sur la situation sportive réelle (zone européenne = top 5, relégation = bottom 3 sur 18).
 Réponds UNIQUEMENT en JSON: {"analysis":"...","tag":"excellent|good|average|difficult|crisis"}
 Tags: excellent=top2, good=top5, average=6-12, difficult=13-15, crisis=16-18`,
-    });
+    prompt: data,
+  });
 
-    const result = await model.generateContent(data);
-    const text = result.response.text();
-    const json = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] ?? "{}");
-    if (!json.analysis) return NextResponse.json(fallbackAnalysis(p));
+  if (!json?.analysis) return NextResponse.json(fallbackAnalysis(p));
 
-    return NextResponse.json({
-      analysis: json.analysis,
-      tag: json.tag ?? "average",
-      updatedAt: new Date().toISOString(),
-    } satisfies ClubAnalysis);
-  } catch {
-    return NextResponse.json(fallbackAnalysis(p));
-  }
+  return NextResponse.json({
+    analysis: json.analysis,
+    tag: json.tag ?? "average",
+    updatedAt: new Date().toISOString(),
+  } satisfies ClubAnalysis);
 }

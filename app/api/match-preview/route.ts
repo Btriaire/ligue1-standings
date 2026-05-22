@@ -7,7 +7,7 @@
 // stays relevant up to kickoff.
 
 import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { callGeminiJSON } from "@/app/lib/gemini";
 
 export const revalidate = 3600;
 
@@ -90,9 +90,6 @@ export async function GET(req: Request) {
   const sp = new URL(req.url).searchParams;
   const p = parseParams(sp);
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return NextResponse.json(fallback(p));
-
   const lines = [
     `Match: ${p.home} vs ${p.away}${p.context ? ` (${p.context})` : ""}`,
     p.homePos && p.awayPos && `Classement: ${p.home} ${p.homePos}e · ${p.away} ${p.awayPos}e`,
@@ -103,26 +100,21 @@ export async function GET(req: Request) {
     p.awayForm && `Forme ${p.away}: ${p.awayForm}`,
   ].filter(Boolean).join(" | ");
 
-  try {
-    const genai = new GoogleGenerativeAI(apiKey);
-    const model = genai.getGenerativeModel({
-      model: "gemini-2.0-flash",
-      systemInstruction:
-        `Tu es un commentateur foot français expert. Rédige un commentaire pré-match factuel en 2-3 phrases en français.
+  const json = await callGeminiJSON<{ preview?: string; pick?: string; confidence?: string }>({
+    label: "match-preview",
+    systemInstruction:
+      `Tu es un commentateur foot français expert. Rédige un commentaire pré-match factuel en 2-3 phrases en français.
 Appuie-toi sur les données fournies (classement, points, forme, buts). Identifie l'enjeu et un pronostic argumenté.
 Sois concret, évite le creux. Réponds UNIQUEMENT en JSON: {"preview":"...","pick":"home|draw|away","confidence":"low|medium|high"}`,
-    });
-    const result = await model.generateContent(lines);
-    const text = result.response.text();
-    const json = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] ?? "{}");
-    if (!json.preview) return NextResponse.json(fallback(p));
-    return NextResponse.json({
-      preview: String(json.preview).slice(0, 600),
-      pick: json.pick === "home" || json.pick === "away" ? json.pick : "draw",
-      confidence: json.confidence === "high" || json.confidence === "medium" ? json.confidence : "low",
-      updatedAt: new Date().toISOString(),
-    } satisfies MatchPreview);
-  } catch {
-    return NextResponse.json(fallback(p));
-  }
+    prompt: lines,
+  });
+
+  if (!json?.preview) return NextResponse.json(fallback(p));
+
+  return NextResponse.json({
+    preview: String(json.preview).slice(0, 600),
+    pick: json.pick === "home" || json.pick === "away" ? json.pick : "draw",
+    confidence: json.confidence === "high" || json.confidence === "medium" ? json.confidence : "low",
+    updatedAt: new Date().toISOString(),
+  } satisfies MatchPreview);
 }
