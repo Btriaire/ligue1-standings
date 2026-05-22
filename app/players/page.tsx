@@ -428,8 +428,8 @@ function PlayersPageInner() {
         {league === "FL2" && (
           <div className="space-y-4">
             <p className="text-xs" style={{ color: "#6b7c96" }}>
-              Source : <span style={{ color: "#00d4ff" }}>FotMob</span> · Top joueurs de la saison Ligue 2.
-              Les fiches détaillées par club (Datamb / Transfermarkt) ne sont pas disponibles pour la Ligue 2 sur les plans gratuits.
+              Source : <span style={{ color: "#00d4ff" }}>FotMob</span> · Top joueurs de la saison Ligue 2, puis effectif complet par club ci-dessous.
+              Les statistiques avancées (Datamb / Transfermarkt) ne sont pas disponibles pour la Ligue 2 sur les plans gratuits.
             </p>
             {([
               { title: "Top notation", list: l2Top.byRating, unit: "" },
@@ -480,7 +480,7 @@ function PlayersPageInner() {
         )}
 
         {/* Flat list when filtering */}
-        {league === "FL1" && isFiltered && filtered.length > 0 && (
+        {isFiltered && filtered.length > 0 && (
           <div>
             <p className="text-[10px] mb-2" style={{ color: "#4b5a72" }}>
               {filtered.length} joueur{filtered.length > 1 ? "s" : ""} · Tri : {SORT_OPTIONS.find(o => o.key === sortKey)?.label}
@@ -493,7 +493,7 @@ function PlayersPageInner() {
         )}
 
         {/* Club sections (default) */}
-        {league === "FL1" && !isFiltered && byClub.length > 0 && (
+        {!isFiltered && byClub.length > 0 && (
           <div className="space-y-2">
             <p className="text-[10px] mb-3" style={{ color: "#4b5a72" }}>
               {byClub.length} clubs · {allPlayers.length} joueurs · Tri interne : {SORT_OPTIONS.find(o => o.key === sortKey)?.label}
