@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { ArrowsClockwise, TrendUp, TrendDown, Minus, Trophy, WifiHigh, WifiSlash, Clock, Lightning, ChartBar, Shield, Pulse, Globe, GearSix, Target, ArrowsLeftRight, CaretRight, Users, Lock, SignIn, SignOut, Fire, Sun, MoonStars } from "@phosphor-icons/react";
+import { ArrowsClockwise, TrendUp, TrendDown, Minus, Trophy, WifiHigh, WifiSlash, Clock, Lightning, ChartBar, Shield, Pulse, Globe, GearSix, Target, ArrowsLeftRight, CaretRight, Users, Lock, SignIn, SignOut, Fire, Sun, MoonStars, Television } from "@phosphor-icons/react";
 import { isWorldCupHot, worldCupPhase, daysUntilWorldCup } from "./lib/worldCup";
 import dynamic from "next/dynamic";
 const TeamPanel = dynamic(() => import("./components/TeamPanel"), { ssr: false });
@@ -13,6 +13,7 @@ import ResultsTab from "./components/ResultsTab";
 import ConfigTab from "./components/ConfigTab";
 import TransfersTab from "./components/TransfersTab";
 import WorldCupTab from "./components/WorldCupTab";
+import TVTab from "./components/TVTab";
 import MonClubTab from "./components/MonClubTab";
 import RefereesL1Tab from "./components/RefereesL1Tab";
 import NewsBanner from "./components/NewsBanner";
@@ -49,7 +50,7 @@ interface StandingsData {
   updatedAt: string;
 }
 
-type TabId = "ligue1" | "ligue2" | "worldcup" | "monclub" | "predictions" | "results" | "emotional" | "config";
+type TabId = "ligue1" | "ligue2" | "worldcup" | "tv" | "monclub" | "predictions" | "results" | "emotional" | "config";
 type L1SubTab = "classement" | "mercato" | "joueurs" | "transfert" | "arbitres";
 
 const ZONE_CONFIG = [
@@ -462,6 +463,7 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode; shortLabel?: stri
   { id: "ligue1",      label: "Ligue 1",            icon: <Trophy size={14} />,          shortLabel: "L1" },
   { id: "ligue2",      label: "Ligue 2",            icon: <Trophy size={14} />,          shortLabel: "L2" },
   { id: "worldcup",    label: "Coupe du Monde",      icon: <Globe size={14} />,           shortLabel: "CdM" },
+  { id: "tv",          label: "TV",                   icon: <Television size={14} />,      shortLabel: "TV" },
   { id: "monclub",     label: "Mon Club",            icon: <Shield size={14} />,          shortLabel: "Mon Club" },
   { id: "predictions", label: "AI FootPredictom",   icon: <Lightning size={14} />,             shortLabel: "AI Foot" },
   { id: "results",     label: "Résultats",           icon: <Target size={14} /> },
@@ -949,6 +951,7 @@ export default function Home() {
         )}
 
         {tab === "worldcup" && <WorldCupTab />}
+        {tab === "tv" && <TVTab />}
         {tab === "monclub" && <MonClubTab />}
         {tab === "predictions" && (user ? <PredictionsTab /> : <AuthGate label="AI FootPredictom" icon={<Lightning size={16} className="inline" style={{ color: "#3b82f6" }} />} />)}
         {tab === "results" && <ResultsTab />}

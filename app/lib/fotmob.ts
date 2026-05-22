@@ -168,6 +168,81 @@ export function fetchFotMobLigue1(): Promise<FotMobLeagueData> {
   return fetchFotMobLeague("https://www.fotmob.com/leagues/53/table/ligue-1");
 }
 
+// ── League matches (scheduled fixtures) ───────────────────────────────────────
+
+export interface FmLeagueMatch {
+  id: number;
+  pageUrl: string;
+  home: { id: number; name: string; shortName?: string; score?: number };
+  away: { id: number; name: string; shortName?: string; score?: number };
+  status: {
+    utcTime: string;
+    finished?: boolean;
+    started?: boolean;
+    cancelled?: boolean;
+    scoreStr?: string;
+    reason?: { short?: string; long?: string };
+  };
+  round?: string | number;
+  roundName?: string;
+  tournamentId?: number;
+}
+
+interface FmMatchesShape {
+  props: {
+    pageProps: {
+      matches?: {
+        data?: {
+          allMatches?: FmLeagueMatch[];
+          fixtures?: FmLeagueMatch[];
+        };
+        fixtures?: FmLeagueMatch[];
+        allMatches?: FmLeagueMatch[];
+      };
+      overview?: {
+        leagueOverviewMatches?: FmLeagueMatch[];
+      };
+      // Newer FotMob shapes nest the schedule inside the table block under
+      // `matches.data.allMatches`. We try several paths and return the first
+      // non-empty array we find — keeps this resilient to FotMob shipping
+      // tiny shape tweaks every few weeks.
+      [k: string]: unknown;
+    };
+  };
+}
+
+/** Extract a list of league matches from FotMob's __NEXT_DATA__. Looks at
+ *  several known shapes (the FotMob frontend has shipped at least 3 in the
+ *  last 12 months) and returns the first non-empty result.
+ *
+ *  Returns SCHEDULED + LIVE + FINISHED matches; callers filter by
+ *  status.utcTime / status.finished as needed. */
+async function fetchFotMobLeagueMatches(leagueId: number, slug: string): Promise<FmLeagueMatch[]> {
+  const html = await fetchPage(`https://www.fotmob.com/leagues/${leagueId}/matches/${slug}`);
+  const data = parseNextData(html) as unknown as FmMatchesShape | null;
+  if (!data) return [];
+  const pp = data.props.pageProps;
+  const candidates: FmLeagueMatch[][] = [
+    pp.matches?.data?.allMatches ?? [],
+    pp.matches?.data?.fixtures ?? [],
+    pp.matches?.allMatches ?? [],
+    pp.matches?.fixtures ?? [],
+    pp.overview?.leagueOverviewMatches ?? [],
+  ];
+  for (const arr of candidates) if (arr.length) return arr;
+  return [];
+}
+
+/** Ligue 2 fixtures (all statuses). Slug must match FotMob's URL routing. */
+export function fetchFotMobLigue2Matches(): Promise<FmLeagueMatch[]> {
+  return fetchFotMobLeagueMatches(110, "ligue-2");
+}
+
+/** Ligue 1 fixtures (all statuses). */
+export function fetchFotMobLigue1Matches(): Promise<FmLeagueMatch[]> {
+  return fetchFotMobLeagueMatches(53, "ligue-1");
+}
+
 /** FotMob team logo URL by team id.
  * Note: the "_medium" variant returns 403 on the public CDN. Only the
  * size-less `{id}.png` (full size) and `_xsmall` variants are reliably public. */
