@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchFotMobLigue2, fotmobCrest, fotmobFormString } from "@/app/lib/fotmob";
+import type { Standing } from "@/app/lib/types";
 
 export const revalidate = 60; // revalidate every 60s
 
@@ -8,20 +9,6 @@ const API_KEY = process.env.FOOTBALL_DATA_API_KEY;
 // football-data.org competition code).
 const DEFAULT_COMPETITION = "FL1";
 const ALLOWED_COMPETITIONS = new Set(["FL1", "FL2"]);
-
-interface FootballEntry {
-  position: number;
-  team: { id: number; name: string; shortName: string; tla: string; crest: string };
-  playedGames: number;
-  won: number;
-  draw: number;
-  lost: number;
-  points: number;
-  goalsFor: number;
-  goalsAgainst: number;
-  goalDifference: number;
-  form: string | null;
-}
 
 interface FdMatch {
   status: string;
@@ -148,7 +135,7 @@ export async function GET(req: NextRequest) {
     }
 
     const data = await standingsRes.json();
-    const table: FootballEntry[] = data.standings?.[0]?.table ?? [];
+    const table: Standing[] = data.standings?.[0]?.table ?? [];
 
     // Compute form from match results when the API doesn't provide it
     let formMap = new Map<number, string>();

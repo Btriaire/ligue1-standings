@@ -1,43 +1,22 @@
 import { NextResponse } from "next/server";
 import { formScore01 } from "@/app/lib/scoring";
+import type { Team, Standing } from "@/app/lib/types";
 
 const API_KEY = process.env.FOOTBALL_DATA_API_KEY;
 const COMPETITION = "FL1";
 
 export const revalidate = 300;
 
-interface TeamRaw {
-  id: number;
-  name: string;
-  shortName: string;
-  tla: string;
-  crest: string;
-}
-
-interface StandingEntry {
-  position: number;
-  team: TeamRaw;
-  playedGames: number;
-  won: number;
-  draw: number;
-  lost: number;
-  points: number;
-  goalsFor: number;
-  goalsAgainst: number;
-  goalDifference: number;
-  form: string;
-}
-
 interface MatchRaw {
   id: number;
   utcDate: string;
   matchday: number;
-  homeTeam: TeamRaw;
-  awayTeam: TeamRaw;
+  homeTeam: Team;
+  awayTeam: Team;
   score: { fullTime: { home: number | null; away: number | null } };
 }
 
-function teamStrength(s: StandingEntry): number {
+function teamStrength(s: Standing): number {
   const ppg = s.playedGames > 0 ? s.points / s.playedGames : 0;
   const gdpg = s.playedGames > 0 ? s.goalDifference / s.playedGames : 0;
   const form = formScore01(s.form);
@@ -45,7 +24,7 @@ function teamStrength(s: StandingEntry): number {
   return 0.35 * (ppg / 3) + 0.25 * ((gdpg + 3) / 6) + 0.25 * form + 0.15 * posScore;
 }
 
-function predict(home: StandingEntry, away: StandingEntry) {
+function predict(home: Standing, away: Standing) {
   const HOME_ADVANTAGE = 0.08;
   const homeStr = Math.min(1, Math.max(0, teamStrength(home) + HOME_ADVANTAGE));
   const awayStr = Math.min(1, Math.max(0, teamStrength(away)));
@@ -104,8 +83,8 @@ export async function GET() {
       matchesRes.json(),
     ]);
 
-    const table: StandingEntry[] = standingsData.standings?.[0]?.table ?? [];
-    const standingMap = new Map(table.map((s: StandingEntry) => [s.team.id, s]));
+    const table: Standing[] = standingsData.standings?.[0]?.table ?? [];
+    const standingMap = new Map(table.map((s: Standing) => [s.team.id, s]));
 
     const upcomingMatches: MatchRaw[] = matchesData.matches ?? [];
     const nextMatchday = upcomingMatches[0]?.matchday ?? null;

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { Team, FinalScore } from "@/app/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -27,9 +28,9 @@ export interface LiveMatch {
   status: string;       // ESPN status name (e.g. STATUS_IN_PROGRESS)
   statusLabel: string;  // Short human label ("45'", "MT", "FT", "20:00")
   isLive: boolean;
-  homeTeam: { id: number; name: string; shortName: string; tla: string; crest: string };
-  awayTeam: { id: number; name: string; shortName: string; tla: string; crest: string };
-  score: { home: number; away: number };
+  homeTeam: Team;
+  awayTeam: Team;
+  score: FinalScore;
 }
 
 const LIVE_STATES = new Set(["STATUS_IN_PROGRESS", "STATUS_HALFTIME", "STATUS_FIRST_HALF", "STATUS_SECOND_HALF", "STATUS_END_PERIOD"]);
