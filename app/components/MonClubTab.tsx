@@ -15,6 +15,7 @@ import { NATIONS, nationsInGroup, type Nation, isWorldCupHot, WC2026_START } fro
 import { PlayerRow, PlayerEntry, POS_ORDER, POS_FR as POS_FR_PLURAL, POS_COL } from "./PlayerCard";
 import { PlayerPhoto } from "./PlayerCard";
 import FootPitch from "./FootPitch";
+import HexRadar, { type HexRadarAxis } from "./HexRadar";
 
 /* ══════════════════════════════════════════ CLUBS ══ */
 
@@ -189,7 +190,7 @@ function ConfrontationSpiderChart({ me, opp, myColor }: {
   const c01 = (v: number) => Math.max(0, Math.min(1, v));
   const pg = (n: number, gp: number) => (gp > 0 ? n / gp : 0);
   const rank = (pos: number) => c01(1 - (pos - 1) / 19);
-  const axes = [
+  const axes: HexRadarAxis[] = [
     { label: "Attaque",    h: c01(pg(me.goalsFor, me.playedGames) / 3),
                             a: c01(pg(opp.goalsFor, opp.playedGames) / 3) },
     { label: "Défense",    h: c01(1 - pg(me.goalsAgainst, me.playedGames) / 3),
@@ -202,14 +203,6 @@ function ConfrontationSpiderChart({ me, opp, myColor }: {
                             a: c01((opp.goalDifference + 40) / 80) },
     { label: "Rang",       h: rank(me.position), a: rank(opp.position) },
   ];
-  const cx = 110, cy = 100, R = 70, N = axes.length;
-  const ang = (i: number) => -Math.PI / 2 + (i * 2 * Math.PI) / N;
-  const pt = (i: number, r: number) => [cx + r * Math.cos(ang(i)), cy + r * Math.sin(ang(i))];
-  const rings = [0.25, 0.5, 0.75, 1].map(t =>
-    Array.from({ length: N }, (_, i) => pt(i, R * t).join(",")).join(" ")
-  );
-  const spokes = Array.from({ length: N }, (_, i) => pt(i, R));
-  const poly = (vs: number[]) => vs.map((v, i) => pt(i, R * v).join(",")).join(" ");
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
@@ -225,27 +218,7 @@ function ConfrontationSpiderChart({ me, opp, myColor }: {
           </span>
         </div>
       </div>
-      <svg viewBox="0 0 220 200" className="w-full h-40">
-        {rings.map((p, i) => <polygon key={i} points={p} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={0.5}/>)}
-        {spokes.map((p, i) => <line key={i} x1={cx} y1={cy} x2={p[0]} y2={p[1]} stroke="rgba(255,255,255,0.06)" strokeWidth={0.5}/>)}
-        <polygon points={poly(axes.map(a => a.a))} fill="rgba(167,139,250,0.22)" stroke="#a78bfa" strokeWidth={1.5} strokeLinejoin="round"/>
-        <polygon points={poly(axes.map(a => a.h))} fill={`${myColor}38`} stroke={myColor} strokeWidth={1.5} strokeLinejoin="round"/>
-        {axes.map((a, i) => {
-          const ph = pt(i, R * a.h), pa = pt(i, R * a.a);
-          return (
-            <g key={i}>
-              <circle cx={pa[0]} cy={pa[1]} r={2} fill="#a78bfa"/>
-              <circle cx={ph[0]} cy={ph[1]} r={2} fill={myColor}/>
-            </g>
-          );
-        })}
-        {axes.map((a, i) => {
-          const [lx, ly] = pt(i, R + 14);
-          const ax = ang(i);
-          const anchor = Math.cos(ax) > 0.3 ? "start" : Math.cos(ax) < -0.3 ? "end" : "middle";
-          return <text key={i} x={lx} y={ly + 3} textAnchor={anchor} fontSize="9" fill="#9aa7ba" fontWeight="600">{a.label}</text>;
-        })}
-      </svg>
+      <HexRadar axes={axes} homeColor={myColor} awayColor="#a78bfa" className="w-full h-40" />
     </div>
   );
 }

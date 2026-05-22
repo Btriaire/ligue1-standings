@@ -8,6 +8,7 @@ import FunFact from "./FunFact";
 import LoadingBar from "./LoadingBar";
 import { isWorldCupHot } from "@/app/lib/worldCup";
 import { formScore01, formMomentum } from "@/app/lib/scoring";
+import HexRadar, { type HexRadarAxis } from "./HexRadar";
 
 interface TeamPred {
   id: number;
@@ -284,7 +285,7 @@ function TeamSpiderChart({ match, pred }: { match: MatchPrediction; pred: Predic
   // Position rank → 0..1 (1st = 1.0, 20th = 0.05). Total teams unknown, use 20.
   const rank = (pos: number) => clamp01(1 - (pos - 1) / 19);
 
-  const axes: Array<{ label: string; h: number; a: number }> = [
+  const axes: HexRadarAxis[] = [
     { label: "Attaque",
       h: clamp01(perGame(home.goalsFor, home.playedGames) / 3),
       a: clamp01(perGame(away.goalsFor, away.playedGames) / 3) },
@@ -305,23 +306,6 @@ function TeamSpiderChart({ match, pred }: { match: MatchPrediction; pred: Predic
       a: rank(away.position) },
   ];
 
-  // Geometry — 220×200 viewBox, hexagon centred at (110, 100), max radius 70.
-  const cx = 110, cy = 100, R = 70;
-  const N = axes.length;
-  const angle = (i: number) => -Math.PI / 2 + (i * 2 * Math.PI) / N;
-  const point = (i: number, r: number) => [cx + r * Math.cos(angle(i)), cy + r * Math.sin(angle(i))];
-
-  // Concentric rings for the grid (4 levels).
-  const rings = [0.25, 0.5, 0.75, 1].map(t =>
-    Array.from({ length: N }, (_, i) => point(i, R * t).join(",")).join(" ")
-  );
-  // Spokes from centre.
-  const spokes = Array.from({ length: N }, (_, i) => point(i, R));
-
-  // Polygon for each team.
-  const polyPoints = (vals: number[]) =>
-    vals.map((v, i) => point(i, R * v).join(",")).join(" ");
-
   return (
     <div className="mt-4 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
       <div className="flex items-center justify-between mb-2">
@@ -339,45 +323,7 @@ function TeamSpiderChart({ match, pred }: { match: MatchPrediction; pred: Predic
           </span>
         </div>
       </div>
-      <svg viewBox="0 0 220 200" className="w-full h-44">
-        {/* Grid rings */}
-        {rings.map((pts, i) => (
-          <polygon key={i} points={pts} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={0.5} />
-        ))}
-        {/* Spokes */}
-        {spokes.map((p, i) => (
-          <line key={i} x1={cx} y1={cy} x2={p[0]} y2={p[1]} stroke="rgba(255,255,255,0.06)" strokeWidth={0.5} />
-        ))}
-        {/* Away polygon (back) */}
-        <polygon points={polyPoints(axes.map(a => a.a))}
-          fill="rgba(167,139,250,0.22)" stroke="#a78bfa" strokeWidth={1.5} strokeLinejoin="round" />
-        {/* Home polygon (front) */}
-        <polygon points={polyPoints(axes.map(a => a.h))}
-          fill="rgba(0,212,255,0.22)" stroke="#00d4ff" strokeWidth={1.5} strokeLinejoin="round" />
-        {/* Axis dots */}
-        {axes.map((a, i) => {
-          const ph = point(i, R * a.h);
-          const pa = point(i, R * a.a);
-          return (
-            <g key={i}>
-              <circle cx={pa[0]} cy={pa[1]} r={2} fill="#a78bfa" />
-              <circle cx={ph[0]} cy={ph[1]} r={2} fill="#00d4ff" />
-            </g>
-          );
-        })}
-        {/* Axis labels */}
-        {axes.map((a, i) => {
-          const labelR = R + 14;
-          const [lx, ly] = point(i, labelR);
-          // Anchor text by angle so labels don't overlap the polygon.
-          const ang = angle(i);
-          const anchor = Math.cos(ang) > 0.3 ? "start" : Math.cos(ang) < -0.3 ? "end" : "middle";
-          return (
-            <text key={i} x={lx} y={ly + 3} textAnchor={anchor}
-              fontSize="9" fill="#9aa7ba" fontWeight="600">{a.label}</text>
-          );
-        })}
-      </svg>
+      <HexRadar axes={axes} homeColor="#00d4ff" awayColor="#a78bfa" />
     </div>
   );
 }
