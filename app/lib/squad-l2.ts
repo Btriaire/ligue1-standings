@@ -10,17 +10,23 @@
 
 import { fetchFotMobTeam, fotmobCrest, type FmSquadMember } from "@/app/lib/fotmob";
 
+// Normalise FotMob's position desc into the canonical L1-side names used by
+// PlayerCard / ClubSection / club page logic. Keeps L1 + L2 PlayerEntries
+// semantically uniform so downstream code (`p.position === "Goalkeeper"`,
+// `POS_FR[p.position]`, position-grouped renderers) just works regardless
+// of where the player came from.
 function mapPosition(desc: string | undefined, role: string | undefined): string {
   if (!desc) {
-    if (role === "keeper_long" || role === "keeper") return "GK";
-    return "MF";
+    if (role === "keeper_long" || role === "keeper") return "Goalkeeper";
+    return "Midfielder";
   }
   const d = desc.toUpperCase();
-  if (d === "GK") return "GK";
-  if (d.startsWith("CB") || d === "LB" || d === "RB" || d === "LWB" || d === "RWB") return "DF";
-  if (d.startsWith("DM") || d.startsWith("CM") || d.startsWith("AM") || d === "LM" || d === "RM") return "MF";
-  if (d.startsWith("ST") || d === "CF" || d === "LW" || d === "RW") return "FW";
-  return "MF";
+  if (d === "GK") return "Goalkeeper";
+  if (d.startsWith("CB") || d === "LB" || d === "RB" || d === "LWB" || d === "RWB") return "Defender";
+  if (d.startsWith("DM") || d.startsWith("CM") || d.startsWith("AM") || d === "LM" || d === "RM") return "Midfielder";
+  if (d === "LW" || d === "RW") return "Winger";
+  if (d.startsWith("ST") || d === "CF") return "Centre-Forward";
+  return "Midfielder";
 }
 
 export interface L2Player {

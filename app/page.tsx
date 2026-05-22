@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { ArrowsClockwise, TrendUp, TrendDown, Minus, Trophy, WifiHigh, WifiSlash, Clock, Lightning, ChartBar, Shield, Pulse, Globe, GearSix, Target, ArrowsLeftRight, CaretRight, Users, Lock, SignIn, SignOut, Fire, Sun, MoonStars } from "@phosphor-icons/react";
+import { ArrowsClockwise, TrendUp, TrendDown, Minus, Trophy, WifiHigh, WifiSlash, Clock, Lightning, ChartBar, Shield, Pulse, Globe, GearSix, Target, ArrowsLeftRight, CaretRight, Users, Lock, SignIn, SignOut, Fire, Sun, MoonStars, Television } from "@phosphor-icons/react";
 import { isWorldCupHot, worldCupPhase, daysUntilWorldCup } from "./lib/worldCup";
 import dynamic from "next/dynamic";
 const TeamPanel = dynamic(() => import("./components/TeamPanel"), { ssr: false });
@@ -13,6 +13,7 @@ import ResultsTab from "./components/ResultsTab";
 import ConfigTab from "./components/ConfigTab";
 import TransfersTab from "./components/TransfersTab";
 import WorldCupTab from "./components/WorldCupTab";
+import TVTab from "./components/TVTab";
 import MonClubTab from "./components/MonClubTab";
 import RefereesL1Tab from "./components/RefereesL1Tab";
 import NewsBanner from "./components/NewsBanner";
@@ -49,7 +50,7 @@ interface StandingsData {
   updatedAt: string;
 }
 
-type TabId = "ligue1" | "ligue2" | "worldcup" | "monclub" | "predictions" | "results" | "emotional" | "config";
+type TabId = "ligue1" | "ligue2" | "worldcup" | "tv" | "monclub" | "predictions" | "results" | "emotional" | "config";
 type L1SubTab = "classement" | "mercato" | "joueurs" | "transfert" | "arbitres";
 
 const ZONE_CONFIG = [
@@ -462,6 +463,7 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode; shortLabel?: stri
   { id: "ligue1",      label: "Ligue 1",            icon: <Trophy size={14} />,          shortLabel: "L1" },
   { id: "ligue2",      label: "Ligue 2",            icon: <Trophy size={14} />,          shortLabel: "L2" },
   { id: "worldcup",    label: "Coupe du Monde",      icon: <Globe size={14} />,           shortLabel: "CdM" },
+  { id: "tv",          label: "TV",                   icon: <Television size={14} />,      shortLabel: "TV" },
   { id: "monclub",     label: "Mon Club",            icon: <Shield size={14} />,          shortLabel: "Mon Club" },
   { id: "predictions", label: "AI FootPredictom",   icon: <Lightning size={14} />,             shortLabel: "AI Foot" },
   { id: "results",     label: "Résultats",           icon: <Target size={14} /> },
@@ -534,6 +536,52 @@ function MonochromeToggle() {
       }}>
       {mono ? <MoonStars size={12} weight="fill" /> : <Sun size={12} weight="fill" />}
       <span className="hidden sm:inline">{mono ? "Mono" : "Couleur"}</span>
+    </button>
+  );
+}
+
+// Light-mode toggle. Flips the whole document from dark to light via a CSS
+// filter on <html>.light-mode (defined in globals.css). The filter approach
+// avoids touching the hundreds of inline-style colours scattered across the
+// codebase. Images/photos/crests carry `data-keep-color` (or are <img>/<video>)
+// and stay un-inverted. Mutually exclusive with monochrome mode — turning one
+// on turns the other off so the filters don't stack into something illegible.
+function LightModeToggle() {
+  const [light, setLight] = useState(false);
+  useEffect(() => {
+    const saved = typeof window !== "undefined" && localStorage.getItem("ui:light") === "1";
+    if (saved) {
+      document.documentElement.classList.add("light-mode");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLight(true);
+    }
+  }, []);
+  const toggle = () => {
+    const next = !light;
+    setLight(next);
+    document.documentElement.classList.toggle("light-mode", next);
+    if (next) {
+      // Turning on light: drop monochrome so filters don't stack.
+      document.documentElement.classList.remove("monochrome");
+      try { localStorage.setItem("ui:monochrome", "0"); } catch {}
+    }
+    try { localStorage.setItem("ui:light", next ? "1" : "0"); } catch {}
+  };
+  return (
+    <button
+      onClick={toggle}
+      data-mono-keep
+      data-keep-color
+      title={light ? "Mode sombre" : "Mode clair"}
+      aria-label={light ? "Activer le mode sombre" : "Activer le mode clair"}
+      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 active:scale-95"
+      style={{
+        background: light ? "rgba(251,191,36,0.12)" : "rgba(148,163,184,0.10)",
+        border: `1px solid ${light ? "rgba(251,191,36,0.32)" : "rgba(148,163,184,0.30)"}`,
+        color: light ? "#eab308" : "#cbd5e1",
+      }}>
+      {light ? <Sun size={12} weight="fill" /> : <MoonStars size={12} weight="fill" />}
+      <span className="hidden sm:inline">{light ? "Clair" : "Sombre"}</span>
     </button>
   );
 }
@@ -649,6 +697,7 @@ export default function Home() {
 
             <LiveDirectButton />
 
+            <LightModeToggle />
             <MonochromeToggle />
 
             <button onClick={() => fetchStandings(true)} disabled={refreshing}
@@ -902,6 +951,7 @@ export default function Home() {
         )}
 
         {tab === "worldcup" && <WorldCupTab />}
+        {tab === "tv" && <TVTab />}
         {tab === "monclub" && <MonClubTab />}
         {tab === "predictions" && (user ? <PredictionsTab /> : <AuthGate label="AI FootPredictom" icon={<Lightning size={16} className="inline" style={{ color: "#3b82f6" }} />} />)}
         {tab === "results" && <ResultsTab />}
