@@ -59,3 +59,22 @@ export interface Standing {
   goalDifference: number;
   form: string | null;
 }
+
+/** Inner team shape inside a Match envelope. id/name/crest are guaranteed;
+ * shortName and tla may be missing for normalised FotMob/ESPN data. */
+export type MatchTeam = TeamMini & {
+  shortName?: string;
+  tla?: string;
+};
+
+/** A normalised match for client rendering. `score` is nullable so this
+ * shape covers scheduled, in-progress, and finished matches. */
+export interface Match {
+  id: number;
+  date: string;
+  matchday: number;
+  status: string;
+  homeTeam: MatchTeam;
+  awayTeam: MatchTeam;
+  score: Score;
+}

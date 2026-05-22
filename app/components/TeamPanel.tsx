@@ -4,38 +4,7 @@ import { useEffect, useState } from "react";
 import { CaretRight, Clock } from "@phosphor-icons/react";
 import Link from "next/link";
 import Tooltip from "./Tooltip";
-
-interface TeamInfo {
-  id: number;
-  name: string;
-  shortName: string;
-  tla: string;
-  crest: string;
-}
-
-interface Standing {
-  position: number;
-  team: TeamInfo;
-  playedGames: number;
-  won: number;
-  draw: number;
-  lost: number;
-  points: number;
-  goalsFor: number;
-  goalsAgainst: number;
-  goalDifference: number;
-  form: string;
-}
-
-interface Match {
-  id: number;
-  date: string;
-  matchday: number;
-  status: string;
-  homeTeam: { id: number; name: string; shortName?: string; crest: string };
-  awayTeam: { id: number; name: string; shortName?: string; crest: string };
-  score: { home: number | null; away: number | null };
-}
+import type { Standing, Match } from "@/app/lib/types";
 
 interface TeamData {
   recent: Match[];
