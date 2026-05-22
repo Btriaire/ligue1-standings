@@ -78,3 +78,37 @@ export interface Match {
   awayTeam: MatchTeam;
   score: Score;
 }
+
+/** Single goal event extracted from ESPN scoreboards (results API + cron
+ * ingestion). The narrow `type` union mirrors what ESPN exposes. */
+export interface GoalEvent {
+  minute: number | null;
+  scorer: string | null;
+  assist: string | null;
+  type: "REGULAR" | "PENALTY" | "OWN_GOAL";
+}
+
+/** Single card event extracted from ESPN scoreboards. */
+export interface CardEvent {
+  minute: number | null;
+  player: string | null;
+  card: "YELLOW_CARD" | "RED_CARD";
+}
+
+/** A finished match as returned by `/api/results` and persisted by the
+ * results ingestion cron. Home/away teams use the full `Team` shape since
+ * ESPN data always carries a TLA-equivalent abbreviation. */
+export interface ResultMatch {
+  id: number;
+  date: string;
+  matchday: number;
+  season: string;
+  homeTeam: Team;
+  awayTeam: Team;
+  score: FinalScore;
+  result: "home" | "away" | "draw";
+  homeGoals: GoalEvent[];
+  awayGoals: GoalEvent[];
+  homeCards: CardEvent[];
+  awayCards: CardEvent[];
+}

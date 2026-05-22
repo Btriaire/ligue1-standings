@@ -13,6 +13,7 @@ import {
 import { clubProfile, clubStadiumPhoto, commonsUrl, personPhoto, isL2, type ClubProfile } from "@/app/lib/clubProfile";
 import { formScore01 } from "@/app/lib/scoring";
 import ModalShell from "@/app/components/ModalShell";
+import type { Standing } from "@/app/lib/types";
 
 // ── Static data ────────────────────────────────────────────────────────────────
 
@@ -245,19 +246,10 @@ interface BuzzData {
   maxAgeDays: number;
 }
 
-interface StandingEntry {
-  position: number;
-  team: { id: number; name: string; shortName: string; crest: string };
-  playedGames: number;
-  won: number;
-  draw: number;
-  lost: number;
-  points: number;
-  goalsFor: number;
-  goalsAgainst: number;
-  goalDifference: number;
-  form: string;
-}
+// Canonical league-row shape (see app/lib/types.ts). We only consume position,
+// team identity, points, GD numerator/denominator and form here, but binding
+// to the canonical type means new fields from /api/standings just work.
+type StandingEntry = Standing;
 
 interface EmotionalEntry {
   teamId: number; emotionalScore: number;

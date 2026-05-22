@@ -1,37 +1,10 @@
 // Shared ESPN Ligue 1 scoreboard fetch + parse.
 // Used by /api/results (live read) and /api/cron/ingest-results (persistence).
 
-export interface ResultMatch {
-  id: number;
-  date: string;            // ISO 8601
-  matchday: number;        // ESPN doesn't expose it → 0
-  season: string;          // derived from date, e.g. "2024-2025"
-  homeTeam: TeamRef;
-  awayTeam: TeamRef;
-  score: { home: number; away: number };
-  result: "home" | "away" | "draw";
-  homeGoals: GoalEvent[];
-  awayGoals: GoalEvent[];
-  homeCards: CardEvent[];
-  awayCards: CardEvent[];
-}
+import type { Team, GoalEvent, CardEvent, ResultMatch } from "./types";
 
-export interface TeamRef {
-  id: number; name: string; shortName: string; tla: string; crest: string;
-}
-
-export interface GoalEvent {
-  minute: number | null;
-  scorer: string | null;
-  assist: string | null;
-  type: "REGULAR" | "PENALTY" | "OWN_GOAL";
-}
-
-export interface CardEvent {
-  minute: number | null;
-  player: string | null;
-  card: "YELLOW_CARD" | "RED_CARD";
-}
+// Re-export so callers that already imported from this module keep working.
+export type { Team, GoalEvent, CardEvent, ResultMatch };
 
 interface EspnAthlete { displayName: string }
 interface EspnDetail {
@@ -125,7 +98,7 @@ export async function fetchEspnResults(daysBack = 28, league: EspnLeague = "fra.
       const homeCards = details.filter(d => !d.scoringPlay && (d.yellowCard || d.redCard) && d.team?.id === home.team.id).map(mapCard);
       const awayCards = details.filter(d => !d.scoringPlay && (d.yellowCard || d.redCard) && d.team?.id === away.team.id).map(mapCard);
 
-      const teamRef = (c: EspnCompetitor): TeamRef => ({
+      const teamRef = (c: EspnCompetitor): Team => ({
         id: parseInt(c.team.id),
         name: c.team.displayName,
         shortName: c.team.shortDisplayName,

@@ -4,14 +4,13 @@ import { useEffect, useState } from "react";
 import { CheckCircle, XCircle, Minus, Clock, Target, DownloadSimple, Trophy, Globe, Calendar } from "@phosphor-icons/react";
 import { loadPredictions, downloadCSV, SavedPrediction } from "@/app/lib/predictions-store";
 import LoadingBar from "./LoadingBar";
+import type { Standing, ResultMatch, GoalEvent, CardEvent } from "@/app/lib/types";
 
 // ── Standings + prediction logic (mirrored from club page) ────────────────────
-interface StandingEntry {
-  position: number;
-  team: { id: number; name: string; shortName: string; tla: string; crest: string };
-  points: number; goalsFor: number; goalsAgainst: number;
-  won: number; draw: number; lost: number; playedGames: number;
-}
+// `Standing` is the canonical league-row shape (see app/lib/types.ts). We only
+// touch a subset here (team identity + points + GD numerator/denominator), but
+// keeping the canonical type means a future field addition just works.
+type StandingEntry = Standing;
 
 // Results come from ESPN, standings from football-data.org → different team IDs.
 // Match by normalised name instead.
@@ -54,32 +53,9 @@ function computePrediction(homeS: StandingEntry, awayS: StandingEntry) {
   return { homeProb: hP, drawProb: dP, awayProb: aP, winner };
 }
 
-interface GoalEntry {
-  minute: number | null;
-  scorer: string | null;
-  assist: string | null;
-  type: string;
-}
-
-interface CardEntry {
-  minute: number | null;
-  player: string | null;
-  card: "YELLOW_CARD" | "RED_CARD";
-}
-
-interface ResultMatch {
-  id: number;
-  date: string;
-  matchday: number;
-  homeTeam: { id: number; name: string; shortName: string; tla: string; crest: string };
-  awayTeam: { id: number; name: string; shortName: string; tla: string; crest: string };
-  score: { home: number; away: number };
-  result: "home" | "away" | "draw";
-  homeGoals: GoalEntry[];
-  awayGoals: GoalEntry[];
-  homeCards?: CardEntry[];
-  awayCards?: CardEntry[];
-}
+// Aliases kept so existing references inside this file don't need renaming.
+type GoalEntry = GoalEvent;
+type CardEntry = CardEvent;
 
 interface ResultsData { matches: ResultMatch[]; count: number }
 

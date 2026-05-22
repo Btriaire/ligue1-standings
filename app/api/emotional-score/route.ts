@@ -609,7 +609,11 @@ export async function GET() {
 }
 
 interface TmPlayer { marketValue?: number; status?: string; name: string }
-interface StandingEntry { position: number; form?: string; team: { id: number; name: string; shortName: string; tla: string; crest: string } }
+// Subset of canonical `Standing` actually consumed here (position + form +
+// team identity). Kept as a separate alias so this file's surface stays
+// self-documenting; the shapes are intentionally compatible with the
+// `Standing` exported from app/lib/types.ts.
+type StandingEntry = Pick<import("@/app/lib/types").Standing, "position" | "form" | "team">;
 interface ArticleItem { title: string; pubDate: string; source: string; sentiment: "positive" | "negative" | "neutral" }
 interface SourceBreakdown { source: string; articleCount: number; positive: number; negative: number; score: number }
 interface RSSItem { title: string; pubDate: string; source: string; description?: string; link?: string }
