@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { TEAM_TM_MAP, UNDERSTAT_TEAM_MAP } from "@/app/lib/teamMapping";
 import { isL2 } from "@/app/lib/clubProfile";
+import { buildL2SquadResponse } from "@/app/lib/squad-l2";
 import { getAdminFirestore } from "@/app/lib/firebase-admin";
 
 const API_KEY = process.env.FOOTBALL_DATA_API_KEY;
@@ -399,20 +400,15 @@ interface SofaCache {
 }
 
 // L2 IDs live in `app/lib/clubProfile.ts` (single source of truth). We delegate
-// L2 squads to the FotMob-backed route below because football-data and
-// Transfermarkt don't cover Ligue 2 on our tier.
-export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+// L2 squads to buildL2SquadResponse() because football-data and Transfermarkt
+// don't cover Ligue 2 on our tier.
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const teamId = parseInt(id);
 
+  // Direct call into the shared builder — no same-origin HTTP hop.
   if (isL2(teamId)) {
-    // Same-origin proxy — keeps callers using /api/squad/{id} uniformly.
-    const origin = new URL(req.url).origin;
-    const r = await fetch(`${origin}/api/squad-l2/${teamId}`, { next: { revalidate: 3600 } });
-    return new NextResponse(await r.text(), {
-      status: r.status,
-      headers: { "content-type": r.headers.get("content-type") ?? "application/json" },
-    });
+    return NextResponse.json(await buildL2SquadResponse(teamId));
   }
 
   const tmId = TEAM_TM_MAP[teamId];
