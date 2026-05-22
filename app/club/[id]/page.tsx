@@ -13,7 +13,7 @@ import {
 import { clubProfile, clubStadiumPhoto, commonsUrl, personPhoto, isL2, type ClubProfile } from "@/app/lib/clubProfile";
 import { formScore01 } from "@/app/lib/scoring";
 import ModalShell from "@/app/components/ModalShell";
-import type { Standing } from "@/app/lib/types";
+import type { Standing, Match } from "@/app/lib/types";
 
 // ── Static data ────────────────────────────────────────────────────────────────
 
@@ -209,14 +209,13 @@ interface BookingEvent {
   teamId: number;
 }
 
-interface MatchInfo {
-  id: number; date: string; matchday: number; status: string;
-  homeTeam: { id: number; name: string; crest: string };
-  awayTeam: { id: number; name: string; crest: string };
-  score: { home: number | null; away: number | null };
+// Adds football-data.org's match-detail extras (goals + bookings carry a
+// teamId, not an assist string — see GoalEvent/BookingEvent above) on top
+// of the canonical `Match` shape from app/lib/types.ts.
+type MatchInfo = Match & {
   goals?: GoalEvent[];
   bookings?: BookingEvent[];
-}
+};
 
 interface TeamMatches { recent: MatchInfo[]; upcoming: MatchInfo[] }
 
