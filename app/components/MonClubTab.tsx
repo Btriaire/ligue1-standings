@@ -122,15 +122,10 @@ import {
   FAN_CLUBS_L1, FAN_CLUBS_L2, FAN_NATIONS,
   type FanEntry,
 } from "@/app/lib/fanConfig";
+import type { Standing } from "@/app/lib/types";
 
 /* ══════════════════════════════════════════ TYPES ══ */
 
-interface Standing {
-  position:number;
-  team:{ id:number; name:string; shortName:string; tla:string; crest:string };
-  playedGames:number; won:number; draw:number; lost:number;
-  points:number; goalsFor:number; goalsAgainst:number; goalDifference:number; form:string;
-}
 interface SquadPlayer {
   id:string; name:string; position:string; age:number; nationality:string[];
   marketValue:number; usGoals?:number; usAssists?:number;
@@ -169,8 +164,8 @@ function resultForClub(m:RecentResult, c:Club):"V"|"N"|"D"|null {
 }
 const fmtDate = (d:string) => new Date(d).toLocaleDateString("fr-FR",{day:"2-digit",month:"short"});
 const fmtVal  = (v:number) => v>=1_000_000 ? `${(v/1_000_000).toFixed(1)}M€` : v>=1_000 ? `${(v/1_000).toFixed(0)}k€` : `${v}€`;
-function formScore(f:string) {
-  const a=f.split(",").filter(Boolean).slice(-5);
+function formScore(f:string|null|undefined) {
+  const a=(f??"").split(",").filter(Boolean).slice(-5);
   return a.length ? Math.round(a.reduce((s,r)=>s+(r==="W"?3:r==="D"?1:0),0)/(a.length*3)*100) : 50;
 }
 function calcProba(t:Standing,o:Standing):{w:number;d:number;l:number} {
@@ -817,7 +812,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
   },[ficheOpponentId,ficheTeamData]);
 
   const zone    = standing?getZone(standing.position):null;
-  const formFR  = (standing?.form.split(",").filter(Boolean).slice(-5)??[]).map(r=>r==="W"?"V":r==="L"?"D":"N") as ("V"|"N"|"D")[];
+  const formFR  = ((standing?.form ?? "").split(",").filter(Boolean).slice(-5)).map(r=>r==="W"?"V":r==="L"?"D":"N") as ("V"|"N"|"D")[];
   const winRate = standing&&standing.playedGames>0?Math.round(standing.won/standing.playedGames*100):0;
   const progress= Math.round(((standing?.playedGames??0)/34)*100);
 
@@ -1130,7 +1125,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                   const proba=calcProba(standing!,opp);
                   const exp=exPred===idx;
                   const oppZone=getZone(opp.position);
-                  const oppFR=(opp.form.split(",").filter(Boolean).slice(-5)).map(r=>r==="W"?"V":r==="L"?"D":"N") as ("V"|"N"|"D")[];
+                  const oppFR=((opp.form ?? "").split(",").filter(Boolean).slice(-5)).map(r=>r==="W"?"V":r==="L"?"D":"N") as ("V"|"N"|"D")[];
                   const verdict=proba.w>=40?"Favori":proba.w>=33?"Incertain":"Difficile";
                   const vc=proba.w>=40?"#22c55e":proba.w>=33?"#f59e0b":"#f87171";
                   const factors=[
@@ -2322,9 +2317,9 @@ function FicheSection({club,nextMatch,opponentId,ficheTeamData,ficheSquad,mySqua
   const myStanding  = allStandings.find(s=>s.team.id===club.id)??null;
   const oppStanding = allStandings.find(s=>s.team.id===opponentId)??null;
 
-  const oppFormFR = (oppStanding?.form.split(",").filter(Boolean).slice(-5)??[])
+  const oppFormFR = ((oppStanding?.form ?? "").split(",").filter(Boolean).slice(-5))
     .map(r=>r==="W"?"V":r==="L"?"D":"N") as ("V"|"N"|"D")[];
-  const myFormFR  = (myStanding?.form.split(",").filter(Boolean).slice(-5)??[])
+  const myFormFR  = ((myStanding?.form ?? "").split(",").filter(Boolean).slice(-5))
     .map(r=>r==="W"?"V":r==="L"?"D":"N") as ("V"|"N"|"D")[];
 
   const myWinPct  = myStanding&&myStanding.playedGames>0?Math.round(myStanding.won/myStanding.playedGames*100):0;
