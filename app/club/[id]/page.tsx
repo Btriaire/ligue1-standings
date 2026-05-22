@@ -11,6 +11,7 @@ import {
   MagnifyingGlass, ClockClockwise, Sparkle,
 } from "@phosphor-icons/react";
 import { clubProfile, clubStadiumPhoto, commonsUrl, personPhoto, isL2, type ClubProfile } from "@/app/lib/clubProfile";
+import { formScore01 } from "@/app/lib/scoring";
 
 // ── Static data ────────────────────────────────────────────────────────────────
 
@@ -295,16 +296,10 @@ function buzzLabel(score: number) {
 }
 
 // Simplified prediction logic (mirrors /api/predictions)
-function formScore(form: string): number {
-  if (!form) return 0.4;
-  const r = form.split(",").filter(Boolean).slice(-5);
-  const pts = r.reduce((a, x) => a + (x === "W" ? 3 : x === "D" ? 1 : 0), 0);
-  return pts / (r.length * 3);
-}
 function teamStrength(s: StandingEntry): number {
   const ppg = s.playedGames > 0 ? s.points / s.playedGames : 0;
   const gdpg = s.playedGames > 0 ? s.goalDifference / s.playedGames : 0;
-  return 0.35 * (ppg / 3) + 0.25 * ((gdpg + 3) / 6) + 0.25 * formScore(s.form) + 0.15 * ((19 - s.position) / 17);
+  return 0.35 * (ppg / 3) + 0.25 * ((gdpg + 3) / 6) + 0.25 * formScore01(s.form) + 0.15 * ((19 - s.position) / 17);
 }
 function computeMatchPrediction(homeS: StandingEntry, awayS: StandingEntry) {
   const hs = Math.min(1, Math.max(0, teamStrength(homeS) + 0.08));
@@ -1686,8 +1681,9 @@ export default function ClubPage() {
                   {players.map(p => {
                     const inj = p.status?.toLowerCase().includes("injury");
                     const fb = p.formBadge;
-                    // Use pFormScore/pFormColor to avoid shadowing module-level formScore function
-                    // Position-aware form score using datamb metrics
+                    // Position-aware form score using datamb metrics (named
+                    // pFormScore to keep it distinct from the shared
+                    // string-trail formScore01 used by teamStrength above).
                     const pFormScore = (() => {
                       if (inj) return 20;
                       // GK: use save %

@@ -7,6 +7,7 @@ import { upsertPrediction, downloadCSV, loadPredictions } from "@/app/lib/predic
 import FunFact from "./FunFact";
 import LoadingBar from "./LoadingBar";
 import { isWorldCupHot } from "@/app/lib/worldCup";
+import { formScore01, formMomentum } from "@/app/lib/scoring";
 
 interface TeamPred {
   id: number;
@@ -62,27 +63,6 @@ interface ExpertMatch {
 
 // ── Algorithm helpers ─────────────────────────────────────────────────────────
 
-function formScore(form: string | null | undefined): number {
-  if (!form) return 0.4;
-  const results = form.split(",").filter(Boolean).slice(-5);
-  if (results.length === 0) return 0.4;
-  const pts = results.reduce((a, r) => a + (r === "W" ? 3 : r === "D" ? 1 : 0), 0);
-  return pts / (results.length * 3);
-}
-
-function calcFormMomentum(form: string | null | undefined): number {
-  if (!form) return 0;
-  const results = form.split(",").filter(Boolean);
-  if (results.length < 3) return 0;
-  const calc = (rs: string[]) => {
-    if (rs.length === 0) return 0;
-    return rs.reduce((a, r) => a + (r === "W" ? 3 : r === "D" ? 1 : 0), 0) / (rs.length * 3);
-  };
-  const recent3 = calc(results.slice(-3));
-  const all5 = calc(results.slice(-5));
-  return (recent3 - all5) * 0.12; // ±0.12 max
-}
-
 function teamStrengthClient(
   team: TeamPred,
   isHome: boolean,
@@ -91,10 +71,10 @@ function teamStrengthClient(
 ): number {
   const ppg = team.playedGames > 0 ? team.points / team.playedGames : 0;
   const gdpg = team.playedGames > 0 ? (team.goalDifference ?? 0) / team.playedGames : 0;
-  const form = formScore(team.form);
+  const form = formScore01(team.form);
   const posScore = (19 - team.position) / 17;
   const base = 0.35 * (ppg / 3) + 0.25 * ((gdpg + 3) / 6) + 0.25 * form + 0.15 * posScore;
-  const momentum = momentumEnabled ? calcFormMomentum(team.form) : 0;
+  const momentum = momentumEnabled ? formMomentum(team.form) : 0;
   const homeBonus = isHome ? homeAdv / 100 : 0;
   return Math.min(1, Math.max(0, base + momentum + homeBonus));
 }
@@ -254,7 +234,7 @@ function FormMini({ form }: { form: string | null | undefined }) {
 }
 
 function MomentumBadge({ form }: { form: string | null | undefined }) {
-  const momentum = calcFormMomentum(form);
+  const momentum = formMomentum(form);
   if (Math.abs(momentum) < 0.01) return null;
   const isPos = momentum > 0;
   return (
@@ -312,8 +292,8 @@ function TeamSpiderChart({ match, pred }: { match: MatchPrediction; pred: Predic
       h: clamp01(1 - perGame(home.goalsAgainst, home.playedGames) / 3),
       a: clamp01(1 - perGame(away.goalsAgainst, away.playedGames) / 3) },
     { label: "Forme",
-      h: clamp01(formScore(home.form)),
-      a: clamp01(formScore(away.form)) },
+      h: clamp01(formScore01(home.form)),
+      a: clamp01(formScore01(away.form)) },
     { label: "Régularité",
       h: clamp01(home.ppg / 3),
       a: clamp01(away.ppg / 3) },
@@ -671,8 +651,8 @@ function MatchCard({
   const winnerTeam = pred.winner === "home" ? match.homeTeam : pred.winner === "away" ? match.awayTeam : null;
   const expertAgrees = expertMatch && expertMatch.prediction === pred.winner;
 
-  const homeMomentum = calcFormMomentum(match.homeTeam.form);
-  const awayMomentum = calcFormMomentum(match.awayTeam.form);
+  const homeMomentum = formMomentum(match.homeTeam.form);
+  const awayMomentum = formMomentum(match.awayTeam.form);
 
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
@@ -930,8 +910,8 @@ function MatchCard({
             )}
             {formMomentumEnabled && !hasBetclic && (
               <p style={{ color: "#22c55e" }}>
-                Élan : {match.homeTeam.shortName} {calcFormMomentum(match.homeTeam.form) > 0 ? "+" : ""}{Math.round(calcFormMomentum(match.homeTeam.form) * 100)}%
-                · {match.awayTeam.shortName} {calcFormMomentum(match.awayTeam.form) > 0 ? "+" : ""}{Math.round(calcFormMomentum(match.awayTeam.form) * 100)}%
+                Élan : {match.homeTeam.shortName} {formMomentum(match.homeTeam.form) > 0 ? "+" : ""}{Math.round(formMomentum(match.homeTeam.form) * 100)}%
+                · {match.awayTeam.shortName} {formMomentum(match.awayTeam.form) > 0 ? "+" : ""}{Math.round(formMomentum(match.awayTeam.form) * 100)}%
               </p>
             )}
             {useEmotional && homeScore !== null && awayScore !== null && (

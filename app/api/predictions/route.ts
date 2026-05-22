@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { formScore01 } from "@/app/lib/scoring";
 
 const API_KEY = process.env.FOOTBALL_DATA_API_KEY;
 const COMPETITION = "FL1";
@@ -36,17 +37,10 @@ interface MatchRaw {
   score: { fullTime: { home: number | null; away: number | null } };
 }
 
-function formScore(form: string): number {
-  if (!form) return 0.4;
-  const results = form.split(",").filter(Boolean).slice(-5);
-  const pts = results.reduce((a, r) => a + (r === "W" ? 3 : r === "D" ? 1 : 0), 0);
-  return pts / (results.length * 3);
-}
-
 function teamStrength(s: StandingEntry): number {
   const ppg = s.playedGames > 0 ? s.points / s.playedGames : 0;
   const gdpg = s.playedGames > 0 ? s.goalDifference / s.playedGames : 0;
-  const form = formScore(s.form);
+  const form = formScore01(s.form);
   const posScore = (19 - s.position) / 17;
   return 0.35 * (ppg / 3) + 0.25 * ((gdpg + 3) / 6) + 0.25 * form + 0.15 * posScore;
 }
