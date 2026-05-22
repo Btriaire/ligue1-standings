@@ -5,6 +5,7 @@ import { CaretRight, Clock } from "@phosphor-icons/react";
 import Link from "next/link";
 import Tooltip from "./Tooltip";
 import type { Standing, Match } from "@/app/lib/types";
+import { fmtWeekdayDayMonth as fmtShortDate, fmtTime } from "@/app/lib/format";
 
 interface TeamData {
   recent: Match[];
@@ -14,15 +15,6 @@ interface TeamData {
 interface Props {
   standing: Standing;
   zoneColor: string;
-}
-
-function fmtShortDate(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
-}
-function fmtTime(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 }
 
 const RESULT_STYLE: Record<string, { label: string; color: string; bg: string }> = {

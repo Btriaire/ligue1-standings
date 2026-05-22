@@ -8,6 +8,7 @@ import FunFact from "./FunFact";
 import LoadingBar from "./LoadingBar";
 import { isWorldCupHot } from "@/app/lib/worldCup";
 import { formScore01, formMomentum } from "@/app/lib/scoring";
+import { fmtWeekdayDayMonth, fmtTime } from "@/app/lib/format";
 import HexRadar, { type HexRadarAxis } from "./HexRadar";
 
 interface TeamPred {
@@ -211,11 +212,7 @@ function applyEmoCorrection(
 }
 
 function formatDate(dateStr: string) {
-  const d = new Date(dateStr);
-  return {
-    day: d.toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "short" }),
-    time: d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
-  };
+  return { day: fmtWeekdayDayMonth(dateStr), time: fmtTime(dateStr) };
 }
 
 function FormMini({ form }: { form: string | null | undefined }) {

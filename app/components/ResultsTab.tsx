@@ -5,6 +5,7 @@ import { CheckCircle, XCircle, Minus, Clock, Target, DownloadSimple, Trophy, Glo
 import { loadPredictions, downloadCSV, SavedPrediction } from "@/app/lib/predictions-store";
 import LoadingBar from "./LoadingBar";
 import type { Standing, ResultMatch, GoalEvent, CardEvent } from "@/app/lib/types";
+import { fmtWeekdayDayMonthYear, fmtTime } from "@/app/lib/format";
 
 // ── Standings + prediction logic (mirrored from club page) ────────────────────
 // `Standing` is the canonical league-row shape (see app/lib/types.ts). We only
@@ -60,11 +61,7 @@ type CardEntry = CardEvent;
 interface ResultsData { matches: ResultMatch[]; count: number }
 
 function formatDate(dateStr: string) {
-  const d = new Date(dateStr);
-  return {
-    day: d.toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "short", year: "numeric" }),
-    time: d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
-  };
+  return { day: fmtWeekdayDayMonthYear(dateStr), time: fmtTime(dateStr) };
 }
 
 function GoalList({ goals }: { goals: GoalEntry[] }) {

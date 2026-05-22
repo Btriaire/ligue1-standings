@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { X, Calendar, Clock, CaretRight } from "@phosphor-icons/react";
 import type { Standing, Match } from "@/app/lib/types";
+import { fmtDayMonthYear as formatDate, fmtTime as formatTime } from "@/app/lib/format";
 
 interface TeamData {
   recent: Match[];
@@ -12,16 +13,6 @@ interface TeamData {
 interface Props {
   standing: Standing;
   onClose: () => void;
-}
-
-function formatDate(dateStr: string) {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
-}
-
-function formatTime(dateStr: string) {
-  const d = new Date(dateStr);
-  return d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 }
 
 function MatchResult({ match, teamId }: { match: Match; teamId: number }) {

@@ -6,6 +6,7 @@ import { ArrowsClockwise, ArrowSquareOut, TrendUp, TrendDown, Newspaper, CaretDo
 import type { ClubTransfers, TransferItem } from "@/app/api/transfers/route";
 import type { BoardTransfer } from "@/app/api/mercato-board/route";
 import { useConfig } from "@/app/lib/config";
+import { fmtDayMonth, fmtDayMonthYear, fmtTime } from "@/app/lib/format";
 import LoadingBar from "./LoadingBar";
 
 const NewsModal = dynamic(() => import("./NewsModal"), { ssr: false });
@@ -51,34 +52,27 @@ function SourceBadge({ source }: { source: string }) {
   );
 }
 
-function formatDate(raw: string): string {
-  if (!raw) return "";
-  try {
-    const d = new Date(raw);
-    return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
-  } catch { return ""; }
-}
+const formatDate = fmtDayMonth;
 
 // Relative date helper for the Boursier rows ("il y a 3j", "il y a 2 sem").
 // Falls back to absolute date when older than a year.
+//
+// We keep this local (rather than reusing fmtAgo from app/lib/format)
+// because the wording here ("il y a Xj/sem/mois") differs from the compact
+// "Xmin/h/j" labels we use in the live news/fan lists. Mixing them would
+// surprise readers — the Mercato is intentionally chattier.
 function formatRelativeDate(raw: string): string {
   if (!raw) return "";
-  try {
-    const d = new Date(raw);
-    const ms = Date.now() - d.getTime();
-    if (Number.isNaN(ms)) return "";
-    const days = Math.floor(ms / (24 * 3600 * 1000));
-    if (days < 0) {
-      // Future-dated (rare but possible with cached data).
-      return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
-    }
-    if (days === 0)  return "aujourd'hui";
-    if (days === 1)  return "hier";
-    if (days < 7)    return `il y a ${days}j`;
-    if (days < 31)   return `il y a ${Math.floor(days / 7)} sem`;
-    if (days < 365)  return `il y a ${Math.floor(days / 30)} mois`;
-    return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
-  } catch { return ""; }
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return "";
+  const days = Math.floor((Date.now() - d.getTime()) / (24 * 3600 * 1000));
+  if (days < 0)    return fmtDayMonth(d);            // Future-dated (rare but possible with cached data)
+  if (days === 0)  return "aujourd'hui";
+  if (days === 1)  return "hier";
+  if (days < 7)    return `il y a ${days}j`;
+  if (days < 31)   return `il y a ${Math.floor(days / 7)} sem`;
+  if (days < 365)  return `il y a ${Math.floor(days / 30)} mois`;
+  return fmtDayMonthYear(d);
 }
 
 // Sources whose articles our /api/news/article scraper can't render — opening
@@ -94,13 +88,7 @@ function shouldOpenExternal(item: TransferItem): boolean {
 }
 
 // Absolute "23 janv. 2026" — used as title attribute / fallback.
-function formatAbsoluteDate(raw: string): string {
-  if (!raw) return "";
-  try {
-    const d = new Date(raw);
-    return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
-  } catch { return ""; }
-}
+const formatAbsoluteDate = fmtDayMonthYear;
 
 // ── Single news item ───────────────────────────────────────────────────────────
 
@@ -553,8 +541,7 @@ function MarketChart({ transfers }: { transfers: BoardTransfer[] }) {
 
           {/* Vertical grid + X labels */}
           {xTicks.map((ts, i) => {
-            const d = new Date(ts);
-            const lbl = d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
+            const lbl = fmtDayMonth(ts);
             return (
               <g key={`x-${i}`}>
                 <line x1={xOf(ts)} x2={xOf(ts)} y1={PAD_T} y2={PAD_T + innerH}
@@ -897,11 +884,7 @@ export default function TransfersTab({
     };
   }).filter((c) => c.items.length > 0 || filter === "all") ?? [];
 
-  const formatUpdated = (iso: string) => {
-    try {
-      return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-    } catch { return ""; }
-  };
+  const formatUpdated = fmtTime;
 
   return (
     <div>

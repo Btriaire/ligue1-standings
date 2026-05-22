@@ -123,6 +123,7 @@ import {
   type FanEntry,
 } from "@/app/lib/fanConfig";
 import type { Standing } from "@/app/lib/types";
+import { fmtDayMonth, fmtDayMonthShort, fmtWeekdayDayMonth, fmtTime, fmtAgo } from "@/app/lib/format";
 
 /* ══════════════════════════════════════════ TYPES ══ */
 
@@ -162,7 +163,7 @@ function resultForClub(m:RecentResult, c:Club):"V"|"N"|"D"|null {
   if(m.result==="draw") return "N";
   return (h&&m.result==="home")||(a&&m.result==="away") ? "V":"D";
 }
-const fmtDate = (d:string) => new Date(d).toLocaleDateString("fr-FR",{day:"2-digit",month:"short"});
+const fmtDate = fmtDayMonth;
 const fmtVal  = (v:number) => v>=1_000_000 ? `${(v/1_000_000).toFixed(1)}M€` : v>=1_000 ? `${(v/1_000).toFixed(0)}k€` : `${v}€`;
 function formScore(f:string|null|undefined) {
   const a=(f??"").split(",").filter(Boolean).slice(-5);
