@@ -2,17 +2,10 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import dynamic from "next/dynamic";
+import type { Standing } from "@/app/lib/types";
 
 const NewsModal = dynamic(() => import("./NewsModal"), { ssr: false });
 
-interface Standing {
-  position: number;
-  team: { id: number; name: string; shortName: string; crest: string };
-  playedGames: number;
-  won: number; draw: number; lost: number;
-  points: number; goalsFor: number; goalsAgainst: number;
-  goalDifference: number; form: string;
-}
 interface NewsItem { title: string; pubDate: string; url: string }
 interface SelectedNews { title: string; url: string; pubDate: string }
 type Col = { label: string; color: string; items: NewsItem[]; loaded: boolean };
