@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
 import { fetchFotMobTeam, fotmobCrest } from "@/app/lib/fotmob";
+import { isL2 } from "@/app/lib/clubProfile";
 
 const API_KEY = process.env.FOOTBALL_DATA_API_KEY;
 
-// L2 team IDs (FotMob) — football-data.org's free tier doesn't expose Ligue 2,
-// so for these IDs we proxy via FotMob and reshape into the same response.
-const L2_TEAM_IDS = new Set<number>([
-  10242, 9853, 9837, 10249, 8311, 9747, 8682, 6390, 4120, 293352,
-  6355, 47214, 9855, 8481, 4170, 7853, 7794, 8587,
-]);
+// L2 IDs come from the canonical registry. football-data.org's free tier
+// doesn't expose Ligue 2, so for L2 we proxy via FotMob and reshape into
+// the same response.
 
 async function l2TeamResponse(teamId: number) {
   try {
@@ -46,7 +44,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const teamIdNum = parseInt(id, 10);
 
-  if (L2_TEAM_IDS.has(teamIdNum)) {
+  if (isL2(teamIdNum)) {
     return l2TeamResponse(teamIdNum);
   }
 

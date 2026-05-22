@@ -10,7 +10,7 @@ import {
   TrendDown, X, MapPin, Buildings, IdentificationCard, Crown, TShirt, Flag,
   MagnifyingGlass, ClockClockwise, Sparkle,
 } from "@phosphor-icons/react";
-import { clubProfile, clubStadiumPhoto, commonsUrl, personPhoto, type ClubProfile } from "@/app/lib/clubProfile";
+import { clubProfile, clubStadiumPhoto, commonsUrl, personPhoto, isL2, type ClubProfile } from "@/app/lib/clubProfile";
 
 // ── Static data ────────────────────────────────────────────────────────────────
 
@@ -102,6 +102,9 @@ function clubStadiumName(id: number): string | undefined {
   return STADIUM_IMAGES[id]?.name ?? clubProfile(id)?.stade.nom;
 }
 
+// Administrative / financial fields shown in the "Données administratives" card.
+// Sourced from app/lib/clubProfile.ts (single source of truth) — every L1/L2
+// club's profile carries these fields, so we just derive the shape here.
 interface AdminEntry {
   siren?: string;
   forme: string;
@@ -116,70 +119,7 @@ interface AdminEntry {
   sources?: { label: string; url: string }[];
 }
 
-// L2 team IDs (FotMob) — these are not part of football-data.org's free tier,
-// so for L2 clubs we point standings/transfers at the FotMob-backed branch
-// of those endpoints via `?competition=FL2` / `?league=FL2`.
-const L2_TEAM_IDS = new Set<number>([
-  10242, 9853, 9837, 10249, 8311, 9747, 8682, 6390, 4120, 293352,
-  6355, 47214, 9855, 8481, 4170, 7853, 7794, 8587,
-]);
-
-const CLUB_ADMIN: Record<number, AdminEntry> = {
-  524:  { siren: "317 506 329", forme: "SAS",  siege: "24 r. du Commandant-Guilbaud, 75016 Paris",  president: "Nasser Al-Khelaïfi",  ca: "~800 M€",  employes: "~400",
-          dette: "~200 M€", billetterie: "~70 M€", droitsTv: "~80 M€",
-          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }, { label: "Deloitte Football Money League", url: "https://www2.deloitte.com/uk/en/pages/sports-business-group/articles/football-money-league.html" }] },
-  548:  { forme: "SAM", siege: "7 av. des Castelans, Monaco", president: "Dmitry Rybolovlev", ca: "~200 M€", employes: "~150",
-          legalNote: "Entité de droit monégasque", dette: "~30 M€", billetterie: "~20 M€", droitsTv: "~55 M€",
-          sources: [{ label: "UEFA Club Licensing", url: "https://www.uefa.com/insideuefa/football-development/club-licensing/" }] },
-  516:  { siren: "786 164 659", forme: "SA",   siege: "145 traverse Charles Susini, 13008 Marseille", president: "Pablo Longoria",    ca: "~170 M€",  employes: "~200",
-          dette: "~80 M€", billetterie: "~25 M€", droitsTv: "~55 M€",
-          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }, { label: "KPMG Football Benchmark", url: "https://footballbenchmark.com" }] },
-  521:  { siren: "783 897 830", forme: "SA",   siege: "261 bd de Tournai, 59650 Villeneuve-d'Ascq",  president: "Olivier Létang",    ca: "~110 M€",  employes: "~180",
-          dette: "~20 M€", billetterie: "~15 M€", droitsTv: "~45 M€",
-          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
-  529:  { siren: "303 623 965", forme: "SAS",  siege: "111 route de Lorient, 35000 Rennes",          president: "Baptiste Cueff",    ca: "~130 M€",  employes: "~160",
-          dette: "~15 M€", billetterie: "~18 M€", droitsTv: "~40 M€",
-          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
-  522:  { siren: "776 416 358", forme: "SA",   siege: "Av. Simone Veil, 06200 Nice",                  president: "Jean-Pierre Rivère", ca: "~150 M€",  employes: "~180",
-          dette: "~25 M€", billetterie: "~20 M€", droitsTv: "~45 M€",
-          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
-  546:  { siren: "497 854 280", forme: "SA",   siege: "Rue de Lens, 62300 Lens",                      president: "Joseph Oughourlian", ca: "~90 M€",   employes: "~120",
-          dette: "~10 M€", billetterie: "~12 M€", droitsTv: "~38 M€",
-          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
-  523:  { siren: "320 835 374", forme: "SA",   siege: "350 av. Jean Jaurès, 69007 Lyon",              president: "John Textor",       ca: "~180 M€",  employes: "~250",
-          dette: "~120 M€", billetterie: "~22 M€", droitsTv: "~50 M€",
-          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }, { label: "KPMG Football Benchmark", url: "https://footballbenchmark.com" }] },
-  576:  { siren: "422 952 942", forme: "SA",   siege: "11 rue du Stade, 67100 Strasbourg",            president: "Marc Keller",       ca: "~120 M€",  employes: "~150",
-          dette: "~40 M€", billetterie: "~14 M€", droitsTv: "~38 M€",
-          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
-  511:  { siren: "408 476 801", forme: "SA",   siege: "Stadium Municipal, 31400 Toulouse",            president: "Damien Comolli",    ca: "~75 M€",   employes: "~100",
-          dette: "~8 M€", billetterie: "~10 M€", droitsTv: "~32 M€",
-          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
-  512:  { siren: "390 260 337", forme: "SASP", siege: "Rue de Pontaniou, 29200 Brest",                president: "Denis Le Saint",    ca: "~55 M€",   employes: "~90",
-          dette: "~5 M€", billetterie: "~8 M€", droitsTv: "~28 M€",
-          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
-  532:  { siren: "775 577 063", forme: "SA",   siege: "Stade Raymond-Kopa, 49000 Angers",             president: "Saïd Chabane",      ca: "~45 M€",   employes: "~80",
-          dette: "~12 M€", billetterie: "~7 M€", droitsTv: "~26 M€",
-          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
-  533:  { siren: "431 026 609", forme: "SA",   siege: "Stade Océane, 76600 Le Havre",                 president: "Vincent Volpe",     ca: "~40 M€",   employes: "~75",
-          dette: "~6 M€", billetterie: "~6 M€", droitsTv: "~25 M€",
-          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
-  519:  { siren: "302 697 937", forme: "SA",   siege: "Stade de l'Abbé-Deschamps, 89000 Auxerre",    president: "Yan Gaborit",       ca: "~40 M€",   employes: "~70",
-          dette: "~8 M€", billetterie: "~5 M€", droitsTv: "~24 M€",
-          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
-  543:  { siren: "302 505 072", forme: "SA",   siege: "Stade de la Beaujoire, 44300 Nantes",          president: "Waldemar Kita",     ca: "~70 M€",   employes: "~110",
-          dette: "~15 M€", billetterie: "~9 M€", droitsTv: "~30 M€",
-          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
-  545:  { siren: "384 233 417", forme: "SASP", siege: "Stade Saint-Symphorien, 57050 Metz",           president: "Bernard Serin",     ca: "~35 M€",   employes: "~65",
-          dette: "~5 M€", billetterie: "~4 M€", droitsTv: "~22 M€",
-          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
-  525:  { siren: "304 890 016", forme: "SA",   siege: "Stade du Moustoir, 56100 Lorient",             president: "Loïc Féry",         ca: "~50 M€",   employes: "~85",
-          dette: "~7 M€", billetterie: "~7 M€", droitsTv: "~26 M€",
-          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
-  1045: { siren: "814 988 091", forme: "SA",   siege: "Stade Charléty, 75013 Paris",                  president: "Pierre-Dreyfus",    ca: "~60 M€",   employes: "~90",
-          dette: "~10 M€", billetterie: "~8 M€", droitsTv: "~25 M€",
-          sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }] },
-};
+// L2 routing (?competition=FL2 / ?league=FL2) uses isL2() from clubProfile.
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -1173,9 +1113,9 @@ export default function ClubPage() {
       .then(d => setTopPlayers(d.players ?? []))
       .catch(() => null);
 
-    const isL2 = L2_TEAM_IDS.has(teamId);
-    const transfersUrl = isL2 ? "/api/transfers?league=FL2" : "/api/transfers";
-    const standingsUrl = isL2 ? "/api/standings?competition=FL2" : "/api/standings";
+    const teamIsL2 = isL2(teamId);
+    const transfersUrl = teamIsL2 ? "/api/transfers?league=FL2" : "/api/transfers";
+    const standingsUrl = teamIsL2 ? "/api/standings?competition=FL2" : "/api/standings";
 
     Promise.all([
       fetch(`/api/squad/${teamId}`).then(r => r.json()).catch(() => null),
@@ -1236,9 +1176,9 @@ export default function ClubPage() {
   const squadStats = squad?.stats ?? { totalValue: 0, avgValue: 0, playerCount: 0, injuredCount: 0, injuryRate: 0, injured: [] as { name: string; status?: string }[], recentMatchCount: 0, teamWins: 0, teamDraws: 0, teamLosses: 0 };
 
   const profile = clubProfile(teamId);
-  // Fall back to the new ClubProfile when no hand-authored CLUB_ADMIN entry exists
-  // (L2 clubs were never in CLUB_ADMIN — profile fills the gap).
-  const admin = CLUB_ADMIN[teamId] ?? (profile ? {
+  // AdminEntry is derived from the canonical ClubProfile — no per-club override
+  // table any more. Add fields to clubProfile.ts to update the admin card.
+  const admin: AdminEntry | undefined = profile ? {
     siren: profile.siren,
     forme: profile.forme,
     siege: profile.siege,
@@ -1250,7 +1190,7 @@ export default function ClubPage() {
     billetterie: profile.billetterie,
     droitsTv: profile.droitsTv,
     sources: profile.sources,
-  } as AdminEntry : undefined);
+  } : undefined;
   const stadImg = stadiumErr ? "" : stadiumUrl(teamId);
 
   const recentForm = matches?.recent
@@ -1409,7 +1349,7 @@ export default function ClubPage() {
                       <div className="flex gap-1">{recentForm.map((r, i) => <FormDot key={i} result={r} />)}</div>
                       <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
                         style={{ background: `${primary}99`, color: "#ffffff", border: `1px solid ${primary}` }}>
-                        {L2_TEAM_IDS.has(teamId) ? "Ligue 2" : "Ligue 1"}
+                        {isL2(teamId) ? "Ligue 2" : "Ligue 1"}
                       </span>
                     </div>
                   </div>

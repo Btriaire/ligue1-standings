@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { TEAM_TM_MAP, UNDERSTAT_TEAM_MAP } from "@/app/lib/teamMapping";
+import { isL2 } from "@/app/lib/clubProfile";
 import { getAdminFirestore } from "@/app/lib/firebase-admin";
 
 const API_KEY = process.env.FOOTBALL_DATA_API_KEY;
@@ -397,18 +398,14 @@ interface SofaCache {
   fetchedAt: number;
 }
 
-// L2 team IDs (FotMob) — football-data + Transfermarkt mapping don't cover
-// Ligue 2 in our setup. Delegate to the dedicated FotMob-backed L2 route.
-const L2_TEAM_IDS = new Set<number>([
-  10242, 9853, 9837, 10249, 8311, 9747, 8682, 6390, 4120, 293352,
-  6355, 47214, 9855, 8481, 4170, 7853, 7794, 8587,
-]);
-
+// L2 IDs live in `app/lib/clubProfile.ts` (single source of truth). We delegate
+// L2 squads to the FotMob-backed route below because football-data and
+// Transfermarkt don't cover Ligue 2 on our tier.
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const teamId = parseInt(id);
 
-  if (L2_TEAM_IDS.has(teamId)) {
+  if (isL2(teamId)) {
     // Same-origin proxy — keeps callers using /api/squad/{id} uniformly.
     const origin = new URL(req.url).origin;
     const r = await fetch(`${origin}/api/squad-l2/${teamId}`, { next: { revalidate: 3600 } });

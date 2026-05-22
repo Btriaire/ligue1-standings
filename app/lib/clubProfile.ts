@@ -102,7 +102,7 @@ const STADIUM_PHOTO_URLS: Record<number, string> = {
   10242: "https://upload.wikimedia.org/wikipedia/fr/thumb/a/a2/Fa%C3%A7ade_du_stade_de_l%27Aube.jpeg/1200px-Fa%C3%A7ade_du_stade_de_l%27Aube.jpeg",
   9853:  "https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Match_ASSE_x_OL_-_Stade_Geoffroy-Guichard_-_6_octobre_2019_-_St_%C3%89tienne_Loire_5.jpg/3840px-Match_ASSE_x_OL_-_Stade_Geoffroy-Guichard_-_6_octobre_2019_-_St_%C3%89tienne_Loire_5.jpg",
   9837:  "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Stade_Auguste_Delaune_-_Reims_%28FR51%29_-_2024-01-28_-_6.jpg/3840px-Stade_Auguste_Delaune_-_Reims_%28FR51%29_-_2024-01-28_-_6.jpg",
-  10249: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Stade_de_la_Mosson.jpg/1280px-Stade_de_la_Mosson.jpg",
+  10249: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Stade_de_la_Mosson_-_Vue_du_Stade.jpg/1200px-Stade_de_la_Mosson_-_Vue_du_Stade.jpg",
   8311:  "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Stade_Gabriel-Montpied%2C_tribune_Gergovie_2017-06-25.jpg/3840px-Stade_Gabriel-Montpied%2C_tribune_Gergovie_2017-06-25.jpg",
   9747:  "https://upload.wikimedia.org/wikipedia/commons/2/20/Roudourou-ensemble.JPG",
   8682:  "https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/MMArena_Le_Mans.jpg/1200px-MMArena_Le_Mans.jpg",
@@ -160,7 +160,6 @@ const PERSON_PHOTOS: Record<string, string> = {
   "jean-pierre caillot":   "https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/JPCaillotMadrid.jpg/1024px-JPCaillotMadrid.jpg",
   "pablo correa":          "https://upload.wikimedia.org/wikipedia/commons/5/5c/Pablo_correa.jpg",
   "zoumana camara":        "https://upload.wikimedia.org/wikipedia/commons/c/c2/Zoumana_Camara.jpg",
-  "bruno carotti":         "https://upload.wikimedia.org/wikipedia/commons/0/0a/Bruno_Carotti_2013.jpg",
   "omar daf":              "https://upload.wikimedia.org/wikipedia/commons/d/d8/FV3vy3sWIAI5zqn_%281%29.jpg",
   "vincent hognon":        "https://upload.wikimedia.org/wikipedia/commons/1/17/RC_Lens_-_FC_Metz_%2809-02-2019%29_102.jpg",
   "samba diawara":         "https://upload.wikimedia.org/wikipedia/commons/b/bb/S.Diawara_-_Troyes_2002-2003%27.jpg",
@@ -755,4 +754,29 @@ export const CLUB_PROFILES: Record<number, ClubProfile> = {
 
 export function clubProfile(id: number): ClubProfile | undefined {
   return CLUB_PROFILES[id];
+}
+
+/* ════════════════════════════════════════ Canonical ID registry ════
+ *
+ * Derived from the profile maps so we never duplicate L1/L2 club lists in
+ * routes, crons, or UI code. Anywhere you used to hard-code a Set or array
+ * of team IDs, import one of these instead.
+ *
+ * Order: ascending numeric (JS Object.keys behavior for integer keys).
+ * Consumers that need a specific order should sort themselves.
+ */
+
+export const L1_IDS: number[] = Object.keys(CLUB_PROFILES_L1).map(Number);
+export const L2_IDS: number[] = Object.keys(CLUB_PROFILES_L2).map(Number);
+export const ALL_IDS: number[] = [...L1_IDS, ...L2_IDS];
+
+export const L1_ID_SET: ReadonlySet<number> = new Set(L1_IDS);
+export const L2_ID_SET: ReadonlySet<number> = new Set(L2_IDS);
+
+export function isL2(id: number): boolean { return L2_ID_SET.has(id); }
+export function isL1(id: number): boolean { return L1_ID_SET.has(id); }
+export function clubLeague(id: number): ClubLeague | undefined {
+  if (L1_ID_SET.has(id)) return "L1";
+  if (L2_ID_SET.has(id)) return "L2";
+  return undefined;
 }
