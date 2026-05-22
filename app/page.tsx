@@ -538,6 +538,52 @@ function MonochromeToggle() {
   );
 }
 
+// Light-mode toggle. Flips the whole document from dark to light via a CSS
+// filter on <html>.light-mode (defined in globals.css). The filter approach
+// avoids touching the hundreds of inline-style colours scattered across the
+// codebase. Images/photos/crests carry `data-keep-color` (or are <img>/<video>)
+// and stay un-inverted. Mutually exclusive with monochrome mode — turning one
+// on turns the other off so the filters don't stack into something illegible.
+function LightModeToggle() {
+  const [light, setLight] = useState(false);
+  useEffect(() => {
+    const saved = typeof window !== "undefined" && localStorage.getItem("ui:light") === "1";
+    if (saved) {
+      document.documentElement.classList.add("light-mode");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLight(true);
+    }
+  }, []);
+  const toggle = () => {
+    const next = !light;
+    setLight(next);
+    document.documentElement.classList.toggle("light-mode", next);
+    if (next) {
+      // Turning on light: drop monochrome so filters don't stack.
+      document.documentElement.classList.remove("monochrome");
+      try { localStorage.setItem("ui:monochrome", "0"); } catch {}
+    }
+    try { localStorage.setItem("ui:light", next ? "1" : "0"); } catch {}
+  };
+  return (
+    <button
+      onClick={toggle}
+      data-mono-keep
+      data-keep-color
+      title={light ? "Mode sombre" : "Mode clair"}
+      aria-label={light ? "Activer le mode sombre" : "Activer le mode clair"}
+      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 active:scale-95"
+      style={{
+        background: light ? "rgba(251,191,36,0.12)" : "rgba(148,163,184,0.10)",
+        border: `1px solid ${light ? "rgba(251,191,36,0.32)" : "rgba(148,163,184,0.30)"}`,
+        color: light ? "#eab308" : "#cbd5e1",
+      }}>
+      {light ? <Sun size={12} weight="fill" /> : <MoonStars size={12} weight="fill" />}
+      <span className="hidden sm:inline">{light ? "Clair" : "Sombre"}</span>
+    </button>
+  );
+}
+
 export default function Home() {
   const [tab, setTab] = useState<TabId>("ligue1");
   const [l1SubTab, setL1SubTab] = useState<L1SubTab>("classement");
@@ -649,6 +695,7 @@ export default function Home() {
 
             <LiveDirectButton />
 
+            <LightModeToggle />
             <MonochromeToggle />
 
             <button onClick={() => fetchStandings(true)} disabled={refreshing}

@@ -65,3 +65,27 @@ html.monochrome {
 html.monochrome [data-mono-keep] {
   filter: grayscale(0) contrast(1) brightness(1);
 }
+
+/* ── Light mode ───────────────────────────────────────────────────────────────
+   Quick dark→light reskin by inverting the whole document via a CSS filter,
+   then counter-inverting raster content (images, videos, iframes) and any
+   element flagged with `data-keep-color` so flags, crests, and player photos
+   look correct. The hue-rotate(180deg) compensates so blues stay blue, reds
+   stay red, etc. — only luminance flips. */
+html.light-mode {
+  filter: invert(1) hue-rotate(180deg);
+  background: #ffffff;
+}
+html.light-mode body {
+  background: #f4f6fb;
+}
+html.light-mode img,
+html.light-mode video,
+html.light-mode iframe,
+html.light-mode canvas,
+html.light-mode [data-keep-color] {
+  filter: invert(1) hue-rotate(180deg);
+}
+/* Re-tint the scrollbar in light mode so it doesn't read as black. */
+html.light-mode ::-webkit-scrollbar-track { background: #e5e9f1; }
+html.light-mode ::-webkit-scrollbar-thumb { background: #c8d1de; }
