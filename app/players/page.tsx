@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -16,6 +16,14 @@ import {
 // ── Static maps ───────────────────────────────────────────────────────────────
 
 const TEAM_IDS_L1 = [524, 548, 523, 521, 529, 516, 576, 525, 511, 1045, 512, 532, 533, 522, 519, 543, 545, 546];
+
+type LeagueKey = "FL1" | "FL2";
+type LeagueFilter = "ALL" | LeagueKey;
+
+const LEAGUE_BADGE: Record<LeagueKey, { label: string; color: string; bg: string }> = {
+  FL1: { label: "L1", color: "#00d4ff", bg: "rgba(0,212,255,0.10)" },
+  FL2: { label: "L2", color: "#a78bfa", bg: "rgba(167,139,250,0.10)" },
+};
 
 const SORT_OPTIONS: { key: string; label: string }[] = [
   { key: "dm_xgxa90",      label: "xG+xA/90" },
@@ -44,12 +52,13 @@ const SORT_OPTIONS: { key: string; label: string }[] = [
 
 // ── ClubSection ───────────────────────────────────────────────────────────────
 
-function ClubSection({ clubId, players, sortKey, expandedId, onToggle }: {
+function ClubSection({ clubId, players, sortKey, expandedId, onToggle, leagueBadge }: {
   clubId: number;
   players: PlayerEntry[];
   sortKey: string;
   expandedId: string | null;
   onToggle: (uid: string) => void;
+  leagueBadge?: LeagueKey;
 }) {
   const [open, setOpen] = useState(false);
   const club = players[0]?.club;
@@ -83,9 +92,17 @@ function ClubSection({ clubId, players, sortKey, expandedId, onToggle }: {
           : <div className="w-8 h-8 rounded-lg flex-shrink-0" style={{ background: "#1e2d42" }} />
         }
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-black truncate" style={{ color: "#e8edf5" }}>
-            {club?.name ?? CLUB_SHORT[clubId]}
-          </p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-sm font-black truncate" style={{ color: "#e8edf5" }}>
+              {club?.name ?? CLUB_SHORT[clubId]}
+            </p>
+            {leagueBadge && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0"
+                style={{ color: LEAGUE_BADGE[leagueBadge].color, background: LEAGUE_BADGE[leagueBadge].bg }}>
+                {LEAGUE_BADGE[leagueBadge].label}
+              </span>
+            )}
+          </div>
           <p className="text-[10px]" style={{ color: "#6b7c96" }}>
             {players.length} joueurs
             {injured > 0 && <span className="ml-2 text-orange-400">⚠ {injured} blessé{injured > 1 ? "s" : ""}</span>}
@@ -135,6 +152,92 @@ function ClubSection({ clubId, players, sortKey, expandedId, onToggle }: {
   );
 }
 
+// ── Squad aggregator (shared by L1 and L2) ────────────────────────────────────
+//
+// Fans out to `${endpoint}/${id}` for each team ID with bounded concurrency
+// and retry-on-empty/429/5xx. Calls `onPlayers` whenever a club resolves with
+// at least one player, and `onProgress` after every terminal outcome (ok or
+// failed-after-retries). Returns a cancel handle so the page can abort if
+// the user navigates away mid-flight.
+function runSquadAggregator({
+  ids, endpoint, concurrency,
+  onPlayers, onProgress,
+}: {
+  ids: number[];
+  endpoint: string;
+  concurrency: number;
+  onPlayers: (clubId: number, players: PlayerEntry[]) => void;
+  onProgress: (done: number, total: number) => void;
+}): () => void {
+  let cancelled = false;
+  const MAX_ATTEMPTS = 3;
+  const wait = (ms: number) => new Promise(res => setTimeout(res, ms));
+  type QItem = { id: number; attempt: number };
+  const queue: QItem[] = ids.map(id => ({ id, attempt: 0 }));
+  const ok = new Set<number>();
+  const failed = new Set<number>();
+
+  const updateProgress = () => {
+    if (cancelled) return;
+    onProgress(ok.size + failed.size, ids.length);
+  };
+
+  const fetchOne = async ({ id, attempt }: QItem) => {
+    try {
+      const r = await fetch(`${endpoint}/${id}`);
+      if (!r.ok) {
+        if ((r.status === 429 || r.status >= 500) && attempt + 1 < MAX_ATTEMPTS) {
+          await wait(1500 * (attempt + 1) + Math.random() * 800);
+          if (!cancelled) queue.push({ id, attempt: attempt + 1 });
+          return;
+        }
+        console.warn(`[players] squad ${id} HTTP ${r.status} (attempt ${attempt + 1})`);
+        failed.add(id); updateProgress(); return;
+      }
+      const data = await r.json();
+      if (cancelled) return;
+      const players: PlayerEntry[] = (data?.squad ?? []).map(
+        (p: Omit<PlayerEntry, "clubId" | "club">) => ({ ...p, clubId: id, club: data.team })
+      );
+      if (players.length > 0) {
+        onPlayers(id, players);
+        ok.add(id); updateProgress();
+      } else if (attempt + 1 < MAX_ATTEMPTS) {
+        await wait(1200 * (attempt + 1) + Math.random() * 500);
+        if (!cancelled) queue.push({ id, attempt: attempt + 1 });
+      } else {
+        console.warn(`[players] squad ${id} empty after ${MAX_ATTEMPTS} attempts`);
+        failed.add(id); updateProgress();
+      }
+    } catch (err) {
+      if (attempt + 1 < MAX_ATTEMPTS) {
+        await wait(1500 * (attempt + 1));
+        if (!cancelled) queue.push({ id, attempt: attempt + 1 });
+        return;
+      }
+      console.warn(`[players] squad ${id} fetch failed:`, err);
+      failed.add(id); updateProgress();
+    }
+  };
+
+  const worker = async () => {
+    while (!cancelled) {
+      const item = queue.shift();
+      if (!item) {
+        await wait(300);
+        if (queue.length === 0) return;
+      } else {
+        await fetchOne(item);
+      }
+    }
+  };
+
+  const workers = Array.from({ length: concurrency }, () => worker());
+  Promise.all(workers);
+
+  return () => { cancelled = true; };
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function PlayersPage() {
@@ -145,18 +248,33 @@ export default function PlayersPage() {
   );
 }
 
+interface L2TopPlayer { id: number; name: string; teamId: number; teamName: string; value: number | string }
+
 function PlayersPageInner() {
   const searchParams = useSearchParams();
-  const league = (searchParams.get("league") ?? "FL1").toUpperCase() === "FL2" ? "FL2" : "FL1";
 
-  const [allPlayers, setAllPlayers] = useState<PlayerEntry[]>([]);
-  const [loadedCount, setLoadedCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [teamIds, setTeamIds] = useState<number[]>(league === "FL1" ? TEAM_IDS_L1 : []);
-  const [clubLabels, setClubLabels] = useState<Record<number, string>>({});
+  // Initial filter from URL: `?league=FL1`/`FL2` pre-selects that pill (old
+  // deep links still work); anything else (or absent) defaults to "Toutes".
+  const [leagueFilter, setLeagueFilter] = useState<LeagueFilter>(() => {
+    const p = searchParams.get("league")?.toUpperCase();
+    return p === "FL1" ? "FL1" : p === "FL2" ? "FL2" : "ALL";
+  });
+  const showL1 = leagueFilter !== "FL2";
+  const showL2 = leagueFilter !== "FL1";
 
-  // L2-only: FotMob top players (no per-club squad data available)
-  interface L2TopPlayer { id: number; name: string; teamId: number; teamName: string; value: number | string }
+  // Per-league player pools — each loads lazily on first activation and is
+  // cached for the lifetime of the page.
+  const [l1Players, setL1Players] = useState<PlayerEntry[]>([]);
+  const [l1Loading, setL1Loading] = useState(false);
+  const l1Started = useRef(false);
+  const [l1Done, setL1Done] = useState(0);
+
+  const [l2TeamIds, setL2TeamIds] = useState<number[]>([]);
+  const [l2Labels, setL2Labels] = useState<Record<number, string>>({});
+  const [l2Players, setL2Players] = useState<PlayerEntry[]>([]);
+  const [l2Loading, setL2Loading] = useState(false);
+  const l2Started = useRef(false);
+  const [l2Done, setL2Done] = useState(0);
   const [l2Top, setL2Top] = useState<{ byRating: L2TopPlayer[]; byGoals: L2TopPlayer[]; byAssists: L2TopPlayer[] }>({
     byRating: [], byGoals: [], byAssists: [],
   });
@@ -169,144 +287,105 @@ function PlayersPageInner() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
-  // League switch: reset state, then either install hardcoded L1 IDs or
-  // fetch the L2 team IDs from standings. teamIds is the trigger for the
-  // aggregator effect below — we set it AFTER clearing so the aggregator
-  // only ever runs with IDs matching the current league.
+  // League filter switch — also reflects to the URL so deep links survive
+  // a reload. Uses replaceState to avoid pushing a history entry on every
+  // pill click.
+  const onLeagueFilterChange = useCallback((v: LeagueFilter) => {
+    setLeagueFilter(v);
+    setFilterClub("");
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (v === "ALL") url.searchParams.delete("league");
+    else url.searchParams.set("league", v);
+    window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
+  }, []);
+
+  // ── L1 loader ──
   useEffect(() => {
-    setAllPlayers([]); setLoadedCount(0); setLoading(true);
-    setTeamIds([]);
-    setClubLabels({});
-    if (league === "FL1") {
-      setTeamIds(TEAM_IDS_L1);
-      return;
-    }
+    if (!showL1 || l1Started.current) return;
+    l1Started.current = true;
+    setL1Loading(true);
+    const cancel = runSquadAggregator({
+      ids: TEAM_IDS_L1,
+      endpoint: "/api/squad",
+      concurrency: 2,
+      onPlayers: (_id, players) => setL1Players(prev => [...prev, ...players]),
+      onProgress: (done, total) => {
+        setL1Done(done);
+        if (done === total) setL1Loading(false);
+      },
+    });
+    return cancel;
+  }, [showL1]);
+
+  // ── L2 loader ──
+  useEffect(() => {
+    if (!showL2 || l2Started.current) return;
+    l2Started.current = true;
+    setL2Loading(true);
     let cancelled = false;
+    let cancelAggregator: (() => void) | null = null;
+
+    // 1) Fetch L2 standings → ids + labels
     fetch("/api/standings?competition=FL2")
       .then(r => r.json())
       .then((d: { standings?: Array<{ team: { id: number; shortName: string; name: string } }> }) => {
         if (cancelled) return;
-        const ids = (d.standings ?? []).map(s => s.team.id);
+        const rows = d.standings ?? [];
+        const ids = rows.map(s => s.team.id);
         const labels: Record<number, string> = {};
-        (d.standings ?? []).forEach(s => { labels[s.team.id] = s.team.shortName || s.team.name; });
-        setClubLabels(labels);
-        setTeamIds(ids);
-        if (ids.length === 0) setLoading(false);
-      })
-      .catch(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [league]);
+        rows.forEach(s => { labels[s.team.id] = s.team.shortName || s.team.name; });
+        setL2TeamIds(ids);
+        setL2Labels(labels);
+        if (ids.length === 0) { setL2Loading(false); return; }
 
-  // L2: fetch FotMob top players (squad endpoint doesn't support FotMob IDs)
-  useEffect(() => {
-    if (league !== "FL2") return;
+        // 2) Aggregate per-club rosters via /api/squad-l2/{id}
+        cancelAggregator = runSquadAggregator({
+          ids, endpoint: "/api/squad-l2", concurrency: 4,
+          onPlayers: (_id, players) => setL2Players(prev => [...prev, ...players]),
+          onProgress: (done, total) => {
+            setL2Done(done);
+            if (done === total) setL2Loading(false);
+          },
+        });
+      })
+      .catch(() => { if (!cancelled) setL2Loading(false); });
+
+    // 3) FotMob top players (separate endpoint, runs in parallel with above)
     fetch("/api/players-l2")
       .then(r => r.json())
       .then((d: { topByRating?: L2TopPlayer[]; topByGoals?: L2TopPlayer[]; topByAssists?: L2TopPlayer[] }) => {
+        if (cancelled) return;
         setL2Top({
           byRating: d.topByRating ?? [],
           byGoals: d.topByGoals ?? [],
           byAssists: d.topByAssists ?? [],
         });
       })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [league]);
+      .catch(() => {});
 
-  useEffect(() => {
-    if (teamIds.length === 0) return;
-    let cancelled = false;
-    const squadEndpoint = league === "FL2" ? "/api/squad-l2" : "/api/squad";
+    return () => { cancelled = true; cancelAggregator?.(); };
+  }, [showL2]);
 
-    // Throttle: football-data.org free tier is 10 req/min. Small concurrent
-    // batches + retry-with-backoff for failed/empty squads so a cold cache
-    // doesn't show "5 clubs · 155 joueurs". L1 is heavier upstream (FD +
-    // Transfermarkt + Understat + Datamb) so we keep it low.
-    const CONCURRENCY = league === "FL2" ? 4 : 2;
-    const MAX_ATTEMPTS = 3;
-    const wait = (ms: number) => new Promise(res => setTimeout(res, ms));
-    type QItem = { id: number; attempt: number };
-    const queue: QItem[] = teamIds.map(id => ({ id, attempt: 0 }));
-    const ok = new Set<number>();
-    const failed = new Set<number>();
-
-    const updateProgress = () => {
-      if (cancelled) return;
-      setLoadedCount(ok.size + failed.size);
-      if (ok.size + failed.size === teamIds.length) setLoading(false);
-    };
-
-    const fetchOne = async ({ id, attempt }: QItem) => {
-      try {
-        const r = await fetch(`${squadEndpoint}/${id}`);
-        if (!r.ok) {
-          // 429 / 5xx → re-queue with backoff
-          if ((r.status === 429 || r.status >= 500) && attempt + 1 < MAX_ATTEMPTS) {
-            await wait(1500 * (attempt + 1) + Math.random() * 800);
-            if (!cancelled) queue.push({ id, attempt: attempt + 1 });
-            return;
-          }
-          console.warn(`[players] squad ${id} HTTP ${r.status} (attempt ${attempt + 1})`);
-          failed.add(id);
-          updateProgress();
-          return;
-        }
-        const data = await r.json();
-        if (cancelled) return;
-        const players: PlayerEntry[] = (data?.squad ?? []).map(
-          (p: Omit<PlayerEntry, "clubId" | "club">) => ({ ...p, clubId: id, club: data.team })
-        );
-        if (players.length > 0) {
-          setAllPlayers(prev => [...prev, ...players]);
-          ok.add(id);
-          updateProgress();
-        } else if (attempt + 1 < MAX_ATTEMPTS) {
-          // Empty squad — likely a cold upstream cache. Retry once.
-          await wait(1200 * (attempt + 1) + Math.random() * 500);
-          if (!cancelled) queue.push({ id, attempt: attempt + 1 });
-        } else {
-          console.warn(`[players] squad ${id} empty after ${MAX_ATTEMPTS} attempts`);
-          failed.add(id);
-          updateProgress();
-        }
-      } catch (err) {
-        if (attempt + 1 < MAX_ATTEMPTS) {
-          await wait(1500 * (attempt + 1));
-          if (!cancelled) queue.push({ id, attempt: attempt + 1 });
-          return;
-        }
-        console.warn(`[players] squad ${id} fetch failed:`, err);
-        failed.add(id);
-        updateProgress();
-      }
-    };
-
-    const worker = async () => {
-      while (!cancelled) {
-        const item = queue.shift();
-        if (!item) {
-          // Queue drained — but other workers may still be re-queuing.
-          // Give them a moment, then exit if the queue is still empty.
-          await wait(300);
-          if (queue.length === 0) return;
-        } else {
-          await fetchOne(item);
-        }
-      }
-    };
-
-    const workers = Array.from({ length: CONCURRENCY }, () => worker());
-    Promise.all(workers).then(() => { if (!cancelled) setLoading(false); });
-
-    return () => { cancelled = true; };
-  }, [teamIds, league]);
-
-  // Merge static L1 names with any dynamically-fetched (L2) labels so search
-  // and filter dropdowns work regardless of competition.
+  // ── Derived ──
   const clubShort: Record<number, string> = useMemo(
-    () => ({ ...CLUB_SHORT, ...clubLabels }),
-    [clubLabels]
+    () => ({ ...CLUB_SHORT, ...l2Labels }),
+    [l2Labels]
   );
+
+  const clubLeague: Map<number, LeagueKey> = useMemo(() => {
+    const m = new Map<number, LeagueKey>();
+    TEAM_IDS_L1.forEach(id => m.set(id, "FL1"));
+    l2TeamIds.forEach(id => m.set(id, "FL2"));
+    return m;
+  }, [l2TeamIds]);
+
+  const allPlayers = useMemo(() => {
+    const out: PlayerEntry[] = [];
+    if (showL1) out.push(...l1Players);
+    if (showL2) out.push(...l2Players);
+    return out;
+  }, [showL1, showL2, l1Players, l2Players]);
 
   const filtered = useMemo(() => {
     const q = normalize(search.trim());
@@ -333,16 +412,61 @@ function PlayersPageInner() {
 
   const isFiltered = !!(search.trim() || filterClub !== "" || filterPos || filterMinMin > 0);
 
-  const byClub = useMemo(() =>
-    teamIds
-      .map(id => ({ id, players: filtered.filter(p => p.clubId === id) }))
-      .filter(g => g.players.length > 0),
-    [filtered, teamIds]
+  // Two ordered club groups — one per visible league — so we can render them
+  // under their own headers without re-sorting client IDs at render time.
+  const l1ByClub = useMemo(() =>
+    showL1
+      ? TEAM_IDS_L1
+          .map(id => ({ id, players: filtered.filter(p => p.clubId === id) }))
+          .filter(g => g.players.length > 0)
+      : [],
+    [filtered, showL1]
   );
+  const l2ByClub = useMemo(() =>
+    showL2
+      ? l2TeamIds
+          .map(id => ({ id, players: filtered.filter(p => p.clubId === id) }))
+          .filter(g => g.players.length > 0)
+      : [],
+    [filtered, showL2, l2TeamIds]
+  );
+
+  // L1 vedettes — top 3 derived locally from Datamb/Understat fields so the
+  // L1 panel mirrors the FotMob-fed L2 panel without an extra API call.
+  const l1Vedettes = useMemo(() => {
+    if (!showL1 || l1Players.length === 0) return null;
+    const top = (key: keyof PlayerEntry, n = 3) =>
+      [...l1Players]
+        .filter(p => ((p as unknown as Record<string, number | undefined>)[key as string] ?? 0) > 0)
+        .sort((a, b) => {
+          const av = (a as unknown as Record<string, number>)[key as string] ?? 0;
+          const bv = (b as unknown as Record<string, number>)[key as string] ?? 0;
+          return bv - av;
+        })
+        .slice(0, n);
+    return {
+      byRating:   top("dm_xgxa90"),
+      byGoals:    top("usGoals"),
+      byAssists:  top("usAssists"),
+    };
+  }, [showL1, l1Players]);
 
   const toggle = useCallback((uid: string) => {
     setExpandedId(prev => prev === uid ? null : uid);
   }, []);
+
+  // Header counters
+  const loading = (showL1 && l1Loading) || (showL2 && l2Loading);
+  const clubsTotal = (showL1 ? TEAM_IDS_L1.length : 0) + (showL2 ? l2TeamIds.length : 0);
+  const clubsDone = (showL1 ? l1Done : 0) + (showL2 ? l2Done : 0);
+
+  // Club filter dropdown — list of currently visible clubs only.
+  const filterClubOptions = useMemo(() => {
+    const opts: { id: number; label: string; league: LeagueKey }[] = [];
+    if (showL1) TEAM_IDS_L1.forEach(id => opts.push({ id, label: clubShort[id] ?? `#${id}`, league: "FL1" }));
+    if (showL2) l2TeamIds.forEach(id => opts.push({ id, label: clubShort[id] ?? `#${id}`, league: "FL2" }));
+    return opts;
+  }, [showL1, showL2, l2TeamIds, clubShort]);
 
   return (
     <main className="min-h-screen" style={{ background: "#080c14" }}>
@@ -356,9 +480,9 @@ function PlayersPageInner() {
           </Link>
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
             <Users size={14} style={{ color: "#00d4ff", flexShrink: 0 }} />
-            <span className="font-black text-sm" style={{ color: "#e8edf5" }}>Joueurs {league === "FL2" ? "Ligue 2" : "Ligue 1"}</span>
-            <span className="text-xs" style={{ color: "#6b7c96" }}>
-              {loading ? `Chargement… (${loadedCount}/${teamIds.length})` : `${filtered.length} / ${allPlayers.length} joueurs`}
+            <span className="font-black text-sm" style={{ color: "#e8edf5" }}>Joueurs</span>
+            <span className="text-xs truncate" style={{ color: "#6b7c96" }}>
+              {loading ? `Chargement… (${clubsDone}/${clubsTotal})` : `${filtered.length} / ${allPlayers.length} joueurs`}
             </span>
           </div>
           <button onClick={() => setShowFilters(v => !v)}
@@ -366,6 +490,31 @@ function PlayersPageInner() {
             style={{ background: showFilters ? "rgba(0,212,255,0.1)" : "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: showFilters ? "#00d4ff" : "#6b7c96" }}>
             <FunnelSimple size={11} /> Filtres
           </button>
+        </div>
+
+        {/* League pill switcher */}
+        <div className="max-w-5xl mx-auto px-4 pb-2">
+          <div className="inline-flex rounded-xl p-0.5 gap-0.5"
+            style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
+            {([
+              { key: "ALL", label: "Toutes" },
+              { key: "FL1", label: "Ligue 1" },
+              { key: "FL2", label: "Ligue 2" },
+            ] as const).map(opt => {
+              const active = leagueFilter === opt.key;
+              return (
+                <button key={opt.key}
+                  onClick={() => onLeagueFilterChange(opt.key)}
+                  className="text-xs px-3 py-1.5 rounded-lg font-bold transition-colors"
+                  style={{
+                    background: active ? "rgba(0,212,255,0.12)" : "transparent",
+                    color: active ? "#00d4ff" : "#6b7c96",
+                  }}>
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div className="max-w-5xl mx-auto px-4 pb-2.5">
@@ -389,7 +538,20 @@ function PlayersPageInner() {
               className="text-xs px-2.5 py-1.5 rounded-lg outline-none"
               style={{ background: "#0d1421", border: "1px solid #1e2d42", color: "#e8edf5" }}>
               <option value="">Tous les clubs</option>
-              {teamIds.map(id => <option key={id} value={id}>{clubShort[id] ?? `#${id}`}</option>)}
+              {leagueFilter === "ALL" ? (
+                <>
+                  <optgroup label="Ligue 1">
+                    {filterClubOptions.filter(o => o.league === "FL1").map(o =>
+                      <option key={o.id} value={o.id}>{o.label}</option>)}
+                  </optgroup>
+                  <optgroup label="Ligue 2">
+                    {filterClubOptions.filter(o => o.league === "FL2").map(o =>
+                      <option key={o.id} value={o.id}>{o.label}</option>)}
+                  </optgroup>
+                </>
+              ) : (
+                filterClubOptions.map(o => <option key={o.id} value={o.id}>{o.label}</option>)
+              )}
             </select>
             <select value={filterPos} onChange={e => setFilterPos(e.target.value)}
               className="text-xs px-2.5 py-1.5 rounded-lg outline-none"
@@ -423,49 +585,27 @@ function PlayersPageInner() {
         )}
       </header>
 
-      <div className="max-w-5xl mx-auto px-4 py-4">
-        {/* Ligue 2 simplified stats view (FotMob top players) */}
-        {league === "FL2" && (
-          <div className="space-y-4">
-            <p className="text-xs" style={{ color: "#6b7c96" }}>
-              Source : <span style={{ color: "#00d4ff" }}>FotMob</span> · Top joueurs de la saison Ligue 2, puis effectif complet par club ci-dessous.
-              Les statistiques avancées (Datamb / Transfermarkt) ne sont pas disponibles pour la Ligue 2 sur les plans gratuits.
-            </p>
-            {([
-              { title: "Top notation", list: l2Top.byRating, unit: "" },
-              { title: "Top buteurs", list: l2Top.byGoals, unit: " buts" },
-              { title: "Top passeurs", list: l2Top.byAssists, unit: " PD" },
-            ] as const).map(panel => (
-              <div key={panel.title} className="rounded-2xl overflow-hidden"
-                style={{ border: "1px solid #1e2d42", background: "#0d1421" }}>
-                <div className="px-4 py-2.5 text-xs font-black"
-                  style={{ color: "#e8edf5", borderBottom: "1px solid #1e2d42" }}>
-                  {panel.title}
-                </div>
-                <div>
-                  {panel.list.length === 0 && (
-                    <div className="px-4 py-4 text-xs" style={{ color: "#6b7c96" }}>
-                      {loading ? "Chargement…" : "Aucune donnée disponible."}
-                    </div>
-                  )}
-                  {panel.list.map((p, i) => (
-                    <a key={p.id} href={`https://www.fotmob.com/players/${p.id}`}
-                      target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-3 px-4 py-2 hover:bg-white/[0.03]"
-                      style={{ borderTop: i === 0 ? "none" : "1px solid #131c2c" }}>
-                      <span className="w-5 text-xs font-mono" style={{ color: "#6b7c96" }}>{i + 1}</span>
-                      <span className="flex-1 text-sm" style={{ color: "#e8edf5" }}>{p.name}</span>
-                      <span className="text-xs" style={{ color: "#6b7c96" }}>{p.teamName}</span>
-                      <span className="text-sm font-bold" style={{ color: "#00d4ff" }}>{p.value}{panel.unit}</span>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+      <div className="max-w-5xl mx-auto px-4 py-4 space-y-4">
+        {/* Vedettes panels — shown only when not filtering, so users see a
+            curated top-3 by default and a flat list when they actually search. */}
+        {!isFiltered && showL1 && l1Vedettes && (
+          <VedettePanel league="FL1" source="Datamb" panels={[
+            { title: "Top xG+xA/90",   list: l1Vedettes.byRating.map(p => ({ id: p.id, name: p.name, teamName: p.club.shortName ?? p.club.name ?? "", value: (p.dm_xgxa90 ?? 0).toFixed(2) })) },
+            { title: "Top buteurs",    list: l1Vedettes.byGoals.map(p =>  ({ id: p.id, name: p.name, teamName: p.club.shortName ?? p.club.name ?? "", value: `${p.usGoals ?? 0} buts` })) },
+            { title: "Top passeurs",   list: l1Vedettes.byAssists.map(p => ({ id: p.id, name: p.name, teamName: p.club.shortName ?? p.club.name ?? "", value: `${p.usAssists ?? 0} PD` })) },
+          ]} />
         )}
 
-        {league === "FL1" && loading && allPlayers.length === 0 && (
+        {!isFiltered && showL2 && (
+          <VedettePanel league="FL2" source="FotMob" panels={[
+            { title: "Top notation", list: l2Top.byRating.map(p =>  ({ id: String(p.id), name: p.name, teamName: p.teamName, value: String(p.value), href: `https://www.fotmob.com/players/${p.id}` })) },
+            { title: "Top buteurs",  list: l2Top.byGoals.map(p =>   ({ id: String(p.id), name: p.name, teamName: p.teamName, value: `${p.value} buts`, href: `https://www.fotmob.com/players/${p.id}` })) },
+            { title: "Top passeurs", list: l2Top.byAssists.map(p => ({ id: String(p.id), name: p.name, teamName: p.teamName, value: `${p.value} PD`, href: `https://www.fotmob.com/players/${p.id}` })) },
+          ]} loading={l2Loading && l2Top.byRating.length === 0} />
+        )}
+
+        {/* Skeleton — only when nothing is loaded yet for the visible leagues */}
+        {loading && allPlayers.length === 0 && (
           <div className="space-y-2">
             {Array.from({ length: 12 }).map((_, i) => (
               <div key={i} className="h-16 rounded-2xl animate-pulse" style={{ background: "#0d1421", border: "1px solid #1e2d42" }} />
@@ -473,7 +613,7 @@ function PlayersPageInner() {
           </div>
         )}
 
-        {league === "FL1" && !loading && filtered.length === 0 && (
+        {!loading && isFiltered && filtered.length === 0 && (
           <div className="py-16 text-center">
             <p className="text-sm" style={{ color: "#6b7c96" }}>Aucun joueur trouvé.</p>
           </div>
@@ -492,29 +632,131 @@ function PlayersPageInner() {
           </div>
         )}
 
-        {/* Club sections (default) */}
-        {!isFiltered && byClub.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-[10px] mb-3" style={{ color: "#4b5a72" }}>
-              {byClub.length} clubs · {allPlayers.length} joueurs · Tri interne : {SORT_OPTIONS.find(o => o.key === sortKey)?.label}
-            </p>
-            {byClub.map(({ id, players }) => (
+        {/* Club sections — grouped by league when "Toutes" is selected. */}
+        {!isFiltered && l1ByClub.length > 0 && (
+          <section className="space-y-2">
+            {leagueFilter === "ALL" && (
+              <LeagueGroupHeader league="FL1" clubsCount={l1ByClub.length} playersCount={l1ByClub.reduce((s, g) => s + g.players.length, 0)} sortLabel={SORT_OPTIONS.find(o => o.key === sortKey)?.label ?? ""} />
+            )}
+            {l1ByClub.map(({ id, players }) => (
               <ClubSection key={id} clubId={id} players={players}
-                sortKey={sortKey} expandedId={expandedId} onToggle={toggle} />
+                sortKey={sortKey} expandedId={expandedId} onToggle={toggle}
+                leagueBadge={leagueFilter === "ALL" ? clubLeague.get(id) : undefined} />
             ))}
-          </div>
+          </section>
+        )}
+
+        {!isFiltered && l2ByClub.length > 0 && (
+          <section className="space-y-2">
+            {leagueFilter === "ALL" && (
+              <LeagueGroupHeader league="FL2" clubsCount={l2ByClub.length} playersCount={l2ByClub.reduce((s, g) => s + g.players.length, 0)} sortLabel={SORT_OPTIONS.find(o => o.key === sortKey)?.label ?? ""} />
+            )}
+            {l2ByClub.map(({ id, players }) => (
+              <ClubSection key={id} clubId={id} players={players}
+                sortKey={sortKey} expandedId={expandedId} onToggle={toggle}
+                leagueBadge={leagueFilter === "ALL" ? clubLeague.get(id) : undefined} />
+            ))}
+          </section>
         )}
 
         {!loading && allPlayers.length > 0 && (
           <div className="mt-8 pt-4 flex flex-wrap gap-x-4 gap-y-1 text-[10px]"
             style={{ borderTop: "1px solid #1e2d42", color: "#4b5a72" }}>
-            <span>Sources : <span style={{ color: "#6b7c96" }}>Datamb.football</span> (per 90 · +140 stats)</span>
-            <span>· <span style={{ color: "#6b7c96" }}>Football-Data.org</span> (effectif)</span>
-            <span>· <span style={{ color: "#6b7c96" }}>Wikidata/Commons</span> (photos publiques)</span>
-            <span className="ml-auto">{loadedCount}/{teamIds.length} clubs</span>
+            <span>Sources : <span style={{ color: "#6b7c96" }}>Datamb.football</span> (L1, per 90 · +140 stats)</span>
+            <span>· <span style={{ color: "#6b7c96" }}>FotMob</span> (L2)</span>
+            <span>· <span style={{ color: "#6b7c96" }}>Football-Data.org</span> (effectifs)</span>
+            <span className="ml-auto">{clubsDone}/{clubsTotal} clubs</span>
           </div>
         )}
       </div>
     </main>
+  );
+}
+
+// ── Vedettes panel ────────────────────────────────────────────────────────────
+//
+// Shared widget rendering up to 3 "top X" mini-tables under a league badge.
+// L1 feeds it with Datamb-derived rows; L2 with FotMob `topByRating/Goals/
+// Assists`. Rows are optionally clickable (FotMob external links for L2).
+
+interface VedetteRow {
+  id: string | number;
+  name: string;
+  teamName: string;
+  value: string;
+  href?: string;
+}
+
+function VedettePanel({ league, source, panels, loading }: {
+  league: LeagueKey;
+  source: string;
+  panels: { title: string; list: VedetteRow[] }[];
+  loading?: boolean;
+}) {
+  const badge = LEAGUE_BADGE[league];
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42", background: "#0d1421" }}>
+      <div className="px-4 py-2.5 flex items-center gap-2 border-b" style={{ borderColor: "#1e2d42" }}>
+        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+          style={{ color: badge.color, background: badge.bg }}>{badge.label}</span>
+        <span className="text-xs font-black" style={{ color: "#e8edf5" }}>Vedettes</span>
+        <span className="text-[10px]" style={{ color: "#6b7c96" }}>· source {source}</span>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-px" style={{ background: "#1e2d42" }}>
+        {panels.map(panel => (
+          <div key={panel.title} style={{ background: "#0d1421" }}>
+            <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest"
+              style={{ color: badge.color, borderBottom: "1px solid #131c2c" }}>
+              {panel.title}
+            </div>
+            {panel.list.length === 0 ? (
+              <div className="px-3 py-3 text-[11px]" style={{ color: "#6b7c96" }}>
+                {loading ? "Chargement…" : "Aucune donnée."}
+              </div>
+            ) : (
+              panel.list.map((p, i) => {
+                const inner = (
+                  <>
+                    <span className="w-4 text-[10px] font-mono" style={{ color: "#4b5a72" }}>{i + 1}</span>
+                    <span className="flex-1 text-xs truncate" style={{ color: "#e8edf5" }}>{p.name}</span>
+                    <span className="text-[10px] truncate max-w-[80px]" style={{ color: "#6b7c96" }}>{p.teamName}</span>
+                    <span className="text-xs font-bold flex-shrink-0" style={{ color: badge.color }}>{p.value}</span>
+                  </>
+                );
+                const cls = "flex items-center gap-2 px-3 py-1.5";
+                const style = { borderTop: i === 0 ? "none" : "1px solid #131c2c" };
+                return p.href ? (
+                  <a key={p.id} href={p.href} target="_blank" rel="noopener noreferrer"
+                    className={`${cls} hover:bg-white/[0.03]`} style={style}>{inner}</a>
+                ) : (
+                  <div key={p.id} className={cls} style={style}>{inner}</div>
+                );
+              })
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LeagueGroupHeader({ league, clubsCount, playersCount, sortLabel }: {
+  league: LeagueKey;
+  clubsCount: number;
+  playersCount: number;
+  sortLabel: string;
+}) {
+  const badge = LEAGUE_BADGE[league];
+  return (
+    <div className="flex items-center gap-2 pt-2 pb-1">
+      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+        style={{ color: badge.color, background: badge.bg }}>{badge.label}</span>
+      <span className="text-xs font-black" style={{ color: "#e8edf5" }}>
+        {league === "FL1" ? "Ligue 1" : "Ligue 2"}
+      </span>
+      <span className="text-[10px]" style={{ color: "#4b5a72" }}>
+        · {clubsCount} clubs · {playersCount} joueurs · tri : {sortLabel}
+      </span>
+    </div>
   );
 }
