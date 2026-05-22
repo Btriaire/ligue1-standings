@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { ArrowsClockwise, TrendUp, TrendDown, Minus, Trophy, WifiHigh, WifiSlash, Clock, Lightning, ChartBar, Shield, Pulse, Globe, GearSix, Target, ArrowsLeftRight, CaretRight, Users, Lock, SignIn, SignOut, Fire, Sun, MoonStars, Television } from "@phosphor-icons/react";
+import { ArrowsClockwise, TrendUp, TrendDown, Minus, Trophy, WifiHigh, WifiSlash, Clock, Lightning, ChartBar, Shield, Pulse, Globe, GearSix, Target, ArrowsLeftRight, CaretRight, Users, Lock, SignIn, SignOut, Fire, Sun, MoonStars, Television, Newspaper } from "@phosphor-icons/react";
 import { isWorldCupHot, worldCupPhase, daysUntilWorldCup } from "./lib/worldCup";
 import dynamic from "next/dynamic";
 const TeamPanel = dynamic(() => import("./components/TeamPanel"), { ssr: false });
@@ -520,6 +520,12 @@ function MonochromeToggle() {
     const next = !mono;
     setMono(next);
     document.documentElement.classList.toggle("monochrome", next);
+    if (next) {
+      // Mutually exclusive with the other CSS-filter themes — don't stack.
+      document.documentElement.classList.remove("light-mode", "edito");
+      try { localStorage.setItem("ui:light", "0"); } catch {}
+      try { localStorage.setItem("ui:edito", "0"); } catch {}
+    }
     try { localStorage.setItem("ui:monochrome", next ? "1" : "0"); } catch {}
   };
   return (
@@ -561,9 +567,10 @@ function LightModeToggle() {
     setLight(next);
     document.documentElement.classList.toggle("light-mode", next);
     if (next) {
-      // Turning on light: drop monochrome so filters don't stack.
-      document.documentElement.classList.remove("monochrome");
+      // Turning on light: drop monochrome + edito so filters don't stack.
+      document.documentElement.classList.remove("monochrome", "edito");
       try { localStorage.setItem("ui:monochrome", "0"); } catch {}
+      try { localStorage.setItem("ui:edito", "0"); } catch {}
     }
     try { localStorage.setItem("ui:light", next ? "1" : "0"); } catch {}
   };
@@ -582,6 +589,50 @@ function LightModeToggle() {
       }}>
       {light ? <Sun size={12} weight="fill" /> : <MoonStars size={12} weight="fill" />}
       <span className="hidden sm:inline">{light ? "Clair" : "Sombre"}</span>
+    </button>
+  );
+}
+
+// Édito mode — optional papier-journal theme inspired by Blast (blast-info.fr).
+// Same CSS-filter trick as light-mode but without the hue-rotate compensation,
+// so the cyan accent flips to red-orange and reads as "presse écrite". Mutually
+// exclusive with light-mode and monochrome so the filters never stack.
+function EditoModeToggle() {
+  const [edito, setEdito] = useState(false);
+  useEffect(() => {
+    const saved = typeof window !== "undefined" && localStorage.getItem("ui:edito") === "1";
+    if (saved) {
+      document.documentElement.classList.add("edito");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setEdito(true);
+    }
+  }, []);
+  const toggle = () => {
+    const next = !edito;
+    setEdito(next);
+    document.documentElement.classList.toggle("edito", next);
+    if (next) {
+      document.documentElement.classList.remove("light-mode", "monochrome");
+      try { localStorage.setItem("ui:light", "0"); } catch {}
+      try { localStorage.setItem("ui:monochrome", "0"); } catch {}
+    }
+    try { localStorage.setItem("ui:edito", next ? "1" : "0"); } catch {}
+  };
+  return (
+    <button
+      onClick={toggle}
+      data-mono-keep
+      data-keep-color
+      title={edito ? "Mode standard" : "Mode édito (papier journal)"}
+      aria-label={edito ? "Désactiver le mode édito" : "Activer le mode édito"}
+      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 active:scale-95"
+      style={{
+        background: edito ? "rgba(215,38,56,0.12)" : "rgba(148,163,184,0.10)",
+        border: `1px solid ${edito ? "rgba(215,38,56,0.35)" : "rgba(148,163,184,0.30)"}`,
+        color: edito ? "#d72638" : "#cbd5e1",
+      }}>
+      <Newspaper size={12} weight={edito ? "fill" : "regular"} />
+      <span className="hidden sm:inline">Édito</span>
     </button>
   );
 }
@@ -698,6 +749,7 @@ export default function Home() {
             <LiveDirectButton />
 
             <LightModeToggle />
+            <EditoModeToggle />
             <MonochromeToggle />
 
             <button onClick={() => fetchStandings(true)} disabled={refreshing}
