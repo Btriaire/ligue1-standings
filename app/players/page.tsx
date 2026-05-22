@@ -5,10 +5,10 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   MagnifyingGlass, X, ArrowLeft, Users,
-  FunnelSimple, TrendUp,
+  FunnelSimple, TrendUp, Trophy, CaretDown, CaretUp,
 } from "@phosphor-icons/react";
 import {
-  PlayerEntry, PlayerRow,
+  PlayerEntry, PlayerRow, PlayerPhoto, PlayerDetail,
   POS_ORDER, POS_FR, POS_COL, CLUB_SHORT,
   fv, normalize,
 } from "../components/PlayerCard";
@@ -49,6 +49,35 @@ const SORT_OPTIONS: { key: string; label: string }[] = [
   { key: "marketValue",    label: "Valeur" },
   { key: "age",            label: "Âge" },
 ];
+
+// Curated leaderboard metrics — picked to be meaningful across both leagues
+// (or clearly tagged as a single-league signal). The `available` field drives
+// the league chips inside the leaderboard panel: when the user picks a
+// metric only one league exposes (e.g. xG+xA/90 is Datamb/L1-only), the
+// other chip is disabled with a "(n/a)" hint.
+interface LeaderboardMetric {
+  key: keyof PlayerEntry | "rating";
+  label: string;
+  short: string;
+  color: string;
+  format: (v: number) => string;
+  available: LeagueKey[];
+  hint?: string;
+}
+
+const LEADERBOARD_METRICS: LeaderboardMetric[] = [
+  { key: "usGoals",     label: "Top buteurs",   short: "buts",  color: "#f59e0b", format: v => `${Math.round(v)}`,    available: ["FL1", "FL2"] },
+  { key: "usAssists",   label: "Top passeurs",  short: "PD",    color: "#a78bfa", format: v => `${Math.round(v)}`,    available: ["FL1", "FL2"] },
+  { key: "dm_xgxa90",   label: "xG+xA / 90",    short: "/90",   color: "#22c55e", format: v => v.toFixed(2),          available: ["FL1"], hint: "Datamb — Ligue 1" },
+  { key: "rating",      label: "Notation",      short: "note",  color: "#00d4ff", format: v => v.toFixed(2),          available: ["FL2"], hint: "FotMob — Ligue 2" },
+  { key: "marketValue", label: "Valeur marché", short: "€",     color: "#ec4899", format: v => fv(v),                 available: ["FL1", "FL2"] },
+];
+
+const RANK_STYLE: Record<number, { color: string; bg: string }> = {
+  1: { color: "#fbbf24", bg: "rgba(251,191,36,0.12)" },
+  2: { color: "#cbd5e1", bg: "rgba(203,213,225,0.10)" },
+  3: { color: "#fb923c", bg: "rgba(251,146,60,0.10)" },
+};
 
 // ── ClubSection ───────────────────────────────────────────────────────────────
 
@@ -248,8 +277,6 @@ export default function PlayersPage() {
   );
 }
 
-interface L2TopPlayer { id: number; name: string; teamId: number; teamName: string; value: number | string }
-
 function PlayersPageInner() {
   const searchParams = useSearchParams();
 
@@ -275,9 +302,6 @@ function PlayersPageInner() {
   const [l2Loading, setL2Loading] = useState(false);
   const l2Started = useRef(false);
   const [l2Done, setL2Done] = useState(0);
-  const [l2Top, setL2Top] = useState<{ byRating: L2TopPlayer[]; byGoals: L2TopPlayer[]; byAssists: L2TopPlayer[] }>({
-    byRating: [], byGoals: [], byAssists: [],
-  });
 
   const [search, setSearch] = useState("");
   const [filterClub, setFilterClub] = useState<number | "">("");
@@ -351,19 +375,6 @@ function PlayersPageInner() {
       })
       .catch(() => { if (!cancelled) setL2Loading(false); });
 
-    // 3) FotMob top players (separate endpoint, runs in parallel with above)
-    fetch("/api/players-l2")
-      .then(r => r.json())
-      .then((d: { topByRating?: L2TopPlayer[]; topByGoals?: L2TopPlayer[]; topByAssists?: L2TopPlayer[] }) => {
-        if (cancelled) return;
-        setL2Top({
-          byRating: d.topByRating ?? [],
-          byGoals: d.topByGoals ?? [],
-          byAssists: d.topByAssists ?? [],
-        });
-      })
-      .catch(() => {});
-
     return () => { cancelled = true; cancelAggregator?.(); };
   }, [showL2]);
 
@@ -430,26 +441,6 @@ function PlayersPageInner() {
       : [],
     [filtered, showL2, l2TeamIds]
   );
-
-  // L1 vedettes — top 3 derived locally from Datamb/Understat fields so the
-  // L1 panel mirrors the FotMob-fed L2 panel without an extra API call.
-  const l1Vedettes = useMemo(() => {
-    if (!showL1 || l1Players.length === 0) return null;
-    const top = (key: keyof PlayerEntry, n = 3) =>
-      [...l1Players]
-        .filter(p => ((p as unknown as Record<string, number | undefined>)[key as string] ?? 0) > 0)
-        .sort((a, b) => {
-          const av = (a as unknown as Record<string, number>)[key as string] ?? 0;
-          const bv = (b as unknown as Record<string, number>)[key as string] ?? 0;
-          return bv - av;
-        })
-        .slice(0, n);
-    return {
-      byRating:   top("dm_xgxa90"),
-      byGoals:    top("usGoals"),
-      byAssists:  top("usAssists"),
-    };
-  }, [showL1, l1Players]);
 
   const toggle = useCallback((uid: string) => {
     setExpandedId(prev => prev === uid ? null : uid);
@@ -586,22 +577,18 @@ function PlayersPageInner() {
       </header>
 
       <div className="max-w-5xl mx-auto px-4 py-4 space-y-4">
-        {/* Vedettes panels — shown only when not filtering, so users see a
-            curated top-3 by default and a flat list when they actually search. */}
-        {!isFiltered && showL1 && l1Vedettes && (
-          <VedettePanel league="FL1" source="Datamb" panels={[
-            { title: "Top xG+xA/90",   list: l1Vedettes.byRating.map(p => ({ id: p.id, name: p.name, teamName: p.club.shortName ?? p.club.name ?? "", value: (p.dm_xgxa90 ?? 0).toFixed(2) })) },
-            { title: "Top buteurs",    list: l1Vedettes.byGoals.map(p =>  ({ id: p.id, name: p.name, teamName: p.club.shortName ?? p.club.name ?? "", value: `${p.usGoals ?? 0} buts` })) },
-            { title: "Top passeurs",   list: l1Vedettes.byAssists.map(p => ({ id: p.id, name: p.name, teamName: p.club.shortName ?? p.club.name ?? "", value: `${p.usAssists ?? 0} PD` })) },
-          ]} />
-        )}
-
-        {!isFiltered && showL2 && (
-          <VedettePanel league="FL2" source="FotMob" panels={[
-            { title: "Top notation", list: l2Top.byRating.map(p =>  ({ id: String(p.id), name: p.name, teamName: p.teamName, value: String(p.value), href: `https://www.fotmob.com/players/${p.id}` })) },
-            { title: "Top buteurs",  list: l2Top.byGoals.map(p =>   ({ id: String(p.id), name: p.name, teamName: p.teamName, value: `${p.value} buts`, href: `https://www.fotmob.com/players/${p.id}` })) },
-            { title: "Top passeurs", list: l2Top.byAssists.map(p => ({ id: String(p.id), name: p.name, teamName: p.teamName, value: `${p.value} PD`, href: `https://www.fotmob.com/players/${p.id}` })) },
-          ]} loading={l2Loading && l2Top.byRating.length === 0} />
+        {/* Unified leaderboard — one panel, switchable metric tabs, league
+            chips inside. Replaces the old side-by-side L1+L2 Vedettes. */}
+        {!isFiltered && (
+          <Leaderboard
+            key={leagueFilter}
+            players={allPlayers}
+            clubLeague={clubLeague}
+            expandedId={expandedId}
+            onToggle={toggle}
+            loading={loading}
+            leagueFilter={leagueFilter}
+          />
         )}
 
         {/* Skeleton — only when nothing is loaded yet for the visible leagues */}
@@ -673,69 +660,208 @@ function PlayersPageInner() {
   );
 }
 
-// ── Vedettes panel ────────────────────────────────────────────────────────────
+// ── Leaderboard ───────────────────────────────────────────────────────────────
 //
-// Shared widget rendering up to 3 "top X" mini-tables under a league badge.
-// L1 feeds it with Datamb-derived rows; L2 with FotMob `topByRating/Goals/
-// Assists`. Rows are optionally clickable (FotMob external links for L2).
+// Single, interactive ranking panel that subsumes the previous side-by-side
+// L1 + L2 "Vedettes" boxes. The user picks a metric tab (Buteurs / Passeurs /
+// xG+xA / Notation / Valeur) and a league chip (Toutes / L1 / L2) inside the
+// panel, and the top 10 is computed live from the merged player pool. When
+// a metric only one league exposes is picked, the other chip is greyed out
+// with a "(n/a)" hint — so users see at a glance why their L2 selection is
+// empty when they're looking at Datamb's xG+xA/90.
 
-interface VedetteRow {
-  id: string | number;
-  name: string;
-  teamName: string;
-  value: string;
-  href?: string;
-}
-
-function VedettePanel({ league, source, panels, loading }: {
-  league: LeagueKey;
-  source: string;
-  panels: { title: string; list: VedetteRow[] }[];
-  loading?: boolean;
+function Leaderboard({
+  players, clubLeague, expandedId, onToggle, loading, leagueFilter,
+}: {
+  players: PlayerEntry[];
+  clubLeague: Map<number, LeagueKey>;
+  expandedId: string | null;
+  onToggle: (uid: string) => void;
+  loading: boolean;
+  leagueFilter: LeagueFilter;
 }) {
-  const badge = LEAGUE_BADGE[league];
+  const [metricKey, setMetricKey] = useState<string>("usGoals");
+  // Chip defaults to the page-level filter; user overrides reset whenever
+  // the page-level pill flips because we pass `key={leagueFilter}` from the
+  // parent, forcing this component to remount.
+  const [leagueChip, setLeagueChip] = useState<LeagueFilter>(leagueFilter);
+  const [showMore, setShowMore] = useState(false);
+
+  const metric = LEADERBOARD_METRICS.find(m => m.key === metricKey) ?? LEADERBOARD_METRICS[0];
+  const l1Available = metric.available.includes("FL1");
+  const l2Available = metric.available.includes("FL2");
+
+  // If the user picks a chip that's not available for this metric, fall back
+  // to whichever league IS available. Avoids the empty-list trap.
+  const effectiveChip: LeagueFilter =
+    leagueChip === "FL1" && !l1Available ? (l2Available ? "FL2" : "ALL")
+    : leagueChip === "FL2" && !l2Available ? (l1Available ? "FL1" : "ALL")
+    : leagueChip;
+
+  const ranked = useMemo(() => {
+    const pool = players.filter(p => {
+      const league = clubLeague.get(p.clubId);
+      if (!league) return false;
+      if (effectiveChip !== "ALL" && league !== effectiveChip) return false;
+      if (!metric.available.includes(league)) return false;
+      return true;
+    });
+    return [...pool]
+      .filter(p => ((p as unknown as Record<string, number | undefined>)[metric.key as string] ?? 0) > 0)
+      .sort((a, b) => {
+        const av = (a as unknown as Record<string, number>)[metric.key as string] ?? 0;
+        const bv = (b as unknown as Record<string, number>)[metric.key as string] ?? 0;
+        return bv - av;
+      });
+  }, [players, clubLeague, metric, effectiveChip]);
+
+  const shown = showMore ? ranked.slice(0, 25) : ranked.slice(0, 10);
+
   return (
     <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42", background: "#0d1421" }}>
-      <div className="px-4 py-2.5 flex items-center gap-2 border-b" style={{ borderColor: "#1e2d42" }}>
-        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-          style={{ color: badge.color, background: badge.bg }}>{badge.label}</span>
-        <span className="text-xs font-black" style={{ color: "#e8edf5" }}>Vedettes</span>
-        <span className="text-[10px]" style={{ color: "#6b7c96" }}>· source {source}</span>
+      {/* Header */}
+      <div className="px-4 py-3 flex items-center gap-2 border-b" style={{ borderColor: "#1e2d42" }}>
+        <Trophy size={14} weight="fill" style={{ color: metric.color }} />
+        <span className="text-sm font-black" style={{ color: "#e8edf5" }}>Leaderboard</span>
+        {metric.hint && (
+          <span className="text-[10px] hidden sm:inline" style={{ color: "#6b7c96" }}>· {metric.hint}</span>
+        )}
+        <span className="text-[10px] ml-auto" style={{ color: "#6b7c96" }}>
+          {loading && ranked.length === 0 ? "Chargement…" : `${ranked.length} joueur${ranked.length > 1 ? "s" : ""} classé${ranked.length > 1 ? "s" : ""}`}
+        </span>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-px" style={{ background: "#1e2d42" }}>
-        {panels.map(panel => (
-          <div key={panel.title} style={{ background: "#0d1421" }}>
-            <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest"
-              style={{ color: badge.color, borderBottom: "1px solid #131c2c" }}>
-              {panel.title}
-            </div>
-            {panel.list.length === 0 ? (
-              <div className="px-3 py-3 text-[11px]" style={{ color: "#6b7c96" }}>
-                {loading ? "Chargement…" : "Aucune donnée."}
-              </div>
-            ) : (
-              panel.list.map((p, i) => {
-                const inner = (
-                  <>
-                    <span className="w-4 text-[10px] font-mono" style={{ color: "#4b5a72" }}>{i + 1}</span>
-                    <span className="flex-1 text-xs truncate" style={{ color: "#e8edf5" }}>{p.name}</span>
-                    <span className="text-[10px] truncate max-w-[80px]" style={{ color: "#6b7c96" }}>{p.teamName}</span>
-                    <span className="text-xs font-bold flex-shrink-0" style={{ color: badge.color }}>{p.value}</span>
-                  </>
-                );
-                const cls = "flex items-center gap-2 px-3 py-1.5";
-                const style = { borderTop: i === 0 ? "none" : "1px solid #131c2c" };
-                return p.href ? (
-                  <a key={p.id} href={p.href} target="_blank" rel="noopener noreferrer"
-                    className={`${cls} hover:bg-white/[0.03]`} style={style}>{inner}</a>
-                ) : (
-                  <div key={p.id} className={cls} style={style}>{inner}</div>
-                );
-              })
+
+      {/* Metric tabs */}
+      <div className="flex border-b overflow-x-auto" style={{ borderColor: "#1e2d42" }}>
+        {LEADERBOARD_METRICS.map(m => {
+          const active = m.key === metricKey;
+          return (
+            <button key={m.key as string}
+              onClick={() => setMetricKey(m.key as string)}
+              className="px-3 sm:px-4 py-2 text-xs font-bold whitespace-nowrap transition-colors relative flex items-center gap-1.5"
+              style={{
+                color: active ? m.color : "#6b7c96",
+                background: active ? `${m.color}10` : "transparent",
+              }}>
+              {m.label}
+              {active && (
+                <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full" style={{ background: m.color }} />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* League chips */}
+      <div className="px-3 py-2 flex items-center gap-1.5 border-b flex-wrap" style={{ borderColor: "#1e2d42" }}>
+        <span className="text-[10px] mr-1" style={{ color: "#4b5a72" }}>Ligue :</span>
+        {([
+          { key: "ALL", label: "Toutes", disabled: false },
+          { key: "FL1", label: "Ligue 1", disabled: !l1Available },
+          { key: "FL2", label: "Ligue 2", disabled: !l2Available },
+        ] as const).map(opt => {
+          const active = effectiveChip === opt.key;
+          return (
+            <button key={opt.key}
+              onClick={() => !opt.disabled && setLeagueChip(opt.key)}
+              disabled={opt.disabled}
+              className="text-[10px] font-bold px-2 py-1 rounded-md transition-colors"
+              style={{
+                color: opt.disabled ? "#4b5a72" : active ? metric.color : "#6b7c96",
+                background: active ? `${metric.color}15` : "transparent",
+                border: `1px solid ${active ? metric.color + "40" : "#1e2d42"}`,
+                cursor: opt.disabled ? "not-allowed" : "pointer",
+                opacity: opt.disabled ? 0.4 : 1,
+              }}>
+              {opt.label}{opt.disabled && " · n/a"}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Rows */}
+      <div className="p-2">
+        {shown.length === 0 ? (
+          <div className="py-8 text-center text-xs" style={{ color: "#6b7c96" }}>
+            {loading ? "Chargement…" : "Aucun joueur pour cette combinaison."}
+          </div>
+        ) : (
+          shown.map((p, i) => {
+            const uid = `lb-${p.clubId}-${p.id}`;
+            const league = clubLeague.get(p.clubId);
+            const v = (p as unknown as Record<string, number>)[metric.key as string] ?? 0;
+            return (
+              <LeaderboardRow key={uid} p={p} rank={i + 1} metric={metric} value={v}
+                league={league} expanded={expandedId === uid}
+                onToggle={() => onToggle(uid)} />
+            );
+          })
+        )}
+        {ranked.length > 10 && (
+          <button onClick={() => setShowMore(v => !v)}
+            className="w-full mt-1 py-2 text-[11px] rounded-lg transition-colors hover:bg-white/[0.04]"
+            style={{ color: "#6b7c96", background: "rgba(255,255,255,0.02)", border: "1px solid #1e2d42" }}>
+            {showMore ? "Voir top 10" : `Voir top ${Math.min(25, ranked.length)}`}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function LeaderboardRow({ p, rank, metric, value, league, expanded, onToggle }: {
+  p: PlayerEntry;
+  rank: number;
+  metric: LeaderboardMetric;
+  value: number;
+  league: LeagueKey | undefined;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const rankStyle = RANK_STYLE[rank] ?? { color: "#6b7c96", bg: "rgba(107,124,150,0.06)" };
+  const badge = league ? LEAGUE_BADGE[league] : null;
+  const teamName = p.club?.shortName ?? p.club?.name ?? "";
+
+  return (
+    <div className="rounded-xl overflow-hidden mb-1"
+      style={{
+        border: `1px solid ${expanded ? metric.color + "50" : "#1e2d42"}`,
+        background: expanded ? "#0a0f1a" : "#0d1421",
+      }}>
+      <button onClick={onToggle}
+        className="w-full flex items-center gap-2 sm:gap-2.5 px-2 py-2 hover:bg-white/[0.03] transition-colors text-left">
+        <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0"
+          style={{
+            color: rankStyle.color,
+            background: rankStyle.bg,
+            border: `1px solid ${rankStyle.color}30`,
+          }}>
+          {rank}
+        </span>
+        <PlayerPhoto p={p} eager={expanded} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <p className="text-xs font-bold truncate" style={{ color: "#e8edf5" }}>{p.name}</p>
+            {badge && (
+              <span className="text-[9px] font-bold px-1 py-0.5 rounded flex-shrink-0"
+                style={{ color: badge.color, background: badge.bg }}>{badge.label}</span>
             )}
           </div>
-        ))}
-      </div>
+          <p className="text-[10px] truncate" style={{ color: "#6b7c96" }}>
+            {teamName}{p.position && <span className="ml-1.5">· {POS_FR[p.position] ?? p.position}</span>}
+          </p>
+        </div>
+        <div className="flex flex-col items-end flex-shrink-0">
+          <span className="text-base font-black leading-none" style={{ color: metric.color }}>
+            {metric.format(value)}
+          </span>
+          <span className="text-[9px] mt-0.5" style={{ color: "#6b7c96" }}>{metric.short}</span>
+        </div>
+        <span className="flex-shrink-0 ml-1" style={{ color: "#6b7c96" }}>
+          {expanded ? <CaretUp size={12} /> : <CaretDown size={12} />}
+        </span>
+      </button>
+      {expanded && <PlayerDetail p={p} />}
     </div>
   );
 }
