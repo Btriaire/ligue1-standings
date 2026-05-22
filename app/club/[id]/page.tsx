@@ -12,6 +12,7 @@ import {
 } from "@phosphor-icons/react";
 import { clubProfile, clubStadiumPhoto, commonsUrl, personPhoto, isL2, type ClubProfile } from "@/app/lib/clubProfile";
 import { formScore01 } from "@/app/lib/scoring";
+import ModalShell from "@/app/components/ModalShell";
 
 // ── Static data ────────────────────────────────────────────────────────────────
 
@@ -730,12 +731,7 @@ function PlayerModal({ player, onClose }: { player: SquadPlayer; onClose: () => 
   const dmCtx = hasDatamb ? `${player.dm_matches ?? "?"} matchs · ${player.dm_minutes ?? player.minutes ?? "?"} min` : "";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
-      style={{ background: "rgba(0,0,0,0.85)" }} onClick={onClose}>
-      <div className="rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md overflow-hidden"
-        style={{ background: "#0d1421", border: "1px solid #1e2d42", maxHeight: "90vh", display: "flex", flexDirection: "column" }}
-        onClick={e => e.stopPropagation()}>
-
+    <ModalShell onClose={onClose} showCloseButton={false}>
         {/* Header */}
         <div className="flex items-center gap-3 px-4 py-3 flex-shrink-0" style={{ borderBottom: "1px solid #1e2d42", background: "rgba(255,255,255,0.02)" }}>
           {player.imageUrl ? (
@@ -896,8 +892,7 @@ function PlayerModal({ player, onClose }: { player: SquadPlayer; onClose: () => 
           )}
 
         </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 }
 
