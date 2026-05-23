@@ -920,7 +920,10 @@ interface WCMatch {
   wcFactorTeam: "home" | "away" | "both"; // which team it benefits
   momentumHome: string;         // qualifier form e.g. "8V 2N 0D"
   momentumAway: string;
-  tacticalNote: string;         // AI tactical insight
+  tacticHome: string;           // tactical formation/system home e.g. "4-3-3 Pressing haut"
+  tacticAway: string;           // tactical formation/system away e.g. "5-4-1 Défensif"
+  keyBattle: string;            // key tactical battle on the pitch
+  tacticalNote: string;         // AI tactical insight (bullet points separated by ·)
 }
 
 const WC_MATCHES_DATA: WCMatch[] = [
@@ -934,7 +937,10 @@ const WC_MATCHES_DATA: WCMatch[] = [
     h2h:"Mexique mène 6-3-4", h2hDetail:"13 confrontations · Mexique avantagé",
     wcFactor:"host", wcFactorTeam:"home",
     momentumHome:"7V 3N 0D", momentumAway:"6V 2N 2D",
-    tacticalNote:"Ambiance Azteca unique au monde · Mexique très difficile à battre chez lui en match d'ouverture",
+    tacticHome:"4-3-3 Pressing haut",
+    tacticAway:"4-4-2 Structuré",
+    keyBattle:"Milieu central — Caicedo doit casser l'élan mexicain pour ouvrir les espaces en contre",
+    tacticalNote:"Ambiance Azteca unique au monde · Mexique très difficile à battre chez lui en match d'ouverture · Lozano et l'ailier droit clés pour déborder le bloc équatorien",
   },
   {
     group:"C", date:"12 juin", venue:"Los Angeles – SoFi Stadium",
@@ -946,7 +952,10 @@ const WC_MATCHES_DATA: WCMatch[] = [
     h2h:"USA mène 11-4-3", h2hDetail:"18 confrontations · Domination US",
     wcFactor:"host", wcFactorTeam:"home",
     momentumHome:"8V 1N 1D", momentumAway:"5V 3N 2D",
-    tacticalNote:"Pulisic en forme record avec l'AC Milan · Panama qualifié de justesse",
+    tacticHome:"4-3-3 Transition rapide",
+    tacticAway:"5-4-1 Bloc défensif",
+    keyBattle:"Pulisic entre les lignes — exploiter les espaces dans le 5-4-1 panaméen par des combinaisons courtes",
+    tacticalNote:"Pulisic en forme record avec l'AC Milan · Panama qualifié de justesse après barrage · Défense US physique et organisée face à un attaquant limité",
   },
   {
     group:"A", date:"13 juin", venue:"Dallas – AT&T Stadium",
@@ -958,7 +967,10 @@ const WC_MATCHES_DATA: WCMatch[] = [
     h2h:"Argentine mène 46-19-15", h2hDetail:"80 confrontations · Classique CONMEBOL",
     wcFactor:"champion", wcFactorTeam:"home",
     momentumHome:"7V 3N 0D", momentumAway:"4V 3N 3D",
-    tacticalNote:"Messi incertain mais Álvarez et Lautaro suffisent · Chili en reconstruction post-génération dorée",
+    tacticHome:"4-3-3 Possession contrôlée",
+    tacticAway:"4-4-2 Bloc médian",
+    keyBattle:"Álvarez en pivot vs la défense centrale chilienne — Argentine cherchera à ouvrir sur les flancs",
+    tacticalNote:"Messi incertain mais Álvarez et Lautaro suffisent · Chili en reconstruction post-génération dorée · Argentine joue en bloc et impose son tempo via De Paul au milieu",
   },
   {
     group:"E", date:"14 juin", venue:"Miami – Hard Rock Stadium",
@@ -970,7 +982,10 @@ const WC_MATCHES_DATA: WCMatch[] = [
     h2h:"Espagne mène 5-2-1", h2hDetail:"8 confrontations · Maroc surprenant en 2022",
     wcFactor:"underdog", wcFactorTeam:"away",
     momentumHome:"9V 1N 0D", momentumAway:"7V 2N 1D",
-    tacticalNote:"Maroc demi-finaliste 2022 · Hakimi très motivé face à l'Espagne · Match de référence du groupe",
+    tacticHome:"4-3-3 Tiki-taka / Possession",
+    tacticAway:"5-3-2 Pressing haut + Contre",
+    keyBattle:"Yamal dans les espaces vs Hakimi en montée — le flanc droit marocain sera le couloir le plus tendu",
+    tacticalNote:"Maroc demi-finaliste 2022 · Hakimi très motivé face à l'Espagne · Match de référence du groupe · Espagne doit éviter le guet-apens d'un bloc marocain discipliné",
   },
   {
     group:"F", date:"14 juin", venue:"New York – MetLife Stadium",
@@ -982,7 +997,10 @@ const WC_MATCHES_DATA: WCMatch[] = [
     h2h:"France mène 3-1-0", h2hDetail:"Peu de confrontations · France nettement supérieure",
     wcFactor:"momentum", wcFactorTeam:"home",
     momentumHome:"8V 2N 0D", momentumAway:"4V 2N 4D",
-    tacticalNote:"Mbappé veut effacer la défaite 2022 · Arabie Saoudite avait battu l'Argentine en 2022 mais niveau moindre ici",
+    tacticHome:"4-3-3 Transitions rapides",
+    tacticAway:"5-4-1 Défense profonde",
+    keyBattle:"Mbappé en face à face isolé vs la ligne défensive saoudienne — profondeur et appel à déclencher",
+    tacticalNote:"Mbappé veut effacer la défaite 2022 · Arabie Saoudite avait battu l'Argentine en 2022 mais niveau moindre ici · France en confiance après qualifs parfaites, la puissance offensive ne laisse aucun doute",
   },
   {
     group:"D", date:"15 juin", venue:"Vancouver – BC Place",
@@ -994,7 +1012,10 @@ const WC_MATCHES_DATA: WCMatch[] = [
     h2h:"Canada mène 6-4-5", h2hDetail:"15 confrontations · Légère avance Canada",
     wcFactor:"host", wcFactorTeam:"home",
     momentumHome:"6V 3N 1D", momentumAway:"4V 3N 3D",
-    tacticalNote:"2e participation seulement au Canada · Davies en feu · Honduras solide en CONCACAF mais dépassé à ce niveau",
+    tacticHome:"4-2-3-1 Physique et rapide",
+    tacticAway:"4-5-1 Repli défensif",
+    keyBattle:"Davies côté gauche vs le couloir défensif hondurien — sa vitesse et son dribble sont l'arme principale",
+    tacticalNote:"2e participation seulement au Canada · Davies en feu avec le Bayern · Honduras solide en CONCACAF mais physiquement dépassé à ce niveau mondial",
   },
   {
     group:"I", date:"15 juin", venue:"Boston – Gillette Stadium",
@@ -1006,7 +1027,10 @@ const WC_MATCHES_DATA: WCMatch[] = [
     h2h:"Angleterre mène 5-2-2", h2hDetail:"9 confrontations · Sénégal montant",
     wcFactor:"veterans", wcFactorTeam:"home",
     momentumHome:"7V 2N 1D", momentumAway:"8V 1N 1D",
-    tacticalNote:"Sénégal champion d'Afrique 2022 · Mané vétéran · Angleterre doit éviter le piège contre-attaquant",
+    tacticHome:"4-3-3 Contrôle du ballon",
+    tacticAway:"4-3-3 Pressing + contre rapide",
+    keyBattle:"Bellingham vs Mané — duel de stars qui dictera le rythme du match et le résultat",
+    tacticalNote:"Sénégal champion d'Afrique 2022 · Mané vétéran mais toujours décisif sur le contre · Angleterre doit éviter le piège de la transition sénégalaise · Bellingham doit contrôler les espaces au milieu",
   },
   {
     group:"G", date:"16 juin", venue:"San Francisco – Levi's Stadium",
@@ -1018,7 +1042,10 @@ const WC_MATCHES_DATA: WCMatch[] = [
     h2h:"Brésil mène 31-10-11", h2hDetail:"52 confrontations · Classique Amérique du Sud",
     wcFactor:"derby", wcFactorTeam:"both",
     momentumHome:"6V 3N 1D", momentumAway:"8V 1N 1D",
-    tacticalNote:"Colombie invaincue en 2024 CONMEBOL qualifying (record) · Brésil en reconstruction mais talent intact",
+    tacticHome:"4-2-3-1 Technique et expansif",
+    tacticAway:"4-4-2 Compact en transition",
+    keyBattle:"Vinicius Jr vs la défense droite colombienne — son élimination ou sa libération conditionnera tout le résultat",
+    tacticalNote:"Colombie invaincue en 2024 CONMEBOL qualifying (record absolu) · Brésil en reconstruction mais talent intact · James Rodríguez chef d'orchestre clé mais Brésil plus profond · Derby avec pression maximale des deux côtés",
   },
   {
     group:"H", date:"16 juin", venue:"Philadelphia – Lincoln Financial",
@@ -1030,7 +1057,10 @@ const WC_MATCHES_DATA: WCMatch[] = [
     h2h:"Allemagne mène 24-13-12", h2hDetail:"49 confrontations · Rivalité historique intense",
     wcFactor:"derby", wcFactorTeam:"both",
     momentumHome:"7V 2N 1D", momentumAway:"8V 1N 1D",
-    tacticalNote:"Wirtz meilleur joueur Bundesliga · Pays-Bas portés par une génération talentueuse · Aucun favori clair",
+    tacticHome:"4-3-3 Gegenpress moderne",
+    tacticAway:"4-2-3-1 Physique et aérien",
+    keyBattle:"Wirtz entre les lignes vs la dureté de Gravenberch — le contrôle du milieu décide du vainqueur",
+    tacticalNote:"Wirtz meilleur joueur Bundesliga · Pays-Bas portés par une génération talentueuse · Aucun favori clair · xG 1.4–1.4 parfaitement équilibré · Les deux équipes misent sur le pressing haut et les transitions",
   },
   {
     group:"J", date:"17 juin", venue:"Houston – NRG Stadium",
@@ -1042,7 +1072,10 @@ const WC_MATCHES_DATA: WCMatch[] = [
     h2h:"Italie mène 9-4-5", h2hDetail:"18 confrontations · Modrić grand facteur",
     wcFactor:"veterans", wcFactorTeam:"away",
     momentumHome:"5V 4N 1D", momentumAway:"5V 3N 2D",
-    tacticalNote:"Modrić possiblement son dernier grand tournoi · Italie solide défensivement mais créativité limitée",
+    tacticHome:"3-5-2 Solide et discipliné",
+    tacticAway:"4-3-3 Technique croatienne",
+    keyBattle:"Modrić dans le cœur du jeu vs le double pivot italien — la Croatie passe par son capitaine",
+    tacticalNote:"Modrić possiblement son dernier grand tournoi · Italie solide défensivement mais créativité offensive limitée · Chiesa le seul capable de faire la différence côté azzurri · Match serré attendu entre deux équipes prudentes",
   },
   {
     group:"F", date:"20 juin", venue:"New York – MetLife Stadium",
@@ -1054,7 +1087,10 @@ const WC_MATCHES_DATA: WCMatch[] = [
     h2h:"France mène 17-11-9", h2hDetail:"37 confrontations · Suisse avait éliminé la France en 2021",
     wcFactor:"revenge", wcFactorTeam:"home",
     momentumHome:"8V 2N 0D", momentumAway:"6V 2N 2D",
-    tacticalNote:"La Suisse a éliminé la France à l'Euro 2020 (tirs au but) · Revanche en jeu · Xhaka leader mental clé",
+    tacticHome:"4-3-3 Domination et profondeur",
+    tacticAway:"4-2-3-1 Organisation sous pression",
+    keyBattle:"Griezmann dans l'axe vs Xhaka — l'intelligence tactique des deux numéros 10 décide du tempo",
+    tacticalNote:"La Suisse a éliminé la France à l'Euro 2020 aux tirs au but · Revanche en jeu pour les Bleus · Xhaka leader mental et techniquement irréprochable · France supérieure sur papier mais match piège psychologiquement",
   },
   {
     group:"D", date:"20 juin", venue:"Kansas City – Arrowhead Stadium",
@@ -1066,7 +1102,10 @@ const WC_MATCHES_DATA: WCMatch[] = [
     h2h:"Uruguay mène 4-2-5", h2hDetail:"11 confrontations · Portugal léger avantage récent",
     wcFactor:"veterans", wcFactorTeam:"away",
     momentumHome:"6V 2N 2D", momentumAway:"7V 2N 1D",
-    tacticalNote:"Ronaldo possiblement 5e et dernière CdM · Motivation extrême · Darwin Núñez seul atout offensif uruguayen",
+    tacticHome:"4-4-2 Rugueux et compact",
+    tacticAway:"4-3-3 Technique et rapide",
+    keyBattle:"Darwin Núñez isolé en pointe vs la défense centrale portugaise — s'il est muselé, l'Uruguay n'a pas d'autre plan",
+    tacticalNote:"Ronaldo possiblement sa 5e et dernière CdM · Motivation extrême pour partir en beauté · Darwin Núñez seul atout offensif uruguayen · Portugal supérieur collectivement mais Uruguay très solide défensivement",
   },
   {
     group:"E", date:"21 juin", venue:"Los Angeles – SoFi Stadium",
@@ -1078,7 +1117,10 @@ const WC_MATCHES_DATA: WCMatch[] = [
     h2h:"Belgique mène 3-1-1", h2hDetail:"5 confrontations · Japon montant",
     wcFactor:"underdog", wcFactorTeam:"away",
     momentumHome:"5V 3N 2D", momentumAway:"8V 1N 1D",
-    tacticalNote:"Japon invaincue sur 10 matchs qualifs · Kubo explosif · De Bruyne décisif mais Belgique en fin de cycle",
+    tacticHome:"4-3-3 Expérimenté mais vieillissant",
+    tacticAway:"4-2-3-1 Pressing intense",
+    keyBattle:"Kubo dans les espaces laissés par la défense belge vieillissante — le Japon joue sur la profondeur et les transitions rapides",
+    tacticalNote:"Japon invaincue sur 10 matchs qualificatifs · Kubo explosif et en plein forme · De Bruyne décisif mais Belgique en fin de cycle générationnel · Match potentiellement piège pour une Belgique moins rapide",
   },
   {
     group:"A", date:"22 juin", venue:"Seattle – Lumen Field",
@@ -1090,7 +1132,10 @@ const WC_MATCHES_DATA: WCMatch[] = [
     h2h:"Argentine mène 4-1-0", h2hDetail:"5 confrontations · Argentine très largement",
     wcFactor:"champion", wcFactorTeam:"home",
     momentumHome:"7V 3N 0D", momentumAway:"5V 2N 3D",
-    tacticalNote:"L'Australie avait éliminé la France en 2022… non, Danemark. Match de référence pour la qualification",
+    tacticHome:"4-3-3 Domination absolue",
+    tacticAway:"5-4-1 Survie et contre",
+    keyBattle:"Messi en 10 vs le bloc défensif australien — toute la menace argentine passe par le capitaine",
+    tacticalNote:"Argentine très largement dominatrice dans les statistiques · Australie en mode survie · Messi décisif à chaque grande affiche · Match qui doit confirmer le statut de champion du monde de l'Argentine",
   },
   {
     group:"F", date:"25 juin", venue:"New York – MetLife Stadium",
@@ -1102,7 +1147,10 @@ const WC_MATCHES_DATA: WCMatch[] = [
     h2h:"Jamais rencontré en CdM", h2hDetail:"1ère confrontation officielle en CdM · Amicaux: France 2-0",
     wcFactor:"revenge", wcFactorTeam:"away",
     momentumHome:"8V 2N 0D", momentumAway:"7V 2N 1D",
-    tacticalNote:"Match politique et émotionnel hors du commun · Nombreux joueurs franco-algériens · Mahrez et Benrahma sous pression identitaire",
+    tacticHome:"4-3-3 Pression et possession",
+    tacticAway:"4-4-2 Bloc compact + contre",
+    keyBattle:"Mbappé vs Mandi/Benlamri — la défense algérienne sera testée dès les premières minutes par la vitesse française",
+    tacticalNote:"Match politique et émotionnel hors du commun · Nombreux joueurs franco-algériens dans les deux équipes · Mahrez et Benrahma sous pression identitaire · France favorite mais pression psychologique atypique",
   },
   {
     group:"G", date:"26 juin", venue:"San Francisco – Levi's Stadium",
@@ -1114,7 +1162,10 @@ const WC_MATCHES_DATA: WCMatch[] = [
     h2h:"Brésil mène 38-14-15", h2hDetail:"67 confrontations · Domination brésilienne",
     wcFactor:"cohesion", wcFactorTeam:"home",
     momentumHome:"6V 3N 1D", momentumAway:"5V 3N 2D",
-    tacticalNote:"Brésil avec 6 joueurs de Real Madrid et Barcelona · Paraguay résistant mais techniquement limité",
+    tacticHome:"4-2-3-1 Contrôle et technique",
+    tacticAway:"4-5-1 Défensif et physique",
+    keyBattle:"Rodrygo dans le dos de la défense paraguayenne — sa capacité à dribbler dans l'espace est l'arme principale",
+    tacticalNote:"Brésil avec 6 joueurs du Real Madrid et FC Barcelone — automatismes de haut niveau · Paraguay résistant en qualifs mais techniquement limité au plus haut niveau · Bloc paraguayen difficile à ouvrir mais manque de ressources offensives",
   },
   {
     group:"H", date:"26 juin", venue:"Seattle – Lumen Field",
@@ -1126,7 +1177,10 @@ const WC_MATCHES_DATA: WCMatch[] = [
     h2h:"Allemagne mène 34-9-4", h2hDetail:"47 confrontations · Domination historique allemande",
     wcFactor:"derby", wcFactorTeam:"home",
     momentumHome:"7V 2N 1D", momentumAway:"5V 3N 2D",
-    tacticalNote:"Lewandowski à 38 ans mais toujours redoutable sur coup de pied arrêté · Allemagne doit sécuriser la 1re place",
+    tacticHome:"4-3-3 Haute intensité",
+    tacticAway:"4-4-2 Solide et direct",
+    keyBattle:"Lewandowski sur coups de pied arrêtés vs Rüdiger — le capitaine polonais reste une menace constante malgré les années",
+    tacticalNote:"Lewandowski à 38 ans mais toujours redoutable sur coups de pied arrêtés · Allemagne doit sécuriser la 1re place du groupe · Wirtz et Havertz en charge de la créativité · Pologne tentera de défendre profondément et de frapper sur transition",
   },
   {
     group:"I", date:"27 juin", venue:"Boston – Gillette Stadium",
@@ -1138,7 +1192,10 @@ const WC_MATCHES_DATA: WCMatch[] = [
     h2h:"Angleterre mène 3-1-0", h2hDetail:"4 confrontations · Angleterre favorable",
     wcFactor:"pressure", wcFactorTeam:"both",
     momentumHome:"7V 2N 1D", momentumAway:"5V 2N 3D",
-    tacticalNote:"Angleterre a besoin d'une victoire convaincante · Tunisie en CdM pour la 6e fois · match sans surprise attendue",
+    tacticHome:"4-2-3-1 Contrôle et profondeur",
+    tacticAway:"5-4-1 Bloc défensif",
+    keyBattle:"Saka côté droit vs le mur tunisien — sa technique en 1v1 doit faire la différence pour créer des décalages",
+    tacticalNote:"Angleterre a besoin d'une victoire convaincante pour assurer la qualification · Tunisie en CdM pour la 6e fois — expérience mais niveau insuffisant · Saka et Foden les créateurs offensifs clés · Match sans surprise tactique attendue mais Angleterre sous pression de bien performer",
   },
 ];
 
@@ -1617,11 +1674,161 @@ function WCPredictionsView() {
                     );
                   })()}
 
-                  {/* Tactical note */}
-                  <div className="rounded-xl px-3 py-2" style={{ background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.04)" }}>
-                    <p className="text-[10px] uppercase font-bold mb-1" style={{ color: "#6b7c96" }}>🧠 Analyse tactique</p>
-                    <p className="text-xs leading-relaxed" style={{ color: "#94a3b8" }}>{m.tacticalNote}</p>
-                  </div>
+                  {/* ── Analyse Tactique — rich panel ── */}
+                  {(() => {
+                    const homeShort = m.home.split(" ").slice(1).join(" ");
+                    const awayShort = m.away.split(" ").slice(1).join(" ");
+                    const total = m.xgHome + m.xgAway;
+                    const homePct = Math.round((m.xgHome / total) * 100);
+                    const awayPct = 100 - homePct;
+                    const xgRatio = m.xgHome / (m.xgAway || 1);
+                    const dominanceLabel =
+                      xgRatio >= 2.5 ? "Domination totale" :
+                      xgRatio >= 1.7 ? "Avantage marqué" :
+                      xgRatio >= 1.2 ? "Légère supériorité" :
+                      xgRatio >= 0.85 ? "Équilibre" :
+                      xgRatio >= 0.6 ? "Légère sup. visiteurs" : "Avantage marqué EXT";
+                    const rhythmLabel =
+                      m.overUnder === "O2.5" && m.btts ? "⚡ Jeu ouvert — les deux équipes marquent" :
+                      m.overUnder === "O2.5" && !m.btts ? "🎯 Offensif — un seul buteur attendu" :
+                      m.btts ? "🔒 Serré — 1-1 probable" : "🛡️ Défensif — but unique décisif";
+                    const notePoints = m.tacticalNote.split(" · ").filter(Boolean);
+                    const marketColor = (cond: boolean) => cond ? "#22c55e" : "#64748b";
+                    const marketBg = (cond: boolean) => cond ? "rgba(34,197,94,0.1)" : "rgba(100,116,139,0.07)";
+                    const marketBorder = (cond: boolean) => cond ? "rgba(34,197,94,0.3)" : "rgba(100,116,139,0.2)";
+                    return (
+                      <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(129,140,248,0.25)" }}>
+                        {/* Header */}
+                        <div className="px-3 py-2 flex items-center gap-2" style={{ background: "rgba(129,140,248,0.1)", borderBottom: "1px solid rgba(129,140,248,0.15)" }}>
+                          <span>🧠</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "#818cf8" }}>Analyse Tactique</span>
+                        </div>
+
+                        <div className="px-3 py-3 space-y-3" style={{ background: "rgba(129,140,248,0.02)" }}>
+
+                          {/* 1. Systèmes de jeu */}
+                          <div>
+                            <p className="text-[9px] uppercase font-bold mb-1.5" style={{ color: "#475569" }}>Systèmes de jeu</p>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="rounded-lg px-2.5 py-2" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(129,140,248,0.12)" }}>
+                                <p className="text-[9px] uppercase font-bold mb-1" style={{ color: "#475569" }}>🏠 {homeShort}</p>
+                                <p className="text-[11px] font-bold leading-tight" style={{ color: "#818cf8" }}>{m.tacticHome}</p>
+                              </div>
+                              <div className="rounded-lg px-2.5 py-2" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(129,140,248,0.12)" }}>
+                                <p className="text-[9px] uppercase font-bold mb-1" style={{ color: "#475569" }}>✈️ {awayShort}</p>
+                                <p className="text-[11px] font-bold leading-tight" style={{ color: "#818cf8" }}>{m.tacticAway}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 2. xG rapport de forces */}
+                          <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <p className="text-[9px] uppercase font-bold" style={{ color: "#475569" }}>Rapport de forces — xG</p>
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "rgba(129,140,248,0.12)", color: "#818cf8" }}>
+                                {dominanceLabel}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[10px] font-bold truncate" style={{ color: m.winner === "home" ? "#e8edf5" : "#6b7c96", minWidth: 52, textAlign: "right" }}>
+                                {homeShort}
+                              </span>
+                              <div className="flex-1 h-4 rounded-lg overflow-hidden flex" style={{ background: "rgba(0,0,0,0.35)" }}>
+                                <div style={{ width: `${homePct}%`, background: "linear-gradient(90deg,#6366f1,#818cf8)", transition: "width 0.5s" }} className="flex items-center justify-end pr-1.5">
+                                  {homePct >= 30 && <span className="text-[9px] font-black text-white/80">{m.xgHome}</span>}
+                                </div>
+                                <div style={{ flex: 1, background: "rgba(239,68,68,0.4)" }} className="flex items-center pl-1.5">
+                                  {awayPct >= 25 && <span className="text-[9px] font-black" style={{ color: "rgba(255,255,255,0.7)" }}>{m.xgAway}</span>}
+                                </div>
+                              </div>
+                              <span className="text-[10px] font-bold truncate" style={{ color: m.winner === "away" ? "#e8edf5" : "#6b7c96", minWidth: 52 }}>
+                                {awayShort}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-center gap-3 mt-0.5">
+                              <span className="text-xs font-black tabular-nums" style={{ color: "#818cf8" }}>xG {m.xgHome}</span>
+                              <span className="text-[9px]" style={{ color: "#475569" }}>—</span>
+                              <span className="text-xs font-black tabular-nums" style={{ color: "#ef4444" }}>xG {m.xgAway}</span>
+                            </div>
+                          </div>
+
+                          {/* 3. Tempo + Score attendu */}
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="rounded-lg px-2.5 py-2.5" style={{ background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                              <p className="text-[9px] uppercase font-bold mb-1" style={{ color: "#475569" }}>Tempo de jeu</p>
+                              <p className="text-[11px] font-semibold leading-snug" style={{ color: m.overUnder === "O2.5" ? "#22c55e" : "#94a3b8" }}>
+                                {rhythmLabel}
+                              </p>
+                              <p className="text-[10px] mt-1 tabular-nums" style={{ color: "#64748b" }}>
+                                {m.overUnder} · BTTS {m.btts ? "✓" : "✗"}
+                              </p>
+                            </div>
+                            <div className="rounded-lg px-2.5 py-2.5" style={{ background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                              <p className="text-[9px] uppercase font-bold mb-1" style={{ color: "#475569" }}>Score attendu</p>
+                              <p className="text-2xl font-black tabular-nums leading-none" style={{ color: "#e8edf5" }}>{m.scorePredict}</p>
+                              <p className="text-[10px] mt-1" style={{ color: "#64748b" }}>
+                                Conf. {confLabel}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* 4. Duel clé du match */}
+                          <div className="rounded-lg px-3 py-2.5" style={{ background: "rgba(234,179,8,0.05)", border: "1px solid rgba(234,179,8,0.2)" }}>
+                            <p className="text-[9px] uppercase font-bold mb-1.5" style={{ color: "#ca8a04" }}>⚡ Duel Clé du Match</p>
+                            <p className="text-[11px] font-semibold leading-relaxed" style={{ color: "#e8edf5" }}>{m.keyBattle}</p>
+                            <div className="flex items-center gap-2 mt-2 pt-2" style={{ borderTop: "1px solid rgba(234,179,8,0.12)" }}>
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: "rgba(234,179,8,0.1)", color: "#eab308" }}>
+                                ⭐ {m.keyHome}
+                              </span>
+                              <span className="text-[9px]" style={{ color: "#475569" }}>vs</span>
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: "rgba(234,179,8,0.1)", color: "#eab308" }}>
+                                ⭐ {m.keyAway}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* 5. Analyse du jeu — bullet points */}
+                          <div>
+                            <p className="text-[9px] uppercase font-bold mb-2" style={{ color: "#475569" }}>Analyse du jeu</p>
+                            <ul className="space-y-1.5">
+                              {notePoints.map((pt, idx) => (
+                                <li key={idx} className="flex items-start gap-2">
+                                  <span className="flex-shrink-0 mt-[3px] w-3 h-3 rounded-sm flex items-center justify-center text-[8px] font-black" style={{ background: "rgba(129,140,248,0.15)", color: "#818cf8" }}>
+                                    {idx + 1}
+                                  </span>
+                                  <span className="text-[11px] leading-relaxed" style={{ color: "#94a3b8" }}>{pt}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+
+                          {/* 6. Marchés à surveiller */}
+                          <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 10 }}>
+                            <p className="text-[9px] uppercase font-bold mb-2" style={{ color: "#475569" }}>Marchés à surveiller</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              <span className="text-[10px] font-bold px-2 py-1 rounded-lg tabular-nums"
+                                style={{ background: m.overUnder === "O2.5" ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", color: m.overUnder === "O2.5" ? "#22c55e" : "#ef4444", border: `1px solid ${m.overUnder === "O2.5" ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"}` }}>
+                                {m.overUnder}
+                              </span>
+                              <span className="text-[10px] font-bold px-2 py-1 rounded-lg"
+                                style={{ background: marketBg(m.btts), color: marketColor(m.btts), border: `1px solid ${marketBorder(m.btts)}` }}>
+                                BTTS {m.btts ? "✓ Oui" : "✗ Non"}
+                              </span>
+                              <span className="text-[10px] font-bold px-2 py-1 rounded-lg tabular-nums"
+                                style={{ background: "rgba(129,140,248,0.1)", color: "#818cf8", border: "1px solid rgba(129,140,248,0.25)" }}>
+                                Score {m.scorePredict}
+                              </span>
+                              <span className="text-[10px] font-bold px-2 py-1 rounded-lg ml-auto"
+                                style={{ background: `${confColor}15`, color: confColor, border: `1px solid ${confColor}30` }}>
+                                {m.winner === "home" ? "DOM" : m.winner === "away" ? "EXT" : "NUL"} {m.hP > m.aP ? m.hP : m.aP}%
+                              </span>
+                            </div>
+                          </div>
+
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* Confidence */}
                   <div className="flex items-center gap-2">
