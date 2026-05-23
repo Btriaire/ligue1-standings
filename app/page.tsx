@@ -751,9 +751,10 @@ export default function Home() {
             <Link
               href="/magazine"
               title="Lire l’édition magazine du jour"
+              aria-label="Magazine"
               data-mono-keep
               data-keep-color
-              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all hover:opacity-90 active:scale-95"
+              className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all hover:opacity-90 active:scale-95"
               style={{
                 background: "linear-gradient(180deg, #fbfaf6, #efeae0)",
                 border: "1px solid #1a1a1a",
@@ -763,7 +764,7 @@ export default function Home() {
               }}
             >
               <Newspaper size={12} weight="bold" />
-              <span>Magazine</span>
+              <span className="hidden sm:inline">Magazine</span>
             </Link>
 
             <LightModeToggle />
