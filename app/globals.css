@@ -89,3 +89,33 @@ html.light-mode [data-keep-color] {
 /* Re-tint the scrollbar in light mode so it doesn't read as black. */
 html.light-mode ::-webkit-scrollbar-track { background: #e5e9f1; }
 html.light-mode ::-webkit-scrollbar-thumb { background: #c8d1de; }
+
+/* ── Édito mode (Blast-inspired) ──────────────────────────────────────────────
+   Optional papier-journal theme inspired by https://www.blast-info.fr —
+   cream background, ink text, signature red accent. Same filter+invert trick
+   as light-mode but without the hue-rotate(180deg) compensation, so cyan
+   accents flip to red-orange (which matches Blast's editorial palette).
+   A small extra hue-rotate(340deg) nudges the accent further toward true
+   red, and saturate(1.15) keeps it punchy on the cream bg.
+
+   Mutually exclusive with .light-mode and .monochrome (the toggle in the
+   header strips the other two so the filters never stack). */
+html.edito {
+  filter: invert(1) hue-rotate(340deg) saturate(1.15);
+  background: #fbfaf6;
+}
+html.edito body {
+  background: #fbfaf6;
+  /* A serif feels more "press écrite" — falls back to the system stack. */
+  font-family: 'Georgia', 'Times New Roman', 'Charter', serif;
+}
+html.edito img,
+html.edito video,
+html.edito iframe,
+html.edito canvas,
+html.edito [data-keep-color] {
+  /* Mirror the page filter to restore raster content to its true colours. */
+  filter: invert(1) hue-rotate(20deg) saturate(0.87);
+}
+html.edito ::-webkit-scrollbar-track { background: #ece8df; }
+html.edito ::-webkit-scrollbar-thumb { background: #c9b8a5; }
