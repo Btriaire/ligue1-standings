@@ -2393,6 +2393,48 @@ function useAlbum(): {
   };
 }
 
+/** Per-session in-memory cache so we don't re-query Wikidata every time a
+ *  card renders. The HTTP layer caches too (force-cache + `revalidate: 7d`),
+ *  but this avoids the network roundtrip entirely when flipping between
+ *  collected mini-cards in the album. Keyed by "name|club". */
+const PANINI_PHOTO_CACHE = new Map<string, string | null>();
+
+/** Fetch a real player photo from /api/player-photo (Wikidata-backed,
+ *  cached upstream for 7 days). Returns null when nothing is found — the
+ *  caller falls back to the flag emoji.
+ *
+ *  Cache strategy: a module-level Map stores resolved values across re-
+ *  mounts. We use a `tick` counter to force re-render once the fetch
+ *  resolves; the displayed value is always derived from the cache during
+ *  render so swapping `cacheKey` (e.g. the daily card refreshing at
+ *  midnight) shows the new player's cached photo instantly without
+ *  setState-in-effect. */
+function usePlayerPhoto(name: string, club: string): string | null {
+  const cacheKey = `${name}|${club}`;
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    if (PANINI_PHOTO_CACHE.has(cacheKey)) return; // already resolved
+    let alive = true;
+    (async () => {
+      try {
+        const url = `/api/player-photo?name=${encodeURIComponent(name)}&club=${encodeURIComponent(club)}`;
+        const res = await fetch(url, { cache: "force-cache" });
+        const data: { imageUrl?: string | null } | null = res.ok ? await res.json() : null;
+        PANINI_PHOTO_CACHE.set(cacheKey, data?.imageUrl ?? null);
+      } catch {
+        PANINI_PHOTO_CACHE.set(cacheKey, null);
+      }
+      if (alive) setTick(t => t + 1);
+    })();
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cacheKey]);
+
+  // Read from cache on every render — module-level Map read is pure.
+  return PANINI_PHOTO_CACHE.get(cacheKey) ?? null;
+}
+
 /** Big Panini card with click-to-spin reveal. Used as the Player-of-the-Day
  *  hero. Compact variant lives in `PaniniMiniCard`. */
 function PaniniCardHero({
@@ -2412,6 +2454,7 @@ function PaniniCardHero({
   const revealed = (((angle % 360) + 360) % 360) === 180;
   const cat = CAT_CFG[player.cat];
   const pos = POS_CFG[player.pos];
+  const photoUrl = usePlayerPhoto(player.name, player.club);
 
   const toggle = () => setAngle(a => a + 540);
 
@@ -2530,17 +2573,56 @@ function PaniniCardHero({
             </span>
           </div>
 
-          {/* Mega flag avatar */}
+          {/* Player photo (with flag fallback). Real photo when Wikidata
+              returns one — circular frame with cat-colour ring + small flag
+              badge top-right so the nationality stays readable at a glance. */}
           <div className="flex-1 flex flex-col items-center justify-center px-4 pt-1">
             <div
-              className="relative flex items-center justify-center mb-2"
+              className="relative flex items-center justify-center mb-2 overflow-visible"
               style={{
-                width: 120, height: 120, borderRadius: "50%",
+                width: 130, height: 130, borderRadius: "50%",
                 background: `radial-gradient(circle, ${cat.color}28, transparent 70%)`,
-                border: `2px solid ${cat.color}40`,
+                border: `2px solid ${cat.color}55`,
+                boxShadow: `0 8px 22px -6px ${cat.color}40, 0 0 0 4px rgba(255,255,255,0.03) inset`,
               }}
             >
-              <span style={{ fontSize: 78, filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.5))" }}>{player.flag}</span>
+              {photoUrl ? (
+                // Real player headshot from Wikidata.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={photoUrl}
+                  alt={player.name}
+                  width={120}
+                  height={120}
+                  style={{
+                    width: "100%", height: "100%",
+                    borderRadius: "50%",
+                    objectFit: "cover",
+                    objectPosition: "center 20%", // headshots often crop best slightly above center
+                    filter: "saturate(1.05) contrast(1.05)",
+                  }}
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                  data-keep-color
+                />
+              ) : (
+                <span style={{ fontSize: 78, filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.5))" }}>{player.flag}</span>
+              )}
+              {/* Flag badge — small circle top-right, always visible even
+                  when a photo is loaded so nationality stays obvious. */}
+              {photoUrl && (
+                <div
+                  className="absolute -top-1 -right-1 flex items-center justify-center"
+                  style={{
+                    width: 36, height: 36, borderRadius: "50%",
+                    background: "#0a0f1c",
+                    border: `2px solid ${cat.color}80`,
+                    fontSize: 22,
+                    boxShadow: "0 4px 10px -2px rgba(0,0,0,0.5)",
+                  }}
+                >
+                  {player.flag}
+                </div>
+              )}
               <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider"
                 style={{ background: pos.bg, color: pos.color, border: `1px solid ${pos.color}55` }}>
                 {pos.label}
@@ -2635,6 +2717,7 @@ function PaniniMiniCard({ player, onRemove }: { player: WCPlayer; onRemove: () =
   const [angle, setAngle] = useState(0);
   const cat = CAT_CFG[player.cat];
   const pos = POS_CFG[player.pos];
+  const photoUrl = usePlayerPhoto(player.name, player.club);
   const toggle = () => setAngle(a => a + 540);
 
   return (
@@ -2662,7 +2745,45 @@ function PaniniMiniCard({ player, onRemove }: { player: WCPlayer; onRemove: () =
           }}
         >
           <div className="absolute inset-0 flex flex-col items-center justify-center px-2">
-            <span style={{ fontSize: 46, filter: "drop-shadow(0 4px 10px rgba(0,0,0,0.4))" }}>{player.flag}</span>
+            <div
+              className="relative flex items-center justify-center mb-1"
+              style={{
+                width: 64, height: 64, borderRadius: "50%",
+                background: `radial-gradient(circle, ${cat.color}22, transparent 70%)`,
+                border: `1px solid ${cat.color}55`,
+                overflow: "visible",
+              }}
+            >
+              {photoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={photoUrl}
+                  alt={player.name}
+                  style={{
+                    width: "100%", height: "100%",
+                    borderRadius: "50%",
+                    objectFit: "cover",
+                    objectPosition: "center 20%",
+                  }}
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                  data-keep-color
+                />
+              ) : (
+                <span style={{ fontSize: 38, filter: "drop-shadow(0 4px 10px rgba(0,0,0,0.4))" }}>{player.flag}</span>
+              )}
+              {photoUrl && (
+                <span
+                  className="absolute -top-0.5 -right-0.5 flex items-center justify-center"
+                  style={{
+                    width: 18, height: 18, borderRadius: "50%",
+                    background: "#0a0f1c", border: `1px solid ${cat.color}80`,
+                    fontSize: 11,
+                  }}
+                >
+                  {player.flag}
+                </span>
+              )}
+            </div>
             <p className="text-[10px] font-black mt-1 text-center leading-tight truncate w-full" style={{ color: "#e8edf5" }}>
               {player.name}
             </p>
