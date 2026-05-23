@@ -748,6 +748,24 @@ export default function Home() {
 
             <LiveDirectButton />
 
+            <Link
+              href="/magazine"
+              title="Lire l’édition magazine du jour"
+              data-mono-keep
+              data-keep-color
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all hover:opacity-90 active:scale-95"
+              style={{
+                background: "linear-gradient(180deg, #fbfaf6, #efeae0)",
+                border: "1px solid #1a1a1a",
+                color: "#0a0a0a",
+                letterSpacing: "0.04em",
+                fontFamily: "'Playfair Display', Georgia, serif",
+              }}
+            >
+              <Newspaper size={12} weight="bold" />
+              <span>Magazine</span>
+            </Link>
+
             <LightModeToggle />
             <EditoModeToggle />
             <MonochromeToggle />
