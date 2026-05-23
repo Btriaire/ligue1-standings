@@ -69,9 +69,9 @@ export default function ColumnArticles({ issue }: { issue: Issue }) {
 
   return (
     <section style={{ background: "var(--paper)" }}>
-      <div style={{ maxWidth: 1180, margin: "0 auto", padding: "8px 24px 40px" }}>
+      <div className="mag-gutter" style={{ maxWidth: 1180, margin: "0 auto", padding: "8px 0 40px" }}>
         <div className="rule-strong" style={{ marginBottom: 24 }} />
-        <div className="grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 36 }}>
+        <div className="mag-grid-cols3">
           {/* Pronostic */}
           <article style={{ paddingRight: 12 }} className="col-divider-r">
             <ColumnHeader rubrique={prono.rubrique} title={prono.title} byline={prono.byline} minutes={prono.minutes} />

@@ -9,13 +9,13 @@ export default function EditorialFooter({ issue }: { issue: Issue }) {
   const { editorial, issueNumber, formattedDate, dateKey } = issue;
   return (
     <footer style={{ background: "#f1ece1", borderTop: "3px double var(--ink)", marginTop: 32 }}>
-      <div style={{ maxWidth: 1180, margin: "0 auto", padding: "36px 24px 28px" }}>
-        <div className="flex items-baseline justify-between" style={{ marginBottom: 18 }}>
+      <div className="mag-gutter" style={{ maxWidth: 1180, margin: "0 auto", padding: "36px 0 28px" }}>
+        <div className="flex items-baseline justify-between" style={{ marginBottom: 18, gap: 8, flexWrap: "wrap" }}>
           <p className="label label-accent">Ours</p>
           <span className="meta">N°{issueNumber.toString().padStart(3, "0")} · {formattedDate}</span>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 24 }}>
+        <div className="mag-grid-ours">
           <div>
             <p className="label label-muted" style={{ fontSize: 10, marginBottom: 4 }}>Directeur de la publication</p>
             <p className="display-medium" style={{ fontSize: 16 }}>{editorial.director}</p>

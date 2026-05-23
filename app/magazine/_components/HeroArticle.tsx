@@ -34,16 +34,16 @@ export default function HeroArticle({ issue }: { issue: Issue }) {
   }, [hero.player.name, hero.player.club]);
 
   return (
-    <article style={{ maxWidth: 1180, margin: "0 auto", padding: "32px 24px 48px" }}>
+    <article className="mag-gutter" style={{ maxWidth: 1180, margin: "0 auto", padding: "32px 0 48px" }}>
       {/* Section label */}
-      <div className="flex items-center gap-3" style={{ marginBottom: 16 }}>
+      <div className="flex items-center gap-3" style={{ marginBottom: 16, flexWrap: "wrap" }}>
         <span className="chip-categorie accent">À la Une</span>
         <span className="label label-muted">{hero.rubrique}</span>
-        <span className="rule-hairline" style={{ flex: 1 }} />
+        <span className="rule-hairline mag-hide-mobile" style={{ flex: 1 }} />
         <span className="meta">Lecture 6 min</span>
       </div>
 
-      <div className="grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.05fr) minmax(0, 1.45fr)", gap: 40, alignItems: "start" }}>
+      <div className="mag-grid-hero">
         {/* Portrait (polaroid frame) */}
         <div>
           <div className="portrait-frame" style={{ aspectRatio: "3 / 4" }}>
@@ -71,7 +71,7 @@ export default function HeroArticle({ issue }: { issue: Issue }) {
             {hero.title}
           </h2>
 
-          <div className="flex items-center gap-4" style={{ marginBottom: 18 }}>
+          <div className="flex items-center gap-4" style={{ marginBottom: 18, flexWrap: "wrap" }}>
             <span className="meta">Par <strong style={{ color: "var(--ink)" }}>{hero.player.byline}</strong></span>
             <span className="rule-accent" />
             <span className="meta">{hero.player.club} · {hero.player.age} ans</span>

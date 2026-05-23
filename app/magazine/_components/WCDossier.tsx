@@ -47,11 +47,11 @@ export default function WCDossier({ issue }: { issue: Issue }) {
   const { dossier } = issue;
   return (
     <section style={{ background: "var(--paper)", borderTop: "3px double var(--ink)", borderBottom: "3px double var(--ink)" }}>
-      <div style={{ maxWidth: 1180, margin: "0 auto", padding: "40px 24px" }}>
-        <div className="flex items-baseline justify-between" style={{ marginBottom: 24 }}>
+      <div className="mag-gutter" style={{ maxWidth: 1180, margin: "0 auto", padding: "40px 0" }}>
+        <div className="flex items-baseline justify-between" style={{ marginBottom: 24, gap: 12, flexWrap: "wrap" }}>
           <div>
             <p className="label label-accent">Dossier</p>
-            <h2 className="display" style={{ fontSize: "clamp(36px, 5vw, 56px)", margin: 0, marginTop: 4 }}>
+            <h2 className="display" style={{ fontSize: "clamp(32px, 5vw, 56px)", margin: 0, marginTop: 4 }}>
               Route to USA 2026
             </h2>
           </div>
@@ -62,7 +62,7 @@ export default function WCDossier({ issue }: { issue: Issue }) {
 
         <div className="rule-accent" style={{ marginBottom: 28 }} />
 
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.7fr) minmax(0, 1fr)", gap: 40 }}>
+        <div className="mag-grid-dossier">
           <StoryLead story={dossier.storyA} />
           <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
             <StorySidebar story={dossier.storyB} />

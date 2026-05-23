@@ -9,6 +9,7 @@ import Masthead from "./Masthead";
 import HeroArticle from "./HeroArticle";
 import ColumnArticles from "./ColumnArticles";
 import WCDossier from "./WCDossier";
+import MercatoSection from "./MercatoSection";
 import StandingsSidebar from "./StandingsSidebar";
 import ArchiveShelf from "./ArchiveShelf";
 import IssueNavigation from "./IssueNavigation";
@@ -35,6 +36,7 @@ export default function IssueView({ issue, referenceDate, showSiblingNav = false
       <HeroArticle issue={issue} />
       <ColumnArticles issue={issue} />
       <WCDossier issue={issue} />
+      <MercatoSection />
       <StandingsSidebar />
 
       <ArchiveShelf

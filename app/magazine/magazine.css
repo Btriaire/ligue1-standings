@@ -192,3 +192,87 @@
   border-top: 3px double var(--ink);
   border-bottom: 1px solid var(--ink);
 }
+
+/* ── Responsive grids ─────────────────────────────────────────────────────────
+   The magazine uses fixed grid templates on desktop (e.g. "1.05fr 1.45fr",
+   "repeat(3, 1fr)") which look great on a 1180-wide layout but cram on
+   mobile. We expose grid classes here so each component can opt into a
+   sensible breakdown at <960 (tablet) and <640 (mobile) instead of trying
+   to express it in inline styles. */
+.magazine-root .mag-grid-hero        { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.45fr); gap: 40px; align-items: start; }
+.magazine-root .mag-grid-cols3       { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 36px; }
+.magazine-root .mag-grid-dossier     { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 40px; }
+.magazine-root .mag-grid-standings   { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+.magazine-root .mag-grid-mercato     { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 2fr); gap: 24px; }
+.magazine-root .mag-grid-mercato-sec { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.magazine-root .mag-grid-ours        { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; }
+
+/* Tablet — single big break that handles most awkward widths. */
+@media (max-width: 960px) {
+  .magazine-root .mag-grid-hero      { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr); gap: 28px; }
+  .magazine-root .mag-grid-cols3     { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+  .magazine-root .mag-grid-dossier   { grid-template-columns: 1fr; gap: 28px; }
+  .magazine-root .mag-grid-standings { grid-template-columns: 1fr; gap: 28px; }
+  .magazine-root .mag-grid-mercato   { grid-template-columns: 1fr; gap: 18px; }
+  .magazine-root .mag-grid-ours      { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+  /* Vertical dividers between columns are visual noise when the columns
+     have wrapped onto separate rows — turn them off. */
+  .magazine-root .col-divider    { border-left: none; }
+  .magazine-root .col-divider-r  { border-right: none; }
+}
+
+/* Mobile — everything stacks. Reduce gutters and drop the polaroid rotate
+   so the portrait sits flush in the narrow column. */
+@media (max-width: 640px) {
+  .magazine-root .mag-grid-hero        { grid-template-columns: 1fr; gap: 20px; }
+  .magazine-root .mag-grid-cols3       { grid-template-columns: 1fr; gap: 28px; }
+  .magazine-root .mag-grid-mercato-sec { grid-template-columns: 1fr; gap: 12px; }
+  .magazine-root .mag-grid-ours        { grid-template-columns: 1fr; gap: 14px; }
+  .magazine-root .portrait-frame       { transform: none; }
+  /* Slightly tighter line-height for body copy on small screens. */
+  .magazine-root .body p { line-height: 1.6; }
+  /* Hide the drop cap on phones — at narrow widths it crowds the lead. */
+  .magazine-root .lead p:first-child::first-letter,
+  .magazine-root .lead::first-letter {
+    font-size: 3.2em;
+    padding-right: 6px;
+    padding-top: 4px;
+  }
+  /* Pull-quote at full-bleed on mobile reads better. */
+  .magazine-root .pull-quote { font-size: 1.2rem; padding-left: 14px; margin: 14px 0; }
+}
+
+/* Section gutter helper — keeps horizontal padding tight on mobile so we
+   don't waste 48px on a 360-wide screen. */
+.magazine-root .mag-gutter { padding-left: 24px; padding-right: 24px; }
+@media (max-width: 640px) {
+  .magazine-root .mag-gutter { padding-left: 16px; padding-right: 16px; }
+}
+
+/* Hide on mobile-only helper — used by archive metadata that's noisy on phones. */
+@media (max-width: 640px) {
+  .magazine-root .mag-hide-mobile { display: none !important; }
+}
+
+/* Standings: leader spotlight card */
+.magazine-root .leader-card {
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.magazine-root .leader-card .leader-pts {
+  font-family: var(--font-playfair), "Playfair Display", serif;
+  font-weight: 900;
+  font-size: 28px;
+  letter-spacing: -0.02em;
+  color: var(--accent);
+  line-height: 1;
+}
+
+/* Standings: relegation watch */
+.magazine-root .danger-row td { color: var(--accent) !important; }
