@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { ArrowsClockwise, TrendUp, TrendDown, Minus, Trophy, WifiHigh, WifiSlash, Clock, Lightning, ChartBar, Shield, Pulse, Globe, GearSix, Target, ArrowsLeftRight, CaretRight, Users, Lock, SignIn, SignOut, Fire, Sun, MoonStars, Television, Newspaper } from "@phosphor-icons/react";
+import { ArrowsClockwise, TrendUp, TrendDown, Minus, Trophy, WifiHigh, WifiSlash, Clock, Lightning, ChartBar, Shield, Pulse, Globe, GearSix, Target, ArrowsLeftRight, CaretRight, CaretLeft, Users, Lock, SignIn, SignOut, Fire, Sun, MoonStars, Television, Newspaper } from "@phosphor-icons/react";
 import { isWorldCupHot, worldCupPhase, daysUntilWorldCup } from "./lib/worldCup";
 import dynamic from "next/dynamic";
 const TeamPanel = dynamic(() => import("./components/TeamPanel"), { ssr: false });
@@ -451,6 +451,94 @@ function ClubSidebar({ standings, standingsL2 }: { standings?: Standing[]; stand
   );
 }
 
+/**
+ * Horizontal tab strip with scroll affordance.
+ * On mobile the tab strips overflow horizontally; without a visual cue the
+ * user has no idea more tabs exist past the right edge. This wraps the
+ * scrollable row and pins a soft gradient + caret arrow on whichever
+ * sides have hidden content. Uses useSyncExternalStore so the scroll
+ * state derives from the DOM (lint-friendly, no setState-in-effect).
+ *
+ * The hints only render below the `sm:` breakpoint via Tailwind — on
+ * tablet/desktop the bars usually fit, and even when they don't, the
+ * full row is wide enough that the arrows would just be decoration.
+ */
+function ScrollableTabBar({
+  className,
+  style,
+  children,
+}: {
+  className?: string;
+  style?: React.CSSProperties;
+  children: React.ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  const subscribe = useCallback((cb: () => void) => {
+    const el = ref.current;
+    if (!el) return () => {};
+    el.addEventListener("scroll", cb, { passive: true });
+    const ro = new ResizeObserver(cb);
+    ro.observe(el);
+    // Children may load async (icons/badges) and change the scrollWidth —
+    // observe the inner row too so the hint re-evaluates.
+    if (el.firstElementChild) ro.observe(el.firstElementChild);
+    return () => { el.removeEventListener("scroll", cb); ro.disconnect(); };
+  }, []);
+
+  const getSnapshot = useCallback(() => {
+    const el = ref.current;
+    if (!el) return "00";
+    const left  = el.scrollLeft > 4;
+    const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 4;
+    return `${left ? "1" : "0"}${right ? "1" : "0"}`;
+  }, []);
+
+  // SSR snapshot: assume nothing scrolled yet, but pretend "more on the
+  // right" so the hint flashes on first paint and the user sees there's
+  // more before hydration corrects it. Avoids a one-frame "no arrow"
+  // glitch on slow mobile devices.
+  const state = useSyncExternalStore(subscribe, getSnapshot, () => "01");
+  const showLeft  = state[0] === "1";
+  const showRight = state[1] === "1";
+
+  return (
+    <div className="relative">
+      <div ref={ref} className={className} style={style}>
+        {children}
+      </div>
+      {showLeft && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-0 flex items-center justify-start sm:hidden"
+          style={{
+            width: 32,
+            background: "linear-gradient(to right, rgba(13,20,33,0.95), rgba(13,20,33,0))",
+            borderTopLeftRadius: 12,
+            borderBottomLeftRadius: 12,
+          }}
+        >
+          <CaretLeft size={14} weight="bold" style={{ color: "#94a3b8", marginLeft: 2 }} />
+        </div>
+      )}
+      {showRight && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 right-0 flex items-center justify-end sm:hidden"
+          style={{
+            width: 32,
+            background: "linear-gradient(to left, rgba(13,20,33,0.95), rgba(13,20,33,0))",
+            borderTopRightRadius: 12,
+            borderBottomRightRadius: 12,
+          }}
+        >
+          <CaretRight size={14} weight="bold" className="scroll-hint-pulse" style={{ color: "#cbd5e1", marginRight: 2 }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 const L1_SUBTABS: { id: L1SubTab; label: string; icon: React.ReactNode }[] = [
   { id: "classement", label: "Classement",   icon: <ChartBar size={13} /> },
   { id: "mercato",    label: "Mercato",      icon: <ArrowsLeftRight size={13} /> },
@@ -828,7 +916,10 @@ export default function Home() {
         <div className="lg:grid lg:gap-5 lg:items-start" style={{ gridTemplateColumns: "1fr 196px" }}>
         <div className="min-w-0">
         {/* Tab switcher */}
-        <div className="flex gap-0.5 mb-6 p-1 rounded-xl overflow-x-auto" style={{ background: "#0d1421", border: "1px solid #1a2235" }}>
+        <ScrollableTabBar
+          className="flex gap-0.5 mb-6 p-1 rounded-xl overflow-x-auto"
+          style={{ background: "#0d1421", border: "1px solid #1a2235" }}
+        >
           {TABS.map((t) => {
             const isProtected = (t.id === "predictions" || t.id === "emotional") && !user;
             const active = tab === t.id;
@@ -873,13 +964,16 @@ export default function Home() {
               </button>
             );
           })}
-        </div>
+        </ScrollableTabBar>
 
         {/* Ligue 1 tab */}
         {tab === "ligue1" && (
           <div>
             {/* L1 Sub-tabs */}
-            <div className="flex gap-1 mb-5 p-1 rounded-xl overflow-x-auto" style={{ background: "#0a0f1c", border: "1px solid #1a2235" }}>
+            <ScrollableTabBar
+              className="flex gap-1 mb-5 p-1 rounded-xl overflow-x-auto"
+              style={{ background: "#0a0f1c", border: "1px solid #1a2235" }}
+            >
               {L1_SUBTABS.map((st) => {
                 const active = l1SubTab === st.id;
                 return (
@@ -895,7 +989,7 @@ export default function Home() {
                   </button>
                 );
               })}
-            </div>
+            </ScrollableTabBar>
 
             {/* Classement */}
             {l1SubTab === "classement" && (
@@ -955,7 +1049,10 @@ export default function Home() {
             on L1 clubs and show a "bientôt" placeholder for L2. */}
         {tab === "ligue2" && (
           <div>
-            <div className="flex gap-1 mb-5 p-1 rounded-xl overflow-x-auto" style={{ background: "#0a0f1c", border: "1px solid #1a2235" }}>
+            <ScrollableTabBar
+              className="flex gap-1 mb-5 p-1 rounded-xl overflow-x-auto"
+              style={{ background: "#0a0f1c", border: "1px solid #1a2235" }}
+            >
               {L1_SUBTABS.map((st) => {
                 const active = l2SubTab === st.id;
                 return (
@@ -971,7 +1068,7 @@ export default function Home() {
                   </button>
                 );
               })}
-            </div>
+            </ScrollableTabBar>
 
             {l2SubTab === "classement" && (
               <div>
