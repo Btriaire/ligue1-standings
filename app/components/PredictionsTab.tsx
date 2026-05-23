@@ -824,6 +824,223 @@ function MatchCard({
           awayEmoScore={awayScore}
         />
 
+        {/* ── Analyse Tactique — rich auto-generated panel ── */}
+        {(() => {
+          const home = match.homeTeam;
+          const away = match.awayTeam;
+          const homeXg = pred.homeXG;
+          const awayXg = pred.awayXG;
+          const totalXg = homeXg + awayXg;
+          const homePct = totalXg > 0 ? Math.round((homeXg / totalXg) * 100) : 50;
+          const awayPct = 100 - homePct;
+          const impliedOver = totalXg > 2.5;
+          const impliedBtts = homeXg >= 0.85 && awayXg >= 0.85;
+          const scoreHome = Math.max(0, Math.round(homeXg - 0.2));
+          const scoreAway = Math.max(0, Math.round(awayXg - 0.2));
+          const impliedScore = `${scoreHome}-${scoreAway}`;
+          const xgRatio = homeXg / (awayXg || 0.1);
+          const dominanceLabel =
+            xgRatio >= 2.5 ? "Domination totale" :
+            xgRatio >= 1.7 ? "Avantage marqué" :
+            xgRatio >= 1.2 ? "Légère supériorité" :
+            xgRatio >= 0.85 ? "Équilibre" :
+            xgRatio >= 0.6 ? "Légère sup. EXT" : "Avantage EXT marqué";
+          const rhythmLabel =
+            impliedOver && impliedBtts ? "⚡ Jeu ouvert — les deux marquent" :
+            impliedOver && !impliedBtts ? "🎯 Offensif — un buteur dominant" :
+            impliedBtts ? "🔒 Serré — 1-1 probable" : "🛡️ Défensif — but unique décisif";
+          const homeGpg = home.goalsFor / (home.playedGames || 1);
+          const awayGpg = away.goalsFor / (away.playedGames || 1);
+          const homeCpg = home.goalsAgainst / (home.playedGames || 1);
+          const awayCpg = away.goalsAgainst / (away.playedGames || 1);
+          const inferTactic = (gpg: number, cpg: number): string => {
+            if (gpg >= 2.2) return cpg >= 1.5 ? "4-3-3 Offensif (risqué)" : "4-3-3 Dominant";
+            if (gpg >= 1.6) return cpg <= 1.0 ? "4-2-3-1 Équilibré" : "4-4-2 Standard";
+            if (gpg <= 1.0) return cpg <= 0.8 ? "4-5-1 Défensif solide" : "5-3-2 Pragmatique";
+            return cpg <= 1.1 ? "4-4-2 Organisé" : "4-4-2 Standard";
+          };
+          const posDiff = away.position - home.position;
+          const confColor = conf.color;
+          const confLabel = pred.confidence === "high" ? "Haute" : pred.confidence === "medium" ? "Moyenne" : "Faible";
+          const mktColor = (c: boolean) => c ? "#22c55e" : "#64748b";
+          const mktBg = (c: boolean) => c ? "rgba(34,197,94,0.1)" : "rgba(100,116,139,0.07)";
+          const mktBorder = (c: boolean) => c ? "rgba(34,197,94,0.3)" : "rgba(100,116,139,0.2)";
+          const winnerProb = pred.winner === "home" ? pred.homeProb : pred.winner === "away" ? pred.awayProb : pred.drawProb;
+          // Auto-generate tactical bullets from live stats
+          const bullets: string[] = [];
+          if (xgRatio >= 1.6) {
+            bullets.push(`Supériorité offensive nette de ${home.shortName || home.tla} : ${homeXg} xG attendus vs ${awayXg} xG pour les visiteurs`);
+          } else if (xgRatio <= 0.65) {
+            bullets.push(`${away.shortName || away.tla} domine offensivement malgré le déplacement : ${awayXg} xG vs ${homeXg} xG DOM`);
+          } else {
+            bullets.push(`xG équilibré (${homeXg} vs ${awayXg}) — match ouvert, résultat difficile à anticiper`);
+          }
+          if (homeGpg > awayGpg + 0.5) {
+            bullets.push(`${home.shortName || home.tla} plus prolifique (${homeGpg.toFixed(1)} buts/match) que ${away.shortName || away.tla} (${awayGpg.toFixed(1)})`);
+          } else if (awayGpg > homeGpg + 0.5) {
+            bullets.push(`${away.shortName || away.tla} plus efficace offensivement (${awayGpg.toFixed(1)} buts/match) malgré le déplacement`);
+          }
+          if (homeCpg < awayCpg - 0.4) {
+            bullets.push(`Défense de ${home.shortName || home.tla} plus solide (${homeCpg.toFixed(1)} vs ${awayCpg.toFixed(1)} buts encaissés/match)`);
+          } else if (awayCpg < homeCpg - 0.4) {
+            bullets.push(`${away.shortName || away.tla} défensivement plus rigoureux sur déplacement (${awayCpg.toFixed(1)} buts encaissés/match)`);
+          }
+          if (homeMomentum > awayMomentum + 0.05) {
+            bullets.push(`${home.shortName || home.tla} en meilleure forme récente — momentum favorable à domicile`);
+          } else if (awayMomentum > homeMomentum + 0.05) {
+            bullets.push(`${away.shortName || away.tla} en grande forme récente — attention à l'effet momentum visiteur`);
+          }
+          if (Math.abs(posDiff) >= 8) {
+            const stronger = posDiff > 0 ? (home.shortName || home.tla) : (away.shortName || away.tla);
+            bullets.push(`Écart de ${Math.abs(posDiff)} places au classement — ${stronger} nettement favorisé sur le papier`);
+          }
+          if (bullets.length < 2) {
+            bullets.push(`Avantage domicile intégré au modèle — ${home.shortName || home.tla} bénéficie du soutien de son public`);
+          }
+          return (
+            <div className="rounded-xl overflow-hidden mt-3" style={{ border: "1px solid rgba(129,140,248,0.25)" }}>
+              {/* Header */}
+              <div className="px-3 py-2 flex items-center gap-2" style={{ background: "rgba(129,140,248,0.1)", borderBottom: "1px solid rgba(129,140,248,0.15)" }}>
+                <span>🧠</span>
+                <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "#818cf8" }}>Analyse Tactique</span>
+                <span className="text-[9px] ml-auto" style={{ color: "#475569" }}>auto · données live</span>
+              </div>
+              <div className="px-3 py-3 space-y-3" style={{ background: "rgba(129,140,248,0.02)" }}>
+
+                {/* 1. Profil de jeu (inferred from goals stats) */}
+                <div>
+                  <p className="text-[9px] uppercase font-bold mb-1.5" style={{ color: "#475569" }}>Profil de jeu</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-lg px-2.5 py-2" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(129,140,248,0.12)" }}>
+                      <p className="text-[9px] uppercase font-bold mb-1" style={{ color: "#475569" }}>🏠 {home.shortName || home.tla}</p>
+                      <p className="text-[11px] font-bold leading-tight" style={{ color: "#818cf8" }}>{inferTactic(homeGpg, homeCpg)}</p>
+                      <p className="text-[9px] mt-1 tabular-nums" style={{ color: "#64748b" }}>{homeGpg.toFixed(1)} buts/m · {homeCpg.toFixed(1)} enc./m</p>
+                    </div>
+                    <div className="rounded-lg px-2.5 py-2" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(129,140,248,0.12)" }}>
+                      <p className="text-[9px] uppercase font-bold mb-1" style={{ color: "#475569" }}>✈️ {away.shortName || away.tla}</p>
+                      <p className="text-[11px] font-bold leading-tight" style={{ color: "#818cf8" }}>{inferTactic(awayGpg, awayCpg)}</p>
+                      <p className="text-[9px] mt-1 tabular-nums" style={{ color: "#64748b" }}>{awayGpg.toFixed(1)} buts/m · {awayCpg.toFixed(1)} enc./m</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. xG rapport de forces */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-[9px] uppercase font-bold" style={{ color: "#475569" }}>Rapport de forces — xG</p>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "rgba(129,140,248,0.12)", color: "#818cf8" }}>{dominanceLabel}</span>
+                  </div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-bold truncate" style={{ color: pred.winner === "home" ? "#e8edf5" : "#6b7c96", minWidth: 52, textAlign: "right" }}>
+                      {home.shortName || home.tla}
+                    </span>
+                    <div className="flex-1 h-4 rounded-lg overflow-hidden flex" style={{ background: "rgba(0,0,0,0.35)" }}>
+                      <div style={{ width: `${homePct}%`, background: "linear-gradient(90deg,#6366f1,#818cf8)", transition: "width 0.5s" }} className="flex items-center justify-end pr-1.5">
+                        {homePct >= 28 && <span className="text-[9px] font-black" style={{ color: "rgba(255,255,255,0.85)" }}>{homeXg}</span>}
+                      </div>
+                      <div style={{ flex: 1, background: "rgba(239,68,68,0.4)" }} className="flex items-center pl-1.5">
+                        {awayPct >= 22 && <span className="text-[9px] font-black" style={{ color: "rgba(255,255,255,0.75)" }}>{awayXg}</span>}
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold truncate" style={{ color: pred.winner === "away" ? "#e8edf5" : "#6b7c96", minWidth: 52 }}>
+                      {away.shortName || away.tla}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-center gap-3 mt-0.5">
+                    <span className="text-xs font-black tabular-nums" style={{ color: "#818cf8" }}>xG {homeXg}</span>
+                    <span className="text-[9px]" style={{ color: "#475569" }}>—</span>
+                    <span className="text-xs font-black tabular-nums" style={{ color: "#ef4444" }}>xG {awayXg}</span>
+                  </div>
+                </div>
+
+                {/* 3. Tempo + Score indicatif */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-lg px-2.5 py-2.5" style={{ background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                    <p className="text-[9px] uppercase font-bold mb-1" style={{ color: "#475569" }}>Tempo de jeu</p>
+                    <p className="text-[11px] font-semibold leading-snug" style={{ color: impliedOver ? "#22c55e" : "#94a3b8" }}>{rhythmLabel}</p>
+                    <p className="text-[10px] mt-1 tabular-nums" style={{ color: "#64748b" }}>
+                      {impliedOver ? "O2.5" : "U2.5"} · BTTS {impliedBtts ? "✓" : "✗"}
+                    </p>
+                  </div>
+                  <div className="rounded-lg px-2.5 py-2.5" style={{ background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                    <p className="text-[9px] uppercase font-bold mb-1" style={{ color: "#475569" }}>Score indicatif xG</p>
+                    <p className="text-2xl font-black tabular-nums leading-none" style={{ color: "#e8edf5" }}>{impliedScore}</p>
+                    <p className="text-[10px] mt-1" style={{ color: "#64748b" }}>Conf. {confLabel}</p>
+                  </div>
+                </div>
+
+                {/* 4. Contexte classement */}
+                <div className="rounded-lg px-3 py-2.5" style={{ background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                  <p className="text-[9px] uppercase font-bold mb-2" style={{ color: "#475569" }}>Contexte classement</p>
+                  <div className="flex items-center gap-3">
+                    <div className="flex flex-col items-center gap-0.5 flex-1">
+                      <span className="text-2xl font-black tabular-nums" style={{ color: home.position <= 5 ? "#22c55e" : home.position >= 16 ? "#ef4444" : "#e8edf5" }}>
+                        {home.position}<span className="text-sm">e</span>
+                      </span>
+                      <span className="text-[9px] font-bold" style={{ color: "#6b7c96" }}>{home.shortName || home.tla}</span>
+                      <span className="text-[10px] tabular-nums" style={{ color: "#475569" }}>{home.points} pts</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-[10px] font-bold" style={{ color: "#475569" }}>vs</span>
+                      {posDiff !== 0 && (
+                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.04)", color: Math.abs(posDiff) >= 6 ? "#f59e0b" : "#64748b" }}>
+                          Δ{Math.abs(posDiff)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-center gap-0.5 flex-1">
+                      <span className="text-2xl font-black tabular-nums" style={{ color: away.position <= 5 ? "#22c55e" : away.position >= 16 ? "#ef4444" : "#e8edf5" }}>
+                        {away.position}<span className="text-sm">e</span>
+                      </span>
+                      <span className="text-[9px] font-bold" style={{ color: "#6b7c96" }}>{away.shortName || away.tla}</span>
+                      <span className="text-[10px] tabular-nums" style={{ color: "#475569" }}>{away.points} pts</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 5. Analyse du jeu — auto bullets */}
+                <div>
+                  <p className="text-[9px] uppercase font-bold mb-2" style={{ color: "#475569" }}>Analyse du jeu</p>
+                  <ul className="space-y-1.5">
+                    {bullets.map((pt, idx) => (
+                      <li key={idx} className="flex items-start gap-2">
+                        <span className="flex-shrink-0 mt-[3px] w-3 h-3 rounded-sm flex items-center justify-center text-[8px] font-black" style={{ background: "rgba(129,140,248,0.15)", color: "#818cf8" }}>
+                          {idx + 1}
+                        </span>
+                        <span className="text-[11px] leading-relaxed" style={{ color: "#94a3b8" }}>{pt}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* 6. Marchés à surveiller */}
+                <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 10 }}>
+                  <p className="text-[9px] uppercase font-bold mb-2" style={{ color: "#475569" }}>Marchés à surveiller</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className="text-[10px] font-bold px-2 py-1 rounded-lg tabular-nums"
+                      style={{ background: impliedOver ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", color: impliedOver ? "#22c55e" : "#ef4444", border: `1px solid ${impliedOver ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"}` }}>
+                      {impliedOver ? "O2.5" : "U2.5"}
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-1 rounded-lg"
+                      style={{ background: mktBg(impliedBtts), color: mktColor(impliedBtts), border: `1px solid ${mktBorder(impliedBtts)}` }}>
+                      BTTS {impliedBtts ? "✓ Oui" : "✗ Non"}
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-1 rounded-lg tabular-nums"
+                      style={{ background: "rgba(129,140,248,0.1)", color: "#818cf8", border: "1px solid rgba(129,140,248,0.25)" }}>
+                      Score {impliedScore}
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-1 rounded-lg ml-auto"
+                      style={{ background: `${confColor}18`, color: confColor, border: `1px solid ${confColor}35` }}>
+                      {pred.winner === "home" ? "DOM" : pred.winner === "away" ? "EXT" : "NUL"} {winnerProb}%
+                    </span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Detail toggle */}
         {showTechnicalDetails && (
           <button onClick={() => setShowDetail(!showDetail)}
@@ -1856,9 +2073,12 @@ function WCPredictionsView() {
 
 export default function PredictionsTab() {
   // When the World Cup is hot, default to the CdM predictions surface.
-  const [subTab, setSubTab] = useState<"l1" | "cdm">(isWorldCupHot() ? "cdm" : "l1");
+  const [subTab, setSubTab] = useState<"l1" | "l2" | "cdm">(isWorldCupHot() ? "cdm" : "l1");
   const [config] = useConfig();
   const [data, setData] = useState<PredData | null>(null);
+  const [dataL2, setDataL2] = useState<PredData | null>(null);
+  const [l2Fetched, setL2Fetched] = useState(false);
+  const [loadingL2, setLoadingL2] = useState(false);
   const [emoMap, setEmoMap] = useState<Map<number, EmoEntry>>(new Map());
   const [expertMatches, setExpertMatches] = useState<ExpertMatch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1904,6 +2124,18 @@ export default function PredictionsTab() {
       .finally(() => setExpertLoading(false));
   }, []);
 
+  // Lazy-fetch L2 predictions the first time the user switches to the l2 tab
+  useEffect(() => {
+    if (subTab !== "l2" || l2Fetched) return;
+    setL2Fetched(true);
+    setLoadingL2(true);
+    fetch("/api/predictions?competition=FL2")
+      .then((r) => r.json())
+      .then((d) => { if (!d.error) setDataL2(d); })
+      .catch(() => {})
+      .finally(() => setLoadingL2(false));
+  }, [subTab, l2Fetched]);
+
   // Compute predictions with config settings
   const computedPredictions = useMemo(() => {
     if (!data) return new Map<number, Prediction>();
@@ -1915,6 +2147,17 @@ export default function PredictionsTab() {
     }
     return map;
   }, [data, config.homeAdvantage, config.formMomentumEnabled]);
+
+  // Computed predictions for L2 (no expert/emotional overlay — FL2 only)
+  const computedPredictionsL2 = useMemo(() => {
+    if (!dataL2) return new Map<number, Prediction>();
+    const map = new Map<number, Prediction>();
+    for (const match of dataL2.predictions) {
+      const pred = recomputePrediction(match, config.homeAdvantage, config.formMomentumEnabled);
+      map.set(match.id, pred);
+    }
+    return map;
+  }, [dataL2, config.homeAdvantage, config.formMomentumEnabled]);
 
   // Auto-save predictions to localStorage
   useEffect(() => {
@@ -1986,7 +2229,7 @@ export default function PredictionsTab() {
   const wcHot = isWorldCupHot();
   const SubTabs = () => (
     <div className="flex gap-1 mb-5 p-1 rounded-xl" style={{ background: "#0a0f1c", border: "1px solid #1a2235", display: "inline-flex" }}>
-      {([["l1", "🏆 Ligue 1"], ["cdm", "🌍 Coupe du Monde"]] as const).map(([id, label]) => {
+      {([["l1", "🏆 Ligue 1"], ["l2", "🥈 Ligue 2"], ["cdm", "🌍 Coupe du Monde"]] as const).map(([id, label]) => {
         const highlight = id === "cdm" && wcHot;
         const active = subTab === id;
         return (
@@ -2009,6 +2252,66 @@ export default function PredictionsTab() {
   );
 
   if (subTab === "cdm") return <div><SubTabs /><WCPredictionsView /></div>;
+
+  if (subTab === "l2") {
+    if (loadingL2 || !l2Fetched) {
+      return (
+        <div>
+          <SubTabs />
+          <div className="py-3">
+            <LoadingBar color="#a855f7" caption="Chargement des prédictions Ligue 2" />
+          </div>
+        </div>
+      );
+    }
+    if (!dataL2?.predictions.length) {
+      return (
+        <div>
+          <SubTabs />
+          <div className="text-center py-16" style={{ color: "#6b7c96" }}>Aucun match Ligue 2 à venir.</div>
+        </div>
+      );
+    }
+    const emptyMap = new Map<number, EmoEntry>();
+    return (
+      <div>
+        <SubTabs />
+        <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
+          <div>
+            <h2 className="text-base font-bold" style={{ color: "#e8edf5" }}>
+              Journée {dataL2.matchday} — Analyse prédictive Ligue 2
+            </h2>
+            <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>
+              Avantage dom. {config.homeAdvantage}%
+              {config.formMomentumEnabled ? " · Élan de forme" : ""}
+              {" · Algorithme FootPredictom"}
+            </p>
+          </div>
+        </div>
+        <div className="space-y-3">
+          {dataL2.predictions.map((m) => (
+            <div key={m.id}>
+              <MatchCard
+                match={m}
+                computedPrediction={computedPredictionsL2.get(m.id) ?? m.prediction}
+                useEmotional={false}
+                useExpert={false}
+                emoMap={emptyMap}
+                expertMatches={[]}
+                showXG={config.showXG}
+                showTechnicalDetails={config.showTechnicalDetails}
+                formMomentumEnabled={config.formMomentumEnabled}
+                homeAdv={config.homeAdvantage}
+              />
+            </div>
+          ))}
+        </div>
+        <p className="mt-4 text-center text-xs" style={{ color: "#475569" }}>
+          FootPredictom AI · xG · Forme · Classement · Données Ligue 2
+        </p>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

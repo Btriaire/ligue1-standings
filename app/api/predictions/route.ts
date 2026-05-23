@@ -3,7 +3,7 @@ import { formScore01 } from "@/app/lib/scoring";
 import type { Team, Standing } from "@/app/lib/types";
 
 const API_KEY = process.env.FOOTBALL_DATA_API_KEY;
-const COMPETITION = "FL1";
+const ALLOWED = new Set(["FL1", "FL2"]);
 
 export const revalidate = 300;
 
@@ -61,16 +61,20 @@ function predict(home: Standing, away: Standing) {
   return { homeProb, drawProb, awayProb, winner, confidence, homeXG, awayXG };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   if (!API_KEY) return NextResponse.json({ error: "API key not configured" }, { status: 500 });
+
+  const { searchParams } = new URL(request.url);
+  const raw = searchParams.get("competition") ?? "FL1";
+  const competition = ALLOWED.has(raw) ? raw : "FL1";
 
   try {
     const [standingsRes, matchesRes] = await Promise.all([
-      fetch(`https://api.football-data.org/v4/competitions/${COMPETITION}/standings`, {
+      fetch(`https://api.football-data.org/v4/competitions/${competition}/standings`, {
         headers: { "X-Auth-Token": API_KEY },
         next: { revalidate: 300 },
       }),
-      fetch(`https://api.football-data.org/v4/competitions/${COMPETITION}/matches?status=SCHEDULED`, {
+      fetch(`https://api.football-data.org/v4/competitions/${competition}/matches?status=SCHEDULED`, {
         headers: { "X-Auth-Token": API_KEY },
         next: { revalidate: 300 },
       }),
