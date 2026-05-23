@@ -273,6 +273,263 @@ const PLAYERS: WCPlayer[] = [
     statLabel:"Sélections Algérie", statValue:"82",
     butsM:0, passesM:0, matchsM:0,
   },
+
+  // ── ROSTER ÉLARGI — pré-fiches prêtes pour la rotation quotidienne ────────
+  // Ajouts éditoriaux : 25 stars supplémentaires couvrant tous les groupes
+  // pour que le tirage du "joueur du jour" ne se répète pas trop souvent.
+
+  // France (additions)
+  {
+    flag:"🇫🇷", name:"Ousmane Dembélé",    club:"Paris SG",        nat:"France",    group:"F",
+    pos:"ATT", age:28, cat:"star",
+    vitesse:94, technique:90, impact:88, buts:82,
+    role:"Ailier ambidextre · Star du PSG nouvelle ère",
+    pronostic:"Saison de la maturité · Décisif en sortie de banc ou titulaire",
+    statLabel:"Buts+passes Ligue 1", statValue:"21",
+    butsM:0, passesM:0, matchsM:0,
+  },
+  {
+    flag:"🇫🇷", name:"Mike Maignan",       club:"AC Milan",        nat:"France",    group:"F",
+    pos:"GB",  age:30, cat:"star",
+    vitesse:74, technique:84, impact:86, buts:0,
+    role:"Gardien titulaire · Numéro 1 incontesté chez les Bleus",
+    pronostic:"Mur des Bleus · Candidat au Yashin Trophy",
+    statLabel:"Clean sheets 2024-25", statValue:"15",
+    butsM:0, passesM:0, matchsM:0,
+  },
+
+  // Argentine (additions)
+  {
+    flag:"🇦🇷", name:"Lionel Messi",       club:"Inter Miami",     nat:"Argentine",  group:"A",
+    pos:"ATT", age:38, cat:"veteran",
+    vitesse:74, technique:99, impact:94, buts:90,
+    role:"Légende vivante · Champion du monde 2022",
+    pronostic:"Dernière danse · Tout est possible avec lui",
+    statLabel:"Ballons d'Or",   statValue:"8",
+    butsM:0, passesM:0, matchsM:0,
+  },
+  {
+    flag:"🇦🇷", name:"Lautaro Martínez",   club:"Inter Milan",     nat:"Argentine",  group:"A",
+    pos:"ATT", age:28, cat:"star",
+    vitesse:86, technique:86, impact:88, buts:90,
+    role:"Buteur clinique · Capitaine de l'Inter",
+    pronostic:"Soulier d'or possible · Couverture aérienne de l'Albiceleste",
+    statLabel:"Buts Serie A 2025", statValue:"24",
+    butsM:0, passesM:0, matchsM:0,
+  },
+  {
+    flag:"🇦🇷", name:"Enzo Fernández",     club:"Chelsea",         nat:"Argentine",  group:"A",
+    pos:"MIL", age:25, cat:"star",
+    vitesse:80, technique:90, impact:86, buts:70,
+    role:"Milieu relayeur · Meilleur jeune CdM 2022",
+    pronostic:"Cerveau de l'Argentine · Métronome du milieu",
+    statLabel:"Passes réussies/match", statValue:"86",
+    butsM:0, passesM:0, matchsM:0,
+  },
+
+  // Brésil (additions)
+  {
+    flag:"🇧🇷", name:"Rodrygo",            club:"Real Madrid",     nat:"Brésil",    group:"G",
+    pos:"ATT", age:25, cat:"star",
+    vitesse:90, technique:90, impact:87, buts:80,
+    role:"Ailier polyvalent · Spécialiste des grands matchs",
+    pronostic:"Tandem Vinicius + Rodrygo dévastateur",
+    statLabel:"Buts décisifs C1", statValue:"12",
+    butsM:0, passesM:0, matchsM:0,
+  },
+  {
+    flag:"🇧🇷", name:"Raphinha",           club:"FC Barcelone",    nat:"Brésil",    group:"G",
+    pos:"ATT", age:29, cat:"star",
+    vitesse:88, technique:89, impact:86, buts:82,
+    role:"Ailier décisif · Meilleur passeur de Liga",
+    pronostic:"Forme de sa vie · Patron de l'attaque brésilienne",
+    statLabel:"Buts+passes 2024-25", statValue:"34",
+    butsM:0, passesM:0, matchsM:0,
+  },
+  {
+    flag:"🇧🇷", name:"Casemiro",           club:"Manchester United", nat:"Brésil",  group:"G",
+    pos:"MIL", age:34, cat:"veteran",
+    vitesse:70, technique:84, impact:85, buts:60,
+    role:"Sentinelle expérimentée · Cinq Ligues des Champions",
+    pronostic:"Vétéran indispensable · Bouclier de la Seleção",
+    statLabel:"Trophées C1",    statValue:"5",
+    butsM:0, passesM:0, matchsM:0,
+  },
+
+  // Angleterre (additions)
+  {
+    flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", name:"Harry Kane",         club:"Bayern Munich",  nat:"Angleterre", group:"I",
+    pos:"ATT", age:32, cat:"star",
+    vitesse:74, technique:88, impact:92, buts:96,
+    role:"Capitaine et n°9 historique · Meilleur buteur des Three Lions",
+    pronostic:"Soulier d'or potentiel · Première finale CdM ?",
+    statLabel:"Buts en sélection", statValue:"68",
+    butsM:0, passesM:0, matchsM:0,
+  },
+  {
+    flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", name:"Bukayo Saka",        club:"Arsenal",         nat:"Angleterre", group:"I",
+    pos:"ATT", age:24, cat:"star",
+    vitesse:90, technique:91, impact:88, buts:82,
+    role:"Ailier droit · Pierre angulaire d'Arteta",
+    pronostic:"Génération dorée à confirmer · Star montante du tournoi",
+    statLabel:"Dribbles réussis/match", statValue:"4.6",
+    butsM:0, passesM:0, matchsM:0,
+  },
+  {
+    flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", name:"Phil Foden",         club:"Manchester City", nat:"Angleterre", group:"I",
+    pos:"MIL", age:25, cat:"star",
+    vitesse:86, technique:94, impact:87, buts:78,
+    role:"Meneur créatif · PFA Player of the Year 2024",
+    pronostic:"Bras droit de Bellingham · Génie technique",
+    statLabel:"Buts+passes PL 2024", statValue:"27",
+    butsM:0, passesM:0, matchsM:0,
+  },
+
+  // Espagne (additions)
+  {
+    flag:"🇪🇸", name:"Pedri",              club:"FC Barcelone",    nat:"Espagne",   group:"E",
+    pos:"MIL", age:23, cat:"star",
+    vitesse:78, technique:94, impact:88, buts:68,
+    role:"Milieu créatif · Héritier de Xavi/Iniesta",
+    pronostic:"Métronome de la Roja championne d'Europe",
+    statLabel:"Passes réussies/match", statValue:"91%",
+    butsM:0, passesM:0, matchsM:0,
+  },
+  {
+    flag:"🇪🇸", name:"Rodri",              club:"Manchester City", nat:"Espagne",   group:"E",
+    pos:"MIL", age:29, cat:"star",
+    vitesse:74, technique:92, impact:92, buts:70,
+    role:"Sentinelle · Ballon d'Or 2024",
+    pronostic:"Cerveau de l'Espagne · Joueur le plus complet du tournoi",
+    statLabel:"Ballon d'Or",    statValue:"2024",
+    butsM:0, passesM:0, matchsM:0,
+  },
+
+  // Allemagne (additions)
+  {
+    flag:"🇩🇪", name:"Jamal Musiala",      club:"Bayern Munich",   nat:"Allemagne", group:"H",
+    pos:"MIL", age:23, cat:"star",
+    vitesse:88, technique:95, impact:90, buts:82,
+    role:"Dribbleur de feu · Magicien de la Mannschaft",
+    pronostic:"Étoile montante mondiale · Crochets dévastateurs",
+    statLabel:"Dribbles tentés/match", statValue:"8.4",
+    butsM:0, passesM:0, matchsM:0,
+  },
+  {
+    flag:"🇩🇪", name:"Joshua Kimmich",     club:"Bayern Munich",   nat:"Allemagne", group:"H",
+    pos:"MIL", age:31, cat:"veteran",
+    vitesse:78, technique:90, impact:87, buts:68,
+    role:"Milieu polyvalent · Capitaine d'Allemagne",
+    pronostic:"Leader vocal · Pièce maîtresse de Nagelsmann",
+    statLabel:"Sélections",     statValue:"95+",
+    butsM:0, passesM:0, matchsM:0,
+  },
+
+  // Portugal (additions)
+  {
+    flag:"🇵🇹", name:"Bernardo Silva",     club:"Manchester City", nat:"Portugal",  group:"D",
+    pos:"MIL", age:31, cat:"star",
+    vitesse:80, technique:94, impact:88, buts:74,
+    role:"Milieu virtuose · Meilleur dribbleur portugais",
+    pronostic:"Cerveau créatif · Capable de toucher 100 ballons par match",
+    statLabel:"Trophées City",  statValue:"15+",
+    butsM:0, passesM:0, matchsM:0,
+  },
+  {
+    flag:"🇵🇹", name:"Rafael Leão",        club:"AC Milan",        nat:"Portugal",  group:"D",
+    pos:"ATT", age:26, cat:"star",
+    vitesse:95, technique:88, impact:84, buts:80,
+    role:"Ailier gauche fulgurant · Cousin de Mbappé en vitesse",
+    pronostic:"Facteur X portugais · Capable d'éliminer une défense seul",
+    statLabel:"Vitesse max",    statValue:"35.2 km/h",
+    butsM:0, passesM:0, matchsM:0,
+  },
+
+  // Pays-Bas (addition)
+  {
+    flag:"🇳🇱", name:"Cody Gakpo",         club:"Liverpool",       nat:"Pays-Bas",  group:"H",
+    pos:"ATT", age:27, cat:"star",
+    vitesse:86, technique:88, impact:85, buts:84,
+    role:"Attaquant polyvalent · Soulier d'or CdM 2022",
+    pronostic:"Buteur dans tous les grands matchs · Patron offensif Oranje",
+    statLabel:"Buts CdM 2022",  statValue:"3",
+    butsM:0, passesM:0, matchsM:0,
+  },
+
+  // Italie (additions)
+  {
+    flag:"🇮🇹", name:"Gianluigi Donnarumma", club:"Paris SG",       nat:"Italie",    group:"J",
+    pos:"GB",  age:27, cat:"star",
+    vitesse:72, technique:80, impact:88, buts:0,
+    role:"Gardien · Meilleur joueur EURO 2020",
+    pronostic:"Spécialiste des séances de tirs au but · Mur italien",
+    statLabel:"Arrêts EURO 2020", statValue:"2 finales",
+    butsM:0, passesM:0, matchsM:0,
+  },
+  {
+    flag:"🇮🇹", name:"Federico Chiesa",    club:"Liverpool",       nat:"Italie",    group:"J",
+    pos:"ATT", age:28, cat:"danger",
+    vitesse:88, technique:87, impact:82, buts:78,
+    role:"Ailier offensif · Héros de l'EURO 2020",
+    pronostic:"Retour en forme · Capable de basculer un match",
+    statLabel:"Buts EURO 2020", statValue:"2 (dont demi)",
+    butsM:0, passesM:0, matchsM:0,
+  },
+
+  // Canada (addition)
+  {
+    flag:"🇨🇦", name:"Jonathan David",     club:"Lille",           nat:"Canada",    group:"D",
+    pos:"ATT", age:26, cat:"star",
+    vitesse:88, technique:84, impact:84, buts:88,
+    role:"N°9 · Meilleur buteur canadien de l'histoire",
+    pronostic:"Pays hôte motivé · Premier 1/8 canadien envisageable",
+    statLabel:"Buts en sélection", statValue:"30",
+    butsM:0, passesM:0, matchsM:0,
+  },
+
+  // Sénégal (addition)
+  {
+    flag:"🇸🇳", name:"Sadio Mané",         club:"Al-Nassr",        nat:"Sénégal",   group:"I",
+    pos:"ATT", age:33, cat:"veteran",
+    vitesse:84, technique:90, impact:84, buts:82,
+    role:"Capitaine sénégalais · Légende africaine",
+    pronostic:"Dernier grand tournoi · Veut emmener le Sénégal loin",
+    statLabel:"Buts en sélection", statValue:"43",
+    butsM:0, passesM:0, matchsM:0,
+  },
+
+  // Corée du Sud (addition)
+  {
+    flag:"🇰🇷", name:"Son Heung-min",      club:"Tottenham",       nat:"Corée du Sud", group:"L",
+    pos:"ATT", age:33, cat:"star",
+    vitesse:90, technique:90, impact:86, buts:86,
+    role:"Capitaine · Star asiatique du foot mondial",
+    pronostic:"Ambidextre redoutable · Référence absolue en Asie",
+    statLabel:"Buts en sélection", statValue:"50+",
+    butsM:0, passesM:0, matchsM:0,
+  },
+
+  // Colombie (addition)
+  {
+    flag:"🇨🇴", name:"Luis Díaz",          club:"Liverpool",       nat:"Colombie",  group:"G",
+    pos:"ATT", age:29, cat:"star",
+    vitesse:91, technique:89, impact:85, buts:80,
+    role:"Ailier gauche · Star colombienne de Premier League",
+    pronostic:"Tandem avec James · Colombie en quart envisageable",
+    statLabel:"Buts Premier League", statValue:"22",
+    butsM:0, passesM:0, matchsM:0,
+  },
+
+  // Uruguay (addition)
+  {
+    flag:"🇺🇾", name:"Federico Valverde",  club:"Real Madrid",     nat:"Uruguay",   group:"D",
+    pos:"MIL", age:27, cat:"star",
+    vitesse:88, technique:88, impact:88, buts:76,
+    role:"Milieu box-to-box · Frappe au cordeau",
+    pronostic:"Locomotive uruguayenne · Patron du milieu",
+    statLabel:"Frappes >25m réussies", statValue:"8",
+    butsM:0, passesM:0, matchsM:0,
+  },
 ];
 
 const POS_CFG: Record<PosType, { label: string; color: string; bg: string }> = {
@@ -2399,6 +2656,44 @@ function useAlbum(): {
  *  collected mini-cards in the album. Keyed by "name|club". */
 const PANINI_PHOTO_CACHE = new Map<string, string | null>();
 
+/** Fire-and-forget warmup: requests photos for every player in the roster in
+ *  parallel (with a small concurrency cap to be nice to Wikidata). Called
+ *  when the Panini tab mounts so by the time the user reveals the daily
+ *  card or flips an album mini, the photo is already resolved server-side
+ *  (the API caches for 7 days) and module-cache-side. Safe to call
+ *  multiple times — already-resolved entries short-circuit. */
+let paniniWarmupStarted = false;
+function startPaniniPhotoWarmup() {
+  if (paniniWarmupStarted) return;
+  paniniWarmupStarted = true;
+
+  const queue = PLAYERS.map(p => ({ name: p.name, club: p.club }));
+  const CONCURRENCY = 4;
+
+  const runOne = async (entry: { name: string; club: string }) => {
+    const key = `${entry.name}|${entry.club}`;
+    if (PANINI_PHOTO_CACHE.has(key)) return;
+    try {
+      const url = `/api/player-photo?name=${encodeURIComponent(entry.name)}&club=${encodeURIComponent(entry.club)}`;
+      const res = await fetch(url, { cache: "force-cache" });
+      const data: { imageUrl?: string | null } | null = res.ok ? await res.json() : null;
+      PANINI_PHOTO_CACHE.set(key, data?.imageUrl ?? null);
+    } catch {
+      PANINI_PHOTO_CACHE.set(key, null);
+    }
+  };
+
+  const worker = async () => {
+    while (queue.length > 0) {
+      const next = queue.shift();
+      if (!next) return;
+      await runOne(next);
+    }
+  };
+  // Spawn N workers in parallel.
+  for (let i = 0; i < CONCURRENCY; i++) worker();
+}
+
 /** Fetch a real player photo from /api/player-photo (Wikidata-backed,
  *  cached upstream for 7 days). Returns null when nothing is found — the
  *  caller falls back to the flag emoji.
@@ -2879,6 +3174,10 @@ function PaniniTab() {
     const id = setInterval(() => setTodayKey(ymdLocal(new Date())), 60_000);
     return () => clearInterval(id);
   }, []);
+  // Kick off the photo warmup for the entire roster as soon as the user
+  // opens the tab. Idempotent and fire-and-forget — once primed, every
+  // card flip is instant.
+  useEffect(() => { startPaniniPhotoWarmup(); }, []);
   const pod = useMemo(() => playerOfTheDay(new Date(todayKey + "T12:00:00")), [todayKey]);
 
   // Collected players, sorted by impact (showcase the strongest first).
