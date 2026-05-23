@@ -286,7 +286,7 @@ function ErrorState({ error, onRetry }: { error: string; onRetry: () => void }) 
 // ── Logo SVG ───────────────────────────────────────────────────────────────────
 function FootPredictomLogo() {
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
       {/* Ball icon */}
       <div className="relative w-10 h-10 flex-shrink-0">
         <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -332,7 +332,7 @@ function FootPredictomLogo() {
             Predictom
           </span>
         </div>
-        <p className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: "#6b7c96", marginTop: 1 }}>
+        <p className="hidden sm:block text-[10px] font-semibold tracking-widest uppercase" style={{ color: "#6b7c96", marginTop: 1 }}>
           Ligue 1 · IA Prédictive
         </p>
       </div>
@@ -534,7 +534,7 @@ function MonochromeToggle() {
       data-mono-keep
       title={mono ? "Mode couleur" : "Mode monochrome"}
       aria-label={mono ? "Activer le mode couleur" : "Activer le mode monochrome"}
-      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 active:scale-95"
+      className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 active:scale-95"
       style={{
         background: mono ? "rgba(148,163,184,0.10)" : "rgba(234,179,8,0.10)",
         border: `1px solid ${mono ? "rgba(148,163,184,0.30)" : "rgba(234,179,8,0.30)"}`,
@@ -581,7 +581,7 @@ function LightModeToggle() {
       data-keep-color
       title={light ? "Mode sombre" : "Mode clair"}
       aria-label={light ? "Activer le mode sombre" : "Activer le mode clair"}
-      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 active:scale-95"
+      className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 active:scale-95"
       style={{
         background: light ? "rgba(251,191,36,0.12)" : "rgba(148,163,184,0.10)",
         border: `1px solid ${light ? "rgba(251,191,36,0.32)" : "rgba(148,163,184,0.30)"}`,
@@ -625,7 +625,7 @@ function EditoModeToggle() {
       data-keep-color
       title={edito ? "Mode standard" : "Mode édito (papier journal)"}
       aria-label={edito ? "Désactiver le mode édito" : "Activer le mode édito"}
-      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 active:scale-95"
+      className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 active:scale-95"
       style={{
         background: edito ? "rgba(215,38,56,0.12)" : "rgba(148,163,184,0.10)",
         border: `1px solid ${edito ? "rgba(215,38,56,0.35)" : "rgba(148,163,184,0.30)"}`,
@@ -724,10 +724,10 @@ export default function Home() {
       {/* Header */}
       <header className="sticky top-0 z-50 backdrop-blur-xl border-b"
         style={{ borderColor: "#1e2d42", background: "rgba(8,12,20,0.92)" }}>
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2">
           <FootPredictomLogo />
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3">
             <div className="hidden sm:flex items-center gap-2">
               {error
                 ? <WifiSlash size={14} className="text-red-400" />
@@ -771,7 +771,9 @@ export default function Home() {
             <MonochromeToggle />
 
             <button onClick={() => fetchStandings(true)} disabled={refreshing}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 active:scale-95"
+              title="Actualiser"
+              aria-label="Actualiser"
+              className="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 active:scale-95"
               style={{ background: "rgba(255,255,255,0.04)", border: "1px solid #1e2d42", color: "#94a3b8" }}>
               <ArrowsClockwise size={12} className={refreshing ? "animate-spin" : ""} />
               <span className="hidden sm:inline">Actualiser</span>
@@ -801,7 +803,9 @@ export default function Home() {
               </div>
             ) : (
               <Link href="/login"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-80 transition-all"
+                title="Connexion"
+                aria-label="Connexion"
+                className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-80 transition-all"
                 style={{ background: "rgba(255,255,255,0.05)", border: "1px solid #1e2d42", color: "#94a3b8" }}>
                 <SignIn size={12} /> <span className="hidden sm:inline">Connexion</span>
               </Link>
