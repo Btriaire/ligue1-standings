@@ -339,7 +339,7 @@ export function generateIssue(date: Date): Issue {
     },
 
     editorial: {
-      director: "Bruno Triaire",
+      director: "Jean-Marc Delcourt",
       redacChef: shuffled[0],
       chefCulture: shuffled[1],
       chefPolitiqueFoot: shuffled[2],
