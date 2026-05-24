@@ -1092,6 +1092,8 @@ function MatchCard({
 }
 
 // ── World Cup AI Predictions (static, AI-generated) ──────────────────────────
+// WCFactorType, WC_FACTOR_META, WCMatch and WC_MATCHES_DATA are also exported
+// from @/app/lib/wc-data for use by the daily Twitter cron — keep them in sync.
 
 // WC-specific factor types
 type WCFactorType =
