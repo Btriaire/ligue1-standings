@@ -140,8 +140,8 @@ function tweetText(t: SynTweet): string {
 
 // Cache config: serve cache hits younger than FRESH; refetch beyond,
 // but fall back to STALE cache if Twitter is unavailable.
-const FRESH_MS = 15 * 60 * 1000;  // 15 min — typical refresh
-const STALE_MS = 24 * 3600 * 1000; // 24 h — emergency floor
+const FRESH_MS  = 15 * 60 * 1000;      // 15 min — revalidate after this
+const STALE_MS  = 7 * 24 * 3600 * 1000; // 7 days — always show something rather than nothing
 
 interface CacheDoc { tweets: Tweet[]; fetchedAt: number }
 
@@ -183,7 +183,16 @@ async function fetchFromSyndication(handle: string, max: number): Promise<Tweet[
   let entries: SynEntry[] = [];
   try {
     const j = JSON.parse(m[1]);
-    entries = j?.props?.pageProps?.timeline?.entries ?? [];
+    const pp = j?.props?.pageProps;
+    // Twitter/X has changed this path a few times — try all known variants.
+    entries =
+      pp?.timeline?.entries ??
+      pp?.timeline_v2?.entries ??
+      pp?.tweets?.entries ??
+      pp?.data?.timeline?.entries ??
+      pp?.data?.user?.result?.timeline_v2?.timeline?.instructions
+        ?.flatMap((i: { entries?: SynEntry[] }) => i.entries ?? []) ??
+      [];
   } catch { return []; }
 
   const tweets: Tweet[] = [];
@@ -208,14 +217,14 @@ async function fetchFromSyndication(handle: string, max: number): Promise<Tweet[
   return tweets;
 }
 
-export async function fetchSyndicationTimeline(handle: string, max = 10): Promise<Tweet[]> {
+export async function fetchSyndicationTimeline(handle: string, max = 10, bustCache = false): Promise<Tweet[]> {
   const clean = handle.replace(/^@/, "").trim();
   if (!clean || !/^[A-Za-z0-9_]{1,15}$/.test(clean)) return [];
 
   // 1. Try fresh cache first — avoids the network call entirely.
   const cached = await readCache(clean);
   const now = Date.now();
-  if (cached && now - cached.fetchedAt < FRESH_MS && cached.tweets.length > 0) {
+  if (!bustCache && cached && now - cached.fetchedAt < FRESH_MS && cached.tweets.length > 0) {
     return cached.tweets.slice(0, max);
   }
 
