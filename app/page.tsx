@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useRef, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { ArrowsClockwise, TrendUp, TrendDown, Minus, Trophy, WifiHigh, WifiSlash, Clock, Lightning, ChartBar, Shield, Pulse, Globe, GearSix, Target, ArrowsLeftRight, CaretRight, CaretLeft, Users, Lock, SignIn, SignOut, Fire, Sun, MoonStars, Television, Newspaper } from "@phosphor-icons/react";
+import { ArrowsClockwise, TrendUp, TrendDown, Minus, Trophy, WifiHigh, WifiSlash, Clock, Lightning, ChartBar, Shield, Pulse, Globe, GearSix, Target, ArrowsLeftRight, CaretRight, CaretLeft, Users, Lock, SignIn, SignOut, Fire, Sun, MoonStars, Television, Newspaper, Palette } from "@phosphor-icons/react";
 import { isWorldCupHot, worldCupPhase, daysUntilWorldCup } from "./lib/worldCup";
 import dynamic from "next/dynamic";
 const TeamPanel = dynamic(() => import("./components/TeamPanel"), { ssr: false });
@@ -595,133 +595,113 @@ function AuthGate({ label, icon }: { label: string; icon: React.ReactNode }) {
 
 // Day/Night-style toggle that flips the whole site between colour and
 // monochrome via a class on <html>. Persisted in localStorage.
-function MonochromeToggle() {
-  const [mono, setMono] = useState(false);
-  useEffect(() => {
-    const saved = typeof window !== "undefined" && localStorage.getItem("ui:monochrome") === "1";
-    if (saved) {
-      document.documentElement.classList.add("monochrome");
-      setMono(true);
-    }
-  }, []);
-  const toggle = () => {
-    const next = !mono;
-    setMono(next);
-    document.documentElement.classList.toggle("monochrome", next);
-    if (next) {
-      // Mutually exclusive with the other CSS-filter themes — don't stack.
-      document.documentElement.classList.remove("light-mode", "edito");
-      try { localStorage.setItem("ui:light", "0"); } catch {}
-      try { localStorage.setItem("ui:edito", "0"); } catch {}
-    }
-    try { localStorage.setItem("ui:monochrome", next ? "1" : "0"); } catch {}
-  };
-  return (
-    <button
-      onClick={toggle}
-      data-mono-keep
-      title={mono ? "Mode couleur" : "Mode monochrome"}
-      aria-label={mono ? "Activer le mode couleur" : "Activer le mode monochrome"}
-      className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 active:scale-95"
-      style={{
-        background: mono ? "rgba(148,163,184,0.10)" : "rgba(234,179,8,0.10)",
-        border: `1px solid ${mono ? "rgba(148,163,184,0.30)" : "rgba(234,179,8,0.30)"}`,
-        color: mono ? "#cbd5e1" : "#eab308",
-      }}>
-      {mono ? <MoonStars size={12} weight="fill" /> : <Sun size={12} weight="fill" />}
-      <span className="hidden sm:inline">{mono ? "Mono" : "Couleur"}</span>
-    </button>
-  );
-}
+// ── Apparence dropdown — groups Sombre / Clair / Mono / Édito into one button ─
 
-// Light-mode toggle. Flips the whole document from dark to light via a CSS
-// filter on <html>.light-mode (defined in globals.css). The filter approach
-// avoids touching the hundreds of inline-style colours scattered across the
-// codebase. Images/photos/crests carry `data-keep-color` (or are <img>/<video>)
-// and stay un-inverted. Mutually exclusive with monochrome mode — turning one
-// on turns the other off so the filters don't stack into something illegible.
-function LightModeToggle() {
-  const [light, setLight] = useState(false);
-  useEffect(() => {
-    const saved = typeof window !== "undefined" && localStorage.getItem("ui:light") === "1";
-    if (saved) {
-      document.documentElement.classList.add("light-mode");
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setLight(true);
-    }
-  }, []);
-  const toggle = () => {
-    const next = !light;
-    setLight(next);
-    document.documentElement.classList.toggle("light-mode", next);
-    if (next) {
-      // Turning on light: drop monochrome + edito so filters don't stack.
-      document.documentElement.classList.remove("monochrome", "edito");
-      try { localStorage.setItem("ui:monochrome", "0"); } catch {}
-      try { localStorage.setItem("ui:edito", "0"); } catch {}
-    }
-    try { localStorage.setItem("ui:light", next ? "1" : "0"); } catch {}
-  };
-  return (
-    <button
-      onClick={toggle}
-      data-mono-keep
-      data-keep-color
-      title={light ? "Mode sombre" : "Mode clair"}
-      aria-label={light ? "Activer le mode sombre" : "Activer le mode clair"}
-      className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 active:scale-95"
-      style={{
-        background: light ? "rgba(251,191,36,0.12)" : "rgba(148,163,184,0.10)",
-        border: `1px solid ${light ? "rgba(251,191,36,0.32)" : "rgba(148,163,184,0.30)"}`,
-        color: light ? "#eab308" : "#cbd5e1",
-      }}>
-      {light ? <Sun size={12} weight="fill" /> : <MoonStars size={12} weight="fill" />}
-      <span className="hidden sm:inline">{light ? "Clair" : "Sombre"}</span>
-    </button>
-  );
-}
+type AppTheme = "light" | "mono" | "edito" | null;
 
-// Édito mode — optional papier-journal theme inspired by Blast (blast-info.fr).
-// Same CSS-filter trick as light-mode but without the hue-rotate compensation,
-// so the cyan accent flips to red-orange and reads as "presse écrite". Mutually
-// exclusive with light-mode and monochrome so the filters never stack.
-function EditoModeToggle() {
-  const [edito, setEdito] = useState(false);
+const THEME_OPTIONS: { key: AppTheme & string; label: string; cssClass: string; color: string; bg: string; border: string }[] = [
+  { key: "light", label: "Clair",  cssClass: "light-mode", color: "#eab308", bg: "rgba(234,179,8,0.10)",    border: "rgba(234,179,8,0.30)" },
+  { key: "mono",  label: "Mono",   cssClass: "monochrome", color: "#94a3b8", bg: "rgba(148,163,184,0.10)", border: "rgba(148,163,184,0.30)" },
+  { key: "edito", label: "Édito",  cssClass: "edito",      color: "#d72638", bg: "rgba(215,38,56,0.12)",   border: "rgba(215,38,56,0.35)" },
+];
+
+function ApparenceDropdown() {
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState<AppTheme>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Restore saved theme on mount
   useEffect(() => {
-    const saved = typeof window !== "undefined" && localStorage.getItem("ui:edito") === "1";
-    if (saved) {
-      document.documentElement.classList.add("edito");
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setEdito(true);
+    if (typeof window === "undefined") return;
+    for (const opt of THEME_OPTIONS) {
+      if (localStorage.getItem(`ui:${opt.key}`) === "1") {
+        document.documentElement.classList.add(opt.cssClass);
+        setActive(opt.key as AppTheme);
+        return;
+      }
     }
   }, []);
-  const toggle = () => {
-    const next = !edito;
-    setEdito(next);
-    document.documentElement.classList.toggle("edito", next);
-    if (next) {
-      document.documentElement.classList.remove("light-mode", "monochrome");
-      try { localStorage.setItem("ui:light", "0"); } catch {}
-      try { localStorage.setItem("ui:monochrome", "0"); } catch {}
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  const apply = (key: string) => {
+    const next = active === key ? null : key as AppTheme;
+    // Remove all theme classes first
+    for (const opt of THEME_OPTIONS) {
+      document.documentElement.classList.remove(opt.cssClass);
+      try { localStorage.setItem(`ui:${opt.key}`, "0"); } catch {}
     }
-    try { localStorage.setItem("ui:edito", next ? "1" : "0"); } catch {}
+    // Apply chosen one
+    if (next) {
+      const opt = THEME_OPTIONS.find(o => o.key === next)!;
+      document.documentElement.classList.add(opt.cssClass);
+      try { localStorage.setItem(`ui:${next}`, "1"); } catch {}
+    }
+    setActive(next);
+    setOpen(false);
   };
+
+  const activeOpt = THEME_OPTIONS.find(o => o.key === active);
+
   return (
-    <button
-      onClick={toggle}
-      data-mono-keep
-      data-keep-color
-      title={edito ? "Mode standard" : "Mode édito (papier journal)"}
-      aria-label={edito ? "Désactiver le mode édito" : "Activer le mode édito"}
-      className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 active:scale-95"
-      style={{
-        background: edito ? "rgba(215,38,56,0.12)" : "rgba(148,163,184,0.10)",
-        border: `1px solid ${edito ? "rgba(215,38,56,0.35)" : "rgba(148,163,184,0.30)"}`,
-        color: edito ? "#d72638" : "#cbd5e1",
-      }}>
-      <Newspaper size={12} weight={edito ? "fill" : "regular"} />
-      <span className="hidden sm:inline">Édito</span>
-    </button>
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        data-mono-keep data-keep-color
+        title="Apparence"
+        aria-label="Changer le thème d'affichage"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 active:scale-95"
+        style={{
+          background: activeOpt ? activeOpt.bg : "rgba(148,163,184,0.10)",
+          border: `1px solid ${activeOpt ? activeOpt.border : "rgba(148,163,184,0.30)"}`,
+          color: activeOpt ? activeOpt.color : "#64748b",
+        }}
+      >
+        <Palette size={12} weight={activeOpt ? "fill" : "regular"} />
+        <span>{activeOpt ? activeOpt.label : "Apparence"}</span>
+      </button>
+
+      {open && (
+        <div
+          className="absolute right-0 top-full mt-1.5 z-50 rounded-xl overflow-hidden"
+          style={{ background: "#0d1421", border: "1px solid #1e2d42", boxShadow: "0 8px 32px rgba(0,0,0,0.55)", minWidth: 130 }}
+        >
+          {/* Default (Sombre) row */}
+          <button
+            onClick={() => apply("_none")}
+            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-medium transition-colors hover:bg-white/5"
+            style={{ color: active === null ? "#e2e8f0" : "#475569" }}
+          >
+            <MoonStars size={12} weight={active === null ? "fill" : "regular"} />
+            <span>Sombre</span>
+            {active === null && <span className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: "#00d4ff" }} />}
+          </button>
+
+          {THEME_OPTIONS.map(opt => (
+            <button
+              key={opt.key}
+              onClick={() => apply(opt.key)}
+              className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-medium transition-colors hover:bg-white/5"
+              style={{ color: active === opt.key ? opt.color : "#475569" }}
+            >
+              {opt.key === "light" && <Sun size={12} weight={active === opt.key ? "fill" : "regular"} />}
+              {opt.key === "mono"  && <MoonStars size={12} weight={active === opt.key ? "fill" : "regular"} />}
+              {opt.key === "edito" && <Newspaper size={12} weight={active === opt.key ? "fill" : "regular"} />}
+              <span>{opt.label}</span>
+              {active === opt.key && <span className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: opt.color }} />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -855,9 +835,7 @@ export default function Home() {
               <span className="hidden sm:inline">Magazine</span>
             </Link>
 
-            <LightModeToggle />
-            <EditoModeToggle />
-            <MonochromeToggle />
+            <ApparenceDropdown />
 
             <button onClick={() => fetchStandings(true)} disabled={refreshing}
               title="Actualiser"
