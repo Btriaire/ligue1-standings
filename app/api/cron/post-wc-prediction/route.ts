@@ -110,7 +110,10 @@ export async function GET(req: Request) {
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("[post-wc-prediction] Twitter error:", msg);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    // Include Twitter API error detail if available (ApiResponseError has .data)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const detail = (err as any)?.data ?? (err as any)?.errors ?? null;
+    console.error("[post-wc-prediction] Twitter error:", msg, JSON.stringify(detail));
+    return NextResponse.json({ error: msg, detail, tweet }, { status: 500 });
   }
 }
