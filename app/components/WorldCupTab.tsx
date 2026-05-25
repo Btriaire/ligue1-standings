@@ -1837,9 +1837,219 @@ function FanXTab() {
   );
 }
 
+// ─── Forme CdM tab ───────────────────────────────────────────────────────────
+
+function parseMomentum(s: string): { v: number; n: number; d: number } {
+  const m = s.match(/(\d+)V\s*(\d+)N\s*(\d+)D/);
+  return m ? { v: +m[1], n: +m[2], d: +m[3] } : { v: 0, n: 0, d: 0 };
+}
+
+type FormTrend = "🔥" | "📈" | "📊" | "📉" | "❄️";
+type ConfId    = "UEFA" | "CONMEBOL" | "CONCACAF" | "CAF" | "AFC";
+
+interface FormeEntry {
+  fullName: string;      // exact key used in TEAM_STR
+  qualifs: string;       // "XV YN ZD" — qualifier record
+  recentFactor: string;  // one-liner: recent tournament / key event
+  factorColor: string;
+  trend: FormTrend;
+  bonus: number;         // −10 → +10 ultra-recent event modifier
+  conf: ConfId;
+}
+
+const FORME_TEAMS: FormeEntry[] = [
+  // ── UEFA ──────────────────────────────────────────────────────────────────
+  { fullName:"🇪🇸 Espagne",       qualifs:"9V 1N 0D", recentFactor:"🏆 Champion EURO 2024 · Yamal-Pedri au sommet",    factorColor:"#fbbf24", trend:"🔥", bonus:9,   conf:"UEFA" },
+  { fullName:"🇫🇷 France",        qualifs:"8V 2N 0D", recentFactor:"Qualifs parfaits · Mbappé capitaine en feu",       factorColor:"#00d4ff", trend:"🔥", bonus:8,   conf:"UEFA" },
+  { fullName:"🇳🇱 Pays-Bas",      qualifs:"8V 1N 1D", recentFactor:"Demi-finale EURO 2024 · Gakpo-Van Dijk en forme",  factorColor:"#a78bfa", trend:"🔥", bonus:6,   conf:"UEFA" },
+  { fullName:"🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre",  qualifs:"7V 2N 1D", recentFactor:"Finaliste EURO 2024 · Bellingham-Saka décisifs",  factorColor:"#a78bfa", trend:"📈", bonus:5,   conf:"UEFA" },
+  { fullName:"🇩🇪 Allemagne",     qualifs:"7V 2N 1D", recentFactor:"Renouveau Wirtz · QF EURO 2024 à domicile",        factorColor:"#22c55e", trend:"📈", bonus:4,   conf:"UEFA" },
+  { fullName:"🇵🇹 Portugal",      qualifs:"7V 2N 1D", recentFactor:"QF EURO 2024 · Leão-Félix-Bruno en montée",        factorColor:"#00d4ff", trend:"📈", bonus:4,   conf:"UEFA" },
+  { fullName:"🇭🇷 Croatie",       qualifs:"5V 3N 2D", recentFactor:"Modrić dernier tournoi · Leadership vétérans",     factorColor:"#94a3b8", trend:"📊", bonus:3,   conf:"UEFA" },
+  { fullName:"🇷🇸 Serbie",        qualifs:"7V 1N 2D", recentFactor:"R16 EURO 2024 · Mitrović top buteur en qualifs",   factorColor:"#94a3b8", trend:"📊", bonus:2,   conf:"UEFA" },
+  { fullName:"🇨🇭 Suisse",        qualifs:"6V 2N 2D", recentFactor:"R16 EURO 2024 · Bloc défensif très solide",        factorColor:"#94a3b8", trend:"📊", bonus:2,   conf:"UEFA" },
+  { fullName:"🇮🇹 Italie",        qualifs:"5V 4N 1D", recentFactor:"R16 EURO 2024 · Reconstruction Spalletti",         factorColor:"#94a3b8", trend:"📊", bonus:1,   conf:"UEFA" },
+  { fullName:"🇷🇴 Roumanie",      qualifs:"5V 2N 3D", recentFactor:"Surprise EURO 2024 R16 · Ianis Hagi décisif",      factorColor:"#06b6d4", trend:"📊", bonus:2,   conf:"UEFA" },
+  { fullName:"🇵🇱 Pologne",       qualifs:"5V 3N 2D", recentFactor:"R16 EURO 2024 · Lewandowski 38 ans mais actif",    factorColor:"#94a3b8", trend:"📊", bonus:1,   conf:"UEFA" },
+  { fullName:"🇧🇪 Belgique",      qualifs:"5V 3N 2D", recentFactor:"Post-génération dorée · Cycle en déclin",           factorColor:"#f97316", trend:"📉", bonus:-2,  conf:"UEFA" },
+  // ── CONMEBOL ──────────────────────────────────────────────────────────────
+  { fullName:"🇦🇷 Argentine",     qualifs:"7V 3N 0D", recentFactor:"🏆 CdM 2022 + Copa América 2024 · Inarrêtable",    factorColor:"#fbbf24", trend:"🔥", bonus:10,  conf:"CONMEBOL" },
+  { fullName:"🇨🇴 Colombie",      qualifs:"8V 1N 1D", recentFactor:"Finaliste Copa América 2024 · Invaincu en qualifs", factorColor:"#a78bfa", trend:"🔥", bonus:7,   conf:"CONMEBOL" },
+  { fullName:"🇧🇷 Brésil",        qualifs:"6V 3N 1D", recentFactor:"Vinicius-Endrick en feu en club · Talent intact",   factorColor:"#22c55e", trend:"📈", bonus:4,   conf:"CONMEBOL" },
+  { fullName:"🇺🇾 Uruguay",       qualifs:"6V 2N 2D", recentFactor:"SF Copa América 2024 · Valverde au Real en forme",  factorColor:"#94a3b8", trend:"📊", bonus:3,   conf:"CONMEBOL" },
+  { fullName:"🇪🇨 Équateur",      qualifs:"6V 2N 2D", recentFactor:"Copa América 2024 QF · Caicedo en montée",          factorColor:"#94a3b8", trend:"📊", bonus:2,   conf:"CONMEBOL" },
+  { fullName:"🇵🇾 Paraguay",      qualifs:"5V 3N 2D", recentFactor:"Copa América 2024 groupe · Almirón capitaine",      factorColor:"#94a3b8", trend:"📊", bonus:0,   conf:"CONMEBOL" },
+  { fullName:"🇨🇱 Chili",         qualifs:"4V 3N 3D", recentFactor:"Post-génération dorée · Fin d'ère · En déclin",     factorColor:"#ef4444", trend:"📉", bonus:-4,  conf:"CONMEBOL" },
+  { fullName:"🇵🇪 Pérou",         qualifs:"4V 2N 4D", recentFactor:"Barrage 2022 perdu · Manque d'élan offensif",       factorColor:"#ef4444", trend:"❄️", bonus:-6,  conf:"CONMEBOL" },
+  // ── CONCACAF ──────────────────────────────────────────────────────────────
+  { fullName:"🇺🇸 USA",           qualifs:"8V 1N 1D", recentFactor:"Pays hôte 2026 · Pulisic (Milan) MVP de saison",   factorColor:"#00d4ff", trend:"📈", bonus:7,   conf:"CONCACAF" },
+  { fullName:"🇨🇦 Canada",        qualifs:"6V 3N 1D", recentFactor:"Pays hôte 2026 · Davies-Jonathan David en feu",    factorColor:"#00d4ff", trend:"📈", bonus:6,   conf:"CONCACAF" },
+  { fullName:"🇲🇽 Mexique",       qualifs:"7V 3N 0D", recentFactor:"Pays hôte 2026 · Forteresse Azteca intact",        factorColor:"#00d4ff", trend:"📈", bonus:5,   conf:"CONCACAF" },
+  // ── CAF ───────────────────────────────────────────────────────────────────
+  { fullName:"🇸🇳 Sénégal",       qualifs:"8V 1N 1D", recentFactor:"🏆 Champion CAN 2022 · Mané-Diatta décisifs",       factorColor:"#fbbf24", trend:"📈", bonus:5,   conf:"CAF" },
+  { fullName:"🇲🇦 Maroc",         qualifs:"7V 2N 1D", recentFactor:"½ finale CdM 2022 · Hakimi leadership renforcé",   factorColor:"#f97316", trend:"📈", bonus:5,   conf:"CAF" },
+  { fullName:"🇩🇿 Algérie",       qualifs:"7V 2N 1D", recentFactor:"AFCON QF 2023 · Mahrez en fin de carrière active", factorColor:"#22c55e", trend:"📊", bonus:3,   conf:"CAF" },
+  { fullName:"🇨🇲 Cameroun",      qualifs:"5V 2N 3D", recentFactor:"AFCON 2024 R16 · Anguissa pilier au milieu",        factorColor:"#f97316", trend:"📉", bonus:-2,  conf:"CAF" },
+  { fullName:"🇬🇭 Ghana",         qualifs:"5V 2N 3D", recentFactor:"AFCON 2024 groupe · Reconstruction post-Qatar",    factorColor:"#ef4444", trend:"📉", bonus:-2,  conf:"CAF" },
+  { fullName:"🇹🇳 Tunisie",       qualifs:"5V 2N 3D", recentFactor:"AFCON 2024 groupe · Résultats en déclin",          factorColor:"#ef4444", trend:"📉", bonus:-3,  conf:"CAF" },
+  // ── AFC ───────────────────────────────────────────────────────────────────
+  { fullName:"🇯🇵 Japon",         qualifs:"8V 1N 1D", recentFactor:"Invaincu qualifs · Kubo-Doan-Minamino décisifs",    factorColor:"#22c55e", trend:"📈", bonus:5,   conf:"AFC" },
+  { fullName:"🇰🇷 Corée du S",    qualifs:"8V 1N 1D", recentFactor:"Son Heung-min 50+ buts sélection · Capitaine",     factorColor:"#22c55e", trend:"📈", bonus:4,   conf:"AFC" },
+];
+
+// Composite form score: 50% qualifier record + 30% FIFA strength + 20% ultra-recent bonus.
+// qualifScore: pts/maxPts * 100. bonus range −10 → +10 maps to 0 → 100 (via +50, ×5).
+function computeFormeScore(qualifs: string, str: number, bonus: number): number {
+  const { v, n, d } = parseMomentum(qualifs);
+  const total = v + n + d;
+  const qPct = total > 0 ? (v * 3 + n) / (total * 3) : 0.5;
+  const raw = qPct * 50 + (str / 100) * 30 + ((50 + bonus * 5) / 100) * 20;
+  return Math.max(5, Math.min(99, Math.round(raw)));
+}
+
+function formeBarColor(score: number): string {
+  if (score >= 85) return "#22c55e";
+  if (score >= 75) return "#84cc16";
+  if (score >= 65) return "#eab308";
+  if (score >= 55) return "#f97316";
+  return "#ef4444";
+}
+
+function FormeTab() {
+  type ConfFilter = "Tous" | ConfId;
+  const [conf, setConf] = useState<ConfFilter>("Tous");
+
+  const scored = useMemo(() =>
+    FORME_TEAMS.map(t => ({
+      ...t,
+      score: computeFormeScore(t.qualifs, getStr(t.fullName), t.bonus),
+    })).sort((a, b) => b.score - a.score),
+    []
+  );
+
+  const CONF_COLORS: Record<ConfId, string> = {
+    UEFA: "#3b82f6", CONMEBOL: "#22c55e", CONCACAF: "#f97316", CAF: "#f59e0b", AFC: "#a855f7",
+  };
+
+  const filtered = conf === "Tous" ? scored : scored.filter(t => t.conf === conf);
+
+  return (
+    <div className="space-y-3">
+      {/* Header */}
+      <div className="rounded-2xl p-4"
+        style={{ background: "linear-gradient(135deg, rgba(251,191,36,0.10), rgba(239,68,68,0.06))", border: "1px solid rgba(251,191,36,0.3)" }}>
+        <div className="flex items-center gap-2 mb-1">
+          <Flame size={18} weight="fill" style={{ color: "#fbbf24" }}/>
+          <h3 className="text-base font-black" style={{ color: "#e8edf5" }}>Indicateur de Forme</h3>
+        </div>
+        <p className="text-[11px]" style={{ color: "#94a3b8" }}>
+          Score composite · éliminatoires + cote FIFA + facteurs ultra-récents (EURO / Copa / CAN / Asian Cup 2024)
+        </p>
+      </div>
+
+      {/* Confederation filter chips */}
+      <div className="flex gap-1.5 flex-wrap">
+        {(["Tous", "UEFA", "CONMEBOL", "CONCACAF", "CAF", "AFC"] as ConfFilter[]).map(c => {
+          const active = conf === c;
+          const color = c === "Tous" ? "#00d4ff" : CONF_COLORS[c as ConfId];
+          const count = c === "Tous" ? scored.length : scored.filter(t => t.conf === c).length;
+          return (
+            <button key={c} onClick={() => setConf(c)}
+              className="text-[10px] font-bold px-2.5 py-1 rounded-full transition-all whitespace-nowrap"
+              style={{
+                background: active ? color + "20" : "#0d1421",
+                color: active ? color : "#6b7c96",
+                border: `1px solid ${active ? color + "60" : "#1e2d42"}`,
+              }}>
+              {c} <span style={{ opacity: 0.7 }}>({count})</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Legend */}
+      <div className="flex items-center gap-3 flex-wrap">
+        {[
+          { color: "#22c55e", label: "Excellent" },
+          { color: "#84cc16", label: "Bon" },
+          { color: "#eab308", label: "Moyen" },
+          { color: "#f97316", label: "En baisse" },
+          { color: "#ef4444", label: "Faible" },
+        ].map(l => (
+          <span key={l.label} className="inline-flex items-center gap-1 text-[9px]" style={{ color: "#475569" }}>
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: l.color, display: "inline-block", flexShrink: 0 }}/>
+            {l.label}
+          </span>
+        ))}
+      </div>
+
+      {/* Ranked list */}
+      <div className="space-y-1.5">
+        {filtered.map(t => {
+          const rank = scored.findIndex(x => x.fullName === t.fullName) + 1;
+          const color = formeBarColor(t.score);
+          const { v, n, d } = parseMomentum(t.qualifs);
+          const MEDALS = ["🥇", "🥈", "🥉"];
+          return (
+            <div key={t.fullName} className="rounded-xl px-3 py-2.5"
+              style={{
+                background: "#0a1120",
+                border: `1px solid ${rank <= 3 ? color + "35" : "#1a2840"}`,
+              }}>
+              <div className="flex items-start gap-2.5">
+                {/* Rank + trend column */}
+                <div className="flex flex-col items-center gap-0.5 flex-shrink-0 pt-0.5" style={{ minWidth: 24 }}>
+                  <span className="text-[11px] font-black leading-none"
+                    style={{ color: rank === 1 ? "#fbbf24" : rank === 2 ? "#cbd5e1" : rank === 3 ? "#d97706" : "#2e3e52" }}>
+                    {rank <= 3 ? MEDALS[rank - 1] : rank}
+                  </span>
+                  <span style={{ fontSize: 10, lineHeight: 1 }}>{t.trend}</span>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  {/* Name + score */}
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="text-[13px] font-bold leading-tight truncate" style={{ color: "#e8edf5" }}>
+                      {t.fullName}
+                    </span>
+                    <span className="text-[16px] font-black leading-none flex-shrink-0" style={{ color }}>{t.score}</span>
+                  </div>
+
+                  {/* Form bar */}
+                  <div className="h-1.5 rounded-full overflow-hidden mb-1.5" style={{ background: "rgba(255,255,255,0.05)" }}>
+                    <div className="h-full rounded-full"
+                      style={{ width: `${t.score}%`, background: `linear-gradient(90deg, ${color}70, ${color})` }}/>
+                  </div>
+
+                  {/* Recent factor + qualifier record */}
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[9px] truncate flex-1" style={{ color: t.factorColor }}>
+                      {t.recentFactor}
+                    </span>
+                    <span className="text-[9px] font-mono flex-shrink-0 tabular-nums" style={{ color: "#2e3e52" }}>
+                      {v}V·{n}N·{d}D
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Footer */}
+      <p className="text-[9px] text-center px-2" style={{ color: "#1e3050" }}>
+        🔥 Excellent · 📈 En montée · 📊 Stable · 📉 En déclin · ❄️ Faible
+        &nbsp;·&nbsp;Score 0–99 basé sur qualifs 2024-25, classement FIFA mai 2026 &amp; résultats récents.
+      </p>
+    </div>
+  );
+}
+
 // ─── Sub-tabs ────────────────────────────────────────────────────────────────
 
-type SubTab = "groupes" | "calendrier" | "joueurs" | "france" | "favoris" | "tableau" | "arbitres" | "news" | "affiche" | "macompo" | "fanx" | "panini";
+type SubTab = "groupes" | "calendrier" | "joueurs" | "france" | "favoris" | "tableau" | "arbitres" | "news" | "affiche" | "macompo" | "fanx" | "panini" | "forme";
 
 const SUB_TABS: { id: SubTab; label: string }[] = [
   { id: "news",       label: "📰 News CdM" },
@@ -1851,6 +2061,7 @@ const SUB_TABS: { id: SubTab; label: string }[] = [
   { id: "tableau",    label: "🏆 Tableau" },
   { id: "calendrier", label: "Calendrier" },
   { id: "joueurs",    label: "⭐ Joueurs" },
+  { id: "forme",      label: "🔥 Forme" },
   { id: "france",     label: "🇫🇷 France" },
   { id: "favoris",    label: "Favoris" },
   { id: "arbitres",   label: "🟨 Arbitres" },
@@ -3377,6 +3588,7 @@ export default function WorldCupTab() {
       {activeTab === "tableau"    && <BracketTab />}
       {activeTab === "calendrier" && <CalendrierTab />}
       {activeTab === "joueurs"    && <JoueursTab />}
+      {activeTab === "forme"      && <FormeTab />}
       {activeTab === "france"     && <FranceTab />}
       {activeTab === "favoris"    && <FavorisTab />}
       {activeTab === "arbitres"   && <RefereesWCTab />}
