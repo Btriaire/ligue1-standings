@@ -7,12 +7,13 @@ export const dynamic = "force-dynamic";
 // don't go through the Firestore lookup or the official-fallback logic.
 // nitter.net is the most reliable today — keep it first so we don't burn
 // the 10s Vercel function budget on dead instances.
+// Updated 2026-05 — nitter.net shut down 2024; these are still operational.
 const NITTER_INSTANCES = [
-  "nitter.net",
+  "xcancel.com",
+  "nitter.tiekoetter.com",
+  "nitter.unixfox.eu",
   "nitter.privacydev.net",
   "nitter.poast.org",
-  "nitter.cz",
-  "nitter.kavin.rocks",
 ];
 
 interface TweetMedia { type: "photo" | "video" | "gif"; url: string; poster?: string; width?: number; height?: number }
@@ -58,7 +59,8 @@ export async function GET(req: NextRequest) {
   }
 
   // Primary: Twitter's syndication CDN (no auth, very reliable).
-  const synTweets = await fetchSyndicationTimeline(handle, 10);
+  const bustCache = searchParams.get("bust") === "1";
+  const synTweets = await fetchSyndicationTimeline(handle, 10, bustCache);
   if (synTweets.length > 0) {
     return NextResponse.json({ tweets: synTweets, handle, source: "syndication" }, {
       headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=60" },
