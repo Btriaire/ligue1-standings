@@ -61,7 +61,7 @@ export default function VideoOfTheDay() {
         <div className="flex items-stretch gap-3">
           {/* Thumbnail with play overlay */}
           <div className="relative flex-shrink-0"
-            style={{ width: 160, height: 100, background: "#0a0f1c" }}>
+            style={{ width: "clamp(100px, 38vw, 160px)", aspectRatio: "16/10", background: "#0a0f1c" }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={data.poster}
@@ -98,7 +98,7 @@ export default function VideoOfTheDay() {
             </div>
             <div className="flex items-center justify-between mt-1.5">
               <span className="inline-flex items-center gap-1 text-[10px]" style={{ color: "#6b7c96" }}>
-                <Clock size={9}/>
+                <Clock size={11}/>
                 {timeAgo(data.pubDate)}
               </span>
               <span className="inline-flex items-center gap-1 text-[10px] font-bold" style={{ color: "#ef4444" }}>

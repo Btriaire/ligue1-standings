@@ -1417,8 +1417,8 @@ function AfficheTab() {
                 <span className="text-[10px] font-black w-14 flex-shrink-0" style={{ color: m.highlight ?? "#94a3b8" }}>
                   {m.date}
                 </span>
-                <span className="flex-1 text-[12px]" style={{ color: "#e8edf5" }}>{m.teams}</span>
-                <span className="text-[9px]" style={{ color: "#6b7c96" }}>{m.group}</span>
+                <span className="flex-1 min-w-0 truncate text-[12px]" style={{ color: "#e8edf5" }}>{m.teams}</span>
+                <span className="text-[10px]" style={{ color: "#6b7c96" }}>{m.group}</span>
               </div>
             ))}
           </div>
@@ -1857,10 +1857,10 @@ function FanXTab() {
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(29,161,242,0.4)"; }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "#1e2d42"; }}>
               <div className="flex items-center gap-1.5 mb-1">
-                <TwitterLogo size={11} weight="fill" style={{ color: "#1da1f2" }}/>
-                <span className="text-[10px] font-bold" style={{ color: "#1da1f2" }}>@{t.author}</span>
+                <TwitterLogo size={13} weight="fill" style={{ color: "#1da1f2" }}/>
+                <span className="text-[11px] font-bold" style={{ color: "#1da1f2" }}>@{t.author}</span>
                 <span className="inline-flex items-center gap-1 text-[10px]" style={{ color: "#6b7c96" }}>
-                  <Clock size={9} weight="bold"/>
+                  <Clock size={11} weight="bold"/>
                   {timeAgoShort(t.pubDate)}
                 </span>
               </div>
@@ -2024,8 +2024,8 @@ function FormeTab() {
           { color: "#f97316", label: "En baisse" },
           { color: "#ef4444", label: "Faible" },
         ].map(l => (
-          <span key={l.label} className="inline-flex items-center gap-1 text-[9px]" style={{ color: "#475569" }}>
-            <span style={{ width: 8, height: 8, borderRadius: 2, background: l.color, display: "inline-block", flexShrink: 0 }}/>
+          <span key={l.label} className="inline-flex items-center gap-1 text-[10px]" style={{ color: "#475569" }}>
+            <span style={{ width: 10, height: 10, borderRadius: 2, background: l.color, display: "inline-block", flexShrink: 0 }}/>
             {l.label}
           </span>
         ))}
@@ -2047,11 +2047,11 @@ function FormeTab() {
               <div className="flex items-start gap-2.5">
                 {/* Rank + trend column */}
                 <div className="flex flex-col items-center gap-0.5 flex-shrink-0 pt-0.5" style={{ minWidth: 24 }}>
-                  <span className="text-[11px] font-black leading-none"
+                  <span className="text-[13px] font-black leading-none"
                     style={{ color: rank === 1 ? "#fbbf24" : rank === 2 ? "#cbd5e1" : rank === 3 ? "#d97706" : "#2e3e52" }}>
                     {rank <= 3 ? MEDALS[rank - 1] : rank}
                   </span>
-                  <span style={{ fontSize: 10, lineHeight: 1 }}>{t.trend}</span>
+                  <span style={{ fontSize: 12, lineHeight: 1 }}>{t.trend}</span>
                 </div>
 
                 {/* Content */}
@@ -2072,10 +2072,10 @@ function FormeTab() {
 
                   {/* Recent factor + qualifier record */}
                   <div className="flex items-center justify-between gap-1">
-                    <span className="text-[9px] truncate flex-1" style={{ color: t.factorColor }}>
+                    <span className="text-[10px] truncate flex-1" style={{ color: t.factorColor }}>
                       {t.recentFactor}
                     </span>
-                    <span className="text-[9px] font-mono flex-shrink-0 tabular-nums" style={{ color: "#2e3e52" }}>
+                    <span className="text-[10px] font-mono flex-shrink-0 tabular-nums" style={{ color: "#2e3e52" }}>
                       {v}V·{n}N·{d}D
                     </span>
                   </div>
@@ -2087,7 +2087,7 @@ function FormeTab() {
       </div>
 
       {/* Footer */}
-      <p className="text-[9px] text-center px-2" style={{ color: "#1e3050" }}>
+      <p className="text-[10px] text-center px-2" style={{ color: "#1e3050" }}>
         🔥 Excellent · 📈 En montée · 📊 Stable · 📉 En déclin · ❄️ Faible
         &nbsp;·&nbsp;Score 0–99 basé sur qualifs 2024-25, classement FIFA mai 2026 &amp; résultats récents.
       </p>
@@ -2176,9 +2176,9 @@ function PlayerCard({ p }: { p: WCPlayer }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-sm font-black leading-tight" style={{ color: "#e8edf5" }}>{p.name}</span>
-              <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
                 style={{ background: cat.color + "15", color: cat.color, border: `1px solid ${cat.color}25` }}>
-                <cat.Icon size={9} /> {cat.label}
+                <cat.Icon size={11} /> {cat.label}
               </span>
             </div>
             <p className="text-[10px] mt-0.5 truncate" style={{ color: "#64748b" }}>{p.club} · {p.age} ans · Gr.{p.group}</p>
@@ -2242,8 +2242,8 @@ function PlayerCard({ p }: { p: WCPlayer }) {
         <div className="px-3 pb-3 space-y-2.5" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
           {/* Pronostic */}
           <div className="rounded-xl px-3 py-2 mt-2" style={{ background: `${cat.color}08`, border: `1px solid ${cat.color}20` }}>
-            <p className="inline-flex items-center gap-1 text-[9px] uppercase font-bold mb-0.5" style={{ color: cat.color }}>
-              <cat.Icon size={10} /> Pronostic tournoi
+            <p className="inline-flex items-center gap-1 text-[10px] uppercase font-bold mb-0.5" style={{ color: cat.color }}>
+              <cat.Icon size={12} /> Pronostic tournoi
             </p>
             <p className="text-xs leading-relaxed" style={{ color: "#94a3b8" }}>{p.pronostic}</p>
           </div>
@@ -2251,10 +2251,10 @@ function PlayerCard({ p }: { p: WCPlayer }) {
           {/* Full stat grid */}
           <div className="grid grid-cols-2 gap-1.5">
             {[
-              { label: "Vitesse",    value: p.vitesse,   color: "#00d4ff",  icon: <Lightning size={10} /> },
-              { label: "Technique",  value: p.technique, color: "#a78bfa",  icon: <Star size={10} /> },
-              { label: "Menace buts",value: p.buts,      color: "#ef4444",  icon: <Target size={10} /> },
-              { label: "Impact CdM", value: p.impact,    color: cat.color,  icon: <TrendUp size={10} /> },
+              { label: "Vitesse",    value: p.vitesse,   color: "#00d4ff",  icon: <Lightning size={12} /> },
+              { label: "Technique",  value: p.technique, color: "#a78bfa",  icon: <Star size={12} /> },
+              { label: "Menace buts",value: p.buts,      color: "#ef4444",  icon: <Target size={12} /> },
+              { label: "Impact CdM", value: p.impact,    color: cat.color,  icon: <TrendUp size={12} /> },
             ].map(s => {
               const filled = Math.round(s.value / 20);  // 0-5 segments
               return (
@@ -2320,13 +2320,13 @@ function PlayerRow({ p }: { p: WCPlayer }) {
           <p className="text-[10px] truncate" style={{ color: "#64748b" }}>{p.club} · {p.age}a · Gr.{p.group}</p>
         </div>
         <span className="hidden sm:inline-flex items-center flex-shrink-0" title={cat.label} style={{ color: cat.color }}>
-          <cat.Icon size={11} />
+          <cat.Icon size={13} />
         </span>
         <div className="flex items-center gap-0.5 flex-shrink-0" title="Impact">
           <span className="text-xs font-black" style={{ color: cat.color }}>{p.impact}</span>
-          <span className="text-[8px]" style={{ color: "#475569" }}>/100</span>
+          <span className="text-[9px]" style={{ color: "#475569" }}>/100</span>
         </div>
-        <CaretDown size={11} style={{ color: "#475569", transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
+        <CaretDown size={13} style={{ color: "#475569", transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
       </button>
       {open && (
         <div className="px-2.5 pb-2.5 pt-1 space-y-1.5" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
@@ -2504,7 +2504,7 @@ function JoueursTab() {
             />
             {search && (
               <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2">
-                <X size={11} style={{ color: "#6b7c96" }} />
+                <X size={13} style={{ color: "#6b7c96" }} />
               </button>
             )}
           </div>
@@ -2595,7 +2595,7 @@ function JoueursTab() {
                       border: `1px solid ${active ? (cfg?.color ?? "#ffffff") + "30" : "rgba(255,255,255,0.06)"}`,
                     }}>
                     {f === "ALL" ? "Tous profils" : <>
-                      {cfg && <cfg.Icon size={9} />} {cfg!.label}
+                      {cfg && <cfg.Icon size={11} />} {cfg!.label}
                     </>}
                   </button>
                 );
@@ -2706,7 +2706,7 @@ function GroupesTab() {
                     return (
                       <tr key={row.team} style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
                         <td style={{ fontSize: 8, color: isTop2 ? "#22c55e" : "#3a4d62", paddingTop: 3, paddingBottom: 3 }} className="pr-1">{idx+1}</td>
-                        <td style={{ fontSize: 9, color: isTop2 ? "#c8d4e3" : "#6b7c96", paddingTop: 3, paddingBottom: 3, maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} className="pr-1">{row.team}</td>
+                        <td style={{ fontSize: 9, color: isTop2 ? "#c8d4e3" : "#6b7c96", paddingTop: 3, paddingBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} className="pr-1 max-w-0 w-full">{row.team}</td>
                         <td style={{ fontSize: 8, color: "#6b7c96", textAlign: "center", paddingTop: 3, paddingBottom: 3 }}>{row.J}</td>
                         <td style={{ fontSize: 8, color: diff > 0 ? "#22c55e" : diff < 0 ? "#ef4444" : "#6b7c96", textAlign: "center", paddingTop: 3, paddingBottom: 3 }}>{diff > 0 ? `+${diff}` : diff}</td>
                         <td style={{ fontSize: 9, fontWeight: 700, color: row.Pts > 0 ? "#22c55e" : "#4b5d73", textAlign: "center", paddingTop: 3, paddingBottom: 3 }}>{row.Pts}</td>
@@ -2766,11 +2766,11 @@ function CalendrierTab() {
                   {m.score}
                 </span>
               )}
-              {!m.score && (
-                <span className="text-xs flex-shrink-0" style={{ color: "#4b5d73" }}>{m.group}</span>
+              {!m.score && !m.note && (
+                <span className="text-[10px] flex-shrink-0" style={{ color: "#4b5d73" }}>{m.group}</span>
               )}
               {m.note && !m.played && (
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0"
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 max-w-[5.5rem] truncate"
                   style={{ background: (m.highlight ?? "#6b7c96") + "18", color: m.highlight ?? "#6b7c96" }}>
                   {m.note}
                 </span>
@@ -3105,7 +3105,7 @@ function PaniniCardHero({
           <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
             <span className="text-[9px] font-black uppercase tracking-[0.18em] px-2 py-1 rounded-full"
               style={{ background: "rgba(251,191,36,0.18)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.35)" }}>
-              <Trophy size={9} weight="bold" style={{ display: "inline", marginRight: 4, marginBottom: 2 }} />
+              <Trophy size={11} weight="bold" style={{ display: "inline", marginRight: 4, marginBottom: 2 }} />
               FIFA 2026
             </span>
             <span className="text-[9px] font-bold px-2 py-1 rounded-full"
@@ -3147,7 +3147,7 @@ function PaniniCardHero({
           <div className="absolute bottom-0 inset-x-0 px-4 py-2 flex items-center justify-between"
             style={{ background: "rgba(0,0,0,0.35)", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
             <span className="text-[9px] uppercase font-bold tracking-widest" style={{ color: "#fbbf24" }}>
-              <Sparkle size={9} weight="fill" style={{ display: "inline", marginRight: 4 }} /> Édition limitée
+              <Sparkle size={11} weight="fill" style={{ display: "inline", marginRight: 4 }} /> Édition limitée
             </span>
             <span className="text-[9px] uppercase font-bold tracking-widest" style={{ color: "#64748b" }}>N°{(hashString(player.name) % 999).toString().padStart(3, "0")}</span>
           </div>
@@ -3402,7 +3402,7 @@ function PaniniMiniCard({ player, onRemove }: { player: WCPlayer; onRemove: () =
             </span>
           </div>
           <div className="absolute top-1 right-1">
-            <cat.Icon size={9} />
+            <cat.Icon size={11} />
           </div>
         </button>
 
@@ -3422,7 +3422,7 @@ function PaniniMiniCard({ player, onRemove }: { player: WCPlayer; onRemove: () =
           <div className="flex items-center justify-between mb-1">
             <span className="inline-flex items-center gap-0.5 text-[7px] font-black uppercase tracking-wider px-1 py-0.5 rounded-full"
               style={{ background: `${cat.color}20`, color: cat.color }}>
-              <cat.Icon size={7} /> {cat.label}
+              <cat.Icon size={9} /> {cat.label}
             </span>
             <span style={{ fontSize: 14 }}>{player.flag}</span>
           </div>
@@ -3445,11 +3445,11 @@ function PaniniMiniCard({ player, onRemove }: { player: WCPlayer; onRemove: () =
           </div>
           <button
             onClick={(e) => { e.stopPropagation(); onRemove(); }}
-            className="absolute bottom-1 right-1 p-1 rounded-full text-[8px]"
+            className="absolute bottom-1 right-1 p-1 rounded-full"
             style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.25)" }}
             aria-label="Retirer de l'album"
           >
-            <X size={8} weight="bold" />
+            <X size={11} weight="bold" />
           </button>
         </button>
       </div>
@@ -3541,7 +3541,7 @@ function PaniniTab() {
         <div className="flex items-start justify-between mb-4">
           <div>
             <p className="text-[10px] uppercase font-bold tracking-[0.2em] mb-1" style={{ color: "#fbbf24" }}>
-              <Sparkle size={10} weight="fill" style={{ display: "inline", marginRight: 4 }} />
+              <Sparkle size={12} weight="fill" style={{ display: "inline", marginRight: 4 }} />
               Carte du jour
             </p>
             <p className="text-xs font-semibold" style={{ color: "#94a3b8" }}>{todayLabel}</p>
@@ -3647,10 +3647,10 @@ export default function WorldCupTab() {
         <span className="text-sm font-black tracking-tight" style={{ color: "#e8edf5" }}>Coupe du Monde 2026</span>
         <div className="flex flex-wrap gap-1.5 ml-auto">
           {[
-            { icon: <Calendar size={9} />, label: "11 juin – 19 juil", color: "#22c55e" },
-            { icon: <Users size={9} />,    label: "48 équipes",          color: "#00d4ff" },
-            { icon: <Trophy size={9} />,   label: "104 matchs",          color: "#eab308" },
-            { icon: <MapPin size={9} />,   label: "16 stades",           color: "#a78bfa" },
+            { icon: <Calendar size={11} />, label: "11 juin – 19 juil", color: "#22c55e" },
+            { icon: <Users size={11} />,   label: "48 équipes",          color: "#00d4ff" },
+            { icon: <Trophy size={11} />,  label: "104 matchs",          color: "#eab308" },
+            { icon: <MapPin size={11} />,  label: "16 stades",           color: "#a78bfa" },
           ].map(b => (
             <span key={b.label} className="text-[10px] px-2 py-0.5 rounded-full font-semibold flex items-center gap-1"
               style={{ background: b.color + "10", color: b.color, border: `1px solid ${b.color}20` }}>
@@ -3661,7 +3661,7 @@ export default function WorldCupTab() {
       </div>
 
       {/* Sub-tab bar */}
-      <div className="flex gap-1.5 mb-3 overflow-x-auto pb-0.5">
+      <div className="flex gap-1.5 mb-3 overflow-x-auto pb-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         {SUB_TABS.map(tab => {
           const active = activeTab === tab.id;
           return (
@@ -3695,7 +3695,7 @@ export default function WorldCupTab() {
 
       {/* Footer */}
       <div className="mt-4 flex items-center justify-center gap-1.5">
-        <Globe size={11} style={{ color: "#6b7c96" }} />
+        <Globe size={13} style={{ color: "#6b7c96" }} />
         <a href="https://www.fifa.com/fifaplus/fr/tournaments/mens/worldcup/canadamexicousa2026"
           target="_blank" rel="noopener noreferrer"
           className="text-xs hover:opacity-80 transition-opacity" style={{ color: "#00d4ff" }}>
