@@ -68,6 +68,31 @@ const NOTABLE_MATCHES = [
   { date: "19 juil",    teams: "🏆 Finale · MetLife Stadium",           group: "Final", note: "🏆",        highlight: "#fbbf24", score: null,  played: false },
 ];
 
+// ─── Classements de groupes ─────────────────────────────────────────────────
+// Mis à jour au fil des matchs — dernière màj : 13 juin 2026.
+// Clé = lettre du groupe. Chaque entrée : J=joués V=victoires N=nuls D=défaites BP=buts pour BC=buts contre Pts=points.
+type StandingRow = { team: string; J: number; V: number; N: number; D: number; BP: number; BC: number; Pts: number };
+const GROUPE_STANDINGS: Record<string, StandingRow[]> = {
+  A: [
+    { team: "🇦🇷 Argentine", J:1, V:1, N:0, D:0, BP:2, BC:0, Pts:3 },
+    { team: "🇦🇺 Australie", J:0, V:0, N:0, D:0, BP:0, BC:0, Pts:0 },
+    { team: "🇵🇪 Pérou",     J:0, V:0, N:0, D:0, BP:0, BC:0, Pts:0 },
+    { team: "🇨🇱 Chili",     J:1, V:0, N:0, D:1, BP:0, BC:2, Pts:0 },
+  ],
+  B: [
+    { team: "🇲🇽 Mexique",   J:1, V:1, N:0, D:0, BP:2, BC:1, Pts:3 },
+    { team: "🇯🇲 Jamaïque",  J:0, V:0, N:0, D:0, BP:0, BC:0, Pts:0 },
+    { team: "🇻🇪 Venezuela", J:0, V:0, N:0, D:0, BP:0, BC:0, Pts:0 },
+    { team: "🇪🇨 Équateur",  J:1, V:0, N:0, D:1, BP:1, BC:2, Pts:0 },
+  ],
+  C: [
+    { team: "🇺🇸 USA",       J:1, V:1, N:0, D:0, BP:2, BC:0, Pts:3 },
+    { team: "🇨🇺 Cuba",      J:0, V:0, N:0, D:0, BP:0, BC:0, Pts:0 },
+    { team: "🇳🇿 Nlle-Zél.", J:0, V:0, N:0, D:0, BP:0, BC:0, Pts:0 },
+    { team: "🇵🇦 Panama",    J:1, V:0, N:0, D:1, BP:0, BC:2, Pts:0 },
+  ],
+};
+
 // ─── Players data ───────────────────────────────────────────────────────────
 
 type PosType = "ATT" | "MIL" | "DEF" | "GB";
@@ -1896,18 +1921,18 @@ const FORME_TEAMS: FormeEntry[] = [
   { fullName:"🇵🇱 Pologne",       qualifs:"5V 3N 2D", recentFactor:"R16 EURO 2024 · Lewandowski 38 ans mais actif",    factorColor:"#94a3b8", trend:"📊", bonus:1,   conf:"UEFA" },
   { fullName:"🇧🇪 Belgique",      qualifs:"5V 3N 2D", recentFactor:"Post-génération dorée · Cycle en déclin",           factorColor:"#f97316", trend:"📉", bonus:-2,  conf:"UEFA" },
   // ── CONMEBOL ──────────────────────────────────────────────────────────────
-  { fullName:"🇦🇷 Argentine",     qualifs:"7V 3N 0D", recentFactor:"🏆 CdM 2022 + Copa América 2024 · Inarrêtable",    factorColor:"#fbbf24", trend:"🔥", bonus:10,  conf:"CONMEBOL" },
+  { fullName:"🇦🇷 Argentine",     qualifs:"7V 3N 0D", recentFactor:"🏆 CdM 2022 + Copa 2024 · 2-0 vs Chili J1 ✔",     factorColor:"#fbbf24", trend:"🔥", bonus:10,  conf:"CONMEBOL" },
   { fullName:"🇨🇴 Colombie",      qualifs:"8V 1N 1D", recentFactor:"Finaliste Copa América 2024 · Invaincu en qualifs", factorColor:"#a78bfa", trend:"🔥", bonus:7,   conf:"CONMEBOL" },
   { fullName:"🇧🇷 Brésil",        qualifs:"6V 3N 1D", recentFactor:"Vinicius-Endrick en feu en club · Talent intact",   factorColor:"#22c55e", trend:"📈", bonus:4,   conf:"CONMEBOL" },
   { fullName:"🇺🇾 Uruguay",       qualifs:"6V 2N 2D", recentFactor:"SF Copa América 2024 · Valverde au Real en forme",  factorColor:"#94a3b8", trend:"📊", bonus:3,   conf:"CONMEBOL" },
-  { fullName:"🇪🇨 Équateur",      qualifs:"6V 2N 2D", recentFactor:"Copa América 2024 QF · Caicedo en montée",          factorColor:"#94a3b8", trend:"📊", bonus:2,   conf:"CONMEBOL" },
+  { fullName:"🇪🇨 Équateur",      qualifs:"6V 2N 2D", recentFactor:"Défaite 1-2 vs Mexique J1 · Caicedo isolé",         factorColor:"#f97316", trend:"📉", bonus:1,   conf:"CONMEBOL" },
   { fullName:"🇵🇾 Paraguay",      qualifs:"5V 3N 2D", recentFactor:"Copa América 2024 groupe · Almirón capitaine",      factorColor:"#94a3b8", trend:"📊", bonus:0,   conf:"CONMEBOL" },
-  { fullName:"🇨🇱 Chili",         qualifs:"4V 3N 3D", recentFactor:"Post-génération dorée · Fin d'ère · En déclin",     factorColor:"#ef4444", trend:"📉", bonus:-4,  conf:"CONMEBOL" },
+  { fullName:"🇨🇱 Chili",         qualifs:"4V 3N 3D", recentFactor:"0-2 vs Argentine J1 · Post-génération · En déclin", factorColor:"#ef4444", trend:"📉", bonus:-5,  conf:"CONMEBOL" },
   { fullName:"🇵🇪 Pérou",         qualifs:"4V 2N 4D", recentFactor:"Barrage 2022 perdu · Manque d'élan offensif",       factorColor:"#ef4444", trend:"❄️", bonus:-6,  conf:"CONMEBOL" },
   // ── CONCACAF ──────────────────────────────────────────────────────────────
-  { fullName:"🇺🇸 USA",           qualifs:"8V 1N 1D", recentFactor:"Pays hôte 2026 · Pulisic (Milan) MVP de saison",   factorColor:"#00d4ff", trend:"📈", bonus:7,   conf:"CONCACAF" },
+  { fullName:"🇺🇸 USA",           qualifs:"8V 1N 1D", recentFactor:"2-0 vs Panama J1 · Pulisic but+passe · Hôte en feu", factorColor:"#22c55e", trend:"🔥", bonus:8,   conf:"CONCACAF" },
   { fullName:"🇨🇦 Canada",        qualifs:"6V 3N 1D", recentFactor:"Pays hôte 2026 · Davies-Jonathan David en feu",    factorColor:"#00d4ff", trend:"📈", bonus:6,   conf:"CONCACAF" },
-  { fullName:"🇲🇽 Mexique",       qualifs:"7V 3N 0D", recentFactor:"Pays hôte 2026 · Forteresse Azteca intact",        factorColor:"#00d4ff", trend:"📈", bonus:5,   conf:"CONCACAF" },
+  { fullName:"🇲🇽 Mexique",       qualifs:"7V 3N 0D", recentFactor:"🎬 Ouverture 2-1 vs Équateur · Pays hôte lancé",    factorColor:"#22c55e", trend:"🔥", bonus:6,   conf:"CONCACAF" },
   // ── CAF ───────────────────────────────────────────────────────────────────
   { fullName:"🇸🇳 Sénégal",       qualifs:"8V 1N 1D", recentFactor:"🏆 Champion CAN 2022 · Mané-Diatta décisifs",       factorColor:"#fbbf24", trend:"📈", bonus:5,   conf:"CAF" },
   { fullName:"🇲🇦 Maroc",         qualifs:"7V 2N 1D", recentFactor:"½ finale CdM 2022 · Hakimi leadership renforcé",   factorColor:"#f97316", trend:"📈", bonus:5,   conf:"CAF" },
@@ -2654,16 +2679,52 @@ function JoueursTab() {
 function GroupesTab() {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-      {GROUPS.map((g) => (
-        <div key={g.letter} className="rounded-xl px-3 py-2.5" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
-          <p className="text-xs font-black tracking-widest mb-1.5" style={{ color: "#00d4ff" }}>GROUPE {g.letter}</p>
-          <div className="space-y-1">
-            {g.teams.map((team) => (
-              <div key={team} className="text-xs py-0.5" style={{ color: "#c8d4e3" }}>{team}</div>
-            ))}
+      {GROUPS.map((g) => {
+        const rows = GROUPE_STANDINGS[g.letter];
+        // If standings exist, sort by Pts desc then goal diff desc
+        const sorted = rows
+          ? [...rows].sort((a, b) => b.Pts - a.Pts || (b.BP - b.BC) - (a.BP - a.BC) || b.BP - a.BP)
+          : null;
+        return (
+          <div key={g.letter} className="rounded-xl px-3 py-2.5" style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
+            <p className="text-xs font-black tracking-widest mb-1.5" style={{ color: "#00d4ff" }}>GROUPE {g.letter}</p>
+            {sorted ? (
+              <table className="w-full" style={{ borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ color: "#4b5d73", fontSize: 8 }}>
+                    <th style={{ textAlign: "left", paddingBottom: 2, fontWeight: 600 }} className="pr-1">#</th>
+                    <th style={{ textAlign: "left", paddingBottom: 2, fontWeight: 600 }} className="pr-1">Équipe</th>
+                    <th style={{ textAlign: "center", paddingBottom: 2, fontWeight: 600, width: 14 }}>J</th>
+                    <th style={{ textAlign: "center", paddingBottom: 2, fontWeight: 600, width: 14 }}>+/-</th>
+                    <th style={{ textAlign: "center", paddingBottom: 2, fontWeight: 600, width: 18, color: "#22c55e" }}>Pts</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sorted.map((row, idx) => {
+                    const isTop2 = idx < 2;
+                    const diff = row.BP - row.BC;
+                    return (
+                      <tr key={row.team} style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+                        <td style={{ fontSize: 8, color: isTop2 ? "#22c55e" : "#3a4d62", paddingTop: 3, paddingBottom: 3 }} className="pr-1">{idx+1}</td>
+                        <td style={{ fontSize: 9, color: isTop2 ? "#c8d4e3" : "#6b7c96", paddingTop: 3, paddingBottom: 3, maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} className="pr-1">{row.team}</td>
+                        <td style={{ fontSize: 8, color: "#6b7c96", textAlign: "center", paddingTop: 3, paddingBottom: 3 }}>{row.J}</td>
+                        <td style={{ fontSize: 8, color: diff > 0 ? "#22c55e" : diff < 0 ? "#ef4444" : "#6b7c96", textAlign: "center", paddingTop: 3, paddingBottom: 3 }}>{diff > 0 ? `+${diff}` : diff}</td>
+                        <td style={{ fontSize: 9, fontWeight: 700, color: row.Pts > 0 ? "#22c55e" : "#4b5d73", textAlign: "center", paddingTop: 3, paddingBottom: 3 }}>{row.Pts}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              <div className="space-y-1">
+                {g.teams.map((team) => (
+                  <div key={team} className="text-xs py-0.5" style={{ color: "#c8d4e3" }}>{team}</div>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
