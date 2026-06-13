@@ -23,7 +23,7 @@ const GROUPS = [
   { letter: "G", teams: ["🇧🇷 Brésil", "🇨🇴 Colombie", "🇵🇾 Paraguay", "🇨🇲 Cameroun"] },
   { letter: "H", teams: ["🇩🇪 Allemagne", "🇳🇱 Pays-Bas", "🇵🇱 Pologne", "🇷🇸 Serbie"] },
   { letter: "I", teams: ["🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre", "🇸🇳 Sénégal", "🇹🇳 Tunisie", "🇨🇷 Costa Rica"] },
-  { letter: "J", teams: ["🇮🇹 Italie", "🇭🇷 Croatie", "🇷🇴 Roumanie", "🇦🇴 Angola"] },
+  { letter: "J", teams: ["🇧🇦 Bosnie-H.", "🇭🇷 Croatie", "🇷🇴 Roumanie", "🇦🇴 Angola"] },
   { letter: "K", teams: ["🇺🇦 Ukraine", "🇬🇭 Ghana", "🇿🇦 Afrique du Sud", "🇨🇩 RD Congo"] },
   { letter: "L", teams: ["🇰🇷 Corée du Sud", "🇨🇮 Côte d'Ivoire", "🇿🇼 Zimbabwe", "🇰🇪 Kenya"] },
 ];
@@ -52,7 +52,7 @@ const NOTABLE_MATCHES = [
   { date: "15 juin", teams: "🇨🇦 Canada vs 🇭🇳 Honduras",             group: "Gr.D", note: "🏟️ Hôte",   highlight: "#00d4ff", score: null,  played: false },
   { date: "16 juin", teams: "🇧🇷 Brésil vs 🇨🇴 Colombie",             group: "Gr.G", note: "Derby CONM", highlight: "#22c55e", score: null,  played: false },
   { date: "16 juin", teams: "🇩🇪 Allemagne vs 🇳🇱 Pays-Bas",          group: "Gr.H", note: "Derby",      highlight: "#a78bfa", score: null,  played: false },
-  { date: "17 juin", teams: "🇮🇹 Italie vs 🇭🇷 Croatie",              group: "Gr.J", note: "Revanche",   highlight: "#f97316", score: null,  played: false },
+  { date: "17 juin", teams: "🇧🇦 Bosnie vs 🇭🇷 Croatie",              group: "Gr.J", note: "Derby Balk.", highlight: "#f97316", score: null,  played: false },
   { date: "20 juin", teams: "🇫🇷 France vs 🇨🇭 Suisse",               group: "Gr.F", note: "J2 France",  highlight: "#22c55e", score: null,  played: false },
   { date: "20 juin", teams: "🇺🇾 Uruguay vs 🇵🇹 Portugal",             group: "Gr.D", note: null,         highlight: null,      score: null,  played: false },
   { date: "21 juin", teams: "🇧🇪 Belgique vs 🇯🇵 Japon",              group: "Gr.E", note: "⚠️ Piège",  highlight: "#fbbf24", score: null,  played: false },
@@ -500,23 +500,14 @@ const PLAYERS: WCPlayer[] = [
     butsM:0, passesM:0, matchsM:0,
   },
 
-  // Italie (additions)
+  // Bosnie-Herzégovine (qualifié via barrage — a éliminé l'Italie aux tirs au but)
   {
-    flag:"🇮🇹", name:"Gianluigi Donnarumma", club:"Paris SG",       nat:"Italie",    group:"J",
-    pos:"GB",  age:27, cat:"star",
-    vitesse:72, technique:80, impact:88, buts:0,
-    role:"Gardien · Meilleur joueur EURO 2020",
-    pronostic:"Spécialiste des séances de tirs au but · Mur italien",
-    statLabel:"Arrêts EURO 2020", statValue:"2 finales",
-    butsM:0, passesM:0, matchsM:0,
-  },
-  {
-    flag:"🇮🇹", name:"Federico Chiesa",    club:"Liverpool",       nat:"Italie",    group:"J",
-    pos:"ATT", age:28, cat:"danger",
-    vitesse:88, technique:87, impact:82, buts:78,
-    role:"Ailier offensif · Héros de l'EURO 2020",
-    pronostic:"Retour en forme · Capable de basculer un match",
-    statLabel:"Buts EURO 2020", statValue:"2 (dont demi)",
+    flag:"🇧🇦", name:"Edin Džeko",          club:"Fenerbahçe",      nat:"Bosnie-H.", group:"J",
+    pos:"ATT", age:40, cat:"veteran",
+    vitesse:65, technique:84, impact:78, buts:80,
+    role:"Légende · Capitaine historique · Buteur record de Bosnie",
+    pronostic:"Dernière grande scène · Qualifié en éliminant l'Italie",
+    statLabel:"Buts en sélection", statValue:"65",
     butsM:0, passesM:0, matchsM:0,
   },
 
@@ -629,7 +620,7 @@ const TEAM_STR: Record<string, number> = {
   "🇷🇸 Serbie":       68,
   "🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre": 85, // Bellingham, Saka, Kane
   "🇬🇭 Ghana":        59,
-  "🇮🇹 Italie":       76, // Champion EURO 2020, reconstruction
+  "🇧🇦 Bosnie-H.":    65, // Qualifié via barrage — a éliminé l'Italie aux tirs au but
   "🇷🇴 Roumanie":     61,
   "🇨🇴 Colombie":     73, // Finaliste Copa América 2024
   "🇵🇾 Paraguay":     60,
@@ -801,7 +792,7 @@ function BracketTab() {
     { id:"R1", t1:"🇧🇷 Brésil",      t2:"🇨🇲 Cameroun"  }, // 1G vs Mel.3
     { id:"R2", t1:"🇩🇪 Allemagne",   t2:"🇷🇸 Serbie"    }, // 1H vs 2H
     { id:"R3", t1:"🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre", t2:"🇬🇭 Ghana"     }, // 1I vs Mel.3
-    { id:"R4", t1:"🇮🇹 Italie",       t2:"🇷🇴 Roumanie"  }, // 1J vs Mel.3
+    { id:"R4", t1:"🇧🇦 Bosnie-H.",     t2:"🇷🇴 Roumanie"  }, // 1J vs Mel.3
     { id:"R5", t1:"🇨🇴 Colombie",    t2:"🇵🇾 Paraguay"  }, // 2G vs Mel.3
     { id:"R6", t1:"🇳🇱 Pays-Bas",    t2:"🇵🇱 Pologne"   }, // 2H vs Mel.3
     { id:"R7", t1:"🇸🇳 Sénégal",     t2:"🇹🇳 Tunisie"   }, // 2I vs Mel.3
@@ -1916,7 +1907,7 @@ const FORME_TEAMS: FormeEntry[] = [
   { fullName:"🇭🇷 Croatie",       qualifs:"5V 3N 2D", recentFactor:"Modrić dernier tournoi · Leadership vétérans",     factorColor:"#94a3b8", trend:"📊", bonus:3,   conf:"UEFA" },
   { fullName:"🇷🇸 Serbie",        qualifs:"7V 1N 2D", recentFactor:"R16 EURO 2024 · Mitrović top buteur en qualifs",   factorColor:"#94a3b8", trend:"📊", bonus:2,   conf:"UEFA" },
   { fullName:"🇨🇭 Suisse",        qualifs:"6V 2N 2D", recentFactor:"R16 EURO 2024 · Bloc défensif très solide",        factorColor:"#94a3b8", trend:"📊", bonus:2,   conf:"UEFA" },
-  { fullName:"🇮🇹 Italie",        qualifs:"5V 4N 1D", recentFactor:"R16 EURO 2024 · Reconstruction Spalletti",         factorColor:"#94a3b8", trend:"📊", bonus:1,   conf:"UEFA" },
+  { fullName:"🇧🇦 Bosnie-H.",     qualifs:"4V 3N 3D", recentFactor:"🔥 Barrage : Italie éliminée aux tirs au but !",  factorColor:"#22c55e", trend:"📈", bonus:4,   conf:"UEFA" },
   { fullName:"🇷🇴 Roumanie",      qualifs:"5V 2N 3D", recentFactor:"Surprise EURO 2024 R16 · Ianis Hagi décisif",      factorColor:"#06b6d4", trend:"📊", bonus:2,   conf:"UEFA" },
   { fullName:"🇵🇱 Pologne",       qualifs:"5V 3N 2D", recentFactor:"R16 EURO 2024 · Lewandowski 38 ans mais actif",    factorColor:"#94a3b8", trend:"📊", bonus:1,   conf:"UEFA" },
   { fullName:"🇧🇪 Belgique",      qualifs:"5V 3N 2D", recentFactor:"Post-génération dorée · Cycle en déclin",           factorColor:"#f97316", trend:"📉", bonus:-2,  conf:"UEFA" },
