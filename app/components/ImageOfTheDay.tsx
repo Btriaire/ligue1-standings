@@ -64,9 +64,9 @@ export default function ImageOfTheDay() {
         className="w-full text-left rounded-2xl overflow-hidden transition-all hover:scale-[1.005] active:scale-[0.995]"
         style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
         <div className="flex items-stretch gap-3">
-          {/* Thumbnail — fixed size, never too big */}
+          {/* Thumbnail — responsive width, never too big */}
           <div className="relative flex-shrink-0"
-            style={{ width: 160, height: 100, background: "#0a0f1c" }}>
+            style={{ width: "clamp(100px, 38vw, 160px)", aspectRatio: "16/10", background: "#0a0f1c" }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={thumb} alt=""
               className="w-full h-full object-cover"
@@ -86,7 +86,7 @@ export default function ImageOfTheDay() {
           <div className="flex-1 min-w-0 py-2 pr-3 flex flex-col justify-between">
             <div>
               <div className="flex items-center gap-1.5 mb-1">
-                <ImageIcon size={11} weight="fill" style={{ color: "#fbbf24" }}/>
+                <ImageIcon size={13} weight="fill" style={{ color: "#fbbf24" }}/>
                 <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: "#fbbf24" }}>
                   Image du jour
                 </span>
@@ -99,11 +99,11 @@ export default function ImageOfTheDay() {
             </div>
             <div className="flex items-center justify-between mt-1.5">
               <span className="inline-flex items-center gap-1 text-[10px]" style={{ color: "#6b7c96" }}>
-                <Clock size={9}/>
+                <Clock size={11}/>
                 {timeAgo(data.pubDate)}
               </span>
               <span className="inline-flex items-center gap-1 text-[10px] font-bold" style={{ color: "#1da1f2" }}>
-                Voir <ArrowSquareOut size={9}/>
+                Voir <ArrowSquareOut size={11}/>
               </span>
             </div>
           </div>
