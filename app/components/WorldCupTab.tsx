@@ -38,15 +38,34 @@ const SCHEDULE: { phase: string; dates: string; Icon: (props: { size?: number })
   { phase: "FINALE",              dates: "19 juil 2026",         Icon: (p) => <Trophy     weight="bold" {...p} />, color: "#fbbf24" },
 ];
 
+// score + played permettent au CalendrierTab d'afficher les résultats.
+// Mis à jour au fil des matchs — dernière màj : 13 juin 2026.
 const NOTABLE_MATCHES = [
-  { date: "11 juin", teams: "🇲🇽 Mexique vs 🇪🇨 Équateur",       group: "Gr.B", note: "OUVERTURE",    highlight: "#fbbf24" },
-  { date: "12 juin", teams: "🇺🇸 USA vs 🇵🇦 Panama",              group: "Gr.C", note: null,           highlight: null },
-  { date: "13 juin", teams: "🇦🇷 Argentine vs 🇨🇱 Chili",          group: "Gr.A", note: null,           highlight: null },
-  { date: "14 juin", teams: "🇫🇷 France vs 🇸🇦 Arabie Saoudite",  group: "Gr.F", note: "J1 France",    highlight: "#22c55e" },
-  { date: "15 juin", teams: "🇪🇸 Espagne vs 🇲🇦 Maroc",            group: "Gr.E", note: null,           highlight: null },
-  { date: "16 juin", teams: "🇩🇪 Allemagne vs 🇳🇱 Pays-Bas",       group: "Gr.H", note: "Derby",        highlight: "#a78bfa" },
-  { date: "20 juin", teams: "🇫🇷 France vs 🇨🇭 Suisse",            group: "Gr.F", note: "J2 France",    highlight: "#22c55e" },
-  { date: "25 juin", teams: "🇫🇷 France vs 🇩🇿 Algérie",           group: "Gr.F", note: "J3 🔥",        highlight: "#ef4444" },
+  // ── Joués ─────────────────────────────────────────────────────────────────
+  { date: "11 juin", teams: "🇲🇽 Mexique vs 🇪🇨 Équateur",          group: "Gr.B", note: "OUVERTURE",  highlight: "#fbbf24", score: "2-1", played: true  },
+  { date: "12 juin", teams: "🇺🇸 USA vs 🇵🇦 Panama",                 group: "Gr.C", note: null,         highlight: null,      score: "2-0", played: true  },
+  { date: "13 juin", teams: "🇦🇷 Argentine vs 🇨🇱 Chili",             group: "Gr.A", note: null,         highlight: null,      score: "2-0", played: true  },
+  // ── À venir — phase de groupes ───────────────────────────────────────────
+  { date: "14 juin", teams: "🇫🇷 France vs 🇸🇦 Arabie Saoudite",     group: "Gr.F", note: "J1 France",  highlight: "#22c55e", score: null,  played: false },
+  { date: "14 juin", teams: "🇪🇸 Espagne vs 🇲🇦 Maroc",               group: "Gr.E", note: "⚠️ Piège",  highlight: "#a78bfa", score: null,  played: false },
+  { date: "15 juin", teams: "🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre vs 🇸🇳 Sénégal",     group: "Gr.I", note: null,         highlight: null,      score: null,  played: false },
+  { date: "15 juin", teams: "🇨🇦 Canada vs 🇭🇳 Honduras",             group: "Gr.D", note: "🏟️ Hôte",   highlight: "#00d4ff", score: null,  played: false },
+  { date: "16 juin", teams: "🇧🇷 Brésil vs 🇨🇴 Colombie",             group: "Gr.G", note: "Derby CONM", highlight: "#22c55e", score: null,  played: false },
+  { date: "16 juin", teams: "🇩🇪 Allemagne vs 🇳🇱 Pays-Bas",          group: "Gr.H", note: "Derby",      highlight: "#a78bfa", score: null,  played: false },
+  { date: "17 juin", teams: "🇮🇹 Italie vs 🇭🇷 Croatie",              group: "Gr.J", note: "Revanche",   highlight: "#f97316", score: null,  played: false },
+  { date: "20 juin", teams: "🇫🇷 France vs 🇨🇭 Suisse",               group: "Gr.F", note: "J2 France",  highlight: "#22c55e", score: null,  played: false },
+  { date: "20 juin", teams: "🇺🇾 Uruguay vs 🇵🇹 Portugal",             group: "Gr.D", note: null,         highlight: null,      score: null,  played: false },
+  { date: "21 juin", teams: "🇧🇪 Belgique vs 🇯🇵 Japon",              group: "Gr.E", note: "⚠️ Piège",  highlight: "#fbbf24", score: null,  played: false },
+  { date: "22 juin", teams: "🇦🇷 Argentine vs 🇦🇺 Australie",         group: "Gr.A", note: null,         highlight: null,      score: null,  played: false },
+  { date: "25 juin", teams: "🇫🇷 France vs 🇩🇿 Algérie",              group: "Gr.F", note: "J3 🔥",      highlight: "#ef4444", score: null,  played: false },
+  { date: "26 juin", teams: "🇧🇷 Brésil vs 🇵🇾 Paraguay",             group: "Gr.G", note: null,         highlight: null,      score: null,  played: false },
+  { date: "26 juin", teams: "🇩🇪 Allemagne vs 🇵🇱 Pologne",           group: "Gr.H", note: null,         highlight: null,      score: null,  played: false },
+  { date: "27 juin", teams: "🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre vs 🇹🇳 Tunisie",     group: "Gr.I", note: null,         highlight: null,      score: null,  played: false },
+  // ── Phase finale ─────────────────────────────────────────────────────────
+  { date: "4-8 juil",   teams: "🏆 Huitièmes de finale — 16 matchs", group: "1/8",   note: "KO",        highlight: "#fbbf24", score: null,  played: false },
+  { date: "11-12 juil", teams: "⚡ Quarts de finale",                  group: "QF",    note: "KO",        highlight: "#f97316", score: null,  played: false },
+  { date: "15-16 juil", teams: "🔥 Demi-finales",                      group: "SF",    note: "KO",        highlight: "#ef4444", score: null,  played: false },
+  { date: "19 juil",    teams: "🏆 Finale · MetLife Stadium",           group: "Final", note: "🏆",        highlight: "#fbbf24", score: null,  played: false },
 ];
 
 // ─── Players data ───────────────────────────────────────────────────────────
@@ -106,7 +125,7 @@ const PLAYERS: WCPlayer[] = [
     role:"Numéro 9 mobile · Héros de la CdM 2022",
     pronostic:"Meilleur buteur potentiel sans Messi",
     statLabel:"Buts CdM 2022",  statValue:"4",
-    butsM:0, passesM:0, matchsM:0,
+    butsM:2, passesM:0, matchsM:1,
   },
   {
     flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", name:"Jude Bellingham",  club:"Real Madrid",     nat:"Angleterre", group:"I",
@@ -253,7 +272,7 @@ const PLAYERS: WCPlayer[] = [
     role:"Attaquant polyvalent · Leader symbolique des USA",
     pronostic:"Meilleur joueur de CONCACAF · USA en 8es min.",
     statLabel:"Buts en Serie A 2025", statValue:"16",
-    butsM:0, passesM:0, matchsM:0,
+    butsM:1, passesM:1, matchsM:1,
   },
   {
     flag:"🇨🇦", name:"Alphonso Davies",    club:"Bayern Munich",  nat:"Canada",    group:"D",
@@ -306,7 +325,7 @@ const PLAYERS: WCPlayer[] = [
     role:"Légende vivante · Champion du monde 2022",
     pronostic:"Dernière danse · Tout est possible avec lui",
     statLabel:"Ballons d'Or",   statValue:"8",
-    butsM:0, passesM:0, matchsM:0,
+    butsM:0, passesM:1, matchsM:1,
   },
   {
     flag:"🇦🇷", name:"Lautaro Martínez",   club:"Inter Milan",     nat:"Argentine",  group:"A",
@@ -315,7 +334,7 @@ const PLAYERS: WCPlayer[] = [
     role:"Buteur clinique · Capitaine de l'Inter",
     pronostic:"Soulier d'or possible · Couverture aérienne de l'Albiceleste",
     statLabel:"Buts Serie A 2025", statValue:"24",
-    butsM:0, passesM:0, matchsM:0,
+    butsM:0, passesM:0, matchsM:1,
   },
   {
     flag:"🇦🇷", name:"Enzo Fernández",     club:"Chelsea",         nat:"Argentine",  group:"A",
@@ -324,7 +343,7 @@ const PLAYERS: WCPlayer[] = [
     role:"Milieu relayeur · Meilleur jeune CdM 2022",
     pronostic:"Cerveau de l'Argentine · Métronome du milieu",
     statLabel:"Passes réussies/match", statValue:"86",
-    butsM:0, passesM:0, matchsM:0,
+    butsM:0, passesM:0, matchsM:1,
   },
 
   // Brésil (additions)
@@ -548,11 +567,12 @@ const CAT_CFG: Record<CatType, { label: string; color: string; Icon: (props: { s
 
 // ─── Bracket tab ─────────────────────────────────────────────────────────────
 
-// ── Résultats réels — mis à jour au fur et à mesure ──────────────────────────
-// Dernière mise à jour : avant phase à élimination directe (CdM 2026 débute le 11 juin)
-// Format : id_match → { winner: 0 (équipe 1) | 1 (équipe 2), score?: "X-Y" }
+// ── Résultats réels tableau final — mis à jour au fur et à mesure ────────────
+// Dernière mise à jour : 13 juin 2026 — Phase de groupes en cours (J1 J2 J3)
+// Résultats de groupe : voir NOTABLE_MATCHES (score + played)
+// Format tableau final : id_match → { winner: 0 (équipe 1) | 1 (équipe 2), score?: "X-Y" }
 const ACTUAL_RESULTS: Record<string, { winner: 0 | 1; score?: string }> = {
-  // 1/8 de finale — résultats à renseigner à partir du 4 juillet 2026
+  // 1/8 de finale — à renseigner à partir du 4 juillet 2026
   // Exemple: "L1": { winner: 0, score: "2-1" }, // Argentine bat Équateur
 };
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1316,13 +1336,16 @@ function AICdMMatchPreview({ teams, group, date, note }: {
 }
 
 function AfficheTab() {
-  // Pick the next upcoming notable match (or the most recent if all past)
+  // Pick the next unplayed notable match — skip already-played matches.
   const now = new Date();
   const sorted = [...NOTABLE_MATCHES]
     .map(m => ({ ...m, when: parseFrDate(m.date) }))
     .sort((a, b) => a.when.getTime() - b.when.getTime());
-  const upcoming = sorted.find(m => m.when.getTime() >= now.getTime() - 86_400_000) ?? sorted[0];
-  const next3 = sorted.filter(m => m.when.getTime() > upcoming.when.getTime()).slice(0, 3);
+  // Prefer the next non-played match; fall back to the nearest played if nothing upcoming
+  const upcoming = sorted.find(m => !m.played && m.when.getTime() >= now.getTime() - 86_400_000)
+    ?? sorted.find(m => m.when.getTime() >= now.getTime() - 86_400_000)
+    ?? sorted[sorted.length - 1];
+  const next3 = sorted.filter(m => !m.played && m.when.getTime() > upcoming.when.getTime()).slice(0, 3);
   const daysOut = Math.max(0, Math.round((upcoming.when.getTime() - now.getTime()) / 86_400_000));
 
   return (
@@ -2668,15 +2691,31 @@ function CalendrierTab() {
         <div className="space-y-1.5">
           {NOTABLE_MATCHES.map((m, i) => (
             <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-xl"
-              style={{ background: "#0d1421", border: `1px solid ${m.highlight ? m.highlight + "30" : "#1e2d42"}` }}>
-              <span className="text-xs font-mono w-12 flex-shrink-0" style={{ color: "#6b7c96" }}>{m.date}</span>
-              <span className="text-xs font-semibold flex-1 min-w-0 truncate" style={{ color: "#e8edf5" }}>{m.teams}</span>
-              <span className="text-xs flex-shrink-0" style={{ color: "#4b5d73" }}>{m.group}</span>
-              {m.note && (
+              style={{
+                background: m.played ? "rgba(34,197,94,0.04)" : "#0d1421",
+                border: `1px solid ${m.played ? "rgba(34,197,94,0.2)" : m.highlight ? m.highlight + "30" : "#1e2d42"}`,
+              }}>
+              <span className="text-xs font-mono w-14 flex-shrink-0" style={{ color: m.played ? "#4b5d73" : "#6b7c96" }}>{m.date}</span>
+              <span className="text-xs font-semibold flex-1 min-w-0 truncate"
+                style={{ color: m.played ? "#94a3b8" : "#e8edf5" }}>{m.teams}</span>
+              {/* Score (matches joués) */}
+              {m.score && (
+                <span className="text-xs font-black flex-shrink-0 px-2 py-0.5 rounded"
+                  style={{ background: "rgba(34,197,94,0.15)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.3)", minWidth: 36, textAlign: "center" }}>
+                  {m.score}
+                </span>
+              )}
+              {!m.score && (
+                <span className="text-xs flex-shrink-0" style={{ color: "#4b5d73" }}>{m.group}</span>
+              )}
+              {m.note && !m.played && (
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0"
                   style={{ background: (m.highlight ?? "#6b7c96") + "18", color: m.highlight ?? "#6b7c96" }}>
                   {m.note}
                 </span>
+              )}
+              {m.played && (
+                <span className="text-[9px] font-bold flex-shrink-0" style={{ color: "#22c55e" }}>✓</span>
               )}
             </div>
           ))}
