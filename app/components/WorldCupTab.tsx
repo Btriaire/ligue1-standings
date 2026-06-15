@@ -13,19 +13,20 @@ const TweetModal = dynamic(() => import("./TweetModal"), { ssr: false });
 
 // ─── Data ──────────────────────────────────────────────────────────────────
 
+// Groupes officiels — tirage au sort du 5 décembre 2025, Washington DC.
 const GROUPS = [
-  { letter: "A", teams: ["🇦🇷 Argentine", "🇨🇱 Chili", "🇵🇪 Pérou", "🇦🇺 Australie"] },
-  { letter: "B", teams: ["🇲🇽 Mexique ★", "🇯🇲 Jamaïque", "🇻🇪 Venezuela", "🇪🇨 Équateur"] },
-  { letter: "C", teams: ["🇺🇸 USA ★", "🇵🇦 Panama", "🇨🇺 Cuba", "🇳🇿 Nouvelle-Zélande"] },
-  { letter: "D", teams: ["🇨🇦 Canada ★", "🇭🇳 Honduras", "🇺🇾 Uruguay", "🇵🇹 Portugal"] },
-  { letter: "E", teams: ["🇪🇸 Espagne", "🇲🇦 Maroc", "🇧🇪 Belgique", "🇯🇵 Japon"] },
-  { letter: "F", teams: ["🇫🇷 France", "🇸🇦 Arabie Saoudite", "🇨🇭 Suisse", "🇩🇿 Algérie"] },
-  { letter: "G", teams: ["🇧🇷 Brésil", "🇨🇴 Colombie", "🇵🇾 Paraguay", "🇨🇲 Cameroun"] },
-  { letter: "H", teams: ["🇩🇪 Allemagne", "🇳🇱 Pays-Bas", "🇵🇱 Pologne", "🇷🇸 Serbie"] },
-  { letter: "I", teams: ["🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre", "🇸🇳 Sénégal", "🇹🇳 Tunisie", "🇨🇷 Costa Rica"] },
-  { letter: "J", teams: ["🇧🇦 Bosnie-H.", "🇭🇷 Croatie", "🇷🇴 Roumanie", "🇦🇴 Angola"] },
-  { letter: "K", teams: ["🇺🇦 Ukraine", "🇬🇭 Ghana", "🇿🇦 Afrique du Sud", "🇨🇩 RD Congo"] },
-  { letter: "L", teams: ["🇰🇷 Corée du Sud", "🇨🇮 Côte d'Ivoire", "🇿🇼 Zimbabwe", "🇰🇪 Kenya"] },
+  { letter: "A", teams: ["🇲🇽 Mexique ★",      "🇿🇦 Afrique du Sud", "🇰🇷 Corée du S.",  "🇨🇿 Tchéquie"] },
+  { letter: "B", teams: ["🇨🇦 Canada ★",        "🇨🇭 Suisse",          "🇶🇦 Qatar",         "🇧🇦 Bosnie-H."] },
+  { letter: "C", teams: ["🇧🇷 Brésil",           "🇲🇦 Maroc",           "🇭🇹 Haïti",         "🏴󠁧󠁢󠁳󠁣󠁴󠁿 Écosse"] },
+  { letter: "D", teams: ["🇺🇸 USA ★",            "🇵🇾 Paraguay",        "🇦🇺 Australie",     "🇹🇷 Türkiye"] },
+  { letter: "E", teams: ["🇩🇪 Allemagne",        "🇨🇼 Curaçao",         "🇨🇮 Côte d'Ivoire", "🇪🇨 Équateur"] },
+  { letter: "F", teams: ["🇳🇱 Pays-Bas",         "🇯🇵 Japon",           "🇹🇳 Tunisie",       "🇸🇪 Suède"] },
+  { letter: "G", teams: ["🇧🇪 Belgique",         "🇪🇬 Égypte",          "🇮🇷 Iran",          "🇳🇿 Nlle-Zélande"] },
+  { letter: "H", teams: ["🇪🇸 Espagne",          "🇨🇻 Cabo Verde",      "🇸🇦 Arabie Saoudite","🇺🇾 Uruguay"] },
+  { letter: "I", teams: ["🇫🇷 France",           "🇸🇳 Sénégal",         "🇳🇴 Norvège",       "🇮🇶 Irak"] },
+  { letter: "J", teams: ["🇦🇷 Argentine",        "🇩🇿 Algérie",         "🇦🇹 Autriche",      "🇯🇴 Jordanie"] },
+  { letter: "K", teams: ["🇵🇹 Portugal",         "🇺🇿 Ouzbékistan",     "🇨🇴 Colombie",      "🇨🇩 RD Congo"] },
+  { letter: "L", teams: ["🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre",   "🇭🇷 Croatie",         "🇬🇭 Ghana",         "🇵🇦 Panama"] },
 ];
 
 const SCHEDULE: { phase: string; dates: string; Icon: (props: { size?: number }) => ReactNode; color: string }[] = [
@@ -40,56 +41,68 @@ const SCHEDULE: { phase: string; dates: string; Icon: (props: { size?: number })
 
 // score + played permettent au CalendrierTab d'afficher les résultats.
 // Mis à jour au fil des matchs — dernière màj : 13 juin 2026.
+// Source résultats : FIFA / ESPN / Yahoo Sports.
 const NOTABLE_MATCHES = [
-  // ── Joués ─────────────────────────────────────────────────────────────────
-  { date: "11 juin", teams: "🇲🇽 Mexique vs 🇪🇨 Équateur",          group: "Gr.B", note: "OUVERTURE",  highlight: "#fbbf24", score: "2-1", played: true  },
-  { date: "12 juin", teams: "🇺🇸 USA vs 🇵🇦 Panama",                 group: "Gr.C", note: null,         highlight: null,      score: "2-0", played: true  },
-  { date: "13 juin", teams: "🇦🇷 Argentine vs 🇨🇱 Chili",             group: "Gr.A", note: null,         highlight: null,      score: "2-0", played: true  },
+  // ── Joués (résultats officiels) ───────────────────────────────────────────
+  { date: "11 juin", teams: "🇲🇽 Mexique vs 🇿🇦 Afrique du Sud",    group: "Gr.A", note: "OUVERTURE",  highlight: "#fbbf24", score: "2-0", played: true  },
+  { date: "11 juin", teams: "🇰🇷 Corée du S. vs 🇨🇿 Tchéquie",       group: "Gr.A", note: null,         highlight: null,      score: "2-1", played: true  },
+  { date: "12 juin", teams: "🇨🇦 Canada vs 🇧🇦 Bosnie-H.",            group: "Gr.B", note: null,         highlight: null,      score: "1-1", played: true  },
+  { date: "12 juin", teams: "🇶🇦 Qatar vs 🇨🇭 Suisse",               group: "Gr.B", note: null,         highlight: null,      score: "1-1", played: true  },
+  { date: "13 juin", teams: "🇺🇸 USA vs 🇵🇾 Paraguay",               group: "Gr.D", note: "🔥 4-1 !",   highlight: "#22c55e", score: "4-1", played: true  },
+  { date: "13 juin", teams: "🇦🇺 Australie vs 🇹🇷 Türkiye",          group: "Gr.D", note: null,         highlight: null,      score: "2-0", played: true  },
+  { date: "13 juin", teams: "🇧🇷 Brésil vs 🇲🇦 Maroc",               group: "Gr.C", note: "Surprise",   highlight: "#a78bfa", score: "1-1", played: true  },
   // ── À venir — phase de groupes ───────────────────────────────────────────
-  { date: "14 juin", teams: "🇫🇷 France vs 🇸🇦 Arabie Saoudite",     group: "Gr.F", note: "J1 France",  highlight: "#22c55e", score: null,  played: false },
-  { date: "14 juin", teams: "🇪🇸 Espagne vs 🇲🇦 Maroc",               group: "Gr.E", note: "⚠️ Piège",  highlight: "#a78bfa", score: null,  played: false },
-  { date: "15 juin", teams: "🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre vs 🇸🇳 Sénégal",     group: "Gr.I", note: null,         highlight: null,      score: null,  played: false },
-  { date: "15 juin", teams: "🇨🇦 Canada vs 🇭🇳 Honduras",             group: "Gr.D", note: "🏟️ Hôte",   highlight: "#00d4ff", score: null,  played: false },
-  { date: "16 juin", teams: "🇧🇷 Brésil vs 🇨🇴 Colombie",             group: "Gr.G", note: "Derby CONM", highlight: "#22c55e", score: null,  played: false },
-  { date: "16 juin", teams: "🇩🇪 Allemagne vs 🇳🇱 Pays-Bas",          group: "Gr.H", note: "Derby",      highlight: "#a78bfa", score: null,  played: false },
-  { date: "17 juin", teams: "🇧🇦 Bosnie vs 🇭🇷 Croatie",              group: "Gr.J", note: "Derby Balk.", highlight: "#f97316", score: null,  played: false },
-  { date: "20 juin", teams: "🇫🇷 France vs 🇨🇭 Suisse",               group: "Gr.F", note: "J2 France",  highlight: "#22c55e", score: null,  played: false },
-  { date: "20 juin", teams: "🇺🇾 Uruguay vs 🇵🇹 Portugal",             group: "Gr.D", note: null,         highlight: null,      score: null,  played: false },
-  { date: "21 juin", teams: "🇧🇪 Belgique vs 🇯🇵 Japon",              group: "Gr.E", note: "⚠️ Piège",  highlight: "#fbbf24", score: null,  played: false },
-  { date: "22 juin", teams: "🇦🇷 Argentine vs 🇦🇺 Australie",         group: "Gr.A", note: null,         highlight: null,      score: null,  played: false },
-  { date: "25 juin", teams: "🇫🇷 France vs 🇩🇿 Algérie",              group: "Gr.F", note: "J3 🔥",      highlight: "#ef4444", score: null,  played: false },
-  { date: "26 juin", teams: "🇧🇷 Brésil vs 🇵🇾 Paraguay",             group: "Gr.G", note: null,         highlight: null,      score: null,  played: false },
-  { date: "26 juin", teams: "🇩🇪 Allemagne vs 🇵🇱 Pologne",           group: "Gr.H", note: null,         highlight: null,      score: null,  played: false },
-  { date: "27 juin", teams: "🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre vs 🇹🇳 Tunisie",     group: "Gr.I", note: null,         highlight: null,      score: null,  played: false },
+  { date: "14 juin", teams: "🇫🇷 France vs 🇸🇳 Sénégal",             group: "Gr.I", note: "J1 France",  highlight: "#22c55e", score: null,  played: false },
+  { date: "14 juin", teams: "🇪🇸 Espagne vs 🇨🇻 Cabo Verde",          group: "Gr.H", note: null,         highlight: null,      score: null,  played: false },
+  { date: "15 juin", teams: "🇦🇷 Argentine vs 🇩🇿 Algérie",           group: "Gr.J", note: "🔥 Choc !",  highlight: "#ef4444", score: null,  played: false },
+  { date: "15 juin", teams: "🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre vs 🇵🇦 Panama",      group: "Gr.L", note: null,         highlight: null,      score: null,  played: false },
+  { date: "16 juin", teams: "🇩🇪 Allemagne vs 🇨🇼 Curaçao",           group: "Gr.E", note: null,         highlight: null,      score: null,  played: false },
+  { date: "16 juin", teams: "🇧🇪 Belgique vs 🇳🇿 Nlle-Zélande",       group: "Gr.G", note: null,         highlight: null,      score: null,  played: false },
+  { date: "17 juin", teams: "🇵🇹 Portugal vs 🇺🇿 Ouzbékistan",        group: "Gr.K", note: null,         highlight: null,      score: null,  played: false },
+  { date: "17 juin", teams: "🇳🇱 Pays-Bas vs 🇯🇵 Japon",             group: "Gr.F", note: "⚠️ Piège",  highlight: "#a78bfa", score: null,  played: false },
+  { date: "20 juin", teams: "🇫🇷 France vs 🇳🇴 Norvège",             group: "Gr.I", note: "J2 France",  highlight: "#22c55e", score: null,  played: false },
+  { date: "20 juin", teams: "🇪🇸 Espagne vs 🇸🇦 Arabie Saoudite",    group: "Gr.H", note: null,         highlight: null,      score: null,  played: false },
+  { date: "21 juin", teams: "🇦🇷 Argentine vs 🇦🇹 Autriche",          group: "Gr.J", note: null,         highlight: null,      score: null,  played: false },
+  { date: "25 juin", teams: "🇫🇷 France vs 🇮🇶 Irak",                group: "Gr.I", note: "J3 France",  highlight: "#22c55e", score: null,  played: false },
+  { date: "26 juin", teams: "🇦🇷 Argentine vs 🇯🇴 Jordanie",          group: "Gr.J", note: null,         highlight: null,      score: null,  played: false },
+  { date: "27 juin", teams: "🇧🇷 Brésil vs 🏴󠁧󠁢󠁳󠁣󠁴󠁿 Écosse",            group: "Gr.C", note: null,         highlight: null,      score: null,  played: false },
+  { date: "28 juin", teams: "🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre vs 🇭🇷 Croatie",      group: "Gr.L", note: "Derby EUR",  highlight: "#a78bfa", score: null,  played: false },
   // ── Phase finale ─────────────────────────────────────────────────────────
-  { date: "4-8 juil",   teams: "🏆 Huitièmes de finale — 16 matchs", group: "1/8",   note: "KO",        highlight: "#fbbf24", score: null,  played: false },
-  { date: "11-12 juil", teams: "⚡ Quarts de finale",                  group: "QF",    note: "KO",        highlight: "#f97316", score: null,  played: false },
-  { date: "15-16 juil", teams: "🔥 Demi-finales",                      group: "SF",    note: "KO",        highlight: "#ef4444", score: null,  played: false },
-  { date: "19 juil",    teams: "🏆 Finale · MetLife Stadium",           group: "Final", note: "🏆",        highlight: "#fbbf24", score: null,  played: false },
+  { date: "4-8 juil",   teams: "🏆 Seizièmes de finale — 16 matchs",  group: "1/16",  note: "KO",        highlight: "#fbbf24", score: null,  played: false },
+  { date: "10-13 juil", teams: "⚡ Huitièmes de finale — 8 matchs",    group: "1/8",   note: "KO",        highlight: "#f97316", score: null,  played: false },
+  { date: "16-18 juil", teams: "🔥 Quarts de finale",                   group: "QF",    note: "KO",        highlight: "#ef4444", score: null,  played: false },
+  { date: "19 juil",    teams: "🏆 Finale · MetLife Stadium",            group: "Final", note: "🏆",        highlight: "#fbbf24", score: null,  played: false },
 ];
 
 // ─── Classements de groupes ─────────────────────────────────────────────────
 // Mis à jour au fil des matchs — dernière màj : 13 juin 2026.
 // Clé = lettre du groupe. Chaque entrée : J=joués V=victoires N=nuls D=défaites BP=buts pour BC=buts contre Pts=points.
 type StandingRow = { team: string; J: number; V: number; N: number; D: number; BP: number; BC: number; Pts: number };
+// Classements mis à jour — résultats officiels J1 (11-13 juin 2026)
 const GROUPE_STANDINGS: Record<string, StandingRow[]> = {
   A: [
-    { team: "🇦🇷 Argentine", J:1, V:1, N:0, D:0, BP:2, BC:0, Pts:3 },
-    { team: "🇦🇺 Australie", J:0, V:0, N:0, D:0, BP:0, BC:0, Pts:0 },
-    { team: "🇵🇪 Pérou",     J:0, V:0, N:0, D:0, BP:0, BC:0, Pts:0 },
-    { team: "🇨🇱 Chili",     J:1, V:0, N:0, D:1, BP:0, BC:2, Pts:0 },
+    { team: "🇲🇽 Mexique",       J:1, V:1, N:0, D:0, BP:2, BC:0, Pts:3 },
+    { team: "🇰🇷 Corée du S.",   J:1, V:1, N:0, D:0, BP:2, BC:1, Pts:3 },
+    { team: "🇿🇦 Afrique du Sud",J:1, V:0, N:0, D:1, BP:0, BC:2, Pts:0 },
+    { team: "🇨🇿 Tchéquie",      J:1, V:0, N:0, D:1, BP:1, BC:2, Pts:0 },
   ],
   B: [
-    { team: "🇲🇽 Mexique",   J:1, V:1, N:0, D:0, BP:2, BC:1, Pts:3 },
-    { team: "🇯🇲 Jamaïque",  J:0, V:0, N:0, D:0, BP:0, BC:0, Pts:0 },
-    { team: "🇻🇪 Venezuela", J:0, V:0, N:0, D:0, BP:0, BC:0, Pts:0 },
-    { team: "🇪🇨 Équateur",  J:1, V:0, N:0, D:1, BP:1, BC:2, Pts:0 },
+    { team: "🇨🇦 Canada",        J:1, V:0, N:1, D:0, BP:1, BC:1, Pts:1 },
+    { team: "🇧🇦 Bosnie-H.",     J:1, V:0, N:1, D:0, BP:1, BC:1, Pts:1 },
+    { team: "🇶🇦 Qatar",         J:1, V:0, N:1, D:0, BP:1, BC:1, Pts:1 },
+    { team: "🇨🇭 Suisse",        J:1, V:0, N:1, D:0, BP:1, BC:1, Pts:1 },
   ],
   C: [
-    { team: "🇺🇸 USA",       J:1, V:1, N:0, D:0, BP:2, BC:0, Pts:3 },
-    { team: "🇨🇺 Cuba",      J:0, V:0, N:0, D:0, BP:0, BC:0, Pts:0 },
-    { team: "🇳🇿 Nlle-Zél.", J:0, V:0, N:0, D:0, BP:0, BC:0, Pts:0 },
-    { team: "🇵🇦 Panama",    J:1, V:0, N:0, D:1, BP:0, BC:2, Pts:0 },
+    { team: "🇧🇷 Brésil",        J:1, V:0, N:1, D:0, BP:1, BC:1, Pts:1 },
+    { team: "🇲🇦 Maroc",         J:1, V:0, N:1, D:0, BP:1, BC:1, Pts:1 },
+    { team: "🏴󠁧󠁢󠁳󠁣󠁴󠁿 Écosse",       J:0, V:0, N:0, D:0, BP:0, BC:0, Pts:0 },
+    { team: "🇭🇹 Haïti",         J:0, V:0, N:0, D:0, BP:0, BC:0, Pts:0 },
+  ],
+  D: [
+    { team: "🇺🇸 USA",           J:1, V:1, N:0, D:0, BP:4, BC:1, Pts:3 },
+    { team: "🇦🇺 Australie",     J:1, V:1, N:0, D:0, BP:2, BC:0, Pts:3 },
+    { team: "🇵🇾 Paraguay",      J:1, V:0, N:0, D:1, BP:1, BC:4, Pts:0 },
+    { team: "🇹🇷 Türkiye",       J:1, V:0, N:0, D:1, BP:0, BC:2, Pts:0 },
   ],
 };
 
@@ -126,7 +139,7 @@ interface WCPlayer {
 const PLAYERS: WCPlayer[] = [
   // ── SUPERSTARS ──────────────────────────────────────────────────────────────
   {
-    flag:"🇫🇷", name:"Kylian Mbappé",     club:"Real Madrid",     nat:"France",    group:"F",
+    flag:"🇫🇷", name:"Kylian Mbappé",     club:"Real Madrid",     nat:"France",    group:"I",
     pos:"ATT", age:27, cat:"star",
     vitesse:98, technique:92, impact:96, buts:94,
     role:"Capitaine des Bleus · Attaquant de pointe",
@@ -135,7 +148,7 @@ const PLAYERS: WCPlayer[] = [
     butsM:0, passesM:0, matchsM:0,
   },
   {
-    flag:"🇧🇷", name:"Vinicius Jr",        club:"Real Madrid",     nat:"Brésil",    group:"G",
+    flag:"🇧🇷", name:"Vinicius Jr",        club:"Real Madrid",     nat:"Brésil",    group:"C",
     pos:"ATT", age:25, cat:"star",
     vitesse:97, technique:91, impact:92, buts:85,
     role:"Ailier gauche explosif · Dribbleur imprévisible",
@@ -144,16 +157,16 @@ const PLAYERS: WCPlayer[] = [
     butsM:0, passesM:0, matchsM:0,
   },
   {
-    flag:"🇦🇷", name:"Julián Álvarez",     club:"Atlético Madrid", nat:"Argentine",  group:"A",
+    flag:"🇦🇷", name:"Julián Álvarez",     club:"Atlético Madrid", nat:"Argentine",  group:"J",
     pos:"ATT", age:25, cat:"star",
     vitesse:85, technique:88, impact:90, buts:88,
     role:"Numéro 9 mobile · Héros de la CdM 2022",
     pronostic:"Meilleur buteur potentiel sans Messi",
     statLabel:"Buts CdM 2022",  statValue:"4",
-    butsM:2, passesM:0, matchsM:1,
+    butsM:0, passesM:0, matchsM:0,
   },
   {
-    flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", name:"Jude Bellingham",  club:"Real Madrid",     nat:"Angleterre", group:"I",
+    flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", name:"Jude Bellingham",  club:"Real Madrid",     nat:"Angleterre", group:"L",
     pos:"MIL", age:22, cat:"star",
     vitesse:84, technique:93, impact:94, buts:82,
     role:"Milieu box-to-box · Meneur décisif",
@@ -162,7 +175,7 @@ const PLAYERS: WCPlayer[] = [
     butsM:0, passesM:0, matchsM:0,
   },
   {
-    flag:"🇪🇸", name:"Lamine Yamal",       club:"FC Barcelone",    nat:"Espagne",   group:"E",
+    flag:"🇪🇸", name:"Lamine Yamal",       club:"FC Barcelone",    nat:"Espagne",   group:"H",
     pos:"ATT", age:18, cat:"star",
     vitesse:93, technique:95, impact:91, buts:82,
     role:"Ailier droit prodige · Champion d'Europe à 17 ans",
@@ -171,7 +184,7 @@ const PLAYERS: WCPlayer[] = [
     butsM:0, passesM:0, matchsM:0,
   },
   {
-    flag:"🇵🇹", name:"Cristiano Ronaldo",  club:"Al-Nassr",        nat:"Portugal",  group:"D",
+    flag:"🇵🇹", name:"Cristiano Ronaldo",  club:"Al-Nassr",        nat:"Portugal",  group:"K",
     pos:"ATT", age:41, cat:"veteran",
     vitesse:68, technique:88, impact:85, buts:84,
     role:"Capitaine légendaire · Possiblement 5e CdM",
@@ -180,7 +193,7 @@ const PLAYERS: WCPlayer[] = [
     butsM:0, passesM:0, matchsM:0,
   },
   {
-    flag:"🇩🇪", name:"Florian Wirtz",      club:"Bayer Leverkusen", nat:"Allemagne", group:"H",
+    flag:"🇩🇪", name:"Florian Wirtz",      club:"Bayer Leverkusen", nat:"Allemagne", group:"E",
     pos:"MIL", age:22, cat:"star",
     vitesse:86, technique:94, impact:90, buts:78,
     role:"Milieu créatif · Meilleur joueur de Bundesliga",
@@ -189,7 +202,7 @@ const PLAYERS: WCPlayer[] = [
     butsM:0, passesM:0, matchsM:0,
   },
   {
-    flag:"🇧🇷", name:"Endrick",            club:"Real Madrid",     nat:"Brésil",    group:"G",
+    flag:"🇧🇷", name:"Endrick",            club:"Real Madrid",     nat:"Brésil",    group:"C",
     pos:"ATT", age:19, cat:"revelation",
     vitesse:90, technique:86, impact:84, buts:86,
     role:"Avant-centre explosif · Prodige brésilien",
@@ -199,7 +212,7 @@ const PLAYERS: WCPlayer[] = [
   },
   // ── MILIEUX ──────────────────────────────────────────────────────────────────
   {
-    flag:"🇫🇷", name:"Antoine Griezmann",  club:"Atlético Madrid", nat:"France",    group:"F",
+    flag:"🇫🇷", name:"Antoine Griezmann",  club:"Atlético Madrid", nat:"France",    group:"I",
     pos:"MIL", age:35, cat:"veteran",
     vitesse:74, technique:89, impact:87, buts:78,
     role:"Meneur de jeu · Record de sélections équipes de France",
@@ -208,7 +221,7 @@ const PLAYERS: WCPlayer[] = [
     butsM:0, passesM:0, matchsM:0,
   },
   {
-    flag:"🇧🇪", name:"Kevin De Bruyne",    club:"Manchester City",  nat:"Belgique",  group:"E",
+    flag:"🇧🇪", name:"Kevin De Bruyne",    club:"Manchester City",  nat:"Belgique",  group:"G",
     pos:"MIL", age:34, cat:"veteran",
     vitesse:76, technique:95, impact:88, buts:72,
     role:"Créateur de jeu · Passeur hors norme",
@@ -217,7 +230,7 @@ const PLAYERS: WCPlayer[] = [
     butsM:0, passesM:0, matchsM:0,
   },
   {
-    flag:"🇭🇷", name:"Luka Modrić",        club:"Al-Qadsiah",      nat:"Croatie",   group:"J",
+    flag:"🇭🇷", name:"Luka Modrić",        club:"Al-Qadsiah",      nat:"Croatie",   group:"L",
     pos:"MIL", age:41, cat:"veteran",
     vitesse:70, technique:93, impact:84, buts:62,
     role:"Milieu de terrain légendaire · 3e de la CdM 2022",
@@ -226,7 +239,7 @@ const PLAYERS: WCPlayer[] = [
     butsM:0, passesM:0, matchsM:0,
   },
   {
-    flag:"🇫🇷", name:"Aurélien Tchouaméni", club:"Real Madrid",    nat:"France",    group:"F",
+    flag:"🇫🇷", name:"Aurélien Tchouaméni", club:"Real Madrid",    nat:"France",    group:"I",
     pos:"MIL", age:25, cat:"star",
     vitesse:82, technique:85, impact:86, buts:64,
     role:"Sentinelle récupératrice · Bouclier des Bleus",
@@ -235,7 +248,7 @@ const PLAYERS: WCPlayer[] = [
     butsM:0, passesM:0, matchsM:0,
   },
   {
-    flag:"🇯🇵", name:"Takefusa Kubo",      club:"Real Sociedad",   nat:"Japon",     group:"E",
+    flag:"🇯🇵", name:"Takefusa Kubo",      club:"Real Sociedad",   nat:"Japon",     group:"F",
     pos:"ATT", age:24, cat:"danger",
     vitesse:88, technique:91, impact:82, buts:75,
     role:"Ailier technique · Formé au Barça",
@@ -245,7 +258,7 @@ const PLAYERS: WCPlayer[] = [
   },
   // ── DÉFENSEURS ───────────────────────────────────────────────────────────────
   {
-    flag:"🇫🇷", name:"William Saliba",     club:"Arsenal",         nat:"France",    group:"F",
+    flag:"🇫🇷", name:"William Saliba",     club:"Arsenal",         nat:"France",    group:"I",
     pos:"DEF", age:25, cat:"star",
     vitesse:84, technique:85, impact:88, buts:40,
     role:"Défenseur central · Meilleur défenseur de Premier League",
@@ -254,7 +267,7 @@ const PLAYERS: WCPlayer[] = [
     butsM:0, passesM:0, matchsM:0,
   },
   {
-    flag:"🇳🇱", name:"Virgil van Dijk",    club:"Liverpool",       nat:"Pays-Bas",  group:"H",
+    flag:"🇳🇱", name:"Virgil van Dijk",    club:"Liverpool",       nat:"Pays-Bas",  group:"F",
     pos:"DEF", age:34, cat:"veteran",
     vitesse:80, technique:82, impact:87, buts:58,
     role:"Défenseur central · Capitaine des Pays-Bas",
@@ -263,7 +276,7 @@ const PLAYERS: WCPlayer[] = [
     butsM:0, passesM:0, matchsM:0,
   },
   {
-    flag:"🇲🇦", name:"Achraf Hakimi",      club:"Paris SG",        nat:"Maroc",     group:"E",
+    flag:"🇲🇦", name:"Achraf Hakimi",      club:"Paris SG",        nat:"Maroc",     group:"C",
     pos:"DEF", age:27, cat:"star",
     vitesse:94, technique:88, impact:90, buts:72,
     role:"Latéral droit offensif · Leader du Maroc",
@@ -272,7 +285,7 @@ const PLAYERS: WCPlayer[] = [
     butsM:0, passesM:0, matchsM:0,
   },
   {
-    flag:"🇪🇸", name:"Alejandro Balde",    club:"FC Barcelone",    nat:"Espagne",   group:"E",
+    flag:"🇪🇸", name:"Alejandro Balde",    club:"FC Barcelone",    nat:"Espagne",   group:"H",
     pos:"DEF", age:21, cat:"revelation",
     vitesse:92, technique:84, impact:82, buts:58,
     role:"Latéral gauche explosif · Futur grand",
@@ -282,7 +295,7 @@ const PLAYERS: WCPlayer[] = [
   },
   // ── RÉVÉLATIONS ──────────────────────────────────────────────────────────────
   {
-    flag:"🇨🇴", name:"James Rodríguez",    club:"Rayo Vallecano",  nat:"Colombie",  group:"G",
+    flag:"🇨🇴", name:"James Rodríguez",    club:"Rayo Vallecano",  nat:"Colombie",  group:"K",
     pos:"MIL", age:34, cat:"danger",
     vitesse:70, technique:93, impact:84, buts:74,
     role:"Meneur de jeu · Soulier d'or CdM 2014",
@@ -291,7 +304,7 @@ const PLAYERS: WCPlayer[] = [
     butsM:0, passesM:0, matchsM:0,
   },
   {
-    flag:"🇺🇸", name:"Christian Pulisic",  club:"AC Milan",        nat:"USA",        group:"C",
+    flag:"🇺🇸", name:"Christian Pulisic",  club:"AC Milan",        nat:"USA",        group:"D",
     pos:"ATT", age:27, cat:"star",
     vitesse:88, technique:86, impact:85, buts:80,
     role:"Attaquant polyvalent · Leader symbolique des USA",
@@ -300,7 +313,7 @@ const PLAYERS: WCPlayer[] = [
     butsM:1, passesM:1, matchsM:1,
   },
   {
-    flag:"🇨🇦", name:"Alphonso Davies",    club:"Bayern Munich",  nat:"Canada",    group:"D",
+    flag:"🇨🇦", name:"Alphonso Davies",    club:"Bayern Munich",  nat:"Canada",    group:"B",
     pos:"DEF", age:25, cat:"star",
     vitesse:99, technique:87, impact:88, buts:62,
     role:"Latéral gauche · Joueur le plus rapide du tournoi",
@@ -309,7 +322,7 @@ const PLAYERS: WCPlayer[] = [
     butsM:0, passesM:0, matchsM:0,
   },
   {
-    flag:"🇩🇿", name:"Riyad Mahrez",       club:"Al-Ahli",         nat:"Algérie",   group:"F",
+    flag:"🇩🇿", name:"Riyad Mahrez",       club:"Al-Ahli",         nat:"Algérie",   group:"J",
     pos:"ATT", age:35, cat:"danger",
     vitesse:78, technique:92, impact:82, buts:76,
     role:"Ailier droit technique · Capitaine algérien",
@@ -324,7 +337,7 @@ const PLAYERS: WCPlayer[] = [
 
   // France (additions)
   {
-    flag:"🇫🇷", name:"Ousmane Dembélé",    club:"Paris SG",        nat:"France",    group:"F",
+    flag:"🇫🇷", name:"Ousmane Dembélé",    club:"Paris SG",        nat:"France",    group:"I",
     pos:"ATT", age:28, cat:"star",
     vitesse:94, technique:90, impact:88, buts:82,
     role:"Ailier ambidextre · Star du PSG nouvelle ère",
@@ -333,7 +346,7 @@ const PLAYERS: WCPlayer[] = [
     butsM:0, passesM:0, matchsM:0,
   },
   {
-    flag:"🇫🇷", name:"Mike Maignan",       club:"AC Milan",        nat:"France",    group:"F",
+    flag:"🇫🇷", name:"Mike Maignan",       club:"AC Milan",        nat:"France",    group:"I",
     pos:"GB",  age:30, cat:"star",
     vitesse:74, technique:84, impact:86, buts:0,
     role:"Gardien titulaire · Numéro 1 incontesté chez les Bleus",
@@ -344,36 +357,36 @@ const PLAYERS: WCPlayer[] = [
 
   // Argentine (additions)
   {
-    flag:"🇦🇷", name:"Lionel Messi",       club:"Inter Miami",     nat:"Argentine",  group:"A",
+    flag:"🇦🇷", name:"Lionel Messi",       club:"Inter Miami",     nat:"Argentine",  group:"J",
     pos:"ATT", age:38, cat:"veteran",
     vitesse:74, technique:99, impact:94, buts:90,
     role:"Légende vivante · Champion du monde 2022",
     pronostic:"Dernière danse · Tout est possible avec lui",
     statLabel:"Ballons d'Or",   statValue:"8",
-    butsM:0, passesM:1, matchsM:1,
+    butsM:0, passesM:0, matchsM:0,
   },
   {
-    flag:"🇦🇷", name:"Lautaro Martínez",   club:"Inter Milan",     nat:"Argentine",  group:"A",
+    flag:"🇦🇷", name:"Lautaro Martínez",   club:"Inter Milan",     nat:"Argentine",  group:"J",
     pos:"ATT", age:28, cat:"star",
     vitesse:86, technique:86, impact:88, buts:90,
     role:"Buteur clinique · Capitaine de l'Inter",
     pronostic:"Soulier d'or possible · Couverture aérienne de l'Albiceleste",
     statLabel:"Buts Serie A 2025", statValue:"24",
-    butsM:0, passesM:0, matchsM:1,
+    butsM:0, passesM:0, matchsM:0,
   },
   {
-    flag:"🇦🇷", name:"Enzo Fernández",     club:"Chelsea",         nat:"Argentine",  group:"A",
+    flag:"🇦🇷", name:"Enzo Fernández",     club:"Chelsea",         nat:"Argentine",  group:"J",
     pos:"MIL", age:25, cat:"star",
     vitesse:80, technique:90, impact:86, buts:70,
     role:"Milieu relayeur · Meilleur jeune CdM 2022",
     pronostic:"Cerveau de l'Argentine · Métronome du milieu",
     statLabel:"Passes réussies/match", statValue:"86",
-    butsM:0, passesM:0, matchsM:1,
+    butsM:0, passesM:0, matchsM:0,
   },
 
   // Brésil (additions)
   {
-    flag:"🇧🇷", name:"Rodrygo",            club:"Real Madrid",     nat:"Brésil",    group:"G",
+    flag:"🇧🇷", name:"Rodrygo",            club:"Real Madrid",     nat:"Brésil",    group:"C",
     pos:"ATT", age:25, cat:"star",
     vitesse:90, technique:90, impact:87, buts:80,
     role:"Ailier polyvalent · Spécialiste des grands matchs",
@@ -382,7 +395,7 @@ const PLAYERS: WCPlayer[] = [
     butsM:0, passesM:0, matchsM:0,
   },
   {
-    flag:"🇧🇷", name:"Raphinha",           club:"FC Barcelone",    nat:"Brésil",    group:"G",
+    flag:"🇧🇷", name:"Raphinha",           club:"FC Barcelone",    nat:"Brésil",    group:"C",
     pos:"ATT", age:29, cat:"star",
     vitesse:88, technique:89, impact:86, buts:82,
     role:"Ailier décisif · Meilleur passeur de Liga",
@@ -391,7 +404,7 @@ const PLAYERS: WCPlayer[] = [
     butsM:0, passesM:0, matchsM:0,
   },
   {
-    flag:"🇧🇷", name:"Casemiro",           club:"Manchester United", nat:"Brésil",  group:"G",
+    flag:"🇧🇷", name:"Casemiro",           club:"Manchester United", nat:"Brésil",  group:"C",
     pos:"MIL", age:34, cat:"veteran",
     vitesse:70, technique:84, impact:85, buts:60,
     role:"Sentinelle expérimentée · Cinq Ligues des Champions",
@@ -402,7 +415,7 @@ const PLAYERS: WCPlayer[] = [
 
   // Angleterre (additions)
   {
-    flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", name:"Harry Kane",         club:"Bayern Munich",  nat:"Angleterre", group:"I",
+    flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", name:"Harry Kane",         club:"Bayern Munich",  nat:"Angleterre", group:"L",
     pos:"ATT", age:32, cat:"star",
     vitesse:74, technique:88, impact:92, buts:96,
     role:"Capitaine et n°9 historique · Meilleur buteur des Three Lions",
@@ -411,7 +424,7 @@ const PLAYERS: WCPlayer[] = [
     butsM:0, passesM:0, matchsM:0,
   },
   {
-    flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", name:"Bukayo Saka",        club:"Arsenal",         nat:"Angleterre", group:"I",
+    flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", name:"Bukayo Saka",        club:"Arsenal",         nat:"Angleterre", group:"L",
     pos:"ATT", age:24, cat:"star",
     vitesse:90, technique:91, impact:88, buts:82,
     role:"Ailier droit · Pierre angulaire d'Arteta",
@@ -420,7 +433,7 @@ const PLAYERS: WCPlayer[] = [
     butsM:0, passesM:0, matchsM:0,
   },
   {
-    flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", name:"Phil Foden",         club:"Manchester City", nat:"Angleterre", group:"I",
+    flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", name:"Phil Foden",         club:"Manchester City", nat:"Angleterre", group:"L",
     pos:"MIL", age:25, cat:"star",
     vitesse:86, technique:94, impact:87, buts:78,
     role:"Meneur créatif · PFA Player of the Year 2024",
@@ -431,7 +444,7 @@ const PLAYERS: WCPlayer[] = [
 
   // Espagne (additions)
   {
-    flag:"🇪🇸", name:"Pedri",              club:"FC Barcelone",    nat:"Espagne",   group:"E",
+    flag:"🇪🇸", name:"Pedri",              club:"FC Barcelone",    nat:"Espagne",   group:"H",
     pos:"MIL", age:23, cat:"star",
     vitesse:78, technique:94, impact:88, buts:68,
     role:"Milieu créatif · Héritier de Xavi/Iniesta",
@@ -440,7 +453,7 @@ const PLAYERS: WCPlayer[] = [
     butsM:0, passesM:0, matchsM:0,
   },
   {
-    flag:"🇪🇸", name:"Rodri",              club:"Manchester City", nat:"Espagne",   group:"E",
+    flag:"🇪🇸", name:"Rodri",              club:"Manchester City", nat:"Espagne",   group:"H",
     pos:"MIL", age:29, cat:"star",
     vitesse:74, technique:92, impact:92, buts:70,
     role:"Sentinelle · Ballon d'Or 2024",
@@ -451,7 +464,7 @@ const PLAYERS: WCPlayer[] = [
 
   // Allemagne (additions)
   {
-    flag:"🇩🇪", name:"Jamal Musiala",      club:"Bayern Munich",   nat:"Allemagne", group:"H",
+    flag:"🇩🇪", name:"Jamal Musiala",      club:"Bayern Munich",   nat:"Allemagne", group:"E",
     pos:"MIL", age:23, cat:"star",
     vitesse:88, technique:95, impact:90, buts:82,
     role:"Dribbleur de feu · Magicien de la Mannschaft",
@@ -460,7 +473,7 @@ const PLAYERS: WCPlayer[] = [
     butsM:0, passesM:0, matchsM:0,
   },
   {
-    flag:"🇩🇪", name:"Joshua Kimmich",     club:"Bayern Munich",   nat:"Allemagne", group:"H",
+    flag:"🇩🇪", name:"Joshua Kimmich",     club:"Bayern Munich",   nat:"Allemagne", group:"E",
     pos:"MIL", age:31, cat:"veteran",
     vitesse:78, technique:90, impact:87, buts:68,
     role:"Milieu polyvalent · Capitaine d'Allemagne",
@@ -471,7 +484,7 @@ const PLAYERS: WCPlayer[] = [
 
   // Portugal (additions)
   {
-    flag:"🇵🇹", name:"Bernardo Silva",     club:"Manchester City", nat:"Portugal",  group:"D",
+    flag:"🇵🇹", name:"Bernardo Silva",     club:"Manchester City", nat:"Portugal",  group:"K",
     pos:"MIL", age:31, cat:"star",
     vitesse:80, technique:94, impact:88, buts:74,
     role:"Milieu virtuose · Meilleur dribbleur portugais",
@@ -480,7 +493,7 @@ const PLAYERS: WCPlayer[] = [
     butsM:0, passesM:0, matchsM:0,
   },
   {
-    flag:"🇵🇹", name:"Rafael Leão",        club:"AC Milan",        nat:"Portugal",  group:"D",
+    flag:"🇵🇹", name:"Rafael Leão",        club:"AC Milan",        nat:"Portugal",  group:"K",
     pos:"ATT", age:26, cat:"star",
     vitesse:95, technique:88, impact:84, buts:80,
     role:"Ailier gauche fulgurant · Cousin de Mbappé en vitesse",
@@ -491,7 +504,7 @@ const PLAYERS: WCPlayer[] = [
 
   // Pays-Bas (addition)
   {
-    flag:"🇳🇱", name:"Cody Gakpo",         club:"Liverpool",       nat:"Pays-Bas",  group:"H",
+    flag:"🇳🇱", name:"Cody Gakpo",         club:"Liverpool",       nat:"Pays-Bas",  group:"F",
     pos:"ATT", age:27, cat:"star",
     vitesse:86, technique:88, impact:85, buts:84,
     role:"Attaquant polyvalent · Soulier d'or CdM 2022",
@@ -502,7 +515,7 @@ const PLAYERS: WCPlayer[] = [
 
   // Bosnie-Herzégovine (qualifié via barrage — a éliminé l'Italie aux tirs au but)
   {
-    flag:"🇧🇦", name:"Edin Džeko",          club:"Fenerbahçe",      nat:"Bosnie-H.", group:"J",
+    flag:"🇧🇦", name:"Edin Džeko",          club:"Fenerbahçe",      nat:"Bosnie-H.", group:"B",
     pos:"ATT", age:40, cat:"veteran",
     vitesse:65, technique:84, impact:78, buts:80,
     role:"Légende · Capitaine historique · Buteur record de Bosnie",
@@ -513,7 +526,7 @@ const PLAYERS: WCPlayer[] = [
 
   // Canada (addition)
   {
-    flag:"🇨🇦", name:"Jonathan David",     club:"Lille",           nat:"Canada",    group:"D",
+    flag:"🇨🇦", name:"Jonathan David",     club:"Lille",           nat:"Canada",    group:"B",
     pos:"ATT", age:26, cat:"star",
     vitesse:88, technique:84, impact:84, buts:88,
     role:"N°9 · Meilleur buteur canadien de l'histoire",
@@ -535,18 +548,18 @@ const PLAYERS: WCPlayer[] = [
 
   // Corée du Sud (addition)
   {
-    flag:"🇰🇷", name:"Son Heung-min",      club:"Tottenham",       nat:"Corée du Sud", group:"L",
+    flag:"🇰🇷", name:"Son Heung-min",      club:"Tottenham",       nat:"Corée du Sud", group:"A",
     pos:"ATT", age:33, cat:"star",
     vitesse:90, technique:90, impact:86, buts:86,
     role:"Capitaine · Star asiatique du foot mondial",
     pronostic:"Ambidextre redoutable · Référence absolue en Asie",
     statLabel:"Buts en sélection", statValue:"50+",
-    butsM:0, passesM:0, matchsM:0,
+    butsM:0, passesM:0, matchsM:1,
   },
 
   // Colombie (addition)
   {
-    flag:"🇨🇴", name:"Luis Díaz",          club:"Liverpool",       nat:"Colombie",  group:"G",
+    flag:"🇨🇴", name:"Luis Díaz",          club:"Liverpool",       nat:"Colombie",  group:"K",
     pos:"ATT", age:29, cat:"star",
     vitesse:91, technique:89, impact:85, buts:80,
     role:"Ailier gauche · Star colombienne de Premier League",
@@ -557,7 +570,7 @@ const PLAYERS: WCPlayer[] = [
 
   // Uruguay (addition)
   {
-    flag:"🇺🇾", name:"Federico Valverde",  club:"Real Madrid",     nat:"Uruguay",   group:"D",
+    flag:"🇺🇾", name:"Federico Valverde",  club:"Real Madrid",     nat:"Uruguay",   group:"H",
     pos:"MIL", age:27, cat:"star",
     vitesse:88, technique:88, impact:88, buts:76,
     role:"Milieu box-to-box · Frappe au cordeau",
@@ -596,40 +609,66 @@ const ACTUAL_RESULTS: Record<string, { winner: 0 | 1; score?: string }> = {
 // ── Cotes de force IA (basées sur performances récentes : CdM 2022, EURO 2024,
 //    Copa América 2024, CAN 2023, classement FIFA mai 2026) ────────────────────
 const TEAM_STR: Record<string, number> = {
-  // Gauche
-  "🇦🇷 Argentine":    93, // Champion du monde 2022, Copa América 2024
-  "🇪🇨 Équateur":     67,
-  "🇺🇸 USA":          73, // Pays hôte, en forte progression
-  "🇺🇾 Uruguay":      78, // Expérimenté, demi-finale Copa 2024
-  "🇪🇸 Espagne":      92, // Champion EURO 2024, Yamal / Pedri
-  "🇩🇿 Algérie":      62,
-  "🇫🇷 France":       91, // Finaliste CdM 2022, Mbappé / Griezmann
-  "🇧🇪 Belgique":     74, // Post-génération dorée
-  "🇲🇽 Mexique":      71, // Pays hôte
-  "🇨🇱 Chili":        64,
-  "🇨🇦 Canada":       73, // Pays hôte, Davies / Jonathan David
-  "🇵🇹 Portugal":     83, // Leão, Bruno Fernandes, Félix
-  "🇲🇦 Maroc":        77, // ½ finale 2022, Hakimi / En-Nesyri
-  "🇯🇵 Japon":        74, // R16 2022, régulièrement en progression
-  "🇨🇭 Suisse":       73, // Solide, R16 2022
-  "🇵🇪 Pérou":        61,
-  // Droite
-  "🇧🇷 Brésil":       86, // Vinicius Jr, Endrick, puissant mais irrégulier
-  "🇨🇲 Cameroun":     58,
-  "🇩🇪 Allemagne":    82, // Wirtz, EURO 2024 QF pays hôte
-  "🇷🇸 Serbie":       68,
-  "🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre": 85, // Bellingham, Saka, Kane
-  "🇬🇭 Ghana":        59,
-  "🇧🇦 Bosnie-H.":    65, // Qualifié via barrage — a éliminé l'Italie aux tirs au but
-  "🇷🇴 Roumanie":     61,
-  "🇨🇴 Colombie":     73, // Finaliste Copa América 2024
-  "🇵🇾 Paraguay":     60,
-  "🇳🇱 Pays-Bas":     80, // ½ finale EURO 2024, Van Dijk / Gakpo
-  "🇵🇱 Pologne":      67,
-  "🇸🇳 Sénégal":      74, // Champion CAN 2022, ère Mané
-  "🇹🇳 Tunisie":      62,
-  "🇭🇷 Croatie":      77, // 3e place 2022, surperformant chronique
-  "🇰🇷 Corée du S":   72, // Son Heung-min, en progression
+  // Groupe A
+  "🇲🇽 Mexique":          71, // Pays hôte · Vainqueur J1
+  "🇿🇦 Afrique du Sud":   62,
+  "🇰🇷 Corée du S.":      72, // Son Heung-min · victoire J1
+  "🇨🇿 Tchéquie":         67,
+  // Groupe B
+  "🇨🇦 Canada":           73, // Pays hôte · Davies / Jonathan David
+  "🇨🇭 Suisse":           73, // Solide, R16 2022
+  "🇶🇦 Qatar":            60,
+  "🇧🇦 Bosnie-H.":        65, // Qualifié via barrage — a éliminé l'Italie
+  // Groupe C
+  "🇧🇷 Brésil":           86, // Vinicius Jr, Endrick
+  "🇲🇦 Maroc":            77, // ½ finale 2022, Hakimi
+  "🇭🇹 Haïti":            55,
+  "🏴󠁧󠁢󠁳󠁣󠁴󠁿 Écosse":         68,
+  // Groupe D
+  "🇺🇸 USA":              73, // Pays hôte · 4-1 J1
+  "🇵🇾 Paraguay":         60,
+  "🇦🇺 Australie":        66,
+  "🇹🇷 Türkiye":          69,
+  // Groupe E
+  "🇩🇪 Allemagne":        82, // Wirtz, EURO 2024 QF
+  "🇨🇼 Curaçao":          56,
+  "🇨🇮 Côte d'Ivoire":    70,
+  "🇪🇨 Équateur":         67,
+  // Groupe F
+  "🇳🇱 Pays-Bas":         80, // ½ finale EURO 2024, Van Dijk / Gakpo
+  "🇯🇵 Japon":            74, // R16 2022
+  "🇹🇳 Tunisie":          62,
+  "🇸🇪 Suède":            72,
+  // Groupe G
+  "🇧🇪 Belgique":         74, // Post-génération dorée
+  "🇪🇬 Égypte":           63,
+  "🇮🇷 Iran":             64,
+  "🇳🇿 Nlle-Zélande":     58,
+  // Groupe H
+  "🇪🇸 Espagne":          92, // Champion EURO 2024
+  "🇨🇻 Cabo Verde":       59,
+  "🇸🇦 Arabie Saoudite":  65,
+  "🇺🇾 Uruguay":          78,
+  // Groupe I
+  "🇫🇷 France":           91, // Finaliste CdM 2022, Mbappé
+  "🇸🇳 Sénégal":          74, // Champion CAN 2022
+  "🇳🇴 Norvège":          73,
+  "🇮🇶 Irak":             58,
+  // Groupe J
+  "🇦🇷 Argentine":        93, // Champion du monde 2022 + Copa 2024
+  "🇩🇿 Algérie":          62,
+  "🇦🇹 Autriche":         68,
+  "🇯🇴 Jordanie":         57,
+  // Groupe K
+  "🇵🇹 Portugal":         83,
+  "🇺🇿 Ouzbékistan":      60,
+  "🇨🇴 Colombie":         73, // Finaliste Copa 2024
+  "🇨🇩 RD Congo":         60,
+  // Groupe L
+  "🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre":     85, // Bellingham, Saka, Kane
+  "🇭🇷 Croatie":          77,
+  "🇬🇭 Ghana":            59,
+  "🇵🇦 Panama":           63,
 };
 
 function getStr(name: string): number { return TEAM_STR[name] ?? 65; }
@@ -775,28 +814,28 @@ function BracketTab() {
     return picks[id] === 0 ? t1 : picks[id] === 1 ? t2 : "?";
   };
 
-  // ── Seeds: 8 left-side 1/8 matches (Groups A-F + best 3e) ──────────────────
+  // ── Seeds: 8 left-side 1/16 matches (Groups A-G) ───────────────────────────
   const L16: BMatch[] = [
-    { id:"L1", t1:"🇦🇷 Argentine",  t2:"🇪🇨 Équateur"  }, // 1A vs 2B
-    { id:"L2", t1:"🇺🇸 USA",         t2:"🇺🇾 Uruguay"   }, // 1C vs 2D
-    { id:"L3", t1:"🇪🇸 Espagne",     t2:"🇩🇿 Algérie"   }, // 1E vs Mel.3
-    { id:"L4", t1:"🇫🇷 France",      t2:"🇧🇪 Belgique"  }, // 1F vs 2E
-    { id:"L5", t1:"🇲🇽 Mexique",     t2:"🇨🇱 Chili"     }, // 1B vs 2A
-    { id:"L6", t1:"🇨🇦 Canada",      t2:"🇵🇹 Portugal"  }, // 1D vs 2D'
-    { id:"L7", t1:"🇲🇦 Maroc",       t2:"🇯🇵 Japon"     }, // Mel.3 E vs Mel.3 F
-    { id:"L8", t1:"🇨🇭 Suisse",      t2:"🇵🇪 Pérou"     }, // 2F vs Mel.3
+    { id:"L1", t1:"🇲🇽 Mexique",     t2:"🇧🇦 Bosnie-H." }, // 1A vs 2B
+    { id:"L2", t1:"🇨🇦 Canada",      t2:"🇰🇷 Corée du S." }, // 1B vs 2A
+    { id:"L3", t1:"🇧🇷 Brésil",      t2:"🇦🇺 Australie" }, // 1C vs 2D
+    { id:"L4", t1:"🇺🇸 USA",         t2:"🇲🇦 Maroc"     }, // 1D vs 2C
+    { id:"L5", t1:"🇩🇪 Allemagne",   t2:"🇯🇵 Japon"     }, // 1E vs 2F
+    { id:"L6", t1:"🇳🇱 Pays-Bas",    t2:"🇪🇨 Équateur"  }, // 1F vs 2E
+    { id:"L7", t1:"🇧🇪 Belgique",    t2:"🇮🇷 Iran"      }, // 1G vs 3e
+    { id:"L8", t1:"🇪🇬 Égypte",      t2:"🇨🇭 Suisse"    }, // 2G vs 3e
   ];
 
-  // ── Seeds: 8 right-side 1/8 matches (Groups G-L + best 3e) ────────────────
+  // ── Seeds: 8 right-side 1/16 matches (Groups H-L) ──────────────────────────
   const R16: BMatch[] = [
-    { id:"R1", t1:"🇧🇷 Brésil",      t2:"🇨🇲 Cameroun"  }, // 1G vs Mel.3
-    { id:"R2", t1:"🇩🇪 Allemagne",   t2:"🇷🇸 Serbie"    }, // 1H vs 2H
-    { id:"R3", t1:"🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre", t2:"🇬🇭 Ghana"     }, // 1I vs Mel.3
-    { id:"R4", t1:"🇧🇦 Bosnie-H.",     t2:"🇷🇴 Roumanie"  }, // 1J vs Mel.3
-    { id:"R5", t1:"🇨🇴 Colombie",    t2:"🇵🇾 Paraguay"  }, // 2G vs Mel.3
-    { id:"R6", t1:"🇳🇱 Pays-Bas",    t2:"🇵🇱 Pologne"   }, // 2H vs Mel.3
-    { id:"R7", t1:"🇸🇳 Sénégal",     t2:"🇹🇳 Tunisie"   }, // 2I vs Mel.3
-    { id:"R8", t1:"🇭🇷 Croatie",     t2:"🇰🇷 Corée du S"}, // 2J vs 1L
+    { id:"R1", t1:"🇪🇸 Espagne",     t2:"🇸🇳 Sénégal"   }, // 1H vs 2I
+    { id:"R2", t1:"🇫🇷 France",      t2:"🇺🇾 Uruguay"   }, // 1I vs 2H
+    { id:"R3", t1:"🇦🇷 Argentine",   t2:"🇨🇴 Colombie"  }, // 1J vs 2K
+    { id:"R4", t1:"🇵🇹 Portugal",    t2:"🇩🇿 Algérie"   }, // 1K vs 2J
+    { id:"R5", t1:"🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre", t2:"🇸🇦 Arabie Saoudite" }, // 1L vs 3e
+    { id:"R6", t1:"🇭🇷 Croatie",     t2:"🇳🇴 Norvège"   }, // 2L vs 3e
+    { id:"R7", t1:"🏴󠁧󠁢󠁳󠁣󠁴󠁿 Écosse",     t2:"🇶🇦 Qatar"     }, // 3e vs 3e
+    { id:"R8", t1:"🇬🇭 Ghana",       t2:"🇵🇦 Panama"    }, // 3e vs 3e
   ];
 
   // ── Left QF ────────────────────────────────────────────────────────────────
@@ -1905,30 +1944,24 @@ const FORME_TEAMS: FormeEntry[] = [
   { fullName:"🇩🇪 Allemagne",     qualifs:"7V 2N 1D", recentFactor:"Renouveau Wirtz · QF EURO 2024 à domicile",        factorColor:"#22c55e", trend:"📈", bonus:4,   conf:"UEFA" },
   { fullName:"🇵🇹 Portugal",      qualifs:"7V 2N 1D", recentFactor:"QF EURO 2024 · Leão-Félix-Bruno en montée",        factorColor:"#00d4ff", trend:"📈", bonus:4,   conf:"UEFA" },
   { fullName:"🇭🇷 Croatie",       qualifs:"5V 3N 2D", recentFactor:"Modrić dernier tournoi · Leadership vétérans",     factorColor:"#94a3b8", trend:"📊", bonus:3,   conf:"UEFA" },
-  { fullName:"🇷🇸 Serbie",        qualifs:"7V 1N 2D", recentFactor:"R16 EURO 2024 · Mitrović top buteur en qualifs",   factorColor:"#94a3b8", trend:"📊", bonus:2,   conf:"UEFA" },
   { fullName:"🇨🇭 Suisse",        qualifs:"6V 2N 2D", recentFactor:"R16 EURO 2024 · Bloc défensif très solide",        factorColor:"#94a3b8", trend:"📊", bonus:2,   conf:"UEFA" },
   { fullName:"🇧🇦 Bosnie-H.",     qualifs:"4V 3N 3D", recentFactor:"🔥 Barrage : Italie éliminée aux tirs au but !",  factorColor:"#22c55e", trend:"📈", bonus:4,   conf:"UEFA" },
-  { fullName:"🇷🇴 Roumanie",      qualifs:"5V 2N 3D", recentFactor:"Surprise EURO 2024 R16 · Ianis Hagi décisif",      factorColor:"#06b6d4", trend:"📊", bonus:2,   conf:"UEFA" },
-  { fullName:"🇵🇱 Pologne",       qualifs:"5V 3N 2D", recentFactor:"R16 EURO 2024 · Lewandowski 38 ans mais actif",    factorColor:"#94a3b8", trend:"📊", bonus:1,   conf:"UEFA" },
   { fullName:"🇧🇪 Belgique",      qualifs:"5V 3N 2D", recentFactor:"Post-génération dorée · Cycle en déclin",           factorColor:"#f97316", trend:"📉", bonus:-2,  conf:"UEFA" },
   // ── CONMEBOL ──────────────────────────────────────────────────────────────
-  { fullName:"🇦🇷 Argentine",     qualifs:"7V 3N 0D", recentFactor:"🏆 CdM 2022 + Copa 2024 · 2-0 vs Chili J1 ✔",     factorColor:"#fbbf24", trend:"🔥", bonus:10,  conf:"CONMEBOL" },
+  { fullName:"🇦🇷 Argentine",     qualifs:"7V 3N 0D", recentFactor:"🏆 CdM 2022 + Copa América 2024 · Meilleure nation du monde", factorColor:"#fbbf24", trend:"🔥", bonus:9,   conf:"CONMEBOL" },
   { fullName:"🇨🇴 Colombie",      qualifs:"8V 1N 1D", recentFactor:"Finaliste Copa América 2024 · Invaincu en qualifs", factorColor:"#a78bfa", trend:"🔥", bonus:7,   conf:"CONMEBOL" },
   { fullName:"🇧🇷 Brésil",        qualifs:"6V 3N 1D", recentFactor:"Vinicius-Endrick en feu en club · Talent intact",   factorColor:"#22c55e", trend:"📈", bonus:4,   conf:"CONMEBOL" },
   { fullName:"🇺🇾 Uruguay",       qualifs:"6V 2N 2D", recentFactor:"SF Copa América 2024 · Valverde au Real en forme",  factorColor:"#94a3b8", trend:"📊", bonus:3,   conf:"CONMEBOL" },
-  { fullName:"🇪🇨 Équateur",      qualifs:"6V 2N 2D", recentFactor:"Défaite 1-2 vs Mexique J1 · Caicedo isolé",         factorColor:"#f97316", trend:"📉", bonus:1,   conf:"CONMEBOL" },
-  { fullName:"🇵🇾 Paraguay",      qualifs:"5V 3N 2D", recentFactor:"Copa América 2024 groupe · Almirón capitaine",      factorColor:"#94a3b8", trend:"📊", bonus:0,   conf:"CONMEBOL" },
-  { fullName:"🇨🇱 Chili",         qualifs:"4V 3N 3D", recentFactor:"0-2 vs Argentine J1 · Post-génération · En déclin", factorColor:"#ef4444", trend:"📉", bonus:-5,  conf:"CONMEBOL" },
-  { fullName:"🇵🇪 Pérou",         qualifs:"4V 2N 4D", recentFactor:"Barrage 2022 perdu · Manque d'élan offensif",       factorColor:"#ef4444", trend:"❄️", bonus:-6,  conf:"CONMEBOL" },
+  { fullName:"🇪🇨 Équateur",      qualifs:"6V 2N 2D", recentFactor:"Copa América 2024 groupe · Caicedo seul maître à jouer", factorColor:"#94a3b8", trend:"📊", bonus:1,   conf:"CONMEBOL" },
+  { fullName:"🇵🇾 Paraguay",      qualifs:"5V 3N 2D", recentFactor:"0-4 vs USA J1 · Almirón capitaine",                factorColor:"#ef4444", trend:"📉", bonus:-2,  conf:"CONMEBOL" },
   // ── CONCACAF ──────────────────────────────────────────────────────────────
-  { fullName:"🇺🇸 USA",           qualifs:"8V 1N 1D", recentFactor:"2-0 vs Panama J1 · Pulisic but+passe · Hôte en feu", factorColor:"#22c55e", trend:"🔥", bonus:8,   conf:"CONCACAF" },
+  { fullName:"🇺🇸 USA",           qualifs:"8V 1N 1D", recentFactor:"4-1 vs Paraguay J1 · Pulisic but+passe · Hôte en feu", factorColor:"#22c55e", trend:"🔥", bonus:8,   conf:"CONCACAF" },
   { fullName:"🇨🇦 Canada",        qualifs:"6V 3N 1D", recentFactor:"Pays hôte 2026 · Davies-Jonathan David en feu",    factorColor:"#00d4ff", trend:"📈", bonus:6,   conf:"CONCACAF" },
-  { fullName:"🇲🇽 Mexique",       qualifs:"7V 3N 0D", recentFactor:"🎬 Ouverture 2-1 vs Équateur · Pays hôte lancé",    factorColor:"#22c55e", trend:"🔥", bonus:6,   conf:"CONCACAF" },
+  { fullName:"🇲🇽 Mexique",       qualifs:"7V 3N 0D", recentFactor:"🎬 Ouverture 2-0 vs Afrique du Sud · Pays hôte lancé", factorColor:"#22c55e", trend:"🔥", bonus:6,   conf:"CONCACAF" },
   // ── CAF ───────────────────────────────────────────────────────────────────
   { fullName:"🇸🇳 Sénégal",       qualifs:"8V 1N 1D", recentFactor:"🏆 Champion CAN 2022 · Mané-Diatta décisifs",       factorColor:"#fbbf24", trend:"📈", bonus:5,   conf:"CAF" },
   { fullName:"🇲🇦 Maroc",         qualifs:"7V 2N 1D", recentFactor:"½ finale CdM 2022 · Hakimi leadership renforcé",   factorColor:"#f97316", trend:"📈", bonus:5,   conf:"CAF" },
   { fullName:"🇩🇿 Algérie",       qualifs:"7V 2N 1D", recentFactor:"AFCON QF 2023 · Mahrez en fin de carrière active", factorColor:"#22c55e", trend:"📊", bonus:3,   conf:"CAF" },
-  { fullName:"🇨🇲 Cameroun",      qualifs:"5V 2N 3D", recentFactor:"AFCON 2024 R16 · Anguissa pilier au milieu",        factorColor:"#f97316", trend:"📉", bonus:-2,  conf:"CAF" },
   { fullName:"🇬🇭 Ghana",         qualifs:"5V 2N 3D", recentFactor:"AFCON 2024 groupe · Reconstruction post-Qatar",    factorColor:"#ef4444", trend:"📉", bonus:-2,  conf:"CAF" },
   { fullName:"🇹🇳 Tunisie",       qualifs:"5V 2N 3D", recentFactor:"AFCON 2024 groupe · Résultats en déclin",          factorColor:"#ef4444", trend:"📉", bonus:-3,  conf:"CAF" },
   // ── AFC ───────────────────────────────────────────────────────────────────
@@ -2784,9 +2817,9 @@ function FranceTab() {
   return (
     <div className="space-y-3">
       <div className="px-3 py-2.5 rounded-xl" style={{ background: "#0d1421", border: "1px solid rgba(34,197,94,0.2)" }}>
-        <p className="text-xs font-bold mb-1.5" style={{ color: "#22c55e" }}>Groupe F</p>
+        <p className="text-xs font-bold mb-1.5" style={{ color: "#22c55e" }}>Groupe I</p>
         <div className="space-y-1">
-          {GROUPS.find(g => g.letter === "F")!.teams.map(t => (
+          {GROUPS.find(g => g.letter === "I")!.teams.map(t => (
             <div key={t} className="text-xs py-0.5"
               style={{ color: t.startsWith("🇫🇷") ? "#e8edf5" : "#94a3b8", fontWeight: t.startsWith("🇫🇷") ? 700 : 400 }}>
               {t}
