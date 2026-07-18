@@ -68,10 +68,10 @@ const L1_CLUBS: Club[] = [
     crest:"https://crests.football-data.org/533.png" },
   { id:519,  name:"AJ Auxerre",          shortName:"Auxerre",    color:"#001F5B", color2:"#FFFFFF", stadium:"Stade Abbé-Deschamps",    city:"Auxerre",            capacity:"19 649",
     crest:"https://crests.football-data.org/519.png" },
-  { id:543,  name:"FC Nantes",           shortName:"Nantes",     color:"#E8AF00", color2:"#1B4494", stadium:"Stade de la Beaujoire",   city:"Nantes",             capacity:"38 285",
-    crest:"https://crests.football-data.org/543.png" },
-  { id:545,  name:"FC Metz",             shortName:"Metz",       color:"#9E1931", color2:"#F0A500", stadium:"Stade Saint-Symphorien",  city:"Longeville-lès-Metz",capacity:"26 636",
-    crest:"https://crests.football-data.org/545.png" },
+  { id:566,  name:"ES Troyes AC",         shortName:"Troyes",     color:"#1B47B0", color2:"#FFFFFF", stadium:"Stade de l'Aube",         city:"Troyes",             capacity:"21 877",
+    crest:"https://images.fotmob.com/image_resources/logo/teamlogo/10242.png" },
+  { id:8682, name:"Le Mans FC",           shortName:"Le Mans",    color:"#E10600", color2:"#FFFFFF", stadium:"Stade Marie-Marvingt",    city:"Le Mans",            capacity:"25 064", league:"FL2",
+    crest:"https://images.fotmob.com/image_resources/logo/teamlogo/8682.png" },
   { id:525,  name:"FC Lorient",          shortName:"Lorient",    color:"#E06300", color2:"#1F2E6E", stadium:"Stade du Moustoir",       city:"Lorient",            capacity:"18 586",
     crest:"https://crests.football-data.org/525.png" },
   { id:1045, name:"Paris FC",            shortName:"Paris FC",   color:"#003087", color2:"#D72020", stadium:"Stade Charléty",          city:"Paris",              capacity:"20 000",
@@ -80,13 +80,14 @@ const L1_CLUBS: Club[] = [
 
 // ── Ligue 2 clubs (FotMob ids + crests; squad/results endpoints not available)
 const L2_CLUBS: Club[] = [
-  { id:10242,  name:"ES Troyes AC",     shortName:"Troyes",       color:"#1B47B0", color2:"#FFFFFF", stadium:"Stade de l'Aube",         city:"Troyes",        capacity:"21 877", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/10242.png" },
+  { id:543,    name:"FC Nantes",         shortName:"Nantes",       color:"#E8AF00", color2:"#1B4494", stadium:"Stade de la Beaujoire",   city:"Nantes",        capacity:"38 285", league:"FL2", crest:"https://crests.football-data.org/543.png" },
+  { id:545,    name:"FC Metz",           shortName:"Metz",         color:"#9E1931", color2:"#F0A500", stadium:"Stade Saint-Symphorien",  city:"Metz",          capacity:"26 636", league:"FL2", crest:"https://crests.football-data.org/545.png" },
   { id:9853,   name:"AS Saint-Étienne", shortName:"Saint-Étienne",color:"#008B3D", color2:"#FFFFFF", stadium:"Geoffroy-Guichard",       city:"Saint-Étienne", capacity:"41 965", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/9853.png" },
   { id:9837,   name:"Stade de Reims",   shortName:"Reims",        color:"#E10600", color2:"#FFFFFF", stadium:"Stade Auguste-Delaune",   city:"Reims",         capacity:"21 684", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/9837.png" },
   { id:10249,  name:"Montpellier HSC",  shortName:"Montpellier",  color:"#F47B20", color2:"#003DA5", stadium:"Stade de la Mosson",      city:"Montpellier",   capacity:"32 939", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/10249.png" },
   { id:8311,   name:"Clermont Foot",    shortName:"Clermont",     color:"#003DA5", color2:"#E10600", stadium:"Stade Gabriel-Montpied",  city:"Clermont-Ferrand", capacity:"11 980", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/8311.png" },
   { id:9747,   name:"En Avant Guingamp",shortName:"Guingamp",     color:"#E10600", color2:"#1A1A1A", stadium:"Stade de Roudourou",      city:"Guingamp",      capacity:"18 378", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/9747.png" },
-  { id:8682,   name:"Le Mans FC",       shortName:"Le Mans",      color:"#E10600", color2:"#FFFFFF", stadium:"Stade Marie-Marvingt",    city:"Le Mans",       capacity:"25 064", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/8682.png" },
+  { id:10174,  name:"Dijon FCO",         shortName:"Dijon",        color:"#E10600", color2:"#FFFFFF", stadium:"Stade Gaston-Gérard",     city:"Dijon",         capacity:"15 971", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/10174.png" },
   { id:6390,   name:"Red Star FC",      shortName:"Red Star",     color:"#005232", color2:"#FFFFFF", stadium:"Stade Bauer",             city:"Saint-Ouen",    capacity:"10 000", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/6390.png" },
   { id:4120,   name:"Rodez AF",         shortName:"Rodez",        color:"#E10600", color2:"#1A1A1A", stadium:"Stade Paul-Lignon",       city:"Rodez",         capacity:"5 955",  league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/4120.png" },
   { id:293352, name:"FC Annecy",        shortName:"Annecy",       color:"#E10600", color2:"#FFFFFF", stadium:"Parc des Sports",         city:"Annecy",        capacity:"15 660", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/293352.png" },
@@ -96,8 +97,7 @@ const L2_CLUBS: Club[] = [
   { id:8481,   name:"AS Nancy-Lorraine",shortName:"Nancy",        color:"#E10600", color2:"#FFFFFF", stadium:"Stade Marcel-Picot",      city:"Tomblaine",     capacity:"20 087", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/8481.png" },
   { id:4170,   name:"US Boulogne",      shortName:"Boulogne",     color:"#E10600", color2:"#1A1A1A", stadium:"Stade de la Libération",  city:"Boulogne-sur-Mer", capacity:"7 139",  league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/4170.png" },
   { id:7853,   name:"Stade Lavallois",  shortName:"Laval",        color:"#F47B20", color2:"#1A1A1A", stadium:"Stade Francis-Le Basser", city:"Laval",         capacity:"18 467", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/7853.png" },
-  { id:7794,   name:"SC Bastia",        shortName:"Bastia",       color:"#003DA5", color2:"#FFFFFF", stadium:"Stade Armand-Cesari",     city:"Bastia",        capacity:"16 480", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/7794.png" },
-  { id:8587,   name:"Amiens SC",        shortName:"Amiens",       color:"#1A1A1A", color2:"#FFFFFF", stadium:"Stade de la Licorne",     city:"Amiens",        capacity:"12 097", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/8587.png" },
+  { id:9807,   name:"FC Sochaux",        shortName:"Sochaux",      color:"#FFCC00", color2:"#004C96", stadium:"Stade Auguste-Bonal",     city:"Montbéliard",   capacity:"19 293", league:"FL2", crest:"https://images.fotmob.com/image_resources/logo/teamlogo/9807.png" },
 ];
 
 const ALL_CLUBS: Club[] = [...L1_CLUBS, ...L2_CLUBS];

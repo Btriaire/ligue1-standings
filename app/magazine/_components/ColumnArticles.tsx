@@ -19,7 +19,6 @@ interface TvMatch {
 interface TvResponse {
   l1?: TvMatch[];
   l2?: TvMatch[];
-  cdm?: TvMatch[];
 }
 
 function ColumnHeader({ rubrique, title, byline, minutes }: { rubrique: string; title: string; byline: string; minutes?: number }) {
@@ -54,7 +53,6 @@ export default function ColumnArticles({ issue }: { issue: Issue }) {
         if (!alive || !data) return;
         const merged = [
           ...(data.l1 ?? []),
-          ...(data.cdm ?? []),
           ...(data.l2 ?? []),
         ];
         const upcoming = merged
