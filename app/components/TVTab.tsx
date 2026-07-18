@@ -38,16 +38,14 @@ interface TvBlock { matches: TvMatch[]; source: string; error?: string }
 interface TvResponse {
   l1: TvBlock;
   l2: TvBlock;
-  cdm: TvBlock;
   updatedAt: string;
 }
 
-type SubTab = "FL1" | "FL2" | "WC2026";
+type SubTab = "FL1" | "FL2";
 
 const SUB_TABS: { id: SubTab; label: string; emoji: string; color: string }[] = [
-  { id: "FL1",    label: "Ligue 1",     emoji: "🇫🇷", color: "#00d4ff" },
-  { id: "FL2",    label: "Ligue 2",     emoji: "🇫🇷", color: "#a78bfa" },
-  { id: "WC2026", label: "Coupe du Monde", emoji: "🌍", color: "#fbbf24" },
+  { id: "FL1", label: "Ligue 1", emoji: "🇫🇷", color: "#00d4ff" },
+  { id: "FL2", label: "Ligue 2", emoji: "🇫🇷", color: "#a78bfa" },
 ];
 
 /** Join per-competition default channels with per-match overrides. Override
@@ -287,7 +285,7 @@ export default function TVTab() {
     load();
   }, []);
 
-  const block = data ? (active === "FL1" ? data.l1 : active === "FL2" ? data.l2 : data.cdm) : undefined;
+  const block = data ? (active === "FL1" ? data.l1 : data.l2) : undefined;
   const updated = data ? new Date(data.updatedAt) : null;
 
   return (
@@ -332,7 +330,7 @@ export default function TVTab() {
                 border: `1px solid ${isActive ? tab.color : "#1e2d42"}`,
               }}
             >
-              {tab.id === "WC2026" ? <Globe size={11} weight="bold" /> : <Trophy size={11} weight="bold" />}
+              <Trophy size={11} weight="bold" />
               {tab.label}
             </button>
           );
