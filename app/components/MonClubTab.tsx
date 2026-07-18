@@ -11,7 +11,6 @@ import {
   Star, Pulse, ChartBar, FloppyDisk, CheckCircle, ShareNetwork, Globe, Sword,
   TwitterLogo, ArrowSquareOut, PaperPlaneTilt, Gear,
 } from "@phosphor-icons/react";
-import { NATIONS, nationsInGroup, type Nation, isWorldCupHot, WC2026_START } from "@/app/lib/worldCup";
 import { PlayerRow, PlayerEntry, POS_ORDER, POS_FR as POS_FR_PLURAL, POS_COL } from "./PlayerCard";
 import { PlayerPhoto } from "./PlayerCard";
 import FootPitch from "./FootPitch";
@@ -119,7 +118,7 @@ const getZone = (p: number) => ZONES.find(z=>z.positions.includes(p)) ?? null;
 // WorldCup "Ma Compo CdM" surface can reuse the exact same pitch layout.
 import { FORMATIONS, F_KEYS, type FKey } from "@/app/lib/formations";
 import {
-  FAN_CLUBS_L1, FAN_CLUBS_L2, FAN_NATIONS,
+  FAN_CLUBS_L1, FAN_CLUBS_L2,
   type FanEntry,
 } from "@/app/lib/fanConfig";
 import type { Standing } from "@/app/lib/types";
@@ -337,25 +336,16 @@ function StadiumCard({club}:{club:Club}) {
 
 /* ══════════════════════════════════════════ MA COMPO — PITCH ══ */
 
-// FootPitch SVG moved to ./FootPitch so WorldCup "Ma Compo CdM" reuses it
-// (the actual `import FootPitch from "./FootPitch"` is at the top of the file).
-
 /* ══════════════════════════════════════════ SELECTOR ══ */
 
-type SelectorScope = "FL1" | "FL2" | "WC";
+type SelectorScope = "FL1" | "FL2";
 
-function ClubSelector({onSelectClub, onSelectNation}:{
-  onSelectClub:(c:Club)=>void;
-  onSelectNation:(n:Nation)=>void;
-}) {
-  // Default to the World Cup tab when the tournament is hot — helps users
-  // pick a national team without first clicking through L1/L2.
-  const [scope, setScope] = useState<SelectorScope>(isWorldCupHot() ? "WC" : "FL1");
+function ClubSelector({onSelectClub}:{onSelectClub:(c:Club)=>void}) {
+  const [scope, setScope] = useState<SelectorScope>("FL1");
 
-  const scopes: { id: SelectorScope; label: string; color: string; hot?: boolean }[] = [
-    { id: "FL1", label: "Ligue 1",          color: "#00d4ff" },
-    { id: "FL2", label: "Ligue 2",          color: "#00d4ff" },
-    { id: "WC",  label: "Sélections (CdM)", color: "#fbbf24", hot: isWorldCupHot() },
+  const scopes: { id: SelectorScope; label: string; color: string }[] = [
+    { id: "FL1", label: "Ligue 1", color: "#00d4ff" },
+    { id: "FL2", label: "Ligue 2", color: "#00d4ff" },
   ];
 
   return (
@@ -365,14 +355,8 @@ function ClubSelector({onSelectClub, onSelectNation}:{
           style={{background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.2)"}}>
           <Shield size={26} style={{color:"#60a5fa"}}/>
         </div>
-        <h2 className="text-xl font-black mb-1" style={{color:"#e8edf5"}}>
-          {scope === "WC" ? "Choisissez votre sélection" : "Choisissez votre club de cœur"}
-        </h2>
-        <p className="text-xs" style={{color:"#6b7c96"}}>
-          {scope === "WC"
-            ? "32 nations · Phase de groupes · Pronostics CdM 2026"
-            : "Aperçu · Effectif · Résultats · Prédictions AI · Ma Compo"}
-        </p>
+        <h2 className="text-xl font-black mb-1" style={{color:"#e8edf5"}}>Choisissez votre club de cœur</h2>
+        <p className="text-xs" style={{color:"#6b7c96"}}>Aperçu · Effectif · Résultats · Prédictions AI · Ma Compo</p>
       </div>
 
       <div className="flex justify-center gap-2 mb-4">
@@ -386,70 +370,25 @@ function ClubSelector({onSelectClub, onSelectNation}:{
                 border: `1px solid ${active ? `${s.color}59` : "#1e2d42"}`,
                 color: active ? s.color : "#6b7c96",
               }}>
-              {s.id === "WC" && <Globe size={11} weight="bold" />}
               {s.label}
-              {s.hot && (
-                <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full ml-0.5"
-                  style={{ background: "#ef4444", color: "#fff" }}>
-                  HOT
-                </span>
-              )}
             </button>
           );
         })}
       </div>
 
-      {scope === "WC" ? (
-        // Group nations by tournament group for easier scanning
-        <div className="space-y-3">
-          <p className="text-[10px] text-center" style={{ color: "#6b7c96" }}>
-            Coupe du Monde 2026 · 11 juin – 19 juillet · 32 sélections
-          </p>
-          {["A","B","C","D","E","F","G","H","I","J","K","L"].map(letter => {
-            const nations = nationsInGroup(letter);
-            return (
-              <div key={letter}>
-                <p className="text-[10px] font-black uppercase tracking-widest mb-1.5 px-1"
-                  style={{ color: "#fbbf24" }}>Groupe {letter}</p>
-                <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-4 gap-2">
-                  {nations.map(n => (
-                    <button key={n.code} onClick={() => onSelectNation(n)}
-                      className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 relative"
-                      style={{ background: "#0d1421", border: "1px solid #1e2d42" }}
-                      onMouseEnter={e=>{const b=e.currentTarget as HTMLElement;b.style.borderColor="rgba(251,191,36,0.4)";b.style.background="rgba(251,191,36,0.08)";}}
-                      onMouseLeave={e=>{const b=e.currentTarget as HTMLElement;b.style.borderColor="#1e2d42";b.style.background="#0d1421";}}>
-                      {n.host && (
-                        <span className="absolute top-1 right-1 text-[8px] font-black px-1 py-0.5 rounded"
-                          style={{ background: "rgba(251,191,36,0.18)", color: "#fbbf24" }}>
-                          HÔTE
-                        </span>
-                      )}
-                      <span className="text-2xl">{n.flag}</span>
-                      <span className="text-[10px] font-semibold text-center leading-tight" style={{ color: "#e8edf5" }}>
-                        {n.name}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
-          {(scope === "FL1" ? L1_CLUBS : L2_CLUBS).map(club=>(
-            <button key={club.id} onClick={()=>onSelectClub(club)}
-              className="flex flex-col items-center gap-2 p-3 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95"
-              style={{background:"#0d1421",border:"1px solid #1e2d42"}}
-              onMouseEnter={e=>{const b=e.currentTarget as HTMLElement;b.style.borderColor=club.color;b.style.background=`${club.color}18`;}}
-              onMouseLeave={e=>{const b=e.currentTarget as HTMLElement;b.style.borderColor="#1e2d42";b.style.background="#0d1421";}}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={club.crest} alt={club.shortName} className="w-11 h-11 object-contain" loading="lazy"/>
-              <span className="text-[10px] font-semibold text-center leading-tight" style={{color:"#94a3b8"}}>{club.shortName}</span>
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
+        {(scope === "FL1" ? L1_CLUBS : L2_CLUBS).map(club=>(
+          <button key={club.id} onClick={()=>onSelectClub(club)}
+            className="flex flex-col items-center gap-2 p-3 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95"
+            style={{background:"#0d1421",border:"1px solid #1e2d42"}}
+            onMouseEnter={e=>{const b=e.currentTarget as HTMLElement;b.style.borderColor=club.color;b.style.background=`${club.color}18`;}}
+            onMouseLeave={e=>{const b=e.currentTarget as HTMLElement;b.style.borderColor="#1e2d42";b.style.background="#0d1421";}}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={club.crest} alt={club.shortName} className="w-11 h-11 object-contain" loading="lazy"/>
+            <span className="text-[10px] font-semibold text-center leading-tight" style={{color:"#94a3b8"}}>{club.shortName}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -2587,9 +2526,6 @@ function bundledFanEntry(entityId: string): FanEntry | null {
     const id = parseInt(entityId.slice(5), 10);
     return FAN_CLUBS_L1[id] ?? FAN_CLUBS_L2[id] ?? null;
   }
-  if (entityId.startsWith("nation:")) {
-    return FAN_NATIONS[entityId.slice(7)] ?? null;
-  }
   return null;
 }
 
@@ -3176,144 +3112,27 @@ function TweetMyPickCard({ text, accentColor = "#fbbf24" }: { text: string; acce
   );
 }
 
-/* ══════════════════════════════════════════ NATION DASHBOARD ══ */
-
-function NationDashboard({nation,onChange,onSwitchNation}:{nation:Nation;onChange:()=>void;onSwitchNation:(n:Nation)=>void}) {
-  const groupMates = nationsInGroup(nation.group).filter(n => n.code !== nation.code);
-  const daysToWC = Math.max(0, Math.round((WC2026_START.getTime() - Date.now()) / 86_400_000));
-
-  return (
-    <div className="space-y-4">
-      {/* Hero */}
-      <div className="rounded-2xl overflow-hidden relative"
-        style={{background:"linear-gradient(135deg, rgba(251,191,36,0.12), rgba(239,68,68,0.08))", border:"1px solid rgba(251,191,36,0.3)"}}>
-        <div className="p-4 flex items-center gap-3">
-          <div className="text-5xl">{nation.flag}</div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-              <h2 className="text-xl font-black truncate" style={{color:"#e8edf5"}}>{nation.name}</h2>
-              {nation.host && (
-                <span className="text-[9px] font-black px-1.5 py-0.5 rounded"
-                  style={{background:"rgba(251,191,36,0.2)",color:"#fbbf24"}}>HÔTE</span>
-              )}
-            </div>
-            <p className="text-[11px]" style={{color:"#94a3b8"}}>
-              Coupe du Monde 2026 · Groupe {nation.group}
-            </p>
-          </div>
-          <button onClick={onChange}
-            className="text-[10px] font-bold px-2.5 py-1.5 rounded-lg"
-            style={{background:"rgba(255,255,255,0.06)",border:"1px solid #1e2d42",color:"#94a3b8"}}>
-            Changer
-          </button>
-        </div>
-        {daysToWC > 0 && (
-          <div className="px-4 pb-3 flex items-center gap-2 text-[10px]" style={{color:"#fbbf24"}}>
-            <Calendar size={10} weight="bold"/>
-            <span className="font-black">J-{daysToWC}</span>
-            <span style={{color:"#6b7c96"}}>avant le coup d&apos;envoi</span>
-          </div>
-        )}
-      </div>
-
-      {/* Group */}
-      <div className="rounded-xl overflow-hidden" style={{border:"1px solid #1e2d42"}}>
-        <div className="px-3 py-2 flex items-center gap-2" style={{background:"#0a0f1c",borderBottom:"1px solid #1e2d42"}}>
-          <Users size={10} style={{color:"#6b7c96"}}/>
-          <span className="text-[9px] font-black uppercase tracking-widest" style={{color:"#6b7c96"}}>
-            Adversaires · Groupe {nation.group}
-          </span>
-          <span className="ml-auto text-[9px]" style={{color:"#475569"}}>cliquez pour explorer</span>
-        </div>
-        <div className="divide-y" style={{borderColor:"rgba(30,45,66,0.4)"}}>
-          {groupMates.map(n => (
-            <button key={n.code} onClick={() => onSwitchNation(n)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors"
-              style={{background:"transparent"}}
-              onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background="rgba(251,191,36,0.06)";}}
-              onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background="transparent";}}
-              aria-label={`Voir l'identité complète de ${n.name}`}>
-              <span className="text-2xl">{n.flag}</span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-semibold" style={{color:"#e8edf5"}}>{n.name}</span>
-                  {n.host && (
-                    <span className="text-[8px] font-black px-1.5 py-0.5 rounded"
-                      style={{background:"rgba(251,191,36,0.18)",color:"#fbbf24"}}>HÔTE</span>
-                  )}
-                </div>
-                <div className="text-[10px]" style={{color:"#6b7c96"}}>{n.code} · Groupe {n.group}</div>
-              </div>
-              <ArrowSquareOut size={12} weight="bold" style={{color:"#fbbf24"}}/>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Prediction CTA */}
-      <div className="rounded-xl p-4 text-center"
-        style={{background:"#0d1421",border:"1px solid #1e2d42"}}>
-        <Lightning size={20} weight="bold" style={{color:"#fbbf24"}} className="mx-auto mb-2"/>
-        <p className="text-xs font-bold mb-1" style={{color:"#e8edf5"}}>
-          Pronostics IA disponibles
-        </p>
-        <p className="text-[10px]" style={{color:"#6b7c96"}}>
-          Retrouvez les prédictions de tous les matchs de la phase de groupes
-          dans l&apos;onglet <span style={{color:"#fbbf24"}}>Coupe du Monde</span>.
-        </p>
-      </div>
-
-      {/* FanX feed — live tweets + articles first (information before directory) */}
-      <FanXFeed entityId={`nation:${nation.code}`} accentColor="#fbbf24" />
-
-      {/* Fan ecosystem — hashtags feed up top, addresses collapsed below */}
-      <FanEcosystemCard entityId={`nation:${nation.code}`} accentColor="#fbbf24" />
-
-      {/* Tweet my pick */}
-      <TweetMyPickCard
-        text={`Je supporte ${nation.flag} ${nation.name} (Groupe ${nation.group}) pour la Coupe du Monde 2026 ! #CdM2026 #FootInsider`}
-        accentColor="#fbbf24"
-      />
-    </div>
-  );
-}
-
 /* ══════════════════════════════════════════ MAIN ══ */
 
 const STORAGE_KEY="monClub_id";
-const NATION_KEY="monClub_nation";
 export default function MonClubTab() {
   const [clubId,setClubId]=useState<number|null>(null);
-  const [nationCode,setNationCode]=useState<string|null>(null);
   const [ready,setReady]=useState(false);
   useEffect(()=>{
-    const n=localStorage.getItem(NATION_KEY);
-    if(n) setNationCode(n);
-    else { const s=localStorage.getItem(STORAGE_KEY); if(s) setClubId(parseInt(s)); }
+    const s=localStorage.getItem(STORAGE_KEY);
+    if(s) setClubId(parseInt(s));
     setReady(true);
   },[]);
   const pickClub = (c:Club) => {
-    localStorage.removeItem(NATION_KEY);
     localStorage.setItem(STORAGE_KEY,String(c.id));
-    setNationCode(null);
     setClubId(c.id);
-  };
-  const pickNation = (n:Nation) => {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.setItem(NATION_KEY,n.code);
-    setClubId(null);
-    setNationCode(n.code);
   };
   const drop = () => {
     localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(NATION_KEY);
     setClubId(null);
-    setNationCode(null);
   };
   if(!ready) return <div className="flex items-center justify-center py-20"><div className="w-7 h-7 rounded-full border-2 animate-spin" style={{borderColor:"#3b82f6",borderTopColor:"transparent"}}/></div>;
   const club=ALL_CLUBS.find(c=>c.id===clubId)??null;
-  const nation=nationCode ? (NATIONS.find(n=>n.code===nationCode)??null) : null;
-  if(nation) return <NationDashboard nation={nation} onChange={drop} onSwitchNation={pickNation}/>;
-  if(club)   return <ClubDashboard club={club} onChangeClub={drop}/>;
-  return <ClubSelector onSelectClub={pickClub} onSelectNation={pickNation}/>;
+  if(club) return <ClubDashboard club={club} onChangeClub={drop}/>;
+  return <ClubSelector onSelectClub={pickClub}/>;
 }

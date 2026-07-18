@@ -2,8 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useRef, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { ArrowsClockwise, TrendUp, TrendDown, Minus, Trophy, WifiHigh, WifiSlash, Clock, Lightning, ChartBar, Shield, Pulse, Globe, GearSix, Target, ArrowsLeftRight, CaretRight, CaretLeft, Users, Lock, SignIn, SignOut, Fire, Sun, MoonStars, Television, Newspaper, Palette } from "@phosphor-icons/react";
-import { isWorldCupHot, worldCupPhase, daysUntilWorldCup } from "./lib/worldCup";
+import { ArrowsClockwise, TrendUp, TrendDown, Minus, Trophy, WifiHigh, WifiSlash, Clock, Lightning, ChartBar, Shield, Pulse, GearSix, Target, ArrowsLeftRight, CaretRight, CaretLeft, Users, Lock, SignIn, SignOut, Sun, MoonStars, Television, Newspaper, Palette } from "@phosphor-icons/react";
 import dynamic from "next/dynamic";
 const TeamPanel = dynamic(() => import("./components/TeamPanel"), { ssr: false });
 import { TipText } from "./components/Tooltip";
@@ -12,7 +11,6 @@ import EmotionalScoreTab from "./components/EmotionalScoreTab";
 import ResultsTab from "./components/ResultsTab";
 import ConfigTab from "./components/ConfigTab";
 import TransfersTab from "./components/TransfersTab";
-import WorldCupTab from "./components/WorldCupTab";
 import TVTab from "./components/TVTab";
 import MonClubTab from "./components/MonClubTab";
 import RefereesL1Tab from "./components/RefereesL1Tab";
@@ -51,7 +49,7 @@ interface StandingsData {
   updatedAt: string;
 }
 
-type TabId = "ligue1" | "ligue2" | "worldcup" | "tv" | "monclub" | "predictions" | "results" | "emotional" | "config";
+type TabId = "ligue1" | "ligue2" | "tv" | "monclub" | "predictions" | "results" | "emotional" | "config";
 type L1SubTab = "classement" | "mercato" | "joueurs" | "transfert" | "arbitres";
 
 const ZONE_CONFIG = [
@@ -551,7 +549,6 @@ const L1_SUBTABS: { id: L1SubTab; label: string; icon: React.ReactNode }[] = [
 const TABS: { id: TabId; label: string; icon: React.ReactNode; shortLabel?: string }[] = [
   { id: "ligue1",      label: "Ligue 1",            icon: <Trophy size={14} />,          shortLabel: "L1" },
   { id: "ligue2",      label: "Ligue 2",            icon: <Trophy size={14} />,          shortLabel: "L2" },
-  { id: "worldcup",    label: "Coupe du Monde",      icon: <Globe size={14} />,           shortLabel: "CdM" },
   { id: "tv",          label: "TV",                   icon: <Television size={14} />,      shortLabel: "TV" },
   { id: "monclub",     label: "Mon Club",            icon: <Shield size={14} />,          shortLabel: "Mon Club" },
   { id: "predictions", label: "AI FootPredictom",   icon: <Lightning size={14} />,             shortLabel: "AI Foot" },
@@ -905,43 +902,17 @@ export default function Home() {
           {TABS.map((t) => {
             const isProtected = (t.id === "predictions" || t.id === "emotional") && !user;
             const active = tab === t.id;
-            const isHotWC = t.id === "worldcup" && isWorldCupHot();
-            const wcPhase = isHotWC ? worldCupPhase() : "off";
-            const wcBadge = isHotWC && wcPhase === "before"
-              ? `J-${Math.max(0, daysUntilWorldCup())}`
-              : isHotWC && wcPhase === "live" ? "LIVE" : null;
             return (
               <button key={t.id} onClick={() => setTab(t.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${isHotWC ? "wc-hot-tab" : ""}`}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex-shrink-0"
                 style={{
-                  background: isHotWC
-                    ? (active
-                        ? "linear-gradient(135deg, rgba(251,191,36,0.18), rgba(239,68,68,0.18))"
-                        : "linear-gradient(135deg, rgba(251,191,36,0.08), rgba(239,68,68,0.08))")
-                    : active ? "rgba(255,255,255,0.07)" : "transparent",
-                  color: isHotWC ? "#fbbf24" : active ? "#e2e8f0" : "#64748b",
-                  border: isHotWC
-                    ? `1px solid ${active ? "rgba(251,191,36,0.5)" : "rgba(251,191,36,0.3)"}`
-                    : active ? "1px solid rgba(255,255,255,0.08)" : "1px solid transparent",
-                  boxShadow: isHotWC ? "0 0 12px rgba(251,191,36,0.18)" : undefined,
+                  background: active ? "rgba(255,255,255,0.07)" : "transparent",
+                  color: active ? "#e2e8f0" : "#64748b",
+                  border: active ? "1px solid rgba(255,255,255,0.08)" : "1px solid transparent",
                 }}>
-                {isHotWC ? <Fire size={14} weight="fill" style={{ color: "#fbbf24" }} /> : t.icon}
+                {t.icon}
                 <span className="hidden sm:inline">{t.label}</span>
                 <span className="sm:hidden">{t.shortLabel ?? t.label}</span>
-                {wcBadge && (
-                  <span className="ml-1 text-[9px] font-black px-1.5 py-0.5 rounded-full"
-                    style={{
-                      background: wcPhase === "live" ? "#ef4444" : "rgba(251,191,36,0.2)",
-                      color: wcPhase === "live" ? "#fff" : "#fbbf24",
-                      border: wcPhase === "live" ? "none" : "1px solid rgba(251,191,36,0.4)",
-                    }}>
-                    {wcPhase === "live" && (
-                      <span className="inline-block w-1 h-1 rounded-full mr-1 align-middle"
-                        style={{ background: "#fff", animation: "wc-pulse 1.2s ease-in-out infinite" }} />
-                    )}
-                    {wcBadge}
-                  </span>
-                )}
                 {isProtected && <Lock size={9} style={{ color: "#475569", marginLeft: 1 }} />}
               </button>
             );
@@ -1104,7 +1075,6 @@ export default function Home() {
           </div>
         )}
 
-        {tab === "worldcup" && <WorldCupTab />}
         {tab === "tv" && <TVTab />}
         {tab === "monclub" && <MonClubTab />}
         {tab === "predictions" && (user ? <PredictionsTab /> : <AuthGate label="AI FootPredictom" icon={<Lightning size={16} className="inline" style={{ color: "#3b82f6" }} />} />)}
