@@ -88,7 +88,7 @@ export default function HeroArticle({ issue }: { issue: Issue }) {
               <em>Signature&nbsp;:</em> {hero.player.signature.toLowerCase().replace(/^le |^la |^l['']/, "")}. {hero.player.paragraph.split(". ").slice(1).join(". ")}
             </p>
             <p style={{ marginTop: 18 }}>
-              Le tournoi commence le 11 juin. D&apos;ici là, le débat tactique attendra. Le débat narratif, lui, est déjà ouvert — et il s&apos;écrit
+              La saison avance. Le débat tactique attendra. Le débat narratif, lui, est déjà ouvert — et il s&apos;écrit
               dans les colonnes qui suivent.
             </p>
           </div>

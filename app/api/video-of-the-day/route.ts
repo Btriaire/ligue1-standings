@@ -13,7 +13,6 @@ const VIDEO_ACCOUNTS = [
   "GoalFR",
   "lequipe",
   "EquipedeFrance",
-  "FIFAWorldCup",
   "OptaJean",
   "BBCSport",
   "footmercato",

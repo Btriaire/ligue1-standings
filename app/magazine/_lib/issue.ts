@@ -14,7 +14,37 @@
 // Acceptable trade-off — the alternative is a snapshot DB which is out of
 // scope for an editorial side feature.
 
-import { ROSTER, ROSTER_BY_IMPACT, CONTRIBUTORS, type MagazinePlayer } from "./roster";
+export interface MagazinePlayer {
+  name: string; club: string; nat: string; flag: string;
+  age: number; impact: number;
+  byline: string; signature: string; pullQuote: string; paragraph: string;
+}
+
+const ROSTER: MagazinePlayer[] = [
+  { name:"Kylian Mbappé",       club:"Real Madrid",     nat:"France",       flag:"🇫🇷", age:25, impact:99, byline:"Antoine Leblanc",  signature:"Le météore tricolore",         pullQuote:"« Je ne joue pas pour les statistiques. Je joue pour gagner. »",                                    paragraph:"À vingt-cinq ans, Kylian Mbappé porte déjà l'histoire d'un football entier. Son départ au Real Madrid a refermé un chapitre français — et ouvert un roman madrilène que l'Europe observe, fascinée." },
+  { name:"Antoine Griezmann",   club:"Atlético Madrid", nat:"France",       flag:"🇫🇷", age:33, impact:91, byline:"Claire Durand",     signature:"Le passeur magnétique",        pullQuote:"« La pression, c'est quand tu n'as pas travaillé suffisamment. »",                                  paragraph:"Griezmann vieillit comme les grands vins. À l'Atlético, il est devenu l'architecte discret d'une équipe qui ne gagne pas sans lui — et qui ne le dit pas toujours assez fort." },
+  { name:"Ousmane Dembélé",     club:"Paris SG",        nat:"France",       flag:"🇫🇷", age:27, impact:88, byline:"Marc Fontaine",     signature:"L'électron libre",             pullQuote:"« Quand je cours, je ne pense à rien. C'est ça le bonheur. »",                                     paragraph:"Dembélé a mis du temps à trouver sa vitesse de croisière. Désormais au PSG, il joue avec la sérénité de celui qui a prouvé quelque chose — à lui-même d'abord." },
+  { name:"Eduardo Camavinga",   club:"Real Madrid",     nat:"France",       flag:"🇫🇷", age:21, impact:86, byline:"Sophie Arnaud",     signature:"Le maestro en devenir",        pullQuote:"« J'apprends encore. Je préfère ça. »",                                                            paragraph:"Il a vingt et un ans et joue des finales de Ligue des Champions comme d'autres jouent des matchs de préparation. Camavinga est une anomalie tranquille — et l'avenir du milieu français." },
+  { name:"Bukayo Saka",         club:"Arsenal",         nat:"Angleterre",   flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", age:22, impact:90, byline:"James Carter",     signature:"Le talisman d'Arsenal",        pullQuote:"« L'équipe avant tout, toujours. »",                                                              paragraph:"Saka est devenu l'âme d'Arsenal en silence. À vingt-deux ans, il incarne ce que le foot a de plus rare : la régularité au plus haut niveau sans jamais une ligne fanfaronne." },
+  { name:"Rodri",               club:"Manchester City", nat:"Espagne",      flag:"🇪🇸", age:27, impact:95, byline:"Luis Fernández",    signature:"Le métronome mondial",         pullQuote:"« Sans équilibre, pas de victoire. C'est mathématique. »",                                         paragraph:"Rodri a gagné le Ballon d'Or et la Ligue des Champions. Plus impressionnant encore : il l'a fait en rendant ses coéquipiers meilleurs à chaque rotation de cheville." },
+  { name:"Jude Bellingham",     club:"Real Madrid",     nat:"Angleterre",   flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", age:20, impact:93, byline:"Emma Wilson",      signature:"La révolution en bottes",      pullQuote:"« Je suis là pour marquer l'histoire, pas pour l'observer. »",                                    paragraph:"À vingt ans, Bellingham fait peur. Au Real Madrid, il n'a pas attendu d'être accepté — il s'est imposé. L'Angleterre regarde, le monde note, Madrid jubile." },
+  { name:"Vinicius Jr",         club:"Real Madrid",     nat:"Brésil",       flag:"🇧🇷", age:23, impact:94, byline:"Carlos Mendes",     signature:"La samba au sommet",           pullQuote:"« Mon football, c'est de la joie. On ne peut pas l'éteindre. »",                                   paragraph:"Vinicius a transformé le droit au bonheur en arme tactique. Ses dribbles ne sont pas des fioritures — ce sont des décisions prises à une vitesse que les défenseurs ne compilent pas encore." },
+  { name:"Lautaro Martínez",    club:"Inter Milan",     nat:"Argentine",    flag:"🇦🇷", age:26, impact:89, byline:"Pablo Reyes",       signature:"La pince de l'Inter",          pullQuote:"« Je marque pour gagner, pas pour être commenté. »",                                               paragraph:"Dans l'ombre de Messi pendant longtemps, Lautaro a choisi l'Inter pour exister seul. Il y est devenu champion d'Italie, buteur prolifique, et capitaine d'une équipe qui lui ressemble : efficace et discrète." },
+  { name:"Pedri",               club:"Barcelone",       nat:"Espagne",      flag:"🇪🇸", age:22, impact:87, byline:"Marta Casals",      signature:"L'héritier de la Masia",       pullQuote:"« Le football, c'est du tempo. Tout le reste suit. »",                                             paragraph:"Pedri joue avec cinquante ans de philosophie barcelonaise dans les pieds. À vingt-deux ans, il porte le poids d'un héritage sans le courber — ce qui, en soi, est déjà un exploit." },
+  { name:"Erling Haaland",      club:"Manchester City", nat:"Norvège",      flag:"🇳🇴", age:23, impact:96, byline:"Lars Eriksen",      signature:"La machine nordique",          pullQuote:"« Je dors, je mange, je marque. »",                                                                paragraph:"Haaland ne joue pas au football. Il l'industrialise. Ses statistiques sont indécentes, son calme sous pression est clinique, et son sourire après chaque but ressemble à une confirmation qu'on attendait." },
+  { name:"Phil Foden",          club:"Manchester City", nat:"Angleterre",   flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", age:24, impact:88, byline:"Tom Bradley",      signature:"Le génie de Stockport",        pullQuote:"« La balle ne ment pas. Elle va où tu veux qu'elle aille. »",                                     paragraph:"Foden a grandi dans l'ombre de Guardiola et de joueurs deux fois Ballon d'Or. Il en a tiré le meilleur : un style reconnaissable entre mille, une maturité précoce, et la capacité de décider un match en trente secondes." },
+  { name:"Oumar Diallo",        club:"Rennes",          nat:"France",       flag:"🇫🇷", age:20, impact:78, byline:"Nicolas Verdier",   signature:"La pépite bretonne",           pullQuote:"« Rennes m'a donné ma chance. Je n'oublierai pas. »",                                              paragraph:"Dans le championnat de France, Diallo incarne une génération qui ne veut plus attendre. À vingt ans, ses accélérations sur le flanc gauche sont devenues l'une des choses les plus excitantes à regarder en Ligue 1." },
+  { name:"Alexandre Lacazette",  club:"Lyon",            nat:"France",       flag:"🇫🇷", age:32, impact:82, byline:"Céline Morin",      signature:"Le capitaine revenu",          pullQuote:"« J'aurais pu partir. J'ai choisi de rester. Lyon, c'est chez moi. »",                             paragraph:"Lacazette n'avait pas à revenir. Il l'a fait, et il a mis l'OL sur ses épaules. Capitaine, buteur, leader — à trente-deux ans, il joue avec une liberté que seuls les joueurs réconciliés avec eux-mêmes atteignent." },
+  { name:"Loïc Badé",           club:"Séville",         nat:"France",       flag:"🇫🇷", age:24, impact:80, byline:"Thomas Guérin",     signature:"La forteresse française",      pullQuote:"« Défendre, c'est lire. Pas seulement courir. »",                                                  paragraph:"Badé n'a pas suivi le chemin classique. Passé par l'Angleterre, revenu en Liga, il s'est construit bloc par bloc. Aujourd'hui, il est l'un des défenseurs les plus bankables du marché européen." },
+];
+
+const ROSTER_BY_IMPACT = [...ROSTER].sort((a, b) => b.impact - a.impact);
+
+const CONTRIBUTORS = [
+  "Antoine Leblanc", "Claire Durand", "Marc Fontaine", "Sophie Arnaud",
+  "Nicolas Verdier", "Céline Morin", "Thomas Guérin", "Julie Marest",
+  "Raphaël Conte", "Lise Bertrand",
+];
 
 // Issue zero — the day on which we "launched" the magazine. Issue number
 // is `daysSince(START_DATE) + 1`. May 23 2026 sits roughly at #143 with a
@@ -137,48 +167,6 @@ const TV_HEADLINES = [
   "Ce que regarde la rédaction, ce soir",
 ];
 
-const WC_STORYLINES = [
-  {
-    title: "Le groupe F, ou la France sans le filet",
-    teaser:
-      "Tirée avec l'Arabie Saoudite, la Suisse et l'Algérie, l'équipe de France entame son tournoi sans le confort d'un adversaire balayable. Récit d'une poule qu'on n'a pas vue venir.",
-  },
-  {
-    title: "Pourquoi l'Espagne fait peur",
-    teaser:
-      "Championne d'Europe, plus jeune effectif des grandes nations, milieu trois-étoiles : la Roja arrive en favorite à demi-mots. Analyse d'un consensus qui ne s'avoue pas.",
-  },
-  {
-    title: "Brésil : la fin d'un règne ou le retour des origines ?",
-    teaser:
-      "Cinq Coupes du Monde, aucune depuis 2002. Vingt-quatre ans plus tard, la Seleção arrive avec un onze refondu, deux ailiers et un mythe à reconquérir.",
-  },
-  {
-    title: "L'outsider qui ne se cache plus : Maroc, suite",
-    teaser:
-      "Demi-finaliste en 2022, qualifié sans trembler en 2026. La sélection de Walid Regragui n'est plus une révélation. Reste à savoir ce qu'elle peut devenir.",
-  },
-  {
-    title: "Les hôtes peuvent-ils ?",
-    teaser:
-      "USA, Canada, Mexique : trois pays organisateurs, trois trajectoires distinctes. Décryptage de ce qui rend cette CdM-là, pour la première fois, vraiment continentale.",
-  },
-  {
-    title: "L'Allemagne, l'épreuve du regard",
-    teaser:
-      "Mannschaft refondu, Wirtz en chef d'orchestre, un sélectionneur sous pression : l'Allemagne n'a plus le droit à un deuxième échec consécutif. Analyse d'une équipe sur la corde.",
-  },
-  {
-    title: "L'Angleterre, ou le poids de la couronne",
-    teaser:
-      "Trois quarts, deux demi, une finale en quatre tournois. Pour les Three Lions, le seul résultat encore acceptable s'écrit en cinq lettres : f-i-n-a-l-e. Et après ?",
-  },
-  {
-    title: "Comment l'Argentine se réinvente sans Messi",
-    teaser:
-      "L'Albiceleste a longtemps été un mode d'emploi : un homme, dix joueurs autour. Le titre 2022 doit désormais s'écrire sans son rédacteur en chef. Premier épisode.",
-  },
-];
 
 const PRONO_BLURBS = [
   "L'équilibre tactique sera dicté par le couloir droit, comme souvent dans ce type de configuration. Le différentiel d'expected goals sur les trente dernières journées suggère un scénario serré.",
@@ -222,12 +210,6 @@ export interface Issue {
     rubrique: string;
     title: string;
     byline: string;
-  };
-  // WC dossier
-  dossier: {
-    storyA: { title: string; teaser: string; byline: string; rubrique: string };
-    storyB: { title: string; teaser: string; byline: string; rubrique: string };
-    storyC: { title: string; teaser: string; byline: string; rubrique: string };
   };
   // Footer / signage
   editorial: {
@@ -281,13 +263,6 @@ export function generateIssue(date: Date): Issue {
   const portraitPool = ROSTER_BY_IMPACT.filter(p => p.name !== hero.name).slice(0, 14);
   const portrait = pick(rng, portraitPool);
 
-  // Two WC storylines distinct from each other.
-  const idxA = Math.floor(rng() * WC_STORYLINES.length);
-  let idxB = Math.floor(rng() * WC_STORYLINES.length);
-  if (idxB === idxA) idxB = (idxB + 1) % WC_STORYLINES.length;
-  let idxC = Math.floor(rng() * WC_STORYLINES.length);
-  if (idxC === idxA || idxC === idxB) idxC = (idxC + 2) % WC_STORYLINES.length;
-
   // Editorial team (rotates daily so credit lines feel alive).
   const shuffled = [...CONTRIBUTORS].sort(() => rng() - 0.5);
 
@@ -330,12 +305,6 @@ export function generateIssue(date: Date): Issue {
       rubrique: "AGENDA",
       title: pick(rng, TV_HEADLINES),
       byline: pick(rng, RUBRIQUES) === "ENQUÊTE" ? "La rédaction" : pick(rng, CONTRIBUTORS),
-    },
-
-    dossier: {
-      storyA: { ...WC_STORYLINES[idxA], byline: pick(rng, CONTRIBUTORS), rubrique: pick(rng, RUBRIQUES) },
-      storyB: { ...WC_STORYLINES[idxB], byline: pick(rng, CONTRIBUTORS), rubrique: pick(rng, RUBRIQUES) },
-      storyC: { ...WC_STORYLINES[idxC], byline: pick(rng, CONTRIBUTORS), rubrique: pick(rng, RUBRIQUES) },
     },
 
     editorial: {
