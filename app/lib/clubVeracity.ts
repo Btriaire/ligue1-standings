@@ -24,18 +24,18 @@ export const WIKI_TITLES: Record<number, string> = {
   532:  "Angers SCO",
   533:  "Le Havre AC",
   519:  "AJ Auxerre",
-  543:  "FC Nantes",
-  545:  "FC Metz",
+  531:  "Espérance sportive Troyes Aube Champagne",
+  535:  "Le Mans Football Club",
   525:  "FC Lorient",
   1045: "Paris FC",
   // ── Ligue 2 ──
-  10242: "Espérance sportive Troyes Aube Champagne",
+  543:  "FC Nantes",
+  545:  "FC Metz",
   9853:  "Association sportive de Saint-Étienne",
   9837:  "Stade de Reims",
   10249: "Montpellier Hérault Sport Club",
   8311:  "Clermont Foot 63",
   9747:  "En Avant Guingamp",
-  8682:  "Le Mans Football Club",
   6390:  "Red Star Football Club",
   4120:  "Rodez Aveyron Football",
   293352:"Football Club d'Annecy",
@@ -45,8 +45,8 @@ export const WIKI_TITLES: Record<number, string> = {
   8481:  "AS Nancy-Lorraine",
   4170:  "Union sportive Boulogne Côte d'Opale",
   7853:  "Stade lavallois Mayenne FC",
-  7794:  "Sporting Club de Bastia",
-  8587:  "Amiens SC",
+  10174: "Dijon Football Côte-d'Or",
+  9807:  "FC Sochaux-Montbéliard",
 };
 
 interface ParseResponse {
