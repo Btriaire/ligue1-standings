@@ -555,7 +555,7 @@ export const CLUB_PROFILES_L2: Record<number, ClubProfile> = {
     stade: { nom: "Stade de la Mosson", capacite: "32 939", inauguration: 1972, photo: "Stade_de_la_Mosson_Montpellier.jpg" },
     president: "Laurent Nicollin", presidentDepuis: 2017,
     actionnaire: "Famille Nicollin (Groupe Nicollin)",
-    directeurSportif: "Bruno Carotti", entraineur: "Zoumana Camara",
+    directeurSportif: "Antoine Di Fraya (intérim)", entraineur: "Zoumana Camara",
     forme: "SASP", siege: "Stade de la Mosson, 34080 Montpellier",
     ca: "~55 M€", employes: "~100", dette: "~12 M€", billetterie: "~6 M€", droitsTv: "~14 M€",
     equipementier: "Nike", sponsorMaillot: "GSF",
