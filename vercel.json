@@ -21,8 +21,8 @@
       "schedule": "0 7 * * 1"
     },
     {
-      "path": "/api/cron/post-wc-prediction",
-      "schedule": "0 9 * * *"
+      "path": "/api/cron/refresh-l2",
+      "schedule": "0 5 * * *"
     }
   ]
 }

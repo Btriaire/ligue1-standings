@@ -29,8 +29,8 @@ export const WIKI_TITLES: Record<number, string> = {
   525:  "FC Lorient",
   1045: "Paris FC",
   // ── Ligue 2 ──
-  543:  "FC Nantes",
-  545:  "FC Metz",
+  9830:  "FC Nantes",
+  8550:  "FC Metz",
   9853:  "Association sportive de Saint-Étienne",
   9837:  "Stade de Reims",
   10249: "Montpellier Hérault Sport Club",
@@ -45,8 +45,8 @@ export const WIKI_TITLES: Record<number, string> = {
   8481:  "AS Nancy-Lorraine",
   4170:  "Union sportive Boulogne Côte d'Opale",
   7853:  "Stade lavallois Mayenne FC",
-  10174: "Dijon Football Côte-d'Or",
-  9807:  "FC Sochaux-Montbéliard",
+  9836:  "Dijon Football Côte-d'Or",
+  9874:  "FC Sochaux-Montbéliard",
 };
 
 interface ParseResponse {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchFotMobLigue2, fotmobCrest, fotmobFormString } from "@/app/lib/fotmob";
+import { fetchFotMobLigue2, fotmobTableToStandings } from "@/app/lib/fotmob";
+import { readL2StandingsSnapshot } from "@/app/lib/l2Snapshot";
 import type { Standing } from "@/app/lib/types";
 
 export const revalidate = 60; // revalidate every 60s
@@ -64,28 +65,7 @@ export async function GET(req: NextRequest) {
   if (competition === "FL2") {
     try {
       const fm = await fetchFotMobLigue2();
-      const standings = fm.table.map((entry) => {
-        const [gf, ga] = entry.scoresStr.split("-").map((n) => parseInt(n, 10) || 0);
-        return {
-          position: entry.idx,
-          team: {
-            id: entry.id,
-            name: entry.name,
-            shortName: entry.shortName,
-            tla: entry.shortName.slice(0, 3).toUpperCase(),
-            crest: fotmobCrest(entry.id),
-          },
-          playedGames: entry.played,
-          won: entry.wins,
-          draw: entry.draws,
-          lost: entry.losses,
-          points: entry.pts,
-          goalsFor: gf,
-          goalsAgainst: ga,
-          goalDifference: entry.goalConDiff,
-          form: fotmobFormString(fm.teamForm[String(entry.id)]),
-        };
-      });
+      const standings = fotmobTableToStandings(fm);
       return NextResponse.json({
         standings,
         season: null,
@@ -95,6 +75,21 @@ export async function GET(req: NextRequest) {
       });
     } catch (err) {
       console.error("FotMob L2 standings error:", err);
+      // Live scrape failed (FotMob changed shape, blocked us, timed out…) —
+      // fall back to the daily Firestore snapshot instead of going blank.
+      // See app/lib/l2Snapshot.ts + /api/cron/refresh-l2.
+      const snapshot = await readL2StandingsSnapshot();
+      if (snapshot) {
+        return NextResponse.json({
+          standings: snapshot.standings,
+          season: null,
+          competition,
+          source: "fotmob-cache",
+          stale: true,
+          updatedAt: snapshot.updatedAt,
+          error: "Classement Ligue 2 en direct indisponible — dernière version connue affichée.",
+        });
+      }
       return NextResponse.json({
         standings: [],
         season: null,
