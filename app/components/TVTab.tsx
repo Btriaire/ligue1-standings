@@ -17,6 +17,7 @@ import {
   REGION_LABELS,
   defaultBroadcasters,
   groupByRegion,
+  palamaTvLink,
   type Broadcaster,
   type Competition,
 } from "@/app/lib/broadcasts";
@@ -66,28 +67,33 @@ function resolveBroadcasters(competition: Competition, override: string[] | unde
 }
 
 function ChannelChip({ b }: { b: Broadcaster }) {
+  const watchNow = !!b.palamaChannel;
   const inner = (
     <span
       className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold whitespace-nowrap"
       style={{
-        background: b.free
-          ? "rgba(34,197,94,0.10)"
-          : b.streaming
-            ? "rgba(168,139,250,0.08)"
-            : "rgba(255,255,255,0.04)",
-        color: b.free ? "#22c55e" : b.streaming ? "#a78bfa" : "#cbd5e1",
-        border: `1px solid ${b.free ? "rgba(34,197,94,0.25)" : b.streaming ? "rgba(168,139,250,0.2)" : "rgba(255,255,255,0.06)"}`,
+        background: watchNow
+          ? "rgba(0,212,255,0.10)"
+          : b.free
+            ? "rgba(34,197,94,0.10)"
+            : b.streaming
+              ? "rgba(168,139,250,0.08)"
+              : "rgba(255,255,255,0.04)",
+        color: watchNow ? "#00d4ff" : b.free ? "#22c55e" : b.streaming ? "#a78bfa" : "#cbd5e1",
+        border: `1px solid ${watchNow ? "rgba(0,212,255,0.3)" : b.free ? "rgba(34,197,94,0.25)" : b.streaming ? "rgba(168,139,250,0.2)" : "rgba(255,255,255,0.06)"}`,
       }}
-      title={b.free ? "Chaîne gratuite" : b.streaming ? "Streaming" : undefined}
+      title={watchNow ? "Regarder en direct sur Palama-TV" : b.free ? "Chaîne gratuite" : b.streaming ? "Streaming" : undefined}
     >
-      {b.free && <Sparkle size={8} weight="fill" />}
-      {b.streaming && !b.free && <Television size={8} weight="fill" />}
+      {watchNow && <Television size={8} weight="fill" />}
+      {!watchNow && b.free && <Sparkle size={8} weight="fill" />}
+      {!watchNow && b.streaming && !b.free && <Television size={8} weight="fill" />}
       {b.name}
-      {b.url && <ArrowSquareOut size={8} weight="bold" style={{ opacity: 0.55 }} />}
+      {(b.url || watchNow) && <ArrowSquareOut size={8} weight="bold" style={{ opacity: 0.55 }} />}
     </span>
   );
-  return b.url
-    ? <a href={b.url} target="_blank" rel="noopener noreferrer" data-keep-color className="hover:opacity-80 transition-opacity">{inner}</a>
+  const href = b.palamaChannel ? palamaTvLink(b.palamaChannel) : b.url;
+  return href
+    ? <a href={href} target="_blank" rel="noopener noreferrer" data-keep-color className="hover:opacity-80 transition-opacity">{inner}</a>
     : inner;
 }
 
