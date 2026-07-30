@@ -42,6 +42,24 @@ export interface Broadcaster {
   streaming?: boolean;
   /** Watch URL or launch deep link (optional). */
   url?: string;
+  /** Exact live-channel name on Palama-TV's Xtream catalog, when this
+   *  broadcaster maps 1:1 to a single always-on channel there (verified by
+   *  hand against the catalog — see palamaTvLink()). Renders a "regarder en
+   *  direct" deep link that takes priority over `url`, since it's an actual
+   *  watch-now action rather than a link to the broadcaster's homepage.
+   *  Omit when there's no reliable single channel (e.g. "Ligue 1+" splits
+   *  into several per-timeslot channels with no canonical live feed). */
+  palamaChannel?: string;
+}
+
+// Palama-TV (iptv-webapp) — Bruno's personal multi-source IPTV app. It reads
+// a `?tune=<channel name>` query param on load and auto-tunes to the closest
+// matching live channel by name (see public/js/app.js: checkTuneParam()).
+const PALAMA_TV_BASE = "https://iptv-webapp-five.vercel.app";
+
+/** Build a "watch now" deep link into Palama-TV for a given live channel name. */
+export function palamaTvLink(channelName: string): string {
+  return `${PALAMA_TV_BASE}/?tune=${encodeURIComponent(channelName)}`;
 }
 
 export const REGION_FLAGS: Record<Region, string> = {
@@ -84,9 +102,12 @@ export const REGION_LABELS: Record<Region, string> = {
 //   • CBS Sports (US), TSN (Canada), DAZN (Germany/Italy/Spain), GOL TV (BR).
 
 const LIGUE1_DEFAULT: Broadcaster[] = [
+  // Pas de palamaChannel pour Ligue 1+ : le catalogue Palama-TV le découpe en
+  // plusieurs chaînes par créneau (Vendredi/Samedi/Dimanche 1er-4e match,
+  // Multiplex) sans chaîne "Ligue1+" canonique unique — voir palamaTvLink().
   { name: "Ligue 1+",      region: "FR", streaming: true, url: "https://www.ligue1.fr/ligue1plus" },
-  { name: "beIN Sports 1", region: "FR" },
-  { name: "Canal+ Foot",   region: "FR", url: "https://www.canalplus.com" }, // affiche du dimanche soir
+  { name: "beIN Sports 1", region: "FR", palamaChannel: "beIN Sports 1" },
+  { name: "Canal+ Foot",   region: "FR", url: "https://www.canalplus.com", palamaChannel: "Canal+ Foot" }, // affiche du dimanche soir
   { name: "TSN+",          region: "CA", streaming: true },
   { name: "CBS Sports",    region: "US", streaming: true },
   { name: "DAZN",          region: "DE", streaming: true },
@@ -98,7 +119,7 @@ const LIGUE1_DEFAULT: Broadcaster[] = [
 // — most countries don't carry L2 live; FotMob/365Scores apps stream highlights.
 
 const LIGUE2_DEFAULT: Broadcaster[] = [
-  { name: "beIN Sports 2", region: "FR" },
+  { name: "beIN Sports 2", region: "FR", palamaChannel: "beIN Sports 2" },
   { name: "beIN CONNECT",  region: "FR", streaming: true, url: "https://www.beinsports.com/fr" },
   { name: "Multisports beIN", region: "FR" },
   { name: "FotMob",        region: "INT", streaming: true, url: "https://www.fotmob.com" }, // résumés + commentaire live
