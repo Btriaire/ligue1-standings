@@ -52,17 +52,21 @@ const SUB_TABS: { id: SubTab; label: string; emoji: string; color: string }[] = 
 /** Join per-competition default channels with per-match overrides. Override
  *  channels (when set on a WC fixture) take precedence at the top of the list
  *  — they're the canonical broadcasters for that specific match. The default
- *  channels fill in below to provide an international view too. */
+ *  channels fill in below to provide an international view too.
+ *
+ *  `matchSpecific` broadcasters (e.g. beIN Sports 1's Saturday-17h slot,
+ *  Canal+ Foot's Sunday-night "affiche") are excluded from the tail UNLESS
+ *  this exact match's override names them — otherwise every match would
+ *  falsely appear to air on every slot-specific channel. */
 function resolveBroadcasters(competition: Competition, override: string[] | undefined): Broadcaster[] {
   const defaults = defaultBroadcasters(competition);
-  if (!override || override.length === 0) return defaults;
-  // Pull overrides to the front in the order they were declared.
+  const overrideNames = new Set(override ?? []);
   const byName = new Map(defaults.map(b => [b.name, b] as const));
-  const head: Broadcaster[] = override
+  const head: Broadcaster[] = (override ?? [])
     .map(name => byName.get(name) ?? { name, region: "FR" as const })
     .filter(Boolean);
   const headNames = new Set(head.map(b => b.name));
-  const tail = defaults.filter(b => !headNames.has(b.name));
+  const tail = defaults.filter(b => !headNames.has(b.name) && !(b.matchSpecific && !overrideNames.has(b.name)));
   return [...head, ...tail];
 }
 
