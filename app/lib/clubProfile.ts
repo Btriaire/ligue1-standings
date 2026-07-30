@@ -92,8 +92,8 @@ const STADIUM_PHOTO_URLS: Record<number, string> = {
   532:  "https://upload.wikimedia.org/wikipedia/commons/f/fb/Stade_Jean_Bouin_Angers_2.JPG",
   533:  "https://upload.wikimedia.org/wikipedia/commons/9/96/Stade_Oc%C3%A9ane_nuit.jpg",
   519:  "https://upload.wikimedia.org/wikipedia/commons/9/91/Stade_de_l%27Abb%C3%A9_Deschamps.png",
-  543:  "https://upload.wikimedia.org/wikipedia/commons/1/17/Stade_de_la_Beaujoire.jpg",
-  545:  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Match_Football_FC_Metz_x_FC_Nantes_-_Stade_Saint_Symphorien_-_Longeville-l%C3%A8s-Metz_%28FR57%29_-_2022-02-27_-_16.jpg/3840px-Match_Football_FC_Metz_x_FC_Nantes_-_Stade_Saint_Symphorien_-_Longeville-l%C3%A8s-Metz_%28FR57%29_-_2022-02-27_-_16.jpg",
+  9830: "https://upload.wikimedia.org/wikipedia/commons/1/17/Stade_de_la_Beaujoire.jpg",
+  8550: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Match_Football_FC_Metz_x_FC_Nantes_-_Stade_Saint_Symphorien_-_Longeville-l%C3%A8s-Metz_%28FR57%29_-_2022-02-27_-_16.jpg/3840px-Match_Football_FC_Metz_x_FC_Nantes_-_Stade_Saint_Symphorien_-_Longeville-l%C3%A8s-Metz_%28FR57%29_-_2022-02-27_-_16.jpg",
   525:  "https://upload.wikimedia.org/wikipedia/commons/b/b1/Stade_du_Moustoir.jpg",
   1045: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Paris_Stade_S%C3%A9bastien_Charl%C3%A9ty.jpg/3840px-Paris_Stade_S%C3%A9bastien_Charl%C3%A9ty.jpg",
   546:  "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Stade_Bollaert-Delelis_Lens.jpg/1200px-Stade_Bollaert-Delelis_Lens.jpg",
@@ -418,8 +418,8 @@ export const CLUB_PROFILES_L1: Record<number, ClubProfile> = {
     palmares: ["1× Ligue 1 (1996)", "4× Coupe de France"],
     sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }],
   },
-  543: {
-    id: 543, name: "FC Nantes", shortName: "Nantes", league: "L2",
+  9830: {
+    id: 9830, name: "FC Nantes", shortName: "Nantes", league: "L2",
     surnom: "Les Canaris", fondation: 1943,
     ville: "Nantes", region: "Pays de la Loire", population: "320 732 hab.",
     couleurs: { primary: "#ffd700", secondary: "#00671c" },
@@ -434,15 +434,15 @@ export const CLUB_PROFILES_L1: Record<number, ClubProfile> = {
     palmares: ["8× Ligue 1", "4× Coupe de France (2022)"],
     sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }],
   },
-  545: {
-    id: 545, name: "FC Metz", shortName: "Metz", league: "L2",
+  8550: {
+    id: 8550, name: "FC Metz", shortName: "Metz", league: "L2",
     surnom: "Les Grenats", fondation: 1932,
     ville: "Metz", region: "Grand Est", population: "117 492 hab.",
     couleurs: { primary: "#8b0000", secondary: "#000000" },
     stade: { nom: "Stade Saint-Symphorien", capacite: "30 000", inauguration: 1923, photo: "Stade_Saint_Symphorien_Metz.jpg" },
     president: "Bernard Serin", presidentDepuis: 2009,
     actionnaire: "Bernard Serin (CMI France)",
-    directeurSportif: "Pierre Dréossi", entraineur: "Benoît Tavenot",
+    directeurSportif: "Pierre Dréossi", entraineur: "Luc Holtz",
     forme: "SASP", siren: "384 233 417",
     siege: "Stade Saint-Symphorien, 57050 Metz",
     ca: "~35 M€", employes: "~65", dette: "~5 M€", billetterie: "~4 M€", droitsTv: "~22 M€",
@@ -727,8 +727,8 @@ export const CLUB_PROFILES_L2: Record<number, ClubProfile> = {
     palmares: ["1× Champion L2 (1976)"],
     sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }],
   },
-  10174: {
-    id: 10174, name: "Dijon FCO", shortName: "Dijon", league: "L2",
+  9836: {
+    id: 9836, name: "Dijon FCO", shortName: "Dijon", league: "L2",
     surnom: "Le DFCO", fondation: 1998,
     ville: "Dijon", region: "Bourgogne-Franche-Comté", population: "155 090 hab.",
     couleurs: { primary: "#e10600", secondary: "#ffffff" },
@@ -742,8 +742,8 @@ export const CLUB_PROFILES_L2: Record<number, ClubProfile> = {
     palmares: ["1× promu en L1 (2011, 2016, 2018)", "Champion National 2024"],
     sources: [{ label: "DNCG 2023", url: "https://www.lnfp.fr/dncg" }],
   },
-  9807: {
-    id: 9807, name: "FC Sochaux-Montbéliard", shortName: "Sochaux", league: "L2",
+  9874: {
+    id: 9874, name: "FC Sochaux-Montbéliard", shortName: "Sochaux", league: "L2",
     surnom: "Les Lions", fondation: 1925,
     ville: "Montbéliard", region: "Bourgogne-Franche-Comté", population: "26 079 hab.",
     couleurs: { primary: "#ffcc00", secondary: "#004c96" },

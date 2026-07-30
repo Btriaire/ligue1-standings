@@ -113,14 +113,37 @@ function parseNextData(html: string): NextDataShape | null {
   }
 }
 
-async function fetchPage(url: string): Promise<string> {
-  const res = await fetch(url, {
-    headers: HEADERS,
-    signal: AbortSignal.timeout(10000),
-    next: { revalidate: 1800 },
-  } as RequestInit);
-  if (!res.ok) throw new Error(`FotMob ${url} → ${res.status}`);
-  return res.text();
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+// FotMob occasionally 403/429/503s a single request (rate limiting, transient
+// edge blip) without the page actually having changed shape — a blind retry
+// clears most of these. Only retries on likely-transient failures; a 404 or
+// a persistently malformed page won't get better by trying again.
+const RETRYABLE_STATUS = new Set([403, 429, 500, 502, 503, 504]);
+
+async function fetchPage(url: string, attempt = 1): Promise<string> {
+  try {
+    const res = await fetch(url, {
+      headers: HEADERS,
+      signal: AbortSignal.timeout(10000),
+      next: { revalidate: 1800 },
+    } as RequestInit);
+    if (!res.ok) {
+      if (RETRYABLE_STATUS.has(res.status) && attempt < 3) {
+        await sleep(attempt * 600);
+        return fetchPage(url, attempt + 1);
+      }
+      throw new Error(`FotMob ${url} → ${res.status}`);
+    }
+    return res.text();
+  } catch (e) {
+    // Network-level failures (timeout, DNS, reset) are transient too.
+    if (attempt < 3 && !(e instanceof Error && e.message.startsWith("FotMob "))) {
+      await sleep(attempt * 600);
+      return fetchPage(url, attempt + 1);
+    }
+    throw e;
+  }
 }
 
 function normalizeTopPlayers(raw: RawTopPlayer[] | undefined): FmTopPlayer[] {
@@ -372,4 +395,33 @@ export function fotmobFormString(form: FmFormResult[] | undefined): string {
   if (!form || !form.length) return "";
   const letters = form.slice(0, 5).map((f) => (f.resultString || "").charAt(0).toUpperCase()).filter(Boolean);
   return letters.reverse().join(",");
+}
+
+/** Convert a FotMob league table into the app's shared `Standing` shape.
+ *  Shared by /api/standings (live) and the refresh-l2 cron (snapshot), so
+ *  both produce identical objects — the snapshot is a drop-in fallback, not
+ *  a differently-shaped stub. */
+export function fotmobTableToStandings(fm: FotMobLeagueData): import("@/app/lib/types").Standing[] {
+  return fm.table.map((entry) => {
+    const [gf, ga] = entry.scoresStr.split("-").map((n) => parseInt(n, 10) || 0);
+    return {
+      position: entry.idx,
+      team: {
+        id: entry.id,
+        name: entry.name,
+        shortName: entry.shortName,
+        tla: entry.shortName.slice(0, 3).toUpperCase(),
+        crest: fotmobCrest(entry.id),
+      },
+      playedGames: entry.played,
+      won: entry.wins,
+      draw: entry.draws,
+      lost: entry.losses,
+      points: entry.pts,
+      goalsFor: gf,
+      goalsAgainst: ga,
+      goalDifference: entry.goalConDiff,
+      form: fotmobFormString(fm.teamForm[String(entry.id)]),
+    };
+  });
 }

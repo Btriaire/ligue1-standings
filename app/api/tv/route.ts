@@ -14,6 +14,7 @@
 
 import { NextResponse } from "next/server";
 import { fetchFotMobLigue2Matches, type FmLeagueMatch } from "@/app/lib/fotmob";
+import { readL2MatchesSnapshot } from "@/app/lib/l2Snapshot";
 
 export const revalidate = 1800; // 30 min
 
@@ -39,7 +40,7 @@ export interface TvMatch {
 
 interface TvResponse {
   l1:     { matches: TvMatch[]; source: "football-data" | "stub"; error?: string };
-  l2:     { matches: TvMatch[]; source: "fotmob"        | "stub"; error?: string };
+  l2:     { matches: TvMatch[]; source: "fotmob" | "fotmob-cache" | "stub"; error?: string };
   updatedAt: string;
 }
 
@@ -133,16 +134,14 @@ function fl2BroadcastOverride(utcDate: string): string[] | undefined {
   return undefined;
 }
 
-async function fetchL2(): Promise<{ matches: TvMatch[]; source: "fotmob" | "stub"; error?: string }> {
-  try {
-    const raw = await fetchFotMobLigue2Matches();
-    const now = Date.now();
-    // Keep only future + currently-live matches; cap at 30 upcoming.
-    const upcoming = raw
-      .filter((m: FmLeagueMatch) => !m.status?.finished && new Date(m.status?.utcTime ?? 0).getTime() > now - 4 * 3600_000)
-      .sort((a: FmLeagueMatch, b: FmLeagueMatch) => new Date(a.status.utcTime).getTime() - new Date(b.status.utcTime).getTime())
-      .slice(0, 30);
-    const matches: TvMatch[] = upcoming.map((m: FmLeagueMatch) => ({
+function toL2TvMatches(raw: FmLeagueMatch[]): TvMatch[] {
+  const now = Date.now();
+  // Keep only future + currently-live matches; cap at 30 upcoming.
+  return raw
+    .filter((m: FmLeagueMatch) => !m.status?.finished && new Date(m.status?.utcTime ?? 0).getTime() > now - 4 * 3600_000)
+    .sort((a: FmLeagueMatch, b: FmLeagueMatch) => new Date(a.status.utcTime).getTime() - new Date(b.status.utcTime).getTime())
+    .slice(0, 30)
+    .map((m: FmLeagueMatch) => ({
       id: `fm-${m.id}`,
       utcDate: m.status.utcTime,
       matchday: typeof m.round === "number" ? m.round : Number.parseInt(String(m.round ?? ""), 10) || undefined,
@@ -150,8 +149,23 @@ async function fetchL2(): Promise<{ matches: TvMatch[]; source: "fotmob" | "stub
       awayTeam: { name: m.away.name, shortName: m.away.shortName, crest: fmCrest(m.away.id) },
       broadcastOverride: fl2BroadcastOverride(m.status.utcTime),
     }));
-    return { matches, source: "fotmob" };
+}
+
+async function fetchL2(): Promise<{ matches: TvMatch[]; source: "fotmob" | "fotmob-cache" | "stub"; error?: string }> {
+  try {
+    const raw = await fetchFotMobLigue2Matches();
+    return { matches: toL2TvMatches(raw), source: "fotmob" };
   } catch (e) {
+    // Live scrape failed — fall back to the daily Firestore snapshot rather
+    // than showing an empty TV tab. See app/lib/l2Snapshot.ts.
+    const snapshot = await readL2MatchesSnapshot();
+    if (snapshot) {
+      return {
+        matches: toL2TvMatches(snapshot.matches),
+        source: "fotmob-cache",
+        error: `Calendrier L2 en direct indisponible (snapshot du ${snapshot.updatedAt})`,
+      };
+    }
     return { matches: [], source: "stub", error: e instanceof Error ? e.message : "fetch error" };
   }
 }
