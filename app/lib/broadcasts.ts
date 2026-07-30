@@ -50,6 +50,13 @@ export interface Broadcaster {
    *  Omit when there's no reliable single channel (e.g. "Ligue 1+" splits
    *  into several per-timeslot channels with no canonical live feed). */
   palamaChannel?: string;
+  /** True when this broadcaster only carries SOME matches of the
+   *  competition (a specific weekly slot), not every match. Hidden from the
+   *  default lineup — only shown when a match's computed
+   *  `broadcastOverride` (day/time-based, see app/api/tv/route.ts) explicitly
+   *  names it. Prevents the TV tab from implying every match airs on every
+   *  channel when in reality only one weekly slot does. */
+  matchSpecific?: boolean;
 }
 
 // Palama-TV (iptv-webapp) — Bruno's personal multi-source IPTV app. It reads
@@ -106,8 +113,11 @@ const LIGUE1_DEFAULT: Broadcaster[] = [
   // plusieurs chaînes par créneau (Vendredi/Samedi/Dimanche 1er-4e match,
   // Multiplex) sans chaîne "Ligue1+" canonique unique — voir palamaTvLink().
   { name: "Ligue 1+",      region: "FR", streaming: true, url: "https://www.ligue1.fr/ligue1plus" },
-  { name: "beIN Sports 1", region: "FR", palamaChannel: "beIN Sports 1" },
-  { name: "Canal+ Foot",   region: "FR", url: "https://www.canalplus.com", palamaChannel: "Canal+ Foot" }, // affiche du dimanche soir
+  // matchSpecific: seuls les matchs du samedi 17h (beIN) et du dimanche soir
+  // 20h+ (Canal+) sont réellement sur ces chaînes — calculé par match dans
+  // app/api/tv/route.ts::fl1BroadcastOverride(), pas affiché par défaut.
+  { name: "beIN Sports 1", region: "FR", palamaChannel: "beIN Sports 1", matchSpecific: true },
+  { name: "Canal+ Foot",   region: "FR", url: "https://www.canalplus.com", palamaChannel: "Canal+ Foot", matchSpecific: true },
   { name: "TSN+",          region: "CA", streaming: true },
   { name: "CBS Sports",    region: "US", streaming: true },
   { name: "DAZN",          region: "DE", streaming: true },
@@ -115,13 +125,24 @@ const LIGUE1_DEFAULT: Broadcaster[] = [
 ];
 
 // ── Ligue 2 (2025-2026) ──────────────────────────────────────────────────────
-// beIN Sports holds exclusive French rights. International coverage is sparse
-// — most countries don't carry L2 live; FotMob/365Scores apps stream highlights.
+// beIN Sports holds exclusive French rights (jusqu'en 2029) mais ne diffuse
+// que 2 des matchs de chaque journée en direct — sur un numéro de chaîne
+// (beIN Sports 1/2/3…) qui change chaque semaine selon le programme, sans
+// créneau fixe repérable comme pour la L1. On ne peut donc PAS annoncer un
+// numéro précis par défaut (ce serait souvent faux) — d'où "beIN Sports"
+// générique, sans palamaChannel direct.
+// Le samedi ~18h40, La Chaîne L'Équipe diffuse le multiplex (et parfois un
+// match intégral en clair) — c'est en revanche un créneau fixe, calculé par
+// match dans app/api/tv/route.ts::fl2BroadcastOverride().
+// International coverage is sparse — most countries don't carry L2 live;
+// FotMob/365Scores apps stream highlights.
 
 const LIGUE2_DEFAULT: Broadcaster[] = [
-  { name: "beIN Sports 2", region: "FR", palamaChannel: "beIN Sports 2" },
+  { name: "beIN Sports",   region: "FR" }, // 2 matchs/journée — numéro de chaîne variable
   { name: "beIN CONNECT",  region: "FR", streaming: true, url: "https://www.beinsports.com/fr" },
   { name: "Multisports beIN", region: "FR" },
+  // matchSpecific: uniquement le créneau multiplex du samedi ~18h40.
+  { name: "La Chaîne L'Équipe", region: "FR", free: true, url: "https://www.lequipe.fr/Direct-TV", matchSpecific: true },
   { name: "FotMob",        region: "INT", streaming: true, url: "https://www.fotmob.com" }, // résumés + commentaire live
 ];
 

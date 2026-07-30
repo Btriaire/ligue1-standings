@@ -55,6 +55,37 @@ interface FdMatch {
   status: string;
 }
 
+// ── Créneau → diffuseur (Ligue 1) ────────────────────────────────────────────
+// Ligue1+ diffuse les 9 matchs de chaque journée en streaming. Deux créneaux
+// s'ajoutent en clair/linéaire sur des chaînes payantes classiques :
+//   • Samedi 17h (heure de Paris) → beIN Sports 1, créneau hebdomadaire fixe.
+//   • Dimanche soir (20h+, heure de Paris) → Canal+ Foot, "l'affiche" du
+//     dimanche.
+// Tout le reste (vendredi soir, samedi 15h/20h45, multiplex du dimanche
+// 13h/15h/17h) n'est que sur Ligue1+ — pas de chip beIN/Canal+ à afficher.
+// C'est une règle de créneau horaire, pas une lecture d'un flux de droits TV
+// en direct (il n'en existe pas de gratuit — voir le commentaire d'en-tête).
+// Elle se recalcule à chaque fetch (revalidate 30 min) à partir de la vraie
+// date/heure du match : elle "s'auto-met à jour" au fil du calendrier au lieu
+// de rester figée sur une liste statique identique pour tous les matchs.
+function parisWeekdayHour(utcDate: string): { weekday: number; hour: number } {
+  const d = new Date(utcDate);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Europe/Paris", weekday: "short", hour: "numeric", hour12: false,
+  }).formatToParts(d);
+  const wd = parts.find(p => p.type === "weekday")?.value ?? "";
+  const hour = Number(parts.find(p => p.type === "hour")?.value ?? "0");
+  const WEEKDAY_MAP: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return { weekday: WEEKDAY_MAP[wd] ?? -1, hour };
+}
+
+function fl1BroadcastOverride(utcDate: string): string[] | undefined {
+  const { weekday, hour } = parisWeekdayHour(utcDate);
+  if (weekday === 6 && hour === 17) return ["beIN Sports 1"];
+  if (weekday === 0 && hour >= 20) return ["Canal+ Foot"];
+  return undefined;
+}
+
 async function fetchL1(): Promise<{ matches: TvMatch[]; source: "football-data" | "stub"; error?: string }> {
   if (!FOOTBALL_DATA_API_KEY) {
     return { matches: [], source: "stub", error: "FOOTBALL_DATA_API_KEY manquante" };
@@ -78,6 +109,7 @@ async function fetchL1(): Promise<{ matches: TvMatch[]; source: "football-data" 
         matchday: m.matchday,
         homeTeam: { name: m.homeTeam.name, shortName: m.homeTeam.shortName, tla: m.homeTeam.tla, crest: m.homeTeam.crest },
         awayTeam: { name: m.awayTeam.name, shortName: m.awayTeam.shortName, tla: m.awayTeam.tla, crest: m.awayTeam.crest },
+        broadcastOverride: fl1BroadcastOverride(m.utcDate),
       }));
     return { matches, source: "football-data" };
   } catch (e) {
@@ -89,6 +121,16 @@ async function fetchL1(): Promise<{ matches: TvMatch[]; source: "football-data" 
 
 function fmCrest(id?: number): string | undefined {
   return id ? `https://images.fotmob.com/image_resources/logo/teamlogo/${id}.png` : undefined;
+}
+
+// beIN Sports carries 2 matches per L2 matchday but on a channel number that
+// changes weekly — no fixed slot to key off, so no override for those.
+// The Saturday ~18h40 multiplex slot is fixed though: that's La Chaîne
+// L'Équipe (free-to-air), so it's the one L2 case we CAN compute reliably.
+function fl2BroadcastOverride(utcDate: string): string[] | undefined {
+  const { weekday, hour } = parisWeekdayHour(utcDate);
+  if (weekday === 6 && hour === 18) return ["La Chaîne L'Équipe"];
+  return undefined;
 }
 
 async function fetchL2(): Promise<{ matches: TvMatch[]; source: "fotmob" | "stub"; error?: string }> {
@@ -106,6 +148,7 @@ async function fetchL2(): Promise<{ matches: TvMatch[]; source: "fotmob" | "stub
       matchday: typeof m.round === "number" ? m.round : Number.parseInt(String(m.round ?? ""), 10) || undefined,
       homeTeam: { name: m.home.name, shortName: m.home.shortName, crest: fmCrest(m.home.id) },
       awayTeam: { name: m.away.name, shortName: m.away.shortName, crest: fmCrest(m.away.id) },
+      broadcastOverride: fl2BroadcastOverride(m.status.utcTime),
     }));
     return { matches, source: "fotmob" };
   } catch (e) {
