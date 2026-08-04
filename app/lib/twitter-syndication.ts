@@ -140,8 +140,20 @@ function tweetText(t: SynTweet): string {
 
 // Cache config: serve cache hits younger than FRESH; refetch beyond,
 // but fall back to STALE cache if Twitter is unavailable.
-const FRESH_MS  = 15 * 60 * 1000;      // 15 min — revalidate after this
-const STALE_MS  = 7 * 24 * 3600 * 1000; // 7 days — always show something rather than nothing
+const FRESH_MS  = 15 * 60 * 1000;       // 15 min — revalidate after this
+// 90 days — widened from 7 (2026-08-04): syndication.twitter.com is
+// currently returning an empty timeline for EVERY account tested (PSG, OM,
+// MHSC — not account-specific: "hasResults":false even with Referer/query
+// variations, looks like X deliberately neutered the endpoint rather than a
+// transient block), and every configured Nitter mirror is dead too (13
+// instances tested — 403/404/timeout/502, incl. ones another route's
+// comment claimed were "still operational"). With both live paths down, a
+// 7-day cutoff meant most clubs showed nothing even though real — just
+// older — tweets were sitting in Firestore (e.g. MHSC's official account:
+// 72 days old). Each tweet still shows its real date in the UI, so this
+// isn't presented as "fresh" — it's just "something" instead of nothing.
+// Tighten this back down once syndication.twitter.com recovers.
+const STALE_MS  = 90 * 24 * 3600 * 1000;
 
 interface CacheDoc { tweets: Tweet[]; fetchedAt: number }
 

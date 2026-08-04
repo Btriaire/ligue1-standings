@@ -5,16 +5,23 @@ import { FAN_CLUBS_L1, FAN_CLUBS_L2 } from "@/app/lib/fanConfig";
 
 export const dynamic = "force-dynamic";
 
-// ── Nitter instances — tried in order, 4 s timeout each ──────────────────────
+// ── Nitter instances — tried in order, 1.2 s timeout each ────────────────────
 // List kept long for resilience; instances rotate availability.
 // Order matters: keep the most reliable host first so we don't burn
 // the 10s Vercel function budget on timeouts before reaching a live one.
+// Checked live 2026-08-04: every instance below (plus 8 more not worth
+// listing) currently 403/404/timeouts/502s — the whole public Nitter mirror
+// ecosystem looks dead right now, not just a couple of hosts. Kept the list
+// (rather than deleting the fallback entirely) since mirrors do sometimes
+// come back; "nitter.net" itself was dropped — it's been shut down since
+// 2024, so keeping it first wasted the highest-priority retry slot on a
+// guaranteed 404 every single request.
 const NITTER_INSTANCES = [
-  "nitter.net",
   "nitter.privacydev.net",
   "nitter.poast.org",
   "nitter.cz",
   "nitter.kavin.rocks",
+  "nitter.tiekoetter.com",
 ];
 
 // Build OFFICIAL_HANDLES and CLUB_HASHTAGS from fanConfig so L2 clubs are
@@ -194,7 +201,7 @@ async function tryNitter(handle: string): Promise<Tweet[]> {
       const url = `https://${instance}/${handle}/rss`;
       const res = await fetch(url, {
         headers: { "User-Agent": "Mozilla/5.0 (compatible; FootPredictom/1.0)" },
-        signal: AbortSignal.timeout(2500),
+        signal: AbortSignal.timeout(1200),
       } as RequestInit);
       if (!res.ok) { errors.push(`${instance}: HTTP ${res.status}`); continue; }
       const xml = await res.text();
@@ -215,7 +222,7 @@ async function tryNitterHashtag(hashtag: string): Promise<Tweet[]> {
       const url = `https://${instance}/search/rss?f=tweets&q=${q}`;
       const res = await fetch(url, {
         headers: { "User-Agent": "Mozilla/5.0 (compatible; FootPredictom/1.0)" },
-        signal: AbortSignal.timeout(2500),
+        signal: AbortSignal.timeout(1200),
       } as RequestInit);
       if (!res.ok) continue;
       const xml = await res.text();
