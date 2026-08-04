@@ -5,11 +5,14 @@ export const dynamic = "force-dynamic";
 
 // Same Nitter pool as /api/twitter. Kept independent so user-added handles
 // don't go through the Firestore lookup or the official-fallback logic.
-// nitter.net is the most reliable today — keep it first so we don't burn
-// the 10s Vercel function budget on dead instances.
-// Updated 2026-05 — nitter.net shut down 2024; these are still operational.
+// Checked live 2026-08-04: every instance below is currently dead
+// (403/404/timeout/502) — same global collapse verified in /api/twitter.
+// "xcancel.com" was removed: it doesn't just fail, it *succeeds* with a
+// single-item RSS feed saying "RSS reader not yet whitelisted! Please send
+// an email…" — parseNitterRSS below has no way to distinguish that from a
+// real tweet, so it was being shown to users as an actual post from the
+// searched handle. Don't re-add it without an explicit placeholder filter.
 const NITTER_INSTANCES = [
-  "xcancel.com",
   "nitter.tiekoetter.com",
   "nitter.unixfox.eu",
   "nitter.privacydev.net",
@@ -79,7 +82,7 @@ export async function GET(req: NextRequest) {
           "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
           "Accept": "application/rss+xml, text/xml, */*",
         },
-        signal: AbortSignal.timeout(4500),
+        signal: AbortSignal.timeout(1500),
       } as RequestInit);
       if (!res.ok) continue;
       const xml = await res.text();
