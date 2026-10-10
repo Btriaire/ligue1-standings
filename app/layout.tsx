@@ -8,7 +8,13 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 export const metadata: Metadata = {
   title: "Foot-Palama — Classement en direct",
   description: "Classement officiel de la Ligue 1 en temps réel",
-  icons: { icon: "/favicon.ico", apple: "/icons/apple-touch-icon.png" },
+  icons: {
+    icon: [
+      { url: "/icons/icon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: "/icons/apple-touch-icon.png",
+  },
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "Foot-Palama", statusBarStyle: "black-translucent" },
 };
