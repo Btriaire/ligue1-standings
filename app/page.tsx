@@ -90,14 +90,14 @@ function FormStreak({ form }: { form: string }) {
 function PositionBadge({ position }: { position: number }) {
   if (position === 1) {
     return (
-      <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#0e7490]/10 border border-[#0e7490]/30">
-        <Trophy size={14} className="text-[#0e7490]" />
+      <div className="flex items-center justify-center w-6 h-6 rounded-md bg-[#0e7490]/10 border border-[#0e7490]/30">
+        <Trophy size={11} className="text-[#0e7490]" />
       </div>
     );
   }
   const zone = getZone(position);
   return (
-    <div className="flex items-center justify-center w-8 h-8 rounded-lg text-sm font-bold"
+    <div className="flex items-center justify-center w-6 h-6 rounded-md text-[11px] font-bold"
       style={{
         background: zone ? zone.bg : "rgba(255,255,255,0.03)",
         color: zone ? zone.color : "rgba(255,255,255,0.5)",
@@ -129,7 +129,7 @@ function StandingsTable({ standings }: { standings: Standing[] }) {
   return (
     <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e2d42" }}>
       {/* Header */}
-      <div className="grid items-center px-4 py-3 text-xs font-semibold uppercase tracking-widest"
+      <div className="grid items-center px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider"
         style={{
           background: "#0d1421",
           color: "#6b7c96",
@@ -156,7 +156,7 @@ function StandingsTable({ standings }: { standings: Standing[] }) {
             {/* Row */}
             <div
               onClick={() => setExpandedId(isExpanded ? null : s.team.id)}
-              className="group grid items-center px-4 py-3 transition-all duration-200 hover:brightness-125 animate-fade-in-up cursor-pointer select-none"
+              className="group grid items-center px-3 py-1 transition-all duration-200 hover:brightness-125 animate-fade-in-up cursor-pointer select-none"
               style={{
                 gridTemplateColumns: "44px 1fr 40px 90px 40px 40px 48px 56px 100px 40px",
                 background: isExpanded
@@ -173,7 +173,7 @@ function StandingsTable({ standings }: { standings: Standing[] }) {
                   which still shows up via the zone-coloured row border. */}
               <div className="flex justify-center">
                 <div className="hidden sm:block"><PositionBadge position={s.position} /></div>
-                <div className="sm:hidden relative w-8 h-8 flex items-center justify-center">
+                <div className="sm:hidden relative w-6 h-6 flex items-center justify-center">
                   {s.team.crest
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={s.team.crest} alt={s.team.shortName} className="w-7 h-7 object-contain" loading="lazy" />
@@ -191,20 +191,20 @@ function StandingsTable({ standings }: { standings: Standing[] }) {
                 {/* Crest duplicated only on sm+ — on mobile it now lives in the # column. */}
                 {s.team.crest
                   // eslint-disable-next-line @next/next/no-img-element
-                  ? <img src={s.team.crest} alt={s.team.shortName} className="hidden sm:block w-8 h-8 object-contain flex-shrink-0" loading="lazy" />
+                  ? <img src={s.team.crest} alt={s.team.shortName} className="hidden sm:block w-5 h-5 object-contain flex-shrink-0" loading="lazy" />
                   : <div className="hidden sm:flex w-8 h-8 rounded bg-white/5 items-center justify-center text-xs font-bold text-white/40 flex-shrink-0">{s.team.tla?.slice(0, 2)}</div>
                 }
                 <div className="min-w-0">
-                  <p className="font-semibold text-sm truncate" style={{ color: "#e8edf5" }}>
+                  <p className="font-medium text-xs truncate" style={{ color: "#e8edf5" }}>
                     <span className="hidden md:inline">{s.team.name}</span>
                     <span className="md:hidden">{s.team.shortName || s.team.tla}</span>
                   </p>
                 </div>
               </div>
 
-              <span className="text-center text-sm font-mono" style={{ color: "#94a3b8" }}>{s.playedGames}</span>
+              <span className="text-center text-xs font-mono" style={{ color: "#94a3b8" }}>{s.playedGames}</span>
 
-              <div className="hidden sm:flex justify-center gap-1.5 text-xs font-mono">
+              <div className="hidden sm:flex justify-center gap-1 text-[10px] font-mono">
                 <span style={{ color: "#22c55e" }}>{s.won}</span>
                 <span style={{ color: "#6b7c96" }}>·</span>
                 <span style={{ color: "#f59e0b" }}>{s.draw}</span>
@@ -212,13 +212,13 @@ function StandingsTable({ standings }: { standings: Standing[] }) {
                 <span style={{ color: "#ef4444" }}>{s.lost}</span>
               </div>
 
-              <span className="hidden md:block text-center text-sm font-mono" style={{ color: "#94a3b8" }}>{s.goalsFor}</span>
-              <span className="hidden md:block text-center text-sm font-mono" style={{ color: "#94a3b8" }}>{s.goalsAgainst}</span>
+              <span className="hidden md:block text-center text-xs font-mono" style={{ color: "#94a3b8" }}>{s.goalsFor}</span>
+              <span className="hidden md:block text-center text-xs font-mono" style={{ color: "#94a3b8" }}>{s.goalsAgainst}</span>
 
-              <div className="flex justify-center text-sm"><GDIndicator gd={s.goalDifference} /></div>
+              <div className="flex justify-center text-xs"><GDIndicator gd={s.goalDifference} /></div>
 
               <div className="flex justify-center">
-                <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl text-base font-black"
+                <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs font-black"
                   style={{
                     background: zone ? `${zone.color}15` : "rgba(255,255,255,0.04)",
                     color: zone ? zone.color : "#e8edf5",
