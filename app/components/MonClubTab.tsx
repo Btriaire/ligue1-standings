@@ -344,8 +344,8 @@ function ClubSelector({onSelectClub}:{onSelectClub:(c:Club)=>void}) {
   const [scope, setScope] = useState<SelectorScope>("FL1");
 
   const scopes: { id: SelectorScope; label: string; color: string }[] = [
-    { id: "FL1", label: "Ligue 1", color: "#00d4ff" },
-    { id: "FL2", label: "Ligue 2", color: "#00d4ff" },
+    { id: "FL1", label: "Ligue 1", color: "#67d8e6" },
+    { id: "FL2", label: "Ligue 2", color: "#67d8e6" },
   ];
 
   return (

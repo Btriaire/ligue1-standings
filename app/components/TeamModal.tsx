@@ -77,9 +77,9 @@ function UpcomingMatch({ match, teamId }: { match: Match; teamId: number }) {
   return (
     <div
       className="flex items-center gap-3 px-4 py-3 rounded-xl"
-      style={{ background: "rgba(0,212,255,0.03)", border: "1px solid rgba(0,212,255,0.1)" }}
+      style={{ background: "rgba(103,216,230,0.03)", border: "1px solid rgba(103,216,230,0.1)" }}
     >
-      <CaretRight size={14} style={{ color: "#00d4ff", flexShrink: 0 }} />
+      <CaretRight size={14} style={{ color: "#67d8e6", flexShrink: 0 }} />
 
       {opponent.crest ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -96,7 +96,7 @@ function UpcomingMatch({ match, teamId }: { match: Match; teamId: number }) {
       </div>
 
       <div className="text-right flex-shrink-0">
-        <p className="text-sm font-semibold" style={{ color: "#00d4ff" }}>{formatDate(match.date)}</p>
+        <p className="text-sm font-semibold" style={{ color: "#67d8e6" }}>{formatDate(match.date)}</p>
         <p className="text-xs" style={{ color: "#6b7c96" }}>{formatTime(match.date)}</p>
       </div>
     </div>
@@ -206,7 +206,7 @@ export default function TeamModal({ standing, onClose }: Props) {
             <div className="space-y-3">
               <StatBar label="Buts marqués" value={standing.goalsFor} max={90} color="#22c55e" />
               <StatBar label="Buts encaissés" value={standing.goalsAgainst} max={90} color="#ef4444" />
-              <StatBar label="Taux de victoire" value={winRate} max={100} color="#00d4ff" />
+              <StatBar label="Taux de victoire" value={winRate} max={100} color="#67d8e6" />
             </div>
           </div>
 
@@ -239,8 +239,8 @@ export default function TeamModal({ standing, onClose }: Props) {
           {(data?.upcoming?.length ?? 0) > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Clock size={14} style={{ color: "#00d4ff" }} />
-                <h3 className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#00d4ff" }}>
+                <Clock size={14} style={{ color: "#67d8e6" }} />
+                <h3 className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#67d8e6" }}>
                   Prochains matchs
                 </h3>
               </div>

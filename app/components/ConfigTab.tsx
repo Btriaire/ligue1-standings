@@ -12,7 +12,7 @@ function SectionTitle({ icon, title, subtitle }: { icon: React.ReactNode; title:
   return (
     <div className="flex items-center gap-3 mb-4">
       <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-        style={{ background: "rgba(0,212,255,0.1)", border: "1px solid rgba(0,212,255,0.2)" }}>
+        style={{ background: "rgba(103,216,230,0.1)", border: "1px solid rgba(103,216,230,0.2)" }}>
         {icon}
       </div>
       <div>
@@ -23,7 +23,7 @@ function SectionTitle({ icon, title, subtitle }: { icon: React.ReactNode; title:
   );
 }
 
-function ToggleRow({ label, description, enabled, onChange, color = "#00d4ff" }: {
+function ToggleRow({ label, description, enabled, onChange, color = "#67d8e6" }: {
   label: string;
   description?: string;
   enabled: boolean;
@@ -67,7 +67,7 @@ function SliderRow({ label, description, value, min, max, unit, onChange }: {
           {description && <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>{description}</p>}
         </div>
         <span className="text-sm font-black px-2 py-0.5 rounded-lg ml-4"
-          style={{ background: "rgba(0,212,255,0.12)", color: "#00d4ff", minWidth: 48, textAlign: "center" }}>
+          style={{ background: "rgba(103,216,230,0.12)", color: "#67d8e6", minWidth: 48, textAlign: "center" }}>
           {value}{unit}
         </span>
       </div>
@@ -75,7 +75,7 @@ function SliderRow({ label, description, value, min, max, unit, onChange }: {
         type="range" min={min} max={max} value={value}
         onChange={(e) => onChange(parseInt(e.target.value))}
         className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
-        style={{ accentColor: "#00d4ff" }}
+        style={{ accentColor: "#67d8e6" }}
       />
       <div className="flex justify-between text-xs mt-1" style={{ color: "#6b7c96" }}>
         <span>{min}{unit}</span><span>{max}{unit}</span>
@@ -128,7 +128,7 @@ export default function ConfigTab() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-base font-bold flex items-center gap-2" style={{ color: "#e8edf5" }}>
-            <GearSix size={17} style={{ color: "#00d4ff" }} /> Configuration
+            <GearSix size={17} style={{ color: "#67d8e6" }} /> Configuration
           </h2>
           <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>
             Personnalisez l'algorithme et les fonctionnalités
@@ -147,7 +147,7 @@ export default function ConfigTab() {
       {/* Algorithm */}
       <Card>
         <SectionTitle
-          icon={<Lightning size={16} style={{ color: "#00d4ff" }} />}
+          icon={<Lightning size={16} style={{ color: "#67d8e6" }} />}
           title="Algorithme prédictif"
           subtitle="Paramètres du moteur de prédiction"
         />
@@ -201,11 +201,11 @@ export default function ConfigTab() {
           color="#f59e0b"
         />
         <ToggleRow
-          label={<span className="flex items-center gap-1.5"><Newspaper size={12} style={{ color: "#00d4ff" }} /> Médias & Sentiment</span> as unknown as string}
+          label={<span className="flex items-center gap-1.5"><Newspaper size={12} style={{ color: "#67d8e6" }} /> Médias & Sentiment</span> as unknown as string}
           description="Analyse des articles de presse récents"
           enabled={config.mediaEnabled}
           onChange={(v) => updateConfig({ mediaEnabled: v })}
-          color="#00d4ff"
+          color="#67d8e6"
         />
         <ToggleRow
           label={<span className="flex items-center gap-1.5"><Users size={12} style={{ color: "#22c55e" }} /> Humain & Mercato</span> as unknown as string}
@@ -277,9 +277,9 @@ export default function ConfigTab() {
                 onClick={() => updateConfig({ refreshInterval: opt.value })}
                 className="px-3 py-2 rounded-xl text-xs font-semibold transition-all"
                 style={{
-                  background: config.refreshInterval === opt.value ? "rgba(0,212,255,0.12)" : "rgba(255,255,255,0.04)",
-                  border: `1px solid ${config.refreshInterval === opt.value ? "rgba(0,212,255,0.3)" : "rgba(255,255,255,0.08)"}`,
-                  color: config.refreshInterval === opt.value ? "#00d4ff" : "#6b7c96",
+                  background: config.refreshInterval === opt.value ? "rgba(103,216,230,0.12)" : "rgba(255,255,255,0.04)",
+                  border: `1px solid ${config.refreshInterval === opt.value ? "rgba(103,216,230,0.3)" : "rgba(255,255,255,0.08)"}`,
+                  color: config.refreshInterval === opt.value ? "#67d8e6" : "#6b7c96",
                 }}>
                 {opt.label}
               </button>
@@ -358,9 +358,9 @@ export default function ConfigTab() {
       </Card>
 
       {/* Info */}
-      <div className="rounded-2xl px-5 py-4 text-xs" style={{ background: "rgba(0,212,255,0.04)", border: "1px solid rgba(0,212,255,0.12)", color: "#6b7c96" }}>
+      <div className="rounded-2xl px-5 py-4 text-xs" style={{ background: "rgba(103,216,230,0.04)", border: "1px solid rgba(103,216,230,0.12)", color: "#6b7c96" }}>
         <div className="flex items-start gap-2">
-          <CaretRight size={13} style={{ color: "#00d4ff", marginTop: 1, flexShrink: 0 }} />
+          <CaretRight size={13} style={{ color: "#67d8e6", marginTop: 1, flexShrink: 0 }} />
           <div>
             <p>Les paramètres sont sauvegardés automatiquement dans votre navigateur (localStorage).</p>
             <p className="mt-1">Les prédictions sont auto-sauvegardées à chaque chargement de l'onglet AI FootPredictom, avant chaque match.</p>

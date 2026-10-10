@@ -355,7 +355,7 @@ function WCResultsView() {
       <div className="flex flex-wrap gap-1.5 mb-4">
         <button onClick={() => setGroupFilter(null)}
           className="px-2.5 py-1 rounded-lg text-xs font-semibold transition-all"
-          style={{ background: groupFilter === null ? "rgba(0,212,255,0.12)" : "rgba(255,255,255,0.04)", border: `1px solid ${groupFilter === null ? "rgba(0,212,255,0.3)" : "rgba(255,255,255,0.08)"}`, color: groupFilter === null ? "#00d4ff" : "#6b7c96" }}>
+          style={{ background: groupFilter === null ? "rgba(103,216,230,0.12)" : "rgba(255,255,255,0.04)", border: `1px solid ${groupFilter === null ? "rgba(103,216,230,0.3)" : "rgba(255,255,255,0.08)"}`, color: groupFilter === null ? "#67d8e6" : "#6b7c96" }}>
           Tous
         </button>
         {groups.map(g => (
@@ -569,7 +569,7 @@ export default function ResultsTab() {
       <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
         <div>
           <h2 className="text-base font-bold flex items-center gap-2" style={{ color: "#e8edf5" }}>
-            <Target size={17} style={{ color: "#00d4ff" }} /> Résultats Ligue 1
+            <Target size={17} style={{ color: "#67d8e6" }} /> Résultats Ligue 1
           </h2>
           <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>
             Scores · Buteurs · Vos prédictions
@@ -619,9 +619,9 @@ export default function ResultsTab() {
             onClick={() => setFilterMatchday(null)}
             className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
             style={{
-              background: filterMatchday === null ? "rgba(0,212,255,0.12)" : "rgba(255,255,255,0.04)",
-              border: `1px solid ${filterMatchday === null ? "rgba(0,212,255,0.3)" : "rgba(255,255,255,0.08)"}`,
-              color: filterMatchday === null ? "#00d4ff" : "#6b7c96",
+              background: filterMatchday === null ? "rgba(103,216,230,0.12)" : "rgba(255,255,255,0.04)",
+              border: `1px solid ${filterMatchday === null ? "rgba(103,216,230,0.3)" : "rgba(255,255,255,0.08)"}`,
+              color: filterMatchday === null ? "#67d8e6" : "#6b7c96",
             }}>
             Tous
           </button>
@@ -631,9 +631,9 @@ export default function ResultsTab() {
               onClick={() => setFilterMatchday(md)}
               className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
               style={{
-                background: filterMatchday === md ? "rgba(0,212,255,0.12)" : "rgba(255,255,255,0.04)",
-                border: `1px solid ${filterMatchday === md ? "rgba(0,212,255,0.3)" : "rgba(255,255,255,0.08)"}`,
-                color: filterMatchday === md ? "#00d4ff" : "#6b7c96",
+                background: filterMatchday === md ? "rgba(103,216,230,0.12)" : "rgba(255,255,255,0.04)",
+                border: `1px solid ${filterMatchday === md ? "rgba(103,216,230,0.3)" : "rgba(255,255,255,0.08)"}`,
+                color: filterMatchday === md ? "#67d8e6" : "#6b7c96",
               }}>
               J{md}
             </button>
@@ -665,8 +665,8 @@ export default function ResultsTab() {
 
       {savedPreds.length === 0 && (
         <div className="mt-6 px-4 py-3 rounded-xl text-xs text-center"
-          style={{ background: "rgba(0,212,255,0.04)", border: "1px solid rgba(0,212,255,0.12)", color: "#6b7c96" }}>
-          Vos prédictions seront automatiquement sauvegardées lorsque vous visitez l'onglet <strong style={{ color: "#00d4ff" }}>AI FootPredictom</strong>.
+          style={{ background: "rgba(103,216,230,0.04)", border: "1px solid rgba(103,216,230,0.12)", color: "#6b7c96" }}>
+          Vos prédictions seront automatiquement sauvegardées lorsque vous visitez l'onglet <strong style={{ color: "#67d8e6" }}>AI FootPredictom</strong>.
         </div>
       )}
     </div>

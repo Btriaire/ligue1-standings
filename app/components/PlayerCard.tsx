@@ -94,7 +94,7 @@ export const POS_FR: Record<string, string> = {
 };
 
 export const POS_COL: Record<string, string> = {
-  Goalkeeper: "#00d4ff", Defender: "#22c55e", Midfielder: "#a78bfa",
+  Goalkeeper: "#67d8e6", Defender: "#22c55e", Midfielder: "#a78bfa",
   Winger: "#f59e0b", "Centre-Forward": "#ef4444",
 };
 
@@ -280,7 +280,7 @@ export function PlayerDetail({ p }: { p: PlayerEntry }) {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5">
               <StatBox label="Forme" value={formScore(p)} color={ec(formScore(p))} sub="/100" />
-              <StatBox label="Valeur" value={(p.marketValue ?? 0) > 0 ? fv(p.marketValue) : "—"} color="#00d4ff" />
+              <StatBox label="Valeur" value={(p.marketValue ?? 0) > 0 ? fv(p.marketValue) : "—"} color="#67d8e6" />
               <StatBox label="Minutes" value={p.dm_minutes ?? p.minutes ?? "—"} color="#94a3b8" />
               <StatBox label="Poste" value={POS_SHORT[p.position] ?? "?"} color={posColor} />
             </div>
@@ -312,7 +312,7 @@ export function PlayerDetail({ p }: { p: PlayerEntry }) {
         {hasUnderstat && (
           <StatSection title={`Statistiques saison · ${p.games} matchs · ${p.minutes} min`}>
             <StatBox label="Buts"      value={p.usGoals ?? 0}                           color="#f59e0b" />
-            <StatBox label="Passes D." value={p.usAssists ?? 0}                         color="#00d4ff" />
+            <StatBox label="Passes D." value={p.usAssists ?? 0}                         color="#67d8e6" />
             <StatBox label="xG"        value={(p.xG ?? 0).toFixed(1)}                   color="#22c55e" />
             <StatBox label="xA"        value={(p.xA ?? 0).toFixed(1)}                   color="#a78bfa" />
             <StatBox label="Tirs"      value={p.shots ?? 0}                             color="#94a3b8" />
@@ -323,8 +323,8 @@ export function PlayerDetail({ p }: { p: PlayerEntry }) {
         {/* ── GK ── */}
         {hasDatamb && isGk && (<>
           <StatSection title={`Gardien — ${dmCtx}`}>
-            <StatBox label="Arrêts %"       value={pct(p.dm_savePct)}          color="#00d4ff" />
-            <StatBox label="Arrêts/90"      value={fmt1(p.dm_saves90)}         color="#00d4ff" />
+            <StatBox label="Arrêts %"       value={pct(p.dm_savePct)}          color="#67d8e6" />
+            <StatBox label="Arrêts/90"      value={fmt1(p.dm_saves90)}         color="#67d8e6" />
             <StatBox label="Buts enc./90"   value={fmt2(p.dm_gcPer90)}         color="#ef4444" />
             <StatBox label="Buts enc. tot." value={p.dm_gcTotal ?? 0}          color="#ef4444" />
             <StatBox label="xG enc./90"     value={fmt2(p.dm_xgConceded90)}    color="#f97316" />
@@ -335,7 +335,7 @@ export function PlayerDetail({ p }: { p: PlayerEntry }) {
             <StatBox label="Tirs conc./90"  value={fmt1(p.dm_shotsConceded90)} color="#6b7c96" />
           </StatSection>
           <StatSection title="GK — Jeu au pied">
-            <StatBox label="Pass %"         value={pct(p.dm_passPct)}          color="#00d4ff" />
+            <StatBox label="Pass %"         value={pct(p.dm_passPct)}          color="#67d8e6" />
             <StatBox label="Passes/90"      value={fmt1(p.dm_passes90)}        color="#94a3b8" />
             <StatBox label="Longues/90"     value={fmt1(p.dm_longPasses90)}    color="#94a3b8" />
             <StatBox label="Long. %"        value={pct(p.dm_longPassAcc)}      color="#94a3b8" />
@@ -386,7 +386,7 @@ export function PlayerDetail({ p }: { p: PlayerEntry }) {
           {/* 3. Création */}
           <StatSection title="Création">
             <StatBox label="xA/90"          value={fmt2(p.dm_xa90)}            color="#a78bfa" />
-            <StatBox label="Passes D./90"   value={fmt2(p.dm_assists90)}       color="#00d4ff" />
+            <StatBox label="Passes D./90"   value={fmt2(p.dm_assists90)}       color="#67d8e6" />
             <StatBox label="Shot assists/90" value={fmt1(p.dm_shotAssists90)}  color="#a78bfa" />
             <StatBox label="Pré-passes D./90" value={fmt1(p.dm_preAssists90)}  color="#a78bfa" />
             <StatBox label="Passes clés/90" value={fmt1(p.dm_keyPasses90)}     color="#a78bfa" />
@@ -415,8 +415,8 @@ export function PlayerDetail({ p }: { p: PlayerEntry }) {
 
           {/* 5. Passes */}
           <StatSection title="Passes">
-            <StatBox label="Passes/90"      value={fmt1(p.dm_passes90)}        color="#00d4ff" />
-            <StatBox label="Pass %"         value={pct(p.dm_passPct)}          color="#00d4ff" />
+            <StatBox label="Passes/90"      value={fmt1(p.dm_passes90)}        color="#67d8e6" />
+            <StatBox label="Pass %"         value={pct(p.dm_passPct)}          color="#67d8e6" />
             <StatBox label="Imprécis %"     value={pct(p.dm_inaccuratePct)}    color="#ef4444" />
             <StatBox label="Avant/90"       value={fmt1(p.dm_fwdPasses90)}     color="#22c55e" />
             <StatBox label="Avant %"        value={pct(p.dm_fwdPassPct)}       color="#22c55e" />
@@ -527,7 +527,7 @@ export function PlayerRow({ p, expanded, onToggle, rank }: {
           <span className="hidden md:inline" style={{ color: (p.dm_xa90 ?? 0) > 0 ? "#a78bfa" : "#4b5a72", minWidth: 36, textAlign: "right" }}>
             {(p.dm_xa90 ?? 0) > 0 ? `xA${p.dm_xa90!.toFixed(2)}` : ""}
           </span>
-          <span className="hidden lg:inline" style={{ color: (p.marketValue ?? 0) > 20e6 ? "#00d4ff" : (p.marketValue ?? 0) > 5e6 ? "#e8edf5" : "#4b5a72", minWidth: 52, textAlign: "right" }}>
+          <span className="hidden lg:inline" style={{ color: (p.marketValue ?? 0) > 20e6 ? "#67d8e6" : (p.marketValue ?? 0) > 5e6 ? "#e8edf5" : "#4b5a72", minWidth: 52, textAlign: "right" }}>
             {(p.marketValue ?? 0) > 0 ? fv(p.marketValue) : ""}
           </span>
         </div>

@@ -39,7 +39,7 @@ const DEFAULT_WEIGHTS: Weights = { eco: 28, media: 28, human: 30, fan: 14 };
 
 function emotionColor(score: number) {
   if (score >= 70) return { color: "#22c55e", bg: "rgba(34,197,94,0.1)", border: "rgba(34,197,94,0.25)" };
-  if (score >= 55) return { color: "#00d4ff", bg: "rgba(0,212,255,0.1)", border: "rgba(0,212,255,0.25)" };
+  if (score >= 55) return { color: "#67d8e6", bg: "rgba(103,216,230,0.1)", border: "rgba(103,216,230,0.25)" };
   if (score >= 40) return { color: "#f59e0b", bg: "rgba(245,158,11,0.1)", border: "rgba(245,158,11,0.25)" };
   if (score >= 28) return { color: "#f97316", bg: "rgba(249,115,22,0.1)", border: "rgba(249,115,22,0.25)" };
   return { color: "#ef4444", bg: "rgba(239,68,68,0.1)", border: "rgba(239,68,68,0.25)" };
@@ -109,7 +109,7 @@ function WeightSliders({ weights, onChange }: { weights: Weights; onChange: (w: 
 
   const items = [
     { key: "eco",   label: "Économique",   color: "#f59e0b", icon: <Buildings size={12} /> },
-    { key: "media", label: "Médias",       color: "#00d4ff", icon: <Newspaper size={12} /> },
+    { key: "media", label: "Médias",       color: "#67d8e6", icon: <Newspaper size={12} /> },
     { key: "human", label: "Humain",       color: "#22c55e", icon: <Users size={12} /> },
     { key: "fan",   label: "Supporters",  color: "#06b6d4", icon: <ChatCircle size={12} /> },
   ] as const;
@@ -208,7 +208,7 @@ function Methodology({ sources }: { sources: EmotionalData["sources"] }) {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {[
               { icon: <Buildings size={16} />, color: "#f59e0b", weight: "28%", title: "Économique", desc: "Propriétaire, revenus annuels, solidité financière.", source: sources.economic },
-              { icon: <Newspaper size={16} />, color: "#00d4ff", weight: "28%", title: "Médias & Sentiment", desc: "Analyse des 15 derniers articles par club (positifs vs négatifs).", source: sources.media.join(", ") },
+              { icon: <Newspaper size={16} />, color: "#67d8e6", weight: "28%", title: "Médias & Sentiment", desc: "Analyse des 15 derniers articles par club (positifs vs négatifs).", source: sources.media.join(", ") },
               { icon: <Users size={16} />, color: "#22c55e", weight: "30%", title: "Humain", desc: "Valeur totale de l'effectif et taux de blessures.", source: sources.mercato },
               { icon: <ChatCircle size={16} />, color: "#06b6d4", weight: "14%", title: "Buzz Supporters", desc: "Analyse des articles Google News et L'Équipe, mots-clés supporters.", source: "Google News · L'Équipe" },
             ].map((c) => (
@@ -229,7 +229,7 @@ function Methodology({ sources }: { sources: EmotionalData["sources"] }) {
               {[
                 { range: "≥ 72", delta: "+7%", color: "#22c55e" },
                 { range: "62–72", delta: "+4%", color: "#86efac" },
-                { range: "52–62", delta: "+1%", color: "#00d4ff" },
+                { range: "52–62", delta: "+1%", color: "#67d8e6" },
                 { range: "32–42", delta: "-2%", color: "#f97316" },
                 { range: "< 32", delta: "-5 à -8%", color: "#ef4444" },
               ].map((r) => (
@@ -327,7 +327,7 @@ interface BuzzData {
 
 function buzzScoreColor(score: number) {
   if (score >= 68) return "#22c55e";
-  if (score >= 55) return "#00d4ff";
+  if (score >= 55) return "#67d8e6";
   if (score >= 44) return "#f59e0b";
   if (score >= 33) return "#f97316";
   return "#ef4444";
@@ -446,7 +446,7 @@ function ClubDetail({ club, weights }: { club: ClubScore; weights: Weights }) {
           <p className="text-xs font-semibold mb-3" style={{ color: "#6b7c96" }}>EFFECTIF & MERCATO</p>
           <div className="grid grid-cols-3 gap-2 mb-3">
             {[
-              { label: "Valeur totale", value: formatValue(c.human.totalValue), color: "#00d4ff" },
+              { label: "Valeur totale", value: formatValue(c.human.totalValue), color: "#67d8e6" },
               { label: "Valeur moy.", value: formatValue(c.human.avgValue), color: "#e8edf5" },
               { label: "Blessés", value: `${c.human.injuryRate}%`, color: c.human.injuryRate > 20 ? "#ef4444" : c.human.injuryRate > 10 ? "#f59e0b" : "#22c55e" },
             ].map((s) => (
@@ -651,7 +651,7 @@ function WCEmotionalView() {
       <div className="flex flex-wrap gap-3 mb-4">
         {[
           { label: "Excellent (70+)", color: "#22c55e" },
-          { label: "Positif (55–70)", color: "#00d4ff" },
+          { label: "Positif (55–70)", color: "#67d8e6" },
           { label: "Neutre (40–55)", color: "#f59e0b" },
           { label: "Tendu (<40)",    color: "#ef4444" },
         ].map(l => (
@@ -714,7 +714,7 @@ function WCEmotionalView() {
                   {/* Bars */}
                   <div className="space-y-2 pt-3">
                     {([
-                      ["Médias",     team.media, "#00d4ff", <Newspaper key="media" size={12} />],
+                      ["Médias",     team.media, "#67d8e6", <Newspaper key="media" size={12} />],
                       ["Humain",     team.human, "#22c55e", <Users key="human" size={12} />],
                       ["Supporters", team.fan,   "#06b6d4", <ChatCircle key="fan" size={12} />],
                     ] as const).map(([label, val, clr, icon]) => (
@@ -845,7 +845,7 @@ export default function EmotionalScoreTab() {
       <div className="flex flex-wrap gap-3 mb-5">
         {[
           { label: "Excellent (70+)", color: "#22c55e" },
-          { label: "Positif (55-70)", color: "#00d4ff" },
+          { label: "Positif (55-70)", color: "#67d8e6" },
           { label: "Neutre (40-55)", color: "#f59e0b" },
           { label: "Tendu (28-40)", color: "#f97316" },
           { label: "Critique (<28)", color: "#ef4444" },

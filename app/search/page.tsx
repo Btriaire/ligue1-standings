@@ -158,8 +158,8 @@ function HitRow({ hit, query }: { hit: Hit; query: string }) {
             <div className="flex items-center gap-2">
               <h3 className="font-bold truncate" style={{ color: "#e8edf5" }}>{profile.name}</h3>
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded"
-                style={{ background: profile.league === "L1" ? "rgba(0,212,255,0.12)" : "rgba(251,191,36,0.12)",
-                         color: profile.league === "L1" ? "#00d4ff" : "#fbbf24" }}>
+                style={{ background: profile.league === "L1" ? "rgba(103,216,230,0.12)" : "rgba(251,191,36,0.12)",
+                         color: profile.league === "L1" ? "#67d8e6" : "#fbbf24" }}>
                 {profile.league === "L1" ? "Ligue 1" : "Ligue 2"}
               </span>
             </div>
@@ -205,7 +205,7 @@ function Highlight({ text, query }: { text: string; query: string }) {
   return (
     <>
       {text.slice(0, firstStart)}
-      <mark style={{ background: "rgba(0,212,255,0.18)", color: "#e8edf5", borderRadius: 2 }}>
+      <mark style={{ background: "rgba(103,216,230,0.18)", color: "#e8edf5", borderRadius: 2 }}>
         {text.slice(firstStart, firstEnd)}
       </mark>
       {text.slice(firstEnd)}
@@ -227,7 +227,7 @@ function EmptyState({ onPick }: { onPick: (q: string) => void }) {
         {suggestions.map(s => (
           <button key={s} onClick={() => onPick(s)}
             className="text-xs px-3 py-1.5 rounded-full"
-            style={{ background: "rgba(0,212,255,0.08)", border: "1px solid rgba(0,212,255,0.2)", color: "#00d4ff" }}>
+            style={{ background: "rgba(103,216,230,0.08)", border: "1px solid rgba(103,216,230,0.2)", color: "#67d8e6" }}>
             {s}
           </button>
         ))}

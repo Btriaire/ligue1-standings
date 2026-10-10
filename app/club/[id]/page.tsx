@@ -274,7 +274,7 @@ function fd(iso: string) {
 }
 function ec(score: number) {
   if (score >= 70) return "#22c55e";
-  if (score >= 55) return "#00d4ff";
+  if (score >= 55) return "#67d8e6";
   if (score >= 40) return "#f59e0b";
   if (score >= 28) return "#f97316";
   return "#ef4444";
@@ -332,7 +332,7 @@ function Chip({ children, color }: { children: React.ReactNode; color: string })
 // ── Club identity card — ville, fondation, surnom, équipementier ───────────
 function ClubProfileCard({ profile }: { profile: ClubProfile }) {
   const items: { icon: React.ReactNode; label: string; value: string; color: string }[] = [
-    { icon: <MapPin size={11} weight="fill" />, label: "Ville",       value: profile.population ? `${profile.ville} (${profile.population})` : profile.ville, color: "#00d4ff" },
+    { icon: <MapPin size={11} weight="fill" />, label: "Ville",       value: profile.population ? `${profile.ville} (${profile.population})` : profile.ville, color: "#67d8e6" },
     { icon: <Calendar size={11} weight="fill" />, label: "Fondation", value: String(profile.fondation), color: "#a78bfa" },
     { icon: <Buildings size={11} weight="fill" />, label: "Stade",    value: profile.stade.capacite ? `${profile.stade.nom} · ${profile.stade.capacite} pl.` : profile.stade.nom, color: "#22c55e" },
   ];
@@ -343,10 +343,10 @@ function ClubProfileCard({ profile }: { profile: ClubProfile }) {
 
   return (
     <div className="rounded-xl px-3 py-2 mb-2"
-      style={{ border: "1px solid rgba(255,255,255,0.06)", background: "rgba(0,212,255,0.03)" }}>
+      style={{ border: "1px solid rgba(255,255,255,0.06)", background: "rgba(103,216,230,0.03)" }}>
       <div className="flex items-center gap-1.5 mb-2">
-        <IdentificationCard size={11} weight="fill" style={{ color: "#00d4ff" }} />
-        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#00d4ff" }}>Identité du club</p>
+        <IdentificationCard size={11} weight="fill" style={{ color: "#67d8e6" }} />
+        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#67d8e6" }}>Identité du club</p>
         {profile.devise && (
           <span className="text-[10px] italic ml-auto" style={{ color: "#94a3b8" }}>« {profile.devise} »</span>
         )}
@@ -374,7 +374,7 @@ function ClubLeadershipCard({ profile }: { profile: ClubProfile }) {
     { role: "Président", name: profile.president, sub: profile.presidentDepuis ? `depuis ${profile.presidentDepuis}` : undefined, color: "#fbbf24" },
   ];
   if (profile.actionnaire)      people.push({ role: "Actionnaire",      name: profile.actionnaire,      color: "#a78bfa" });
-  if (profile.directeurSportif) people.push({ role: "Directeur sportif", name: profile.directeurSportif, color: "#00d4ff" });
+  if (profile.directeurSportif) people.push({ role: "Directeur sportif", name: profile.directeurSportif, color: "#67d8e6" });
   if (profile.entraineur)       people.push({ role: "Entraîneur",       name: profile.entraineur,       color: "#22c55e" });
   if (profile.capitaine)        people.push({ role: "Capitaine",        name: profile.capitaine,        color: "#ef4444" });
 
@@ -652,7 +652,7 @@ function MatchRow({ match, teamId, standings }: { match: MatchInfo; teamId: numb
       <div className="flex items-center gap-2">
         <span className="text-[10px] font-mono w-6 flex-shrink-0" style={{ color: "#6b7c96" }}>J{match.matchday}</span>
         <span className="text-[10px] px-1 rounded flex-shrink-0"
-          style={{ background: isHome ? "rgba(0,212,255,0.08)" : "rgba(255,255,255,0.04)", color: isHome ? "#00d4ff" : "#6b7c96" }}>
+          style={{ background: isHome ? "rgba(103,216,230,0.08)" : "rgba(255,255,255,0.04)", color: isHome ? "#67d8e6" : "#6b7c96" }}>
           {isHome ? "⌂" : "✈"}
         </span>
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -745,7 +745,7 @@ function PlayerModal({ player, onClose }: { player: SquadPlayer; onClose: () => 
             <div className="flex items-center gap-1.5 mt-0.5">
               <Chip color={posColor}>{POS_FR[player.position] ?? player.position}</Chip>
               {player.nationality?.[0] && <span className="text-xs" style={{ color: "#6b7c96" }}>{player.nationality[0]}</span>}
-              {(player.marketValue ?? 0) > 0 && <span className="text-xs font-bold ml-auto" style={{ color: "#00d4ff" }}>{fv(player.marketValue)}</span>}
+              {(player.marketValue ?? 0) > 0 && <span className="text-xs font-bold ml-auto" style={{ color: "#67d8e6" }}>{fv(player.marketValue)}</span>}
             </div>
           </div>
           <button onClick={onClose} className="flex-shrink-0 p-1 rounded-lg hover:bg-white/[0.06]">
@@ -769,7 +769,7 @@ function PlayerModal({ player, onClose }: { player: SquadPlayer; onClose: () => 
           {hasUnderstat && (
             <DmSection title={`Saison · ${player.games} matchs · ${player.minutes} min`}>
               <DmStat label="Buts"     value={player.usGoals ?? 0}             color="#f59e0b" />
-              <DmStat label="PD"       value={player.usAssists ?? 0}           color="#00d4ff" />
+              <DmStat label="PD"       value={player.usAssists ?? 0}           color="#67d8e6" />
               <DmStat label="xG"       value={(player.xG ?? 0).toFixed(1)}     color="#22c55e" />
               <DmStat label="xA"       value={(player.xA ?? 0).toFixed(1)}     color="#a78bfa" />
               {(player.shots ?? 0) > 0 && <DmStat label="Tirs"  value={player.shots ?? 0}  color="#94a3b8" />}
@@ -780,8 +780,8 @@ function PlayerModal({ player, onClose }: { player: SquadPlayer; onClose: () => 
           {/* GK stats */}
           {hasDatamb && isGk && (<>
             <DmSection title={`Gardien — ${dmCtx}`}>
-              <DmStat label="Arrêts %"    value={pctm(player.dm_savePct)}         color="#00d4ff" />
-              <DmStat label="Arrêts/90"   value={fmt1m(player.dm_saves90)}        color="#00d4ff" />
+              <DmStat label="Arrêts %"    value={pctm(player.dm_savePct)}         color="#67d8e6" />
+              <DmStat label="Arrêts/90"   value={fmt1m(player.dm_saves90)}        color="#67d8e6" />
               <DmStat label="BC/90"       value={fmt2m(player.dm_gcPer90)}        color="#ef4444" />
               <DmStat label="xG enc./90"  value={fmt2m(player.dm_xgConceded90)}   color="#f97316" />
               <DmStat label="Prév./90"    value={fmt2m(player.dm_preventedGoals90)} color="#22c55e" />
@@ -790,7 +790,7 @@ function PlayerModal({ player, onClose }: { player: SquadPlayer; onClose: () => 
               <DmStat label="Tirs conc."  value={fmt1m(player.dm_shotsConceded90)} color="#6b7c96" />
             </DmSection>
             <DmSection title="Jeu au pied">
-              <DmStat label="Pass %"      value={pctm(player.dm_passPct)}         color="#00d4ff" />
+              <DmStat label="Pass %"      value={pctm(player.dm_passPct)}         color="#67d8e6" />
               <DmStat label="Longues/90"  value={fmt1m(player.dm_longPasses90)}   color="#94a3b8" />
               <DmStat label="Longues %"   value={pctm(player.dm_longPassAcc)}     color="#94a3b8" />
               <DmStat label="Passes/90"   value={fmt1m(player.dm_passes90)}       color="#6b7c96" />
@@ -827,7 +827,7 @@ function PlayerModal({ player, onClose }: { player: SquadPlayer; onClose: () => 
 
             <DmSection title="Création">
               <DmStat label="xA/90"         value={fmt2m(player.dm_xa90)}          color="#a78bfa" />
-              <DmStat label="PD/90"         value={fmt2m(player.dm_assists90)}     color="#00d4ff" />
+              <DmStat label="PD/90"         value={fmt2m(player.dm_assists90)}     color="#67d8e6" />
               <DmStat label="Shot ast./90"  value={fmt1m(player.dm_shotAssists90)} color="#a78bfa" />
               <DmStat label="Pré-PD/90"     value={fmt1m(player.dm_preAssists90)}  color="#a78bfa" />
               <DmStat label="3e PD/90"      value={fmt1m(player.dm_thirdAssists90)} color="#a78bfa" />
@@ -842,8 +842,8 @@ function PlayerModal({ player, onClose }: { player: SquadPlayer; onClose: () => 
 
             {(isMid || isDef || isWing) && (
               <DmSection title="Passes">
-                <DmStat label="Passes/90"   value={fmt1m(player.dm_passes90)}      color="#00d4ff" />
-                <DmStat label="Pass %"      value={pctm(player.dm_passPct)}        color="#00d4ff" />
+                <DmStat label="Passes/90"   value={fmt1m(player.dm_passes90)}      color="#67d8e6" />
+                <DmStat label="Pass %"      value={pctm(player.dm_passPct)}        color="#67d8e6" />
                 <DmStat label="Imprécis %"  value={pctm(player.dm_inaccuratePct)}  color="#ef4444" />
                 <DmStat label="Avant %"     value={pctm(player.dm_fwdPassPct)}     color="#22c55e" />
                 <DmStat label="Longues %"   value={pctm(player.dm_longPassAcc)}    color="#94a3b8" />
@@ -1234,7 +1234,7 @@ export default function ClubPage() {
           )}
           <Link href="/search" aria-label="Rechercher"
             className="ml-1 flex items-center justify-center w-7 h-7 rounded-lg flex-shrink-0 hover:opacity-80"
-            style={{ background: "rgba(0,212,255,0.08)", border: "1px solid rgba(0,212,255,0.22)", color: "#00d4ff" }}>
+            style={{ background: "rgba(103,216,230,0.08)", border: "1px solid rgba(103,216,230,0.22)", color: "#67d8e6" }}>
             <MagnifyingGlass size={13} />
           </Link>
         </div>
@@ -1347,7 +1347,7 @@ export default function ClubPage() {
               {team.coach    && <div><p style={{ color: "#6b7c96" }}>Entraîneur</p><p className="font-semibold mt-0.5 truncate" style={{ color: "#e8edf5" }}>{team.coach}</p></div>}
               {squadStats.totalValue > 0 && (
                 <div><p style={{ color: "#6b7c96" }}>Valeur effectif</p>
-                  <p className="font-black mt-0.5" style={{ color: "#00d4ff" }}>{fv(squadStats.totalValue)}</p></div>
+                  <p className="font-black mt-0.5" style={{ color: "#67d8e6" }}>{fv(squadStats.totalValue)}</p></div>
               )}
             </div>
 
@@ -1413,7 +1413,7 @@ export default function ClubPage() {
                       {admin.billetterie && (
                         <div className="flex items-center gap-1.5">
                           <span style={{ color: "#6b7c96" }}>Billetterie</span>
-                          <span className="font-bold" style={{ color: "#00d4ff" }}>{admin.billetterie}</span>
+                          <span className="font-bold" style={{ color: "#67d8e6" }}>{admin.billetterie}</span>
                         </div>
                       )}
                       {admin.droitsTv && (
@@ -1443,7 +1443,7 @@ export default function ClubPage() {
                         {admin.sources.map(s => (
                           <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer"
                             className="text-[10px] flex items-center gap-0.5 hover:opacity-70 transition-opacity"
-                            style={{ color: "#00d4ff" }}>
+                            style={{ color: "#67d8e6" }}>
                             {s.label} <ArrowSquareOut size={9} />
                           </a>
                         ))}
@@ -1615,7 +1615,7 @@ export default function ClubPage() {
             badge={<span className="text-lg font-black" style={{ color: ec(emotional.emotionalScore) }}>{emotional.emotionalScore}</span>}>
             <div className="px-4 py-3 space-y-2">
               <ScoreBar label="Économique" score={emotional.components.economic.score} color="#f59e0b" weight="28%" />
-              <ScoreBar label="Médias" score={emotional.components.media.score} color="#00d4ff" weight="28%" />
+              <ScoreBar label="Médias" score={emotional.components.media.score} color="#67d8e6" weight="28%" />
               <ScoreBar label="Humain" score={emotional.components.human.score} color="#22c55e" weight="30%" />
               {emotional.components.fan && (
                 <ScoreBar label="Supporters" score={emotional.components.fan.score} color="#06b6d4" weight="14%" />
@@ -1635,8 +1635,8 @@ export default function ClubPage() {
         )}
 
         {/* ── JOUEURS ── */}
-        <ClubSection title="Joueurs" icon={<Users size={13} />} iconColor="#00d4ff" defaultOpen={true}
-          badge={squad ? <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold" style={{ background: "rgba(0,212,255,0.12)", color: "#00d4ff" }}>{squad.squad.length}</span> : undefined}>
+        <ClubSection title="Joueurs" icon={<Users size={13} />} iconColor="#67d8e6" defaultOpen={true}
+          badge={squad ? <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold" style={{ background: "rgba(103,216,230,0.12)", color: "#67d8e6" }}>{squad.squad.length}</span> : undefined}>
 
           {/* Column headers */}
           <div className="grid px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest"
@@ -1649,7 +1649,7 @@ export default function ClubPage() {
             <span className="text-center" style={{ color: "#60a5fa" }}>🅰</span>
             <span className="text-center hidden sm:block" style={{ color: "#22c55e" }}>xG/90</span>
             <span className="text-center hidden sm:block" style={{ color: "#a78bfa" }}>xA/90</span>
-            <span className="text-right" style={{ color: "#00d4ff" }}>Cote</span>
+            <span className="text-right" style={{ color: "#67d8e6" }}>Cote</span>
           </div>
 
           {squadStats.playerCount === 0 ? (
@@ -1773,7 +1773,7 @@ export default function ClubPage() {
 
                         {/* Market value */}
                         <span className="text-[10px] text-right font-mono font-bold"
-                          style={{ color: p.marketValue > 20_000_000 ? "#00d4ff" : p.marketValue > 5_000_000 ? "#e8edf5" : "#6b7c96" }}>
+                          style={{ color: p.marketValue > 20_000_000 ? "#67d8e6" : p.marketValue > 5_000_000 ? "#e8edf5" : "#6b7c96" }}>
                           {p.marketValue > 0 ? fv(p.marketValue) : "—"}
                         </span>
                       </button>
@@ -1789,7 +1789,7 @@ export default function ClubPage() {
             <div className="flex justify-between px-3 py-2 text-xs font-bold" style={{ borderTop: "1px solid #1e2d42", color: "#6b7c96" }}>
               <span>{squadStats.playerCount} joueurs</span>
               {squadStats.injuredCount > 0 && <span style={{ color: "#f97316" }}>{squadStats.injuredCount} blessé{squadStats.injuredCount > 1 ? "s" : ""}</span>}
-              <span style={{ color: "#00d4ff" }}>Total : {fv(squadStats.totalValue)}</span>
+              <span style={{ color: "#67d8e6" }}>Total : {fv(squadStats.totalValue)}</span>
             </div>
           )}
         </ClubSection>
@@ -1798,7 +1798,7 @@ export default function ClubPage() {
         <div className="flex items-center justify-between pb-6 pt-1">
           <Link href="/"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold hover:opacity-80 transition-all"
-            style={{ background: "rgba(0,212,255,0.07)", border: "1px solid rgba(0,212,255,0.18)", color: "#00d4ff" }}>
+            style={{ background: "rgba(103,216,230,0.07)", border: "1px solid rgba(103,216,230,0.18)", color: "#67d8e6" }}>
             <ArrowLeft size={12} />Foot Predictom
           </Link>
         </div>
