@@ -157,7 +157,7 @@ function ClubRow({ club, onOpen }: { club: ClubTransfers; onOpen: (i: TransferIt
         {hasNews && (
           <div className="flex items-center gap-1.5 flex-shrink-0">
             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded"
-              style={{ background: "rgba(0,212,255,0.1)", color: "#00d4ff", border: "1px solid rgba(0,212,255,0.2)" }}>
+              style={{ background: "rgba(103,216,230,0.1)", color: "#67d8e6", border: "1px solid rgba(103,216,230,0.2)" }}>
               {club.items.length}
             </span>
             <CaretDown size={11} style={{ color: "#6b7c96" }} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
@@ -262,8 +262,8 @@ function TopTransferRow({ item, onOpen }: { item: TransferItem; onOpen: (i: Tran
           {item.pubDate && (
             <div className="flex items-center gap-1 mt-1"
               title={formatAbsoluteDate(item.pubDate)}>
-              <Calendar size={10} weight="bold" style={{ color: "#00d4ff" }} />
-              <span className="text-[10px] font-bold tabular-nums" style={{ color: "#00d4ff" }}>
+              <Calendar size={10} weight="bold" style={{ color: "#67d8e6" }} />
+              <span className="text-[10px] font-bold tabular-nums" style={{ color: "#67d8e6" }}>
                 {formatAbsoluteDate(item.pubDate)}
               </span>
               <span className="text-[9px]" style={{ color: "#6b7c96" }}>
@@ -333,8 +333,8 @@ function BubbleDetail({ t, onClose }: { t: BoardTransfer; onClose: () => void })
           </div>
           {t.transferDate && (
             <div className="flex items-center gap-1 mt-1" title={formatAbsoluteDate(t.transferDate)}>
-              <Calendar size={10} weight="bold" style={{ color: "#00d4ff" }} />
-              <span className="text-[10px] font-bold tabular-nums" style={{ color: "#00d4ff" }}>
+              <Calendar size={10} weight="bold" style={{ color: "#67d8e6" }} />
+              <span className="text-[10px] font-bold tabular-nums" style={{ color: "#67d8e6" }}>
                 {formatAbsoluteDate(t.transferDate)}
               </span>
               <span className="text-[9px]" style={{ color: "#6b7c96" }}>· {formatRelativeDate(t.transferDate)}</span>
@@ -351,7 +351,7 @@ function BubbleDetail({ t, onClose }: { t: BoardTransfer; onClose: () => void })
           <a href={`https://www.fotmob.com/players/${t.playerId}`}
             target="_blank" rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-[9px] font-bold mt-1 px-1.5 py-0.5 rounded transition-opacity hover:opacity-80"
-            style={{ background: "rgba(0,212,255,0.12)", color: "#00d4ff", border: "1px solid rgba(0,212,255,0.3)" }}>
+            style={{ background: "rgba(103,216,230,0.12)", color: "#67d8e6", border: "1px solid rgba(103,216,230,0.3)" }}>
             Fiche FotMob <ArrowSquareOut size={9} />
           </a>
         </div>
@@ -463,27 +463,27 @@ function MarketChart({ transfers }: { transfers: BoardTransfer[] }) {
   return (
     <div className="rounded-2xl p-3 mb-4 relative"
       style={{
-        background: "linear-gradient(135deg, rgba(0,212,255,0.08), rgba(13,20,33,0.9))",
-        border: "1px solid rgba(0,212,255,0.25)",
+        background: "linear-gradient(135deg, rgba(103,216,230,0.08), rgba(13,20,33,0.9))",
+        border: "1px solid rgba(103,216,230,0.25)",
       }}>
       <div className="flex items-start justify-between mb-2 gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <ChartLine size={14} weight="fill" style={{ color: "#00d4ff" }} />
-            <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: "#00d4ff" }}>
+            <ChartLine size={14} weight="fill" style={{ color: "#67d8e6" }} />
+            <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: "#67d8e6" }}>
               Indice mercato
             </h3>
             {/* Window selector — 3 / 6 / 12 months */}
             <div className="flex gap-0.5 rounded-md overflow-hidden ml-1"
-              style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(0,212,255,0.2)" }}>
+              style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(103,216,230,0.2)" }}>
               {([90, 180, 365] as const).map((d) => {
                 const active = windowDays === d;
                 return (
                   <button key={d} onClick={() => setWindowDays(d)}
                     className="px-1.5 py-0.5 text-[9px] font-bold tabular-nums transition-all"
                     style={{
-                      background: active ? "rgba(0,212,255,0.2)" : "transparent",
-                      color: active ? "#00d4ff" : "#6b7c96",
+                      background: active ? "rgba(103,216,230,0.2)" : "transparent",
+                      color: active ? "#67d8e6" : "#6b7c96",
                     }}>
                     {d === 365 ? "1 an" : `${d / 30} m`}
                   </button>
@@ -496,7 +496,7 @@ function MarketChart({ transfers }: { transfers: BoardTransfer[] }) {
           </p>
         </div>
         <div className="text-right flex-shrink-0">
-          <p className="text-[18px] font-black leading-none tabular-nums" style={{ color: "#00d4ff" }}>
+          <p className="text-[18px] font-black leading-none tabular-nums" style={{ color: "#67d8e6" }}>
             {formatEuro(total)}
           </p>
           <p className="text-[9px] mt-1" style={{ color: "#6b7c96" }}>
@@ -514,8 +514,8 @@ function MarketChart({ transfers }: { transfers: BoardTransfer[] }) {
               <stop offset="100%" stopColor="#fbbf24" stopOpacity="0" />
             </radialGradient>
             <linearGradient id="weeklyBar" x1="0" y1="1" x2="0" y2="0">
-              <stop offset="0%"   stopColor="#00d4ff" stopOpacity="0.0" />
-              <stop offset="100%" stopColor="#00d4ff" stopOpacity="0.18" />
+              <stop offset="0%"   stopColor="#67d8e6" stopOpacity="0.0" />
+              <stop offset="100%" stopColor="#67d8e6" stopOpacity="0.18" />
             </linearGradient>
           </defs>
 
@@ -572,11 +572,11 @@ function MarketChart({ transfers }: { transfers: BoardTransfer[] }) {
                 {isTop && <circle cx={b.x} cy={b.y} r={b.r * 2.2} fill="url(#bubbleHalo)" />}
                 {isPicked && (
                   <circle cx={b.x} cy={b.y} r={b.r + 3}
-                    fill="none" stroke="#00d4ff" strokeWidth={1.5} opacity={0.9} />
+                    fill="none" stroke="#67d8e6" strokeWidth={1.5} opacity={0.9} />
                 )}
                 <circle cx={b.x} cy={b.y} r={b.r}
                   fill={fill} fillOpacity={isTop ? 0.85 : 0.55}
-                  stroke={isPicked ? "#00d4ff" : "#0a0f1c"}
+                  stroke={isPicked ? "#67d8e6" : "#0a0f1c"}
                   strokeWidth={isPicked ? 1.5 : isTop ? 1.5 : 0.5} />
               </g>
             );
@@ -590,7 +590,7 @@ function MarketChart({ transfers }: { transfers: BoardTransfer[] }) {
               top: `${(hover.y / H) * 100}%`,
               transform: "translate(-50%, calc(-100% - 10px))",
               background: "rgba(13,20,33,0.95)",
-              border: "1px solid rgba(0,212,255,0.4)",
+              border: "1px solid rgba(103,216,230,0.4)",
               boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
               minWidth: 130,
             }}>
@@ -598,7 +598,7 @@ function MarketChart({ transfers }: { transfers: BoardTransfer[] }) {
             <p className="text-[9px]" style={{ color: "#94a3b8" }}>
               {hover.t.fromClub} → {hover.t.toClub}
             </p>
-            <p className="text-[10px] font-black tabular-nums mt-0.5" style={{ color: "#00d4ff" }}>
+            <p className="text-[10px] font-black tabular-nums mt-0.5" style={{ color: "#67d8e6" }}>
               {formatEuro(hover.t.marketValue)} · {formatDate(hover.t.transferDate)}
             </p>
           </div>
@@ -663,10 +663,10 @@ function BoursierBoard({ transfers, onOpen, loading }: {
   if (loading) {
     return (
       <div className="rounded-2xl p-3 mb-4"
-        style={{ background: "rgba(0,212,255,0.04)", border: "1px solid rgba(0,212,255,0.18)" }}>
+        style={{ background: "rgba(103,216,230,0.04)", border: "1px solid rgba(103,216,230,0.18)" }}>
         <div className="flex items-center gap-2 mb-2">
-          <ChartLine size={14} weight="fill" style={{ color: "#00d4ff" }} />
-          <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: "#00d4ff" }}>
+          <ChartLine size={14} weight="fill" style={{ color: "#67d8e6" }} />
+          <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: "#67d8e6" }}>
             Bourse des transferts
           </h3>
         </div>
@@ -698,10 +698,10 @@ function BoursierBoard({ transfers, onOpen, loading }: {
   if (top.length === 0) {
     return (
       <div className="rounded-2xl p-4 mb-4 text-center"
-        style={{ background: "rgba(0,212,255,0.04)", border: "1px solid rgba(0,212,255,0.18)" }}>
+        style={{ background: "rgba(103,216,230,0.04)", border: "1px solid rgba(103,216,230,0.18)" }}>
         <div className="flex items-center justify-center gap-2 mb-1">
-          <ChartLine size={14} weight="fill" style={{ color: "#00d4ff" }} />
-          <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: "#00d4ff" }}>
+          <ChartLine size={14} weight="fill" style={{ color: "#67d8e6" }} />
+          <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: "#67d8e6" }}>
             Bourse des transferts
           </h3>
         </div>
@@ -719,13 +719,13 @@ function BoursierBoard({ transfers, onOpen, loading }: {
   return (
     <div className="rounded-2xl p-3 mb-4"
       style={{
-        background: "linear-gradient(135deg, rgba(0,212,255,0.06), rgba(13,20,33,0.85))",
-        border: "1px solid rgba(0,212,255,0.25)",
+        background: "linear-gradient(135deg, rgba(103,216,230,0.06), rgba(13,20,33,0.85))",
+        border: "1px solid rgba(103,216,230,0.25)",
       }}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <ChartLine size={14} weight="fill" style={{ color: "#00d4ff" }} />
-          <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: "#00d4ff" }}>
+          <ChartLine size={14} weight="fill" style={{ color: "#67d8e6" }} />
+          <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: "#67d8e6" }}>
             Bourse des transferts · {top.length} récents
           </h3>
         </div>
@@ -755,7 +755,7 @@ function StatsBar({ clubs }: { clubs: ClubTransfers[] }) {
   return (
     <div className="grid grid-cols-4 gap-2 mb-4">
       {[
-        { label: "Articles", value: totalNews,       color: "#00d4ff", icon: <Newspaper size={14} /> },
+        { label: "Articles", value: totalNews,       color: "#67d8e6", icon: <Newspaper size={14} /> },
         { label: "Arrivées", value: totalArrivals,   color: "#22c55e", icon: <TrendUp size={14} /> },
         { label: "Départs",  value: totalDepartures, color: "#ef4444", icon: <TrendDown size={14} /> },
         { label: "Rumeurs",  value: totalRumors,     color: "#f59e0b", icon: <span className="text-sm">🟡</span> },
@@ -901,9 +901,9 @@ export default function TransfersTab({
               <button key={opt.id} onClick={() => setLeague(opt.id)}
                 className="flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-all"
                 style={{
-                  background: active ? "rgba(0,212,255,0.12)" : "transparent",
-                  color: active ? "#00d4ff" : "#64748b",
-                  border: active ? "1px solid rgba(0,212,255,0.3)" : "1px solid transparent",
+                  background: active ? "rgba(103,216,230,0.12)" : "transparent",
+                  color: active ? "#67d8e6" : "#64748b",
+                  border: active ? "1px solid rgba(103,216,230,0.3)" : "1px solid transparent",
                 }}>
                 {opt.label}
               </button>
@@ -926,7 +926,7 @@ export default function TransfersTab({
         </div>
         <button onClick={() => load(true)} disabled={refreshing}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-80"
-          style={{ background: "rgba(0,212,255,0.08)", border: "1px solid rgba(0,212,255,0.2)", color: "#00d4ff" }}>
+          style={{ background: "rgba(103,216,230,0.08)", border: "1px solid rgba(103,216,230,0.2)", color: "#67d8e6" }}>
           <ArrowsClockwise size={12} className={refreshing ? "animate-spin" : ""} />
           Actualiser
         </button>
@@ -945,7 +945,7 @@ export default function TransfersTab({
       <div className="space-y-3">
         {loading && !data ? (
           <div className="py-3">
-            <LoadingBar color="#00d4ff" caption="Chargement des actualités" />
+            <LoadingBar color="#67d8e6" caption="Chargement des actualités" />
           </div>
         ) : error && !data ? (
           <div className="rounded-2xl p-6 text-center"
@@ -954,7 +954,7 @@ export default function TransfersTab({
             <p className="text-xs mb-3" style={{ color: "#6b7c96" }}>{error}</p>
             <button onClick={() => load(true)}
               className="px-4 py-1.5 rounded-lg text-xs font-semibold hover:opacity-80 transition-all"
-              style={{ background: "rgba(0,212,255,0.1)", border: "1px solid rgba(0,212,255,0.3)", color: "#00d4ff" }}>
+              style={{ background: "rgba(103,216,230,0.1)", border: "1px solid rgba(103,216,230,0.3)", color: "#67d8e6" }}>
               Réessayer
             </button>
           </div>

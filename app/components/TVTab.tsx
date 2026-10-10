@@ -45,7 +45,7 @@ interface TvResponse {
 type SubTab = "FL1" | "FL2";
 
 const SUB_TABS: { id: SubTab; label: string; emoji: string; color: string }[] = [
-  { id: "FL1", label: "Ligue 1", emoji: "🇫🇷", color: "#00d4ff" },
+  { id: "FL1", label: "Ligue 1", emoji: "🇫🇷", color: "#67d8e6" },
   { id: "FL2", label: "Ligue 2", emoji: "🇫🇷", color: "#a78bfa" },
 ];
 
@@ -77,14 +77,14 @@ function ChannelChip({ b }: { b: Broadcaster }) {
       className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold whitespace-nowrap"
       style={{
         background: watchNow
-          ? "rgba(0,212,255,0.10)"
+          ? "rgba(103,216,230,0.10)"
           : b.free
             ? "rgba(34,197,94,0.10)"
             : b.streaming
               ? "rgba(168,139,250,0.08)"
               : "rgba(255,255,255,0.04)",
-        color: watchNow ? "#00d4ff" : b.free ? "#22c55e" : b.streaming ? "#a78bfa" : "#cbd5e1",
-        border: `1px solid ${watchNow ? "rgba(0,212,255,0.3)" : b.free ? "rgba(34,197,94,0.25)" : b.streaming ? "rgba(168,139,250,0.2)" : "rgba(255,255,255,0.06)"}`,
+        color: watchNow ? "#67d8e6" : b.free ? "#22c55e" : b.streaming ? "#a78bfa" : "#cbd5e1",
+        border: `1px solid ${watchNow ? "rgba(103,216,230,0.3)" : b.free ? "rgba(34,197,94,0.25)" : b.streaming ? "rgba(168,139,250,0.2)" : "rgba(255,255,255,0.06)"}`,
       }}
       title={watchNow ? "Regarder en direct sur Palama-TV" : b.free ? "Chaîne gratuite" : b.streaming ? "Streaming" : undefined}
     >
@@ -303,7 +303,7 @@ export default function TVTab() {
       {/* Header */}
       <div className="flex flex-wrap items-center gap-2 px-3 py-2 rounded-xl mb-3"
         style={{ background: "#0d1421", border: "1px solid #1e2d42" }}>
-        <Television size={16} weight="bold" style={{ color: "#00d4ff" }} />
+        <Television size={16} weight="bold" style={{ color: "#67d8e6" }} />
         <span className="text-sm font-black tracking-tight" style={{ color: "#e8edf5" }}>
           Où regarder les prochains matchs
         </span>

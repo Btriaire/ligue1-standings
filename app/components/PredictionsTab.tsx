@@ -253,12 +253,12 @@ function ProbBar({ homeProb, drawProb, awayProb, winner }: { homeProb: number; d
   return (
     <div className="space-y-1.5">
       <div className="flex rounded-lg overflow-hidden h-3">
-        <div className="transition-all duration-700" style={{ width: `${homeProb}%`, background: winner === "home" ? "#00d4ff" : "rgba(0,212,255,0.3)" }} />
+        <div className="transition-all duration-700" style={{ width: `${homeProb}%`, background: winner === "home" ? "#67d8e6" : "rgba(103,216,230,0.3)" }} />
         <div className="transition-all duration-700" style={{ width: `${drawProb}%`, background: "rgba(148,163,184,0.3)" }} />
         <div className="transition-all duration-700" style={{ width: `${awayProb}%`, background: winner === "away" ? "#7c3aed" : "rgba(124,58,237,0.3)" }} />
       </div>
       <div className="flex justify-between text-xs font-mono">
-        <span style={{ color: winner === "home" ? "#00d4ff" : "#6b7c96" }}>{homeProb}%</span>
+        <span style={{ color: winner === "home" ? "#67d8e6" : "#6b7c96" }}>{homeProb}%</span>
         <span style={{ color: "#6b7c96" }}>{drawProb}%</span>
         <span style={{ color: winner === "away" ? "#7c3aed" : "#6b7c96" }}>{awayProb}%</span>
       </div>
@@ -309,8 +309,8 @@ function TeamSpiderChart({ match, pred }: { match: MatchPrediction; pred: Predic
           Profil tactique comparé
         </span>
         <div className="flex items-center gap-3 text-[10px]">
-          <span className="flex items-center gap-1" style={{ color: "#00d4ff" }}>
-            <span className="inline-block w-2 h-2 rounded-sm" style={{ background: "#00d4ff" }} />
+          <span className="flex items-center gap-1" style={{ color: "#67d8e6" }}>
+            <span className="inline-block w-2 h-2 rounded-sm" style={{ background: "#67d8e6" }} />
             {home.shortName || home.tla}
           </span>
           <span className="flex items-center gap-1" style={{ color: "#a78bfa" }}>
@@ -319,7 +319,7 @@ function TeamSpiderChart({ match, pred }: { match: MatchPrediction; pred: Predic
           </span>
         </div>
       </div>
-      <HexRadar axes={axes} homeColor="#00d4ff" awayColor="#a78bfa" />
+      <HexRadar axes={axes} homeColor="#67d8e6" awayColor="#a78bfa" />
     </div>
   );
 }
@@ -361,7 +361,7 @@ function AIMatchPreview({ match }: { match: MatchPrediction }) {
     return () => { cancelled = true; };
   }, [match]);
 
-  const pickColor = data?.pick === "home" ? "#00d4ff" : data?.pick === "away" ? "#a78bfa" : "#fbbf24";
+  const pickColor = data?.pick === "home" ? "#67d8e6" : data?.pick === "away" ? "#a78bfa" : "#fbbf24";
   const pickLabel = data?.pick === "home"
     ? `Vic. ${match.homeTeam.shortName || match.homeTeam.tla}`
     : data?.pick === "away"
@@ -482,7 +482,7 @@ function ButeursPotentiels({
       {open && !loading && loaded && (
         <div className="grid grid-cols-2 gap-3 mt-3">
           {[
-            { name: homeTeamName, players: topHome, emoScore: homeEmoScore, color: "#00d4ff" },
+            { name: homeTeamName, players: topHome, emoScore: homeEmoScore, color: "#67d8e6" },
             { name: awayTeamName, players: topAway, emoScore: awayEmoScore, color: "#a78bfa" },
           ].map(({ name, players, emoScore, color }) => (
             <div key={name}>
@@ -622,7 +622,7 @@ function MatchCard({
               <p className="text-sm font-bold" style={{ color: "#e8edf5" }}>{match.homeTeam.shortName || match.homeTeam.tla}</p>
               <p className="text-xs" style={{ color: "#6b7c96" }}>{match.homeTeam.position}e · {match.homeTeam.points}pts</p>
             </div>
-            {pred.winner === "home" && <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(0,212,255,0.15)", color: "#00d4ff" }}>Favori</span>}
+            {pred.winner === "home" && <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(103,216,230,0.15)", color: "#67d8e6" }}>Favori</span>}
             {formMomentumEnabled && Math.abs(homeMomentum) >= 0.01 && <MomentumBadge form={match.homeTeam.form} />}
             {useEmotional && homeEmo && (
               <span className="text-xs" style={{ color: homeDelta > 0 ? "#22c55e" : homeDelta < 0 ? "#ef4444" : "#6b7c96" }}>
@@ -726,7 +726,7 @@ function MatchCard({
             </div>
             <div className="grid grid-cols-3 divide-x" style={{ borderColor: "rgba(234,179,8,0.12)" }}>
               {[
-                { label: "1 · Dom.", odds: expertMatch.odds.home, prob: expertMatch.impliedProbs?.home, color: "#00d4ff", win: pred.winner === "home" },
+                { label: "1 · Dom.", odds: expertMatch.odds.home, prob: expertMatch.impliedProbs?.home, color: "#67d8e6", win: pred.winner === "home" },
                 { label: "X · Nul", odds: expertMatch.odds.draw, prob: expertMatch.impliedProbs?.draw, color: "#94a3b8", win: pred.winner === "draw" },
                 { label: "2 · Ext.", odds: expertMatch.odds.away, prob: expertMatch.impliedProbs?.away, color: "#a78bfa", win: pred.winner === "away" },
               ].map(cell => (
@@ -748,14 +748,14 @@ function MatchCard({
         {winnerTeam && (
           <div className="mt-2 px-4 py-3 rounded-xl text-center"
             style={{
-              background: hasBetclic ? "rgba(234,179,8,0.07)" : "rgba(0,212,255,0.05)",
-              border: hasBetclic ? "1px solid rgba(234,179,8,0.2)" : "1px solid rgba(0,212,255,0.15)",
+              background: hasBetclic ? "rgba(234,179,8,0.07)" : "rgba(103,216,230,0.05)",
+              border: hasBetclic ? "1px solid rgba(234,179,8,0.2)" : "1px solid rgba(103,216,230,0.15)",
             }}>
             <p className="text-xs" style={{ color: "#6b7c96" }}>
               {hasBetclic ? (expertMatch?.source ?? "Expert") : "AI FootPredictom"}
               {useEmotional && hasBetclic ? " + Facteur additionnel" : ""}
             </p>
-            <p className="text-sm font-bold mt-0.5" style={{ color: hasBetclic ? "#eab308" : "#00d4ff" }}>
+            <p className="text-sm font-bold mt-0.5" style={{ color: hasBetclic ? "#eab308" : "#67d8e6" }}>
               Victoire {winnerTeam.shortName || winnerTeam.tla} — {Math.max(pred.homeProb, pred.awayProb)}%
             </p>
           </div>

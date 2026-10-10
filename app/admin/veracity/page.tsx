@@ -68,7 +68,7 @@ export default function VeracityPage() {
           <h1 className="font-black text-sm">Véracité des profils clubs</h1>
           <button onClick={() => run(true)} disabled={loading}
             className="ml-auto flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg disabled:opacity-50"
-            style={{ background: "rgba(0,212,255,0.08)", border: "1px solid rgba(0,212,255,0.22)", color: "#00d4ff" }}>
+            style={{ background: "rgba(103,216,230,0.08)", border: "1px solid rgba(103,216,230,0.22)", color: "#67d8e6" }}>
             <ArrowsClockwise size={12} className={loading ? "animate-spin" : ""} />
             {loading ? "Vérification…" : "Re-vérifier"}
           </button>
@@ -160,8 +160,8 @@ function ReportCard({ report }: { report: Report }) {
         <XCircle size={12} style={{ color: "#ef4444" }} />
         <span className="font-bold text-sm">{report.name}</span>
         <span className="text-[10px] px-1.5 py-0.5 rounded"
-          style={{ background: report.league === "L1" ? "rgba(0,212,255,0.12)" : "rgba(251,191,36,0.12)",
-                   color: report.league === "L1" ? "#00d4ff" : "#fbbf24" }}>
+          style={{ background: report.league === "L1" ? "rgba(103,216,230,0.12)" : "rgba(251,191,36,0.12)",
+                   color: report.league === "L1" ? "#67d8e6" : "#fbbf24" }}>
           {report.league}
         </span>
         <Link href={`https://fr.wikipedia.org/wiki/${encodeURIComponent(report.wikiTitle)}`}

@@ -21,7 +21,7 @@ type LeagueKey = "FL1" | "FL2";
 type LeagueFilter = "ALL" | LeagueKey;
 
 const LEAGUE_BADGE: Record<LeagueKey, { label: string; color: string; bg: string }> = {
-  FL1: { label: "L1", color: "#00d4ff", bg: "rgba(0,212,255,0.10)" },
+  FL1: { label: "L1", color: "#67d8e6", bg: "rgba(103,216,230,0.10)" },
   FL2: { label: "L2", color: "#a78bfa", bg: "rgba(167,139,250,0.10)" },
 };
 
@@ -69,7 +69,7 @@ const LEADERBOARD_METRICS: LeaderboardMetric[] = [
   { key: "usGoals",     label: "Top buteurs",   short: "buts",  color: "#f59e0b", format: v => `${Math.round(v)}`,    available: ["FL1", "FL2"] },
   { key: "usAssists",   label: "Top passeurs",  short: "PD",    color: "#a78bfa", format: v => `${Math.round(v)}`,    available: ["FL1", "FL2"] },
   { key: "dm_xgxa90",   label: "xG+xA / 90",    short: "/90",   color: "#22c55e", format: v => v.toFixed(2),          available: ["FL1"], hint: "Datamb — Ligue 1" },
-  { key: "rating",      label: "Notation",      short: "note",  color: "#00d4ff", format: v => v.toFixed(2),          available: ["FL2"], hint: "FotMob — Ligue 2" },
+  { key: "rating",      label: "Notation",      short: "note",  color: "#67d8e6", format: v => v.toFixed(2),          available: ["FL2"], hint: "FotMob — Ligue 2" },
   { key: "marketValue", label: "Valeur marché", short: "€",     color: "#ec4899", format: v => fv(v),                 available: ["FL1", "FL2"] },
 ];
 
@@ -140,7 +140,7 @@ function ClubSection({ clubId, players, sortKey, expandedId, onToggle, leagueBad
         {/* Summary stats */}
         <div className="hidden sm:flex items-center gap-3 text-[10px] font-mono flex-shrink-0">
           {totalValue > 0 && (
-            <span style={{ color: "#00d4ff" }}>{fv(totalValue)}</span>
+            <span style={{ color: "#67d8e6" }}>{fv(totalValue)}</span>
           )}
           {avgXg > 0 && (
             <span style={{ color: "#22c55e" }}>xG/90 {avgXg.toFixed(2)}</span>
@@ -470,7 +470,7 @@ function PlayersPageInner() {
             <ArrowLeft size={14} /> Accueil
           </Link>
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
-            <Users size={14} style={{ color: "#00d4ff", flexShrink: 0 }} />
+            <Users size={14} style={{ color: "#67d8e6", flexShrink: 0 }} />
             <span className="font-black text-sm" style={{ color: "#e8edf5" }}>Joueurs</span>
             <span className="text-xs truncate" style={{ color: "#6b7c96" }}>
               {loading ? `Chargement… (${clubsDone}/${clubsTotal})` : `${filtered.length} / ${allPlayers.length} joueurs`}
@@ -478,7 +478,7 @@ function PlayersPageInner() {
           </div>
           <button onClick={() => setShowFilters(v => !v)}
             className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg flex-shrink-0"
-            style={{ background: showFilters ? "rgba(0,212,255,0.1)" : "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: showFilters ? "#00d4ff" : "#6b7c96" }}>
+            style={{ background: showFilters ? "rgba(103,216,230,0.1)" : "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: showFilters ? "#67d8e6" : "#6b7c96" }}>
             <FunnelSimple size={11} /> Filtres
           </button>
         </div>
@@ -498,8 +498,8 @@ function PlayersPageInner() {
                   onClick={() => onLeagueFilterChange(opt.key)}
                   className="text-xs px-3 py-1.5 rounded-lg font-bold transition-colors"
                   style={{
-                    background: active ? "rgba(0,212,255,0.12)" : "transparent",
-                    color: active ? "#00d4ff" : "#6b7c96",
+                    background: active ? "rgba(103,216,230,0.12)" : "transparent",
+                    color: active ? "#67d8e6" : "#6b7c96",
                   }}>
                   {opt.label}
                 </button>
@@ -562,7 +562,7 @@ function PlayersPageInner() {
             </select>
             <select value={sortKey} onChange={e => setSortKey(e.target.value)}
               className="text-xs px-2.5 py-1.5 rounded-lg outline-none"
-              style={{ background: "#0d1421", border: "1px solid #1e2d42", color: "#00d4ff" }}>
+              style={{ background: "#0d1421", border: "1px solid #1e2d42", color: "#67d8e6" }}>
               {SORT_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
             </select>
             {isFiltered && (

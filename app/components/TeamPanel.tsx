@@ -160,11 +160,11 @@ export default function TeamPanel({ standing, zoneColor }: Props) {
               <span style={{ color: "#94a3b8" }} className="font-medium truncate max-w-[80px]">
                 {opp.shortName ?? opp.name.split(" ").slice(-1)[0]}
               </span>
-              <span style={{ color: "#00d4ff" }} className="font-semibold">
+              <span style={{ color: "#67d8e6" }} className="font-semibold">
                 {fmtShortDate(nextMatch.date)} {fmtTime(nextMatch.date)}
               </span>
               <span className="text-[9px] px-1.5 py-0.5 rounded"
-                style={{ background: isHome ? "rgba(0,212,255,0.1)" : "rgba(255,255,255,0.05)", color: isHome ? "#00d4ff" : "#6b7c96" }}>
+                style={{ background: isHome ? "rgba(103,216,230,0.1)" : "rgba(255,255,255,0.05)", color: isHome ? "#67d8e6" : "#6b7c96" }}>
                 {isHome ? "Dom." : "Ext."}
               </span>
             </div>

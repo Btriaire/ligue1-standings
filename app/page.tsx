@@ -680,7 +680,7 @@ function ApparenceDropdown() {
           >
             <MoonStars size={12} weight={active === null ? "fill" : "regular"} />
             <span>Sombre</span>
-            {active === null && <span className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: "#00d4ff" }} />}
+            {active === null && <span className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: "#67d8e6" }} />}
           </button>
 
           {THEME_OPTIONS.map(opt => (
@@ -976,15 +976,15 @@ export default function Home() {
               <div>
                 <Link href="/players"
                   className="flex items-center justify-between px-5 py-4 rounded-2xl hover:opacity-80 transition-opacity"
-                  style={{ background: "rgba(0,212,255,0.06)", border: "1px solid rgba(0,212,255,0.2)" }}>
+                  style={{ background: "rgba(103,216,230,0.06)", border: "1px solid rgba(103,216,230,0.2)" }}>
                   <div className="flex items-center gap-3">
-                    <Users size={18} style={{ color: "#00d4ff" }} />
+                    <Users size={18} style={{ color: "#67d8e6" }} />
                     <div>
                       <p className="text-sm font-bold" style={{ color: "#e8edf5" }}>Statistiques joueurs</p>
                       <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>xG, xA, buts, passes déc. — tous les clubs</p>
                     </div>
                   </div>
-                  <CaretRight size={16} style={{ color: "#00d4ff" }} />
+                  <CaretRight size={16} style={{ color: "#67d8e6" }} />
                 </Link>
               </div>
             )}
@@ -1049,15 +1049,15 @@ export default function Home() {
               <div>
                 <Link href="/players?league=FL2"
                   className="flex items-center justify-between px-5 py-4 rounded-2xl hover:opacity-80 transition-opacity"
-                  style={{ background: "rgba(0,212,255,0.06)", border: "1px solid rgba(0,212,255,0.2)" }}>
+                  style={{ background: "rgba(103,216,230,0.06)", border: "1px solid rgba(103,216,230,0.2)" }}>
                   <div className="flex items-center gap-3">
-                    <Users size={18} style={{ color: "#00d4ff" }} />
+                    <Users size={18} style={{ color: "#67d8e6" }} />
                     <div>
                       <p className="text-sm font-bold" style={{ color: "#e8edf5" }}>Statistiques joueurs Ligue 2</p>
                       <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>Top buteurs, passeurs, notation — source FotMob</p>
                     </div>
                   </div>
-                  <CaretRight size={16} style={{ color: "#00d4ff" }} />
+                  <CaretRight size={16} style={{ color: "#67d8e6" }} />
                 </Link>
               </div>
             )}
