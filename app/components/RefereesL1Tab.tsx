@@ -252,8 +252,8 @@ const REPUTATION_CONFIG: Record<string, { color: string; emoji: string }> = {
   "sévère":         { color: "#ef4444", emoji: "🟥" },
   "rigoureux":      { color: "#f97316", emoji: "🟧" },
   "équilibré":      { color: "#22c55e", emoji: "🟩" },
-  "expérimenté":    { color: "#3b82f6", emoji: "🔵" },
-  "régulier":       { color: "#3b82f6", emoji: "🔵" },
+  "expérimenté":    { color: "#0e7490", emoji: "🔵" },
+  "régulier":       { color: "#0e7490", emoji: "🔵" },
   "clément":        { color: "#a78bfa", emoji: "🟣" },
   "clémente":       { color: "#a78bfa", emoji: "🟣" },
   "en observation": { color: "#f59e0b", emoji: "🟡" },
@@ -324,7 +324,7 @@ function RefereeCard({ ref: r }: { ref: Referee }) {
             <span className="text-sm font-black" style={{ color: "#e8edf5" }}>{r.name}</span>
             {wc2026 && (
               <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full flex-shrink-0"
-                style={{ background: "rgba(59,130,246,0.15)", color: "#60a5fa", border: "1px solid rgba(59,130,246,0.25)" }}>
+                style={{ background: "rgba(14,116,144,0.15)", color: "#67d8e6", border: "1px solid rgba(14,116,144,0.25)" }}>
                 🌍 CdM 2026
               </span>
             )}
@@ -400,9 +400,9 @@ function RefereeCard({ ref: r }: { ref: Referee }) {
 
           {/* Notable fact */}
           {r.notable && (
-            <div className="rounded-xl px-3 py-2.5" style={{ background: "rgba(59,130,246,0.05)", border: "1px solid rgba(59,130,246,0.12)" }}>
+            <div className="rounded-xl px-3 py-2.5" style={{ background: "rgba(14,116,144,0.05)", border: "1px solid rgba(14,116,144,0.12)" }}>
               <div className="flex items-start gap-2">
-                <Star size={11} style={{ color: "#60a5fa", flexShrink: 0, marginTop: 1 }} />
+                <Star size={11} style={{ color: "#67d8e6", flexShrink: 0, marginTop: 1 }} />
                 <p className="text-[10px] leading-relaxed" style={{ color: "#94a3b8" }}>{r.notable}</p>
               </div>
             </div>

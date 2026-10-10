@@ -106,7 +106,7 @@ function NewsColumn({ title, color, items, loaded, onSelect }: {
 export default function NewsBanner({ standings }: { standings: Standing[] }) {
   const [monClubId, setMonClubId] = useState<number | null>(null);
   const [cols, setCols] = useState<Col[]>([
-    { label: "Ligue 1",      color: "#3b82f6", items: [], loaded: false },
+    { label: "Ligue 1",      color: "#0e7490", items: [], loaded: false },
     { label: "Mondial 2026", color: "#f59e0b", items: [], loaded: false },
     { label: "Mon Club",     color: "#a78bfa", items: [], loaded: false },
   ]);

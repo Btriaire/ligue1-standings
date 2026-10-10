@@ -73,7 +73,7 @@ export default function NewsModal({ title, url, pubDate, onClose }: Props) {
           <div className="flex items-center gap-2 flex-wrap">
             {article?.sourceDomain && (
               <span className="text-[10px] font-black px-2 py-0.5 rounded-full"
-                style={{ background: "rgba(59,130,246,0.12)", color: "#60a5fa", border: "1px solid rgba(59,130,246,0.25)" }}>
+                style={{ background: "rgba(14,116,144,0.12)", color: "#67d8e6", border: "1px solid rgba(14,116,144,0.25)" }}>
                 {article.sourceDomain}
               </span>
             )}
@@ -93,7 +93,7 @@ export default function NewsModal({ title, url, pubDate, onClose }: Props) {
           {/* Loading state */}
           {loading && (
             <div className="flex flex-col items-center gap-3 py-10">
-              <ArrowsClockwise size={20} className="animate-spin" style={{ color: "#3b82f6" }} />
+              <ArrowsClockwise size={20} className="animate-spin" style={{ color: "#0e7490" }} />
               <p className="text-xs" style={{ color: "#6b7c96" }}>Chargement de l&apos;article…</p>
             </div>
           )}
@@ -111,7 +111,7 @@ export default function NewsModal({ title, url, pubDate, onClose }: Props) {
               </p>
               <a href={url} target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold hover:opacity-80"
-                style={{ background: "#3b82f6", color: "#fff" }}>
+                style={{ background: "#0e7490", color: "#fff" }}>
                 <ArrowSquareOut size={13} /> Lire sur le site source
               </a>
             </div>
@@ -143,7 +143,7 @@ export default function NewsModal({ title, url, pubDate, onClose }: Props) {
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-semibold hover:opacity-80 transition-opacity mt-2"
-              style={{ background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.25)", color: "#60a5fa" }}
+              style={{ background: "rgba(14,116,144,0.1)", border: "1px solid rgba(14,116,144,0.25)", color: "#67d8e6" }}
             >
               <ArrowSquareOut size={14} />
               Lire l&apos;article complet

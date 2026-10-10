@@ -901,7 +901,7 @@ function MatchCard({
               {/* Header */}
               <div className="px-3 py-2 flex items-center gap-2" style={{ background: "rgba(129,140,248,0.1)", borderBottom: "1px solid rgba(129,140,248,0.15)" }}>
                 <span>🧠</span>
-                <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "#818cf8" }}>Analyse Tactique</span>
+                <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "#67d8e6" }}>Analyse Tactique</span>
                 <span className="text-[9px] ml-auto" style={{ color: "#475569" }}>auto · données live</span>
               </div>
               <div className="px-3 py-3 space-y-3" style={{ background: "rgba(129,140,248,0.02)" }}>
@@ -912,12 +912,12 @@ function MatchCard({
                   <div className="grid grid-cols-2 gap-2">
                     <div className="rounded-lg px-2.5 py-2" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(129,140,248,0.12)" }}>
                       <p className="text-[9px] uppercase font-bold mb-1" style={{ color: "#475569" }}>🏠 {home.shortName || home.tla}</p>
-                      <p className="text-[11px] font-bold leading-tight" style={{ color: "#818cf8" }}>{inferTactic(homeGpg, homeCpg)}</p>
+                      <p className="text-[11px] font-bold leading-tight" style={{ color: "#67d8e6" }}>{inferTactic(homeGpg, homeCpg)}</p>
                       <p className="text-[9px] mt-1 tabular-nums" style={{ color: "#64748b" }}>{homeGpg.toFixed(1)} buts/m · {homeCpg.toFixed(1)} enc./m</p>
                     </div>
                     <div className="rounded-lg px-2.5 py-2" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(129,140,248,0.12)" }}>
                       <p className="text-[9px] uppercase font-bold mb-1" style={{ color: "#475569" }}>✈️ {away.shortName || away.tla}</p>
-                      <p className="text-[11px] font-bold leading-tight" style={{ color: "#818cf8" }}>{inferTactic(awayGpg, awayCpg)}</p>
+                      <p className="text-[11px] font-bold leading-tight" style={{ color: "#67d8e6" }}>{inferTactic(awayGpg, awayCpg)}</p>
                       <p className="text-[9px] mt-1 tabular-nums" style={{ color: "#64748b" }}>{awayGpg.toFixed(1)} buts/m · {awayCpg.toFixed(1)} enc./m</p>
                     </div>
                   </div>
@@ -927,14 +927,14 @@ function MatchCard({
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <p className="text-[9px] uppercase font-bold" style={{ color: "#475569" }}>Rapport de forces — xG</p>
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "rgba(129,140,248,0.12)", color: "#818cf8" }}>{dominanceLabel}</span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "rgba(129,140,248,0.12)", color: "#67d8e6" }}>{dominanceLabel}</span>
                   </div>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-[10px] font-bold truncate" style={{ color: pred.winner === "home" ? "#e8edf5" : "#6b7c96", minWidth: 52, textAlign: "right" }}>
                       {home.shortName || home.tla}
                     </span>
                     <div className="flex-1 h-4 rounded-lg overflow-hidden flex" style={{ background: "rgba(0,0,0,0.35)" }}>
-                      <div style={{ width: `${homePct}%`, background: "linear-gradient(90deg,#6366f1,#818cf8)", transition: "width 0.5s" }} className="flex items-center justify-end pr-1.5">
+                      <div style={{ width: `${homePct}%`, background: "linear-gradient(90deg,#0e7490,#67d8e6)", transition: "width 0.5s" }} className="flex items-center justify-end pr-1.5">
                         {homePct >= 28 && <span className="text-[9px] font-black" style={{ color: "rgba(255,255,255,0.85)" }}>{homeXg}</span>}
                       </div>
                       <div style={{ flex: 1, background: "rgba(239,68,68,0.4)" }} className="flex items-center pl-1.5">
@@ -946,7 +946,7 @@ function MatchCard({
                     </span>
                   </div>
                   <div className="flex items-center justify-center gap-3 mt-0.5">
-                    <span className="text-xs font-black tabular-nums" style={{ color: "#818cf8" }}>xG {homeXg}</span>
+                    <span className="text-xs font-black tabular-nums" style={{ color: "#67d8e6" }}>xG {homeXg}</span>
                     <span className="text-[9px]" style={{ color: "#475569" }}>—</span>
                     <span className="text-xs font-black tabular-nums" style={{ color: "#ef4444" }}>xG {awayXg}</span>
                   </div>
@@ -1003,7 +1003,7 @@ function MatchCard({
                   <ul className="space-y-1.5">
                     {bullets.map((pt, idx) => (
                       <li key={idx} className="flex items-start gap-2">
-                        <span className="flex-shrink-0 mt-[3px] w-3 h-3 rounded-sm flex items-center justify-center text-[8px] font-black" style={{ background: "rgba(129,140,248,0.15)", color: "#818cf8" }}>
+                        <span className="flex-shrink-0 mt-[3px] w-3 h-3 rounded-sm flex items-center justify-center text-[8px] font-black" style={{ background: "rgba(129,140,248,0.15)", color: "#67d8e6" }}>
                           {idx + 1}
                         </span>
                         <span className="text-[11px] leading-relaxed" style={{ color: "#94a3b8" }}>{pt}</span>
@@ -1025,7 +1025,7 @@ function MatchCard({
                       BTTS {impliedBtts ? "✓ Oui" : "✗ Non"}
                     </span>
                     <span className="text-[10px] font-bold px-2 py-1 rounded-lg tabular-nums"
-                      style={{ background: "rgba(129,140,248,0.1)", color: "#818cf8", border: "1px solid rgba(129,140,248,0.25)" }}>
+                      style={{ background: "rgba(129,140,248,0.1)", color: "#67d8e6", border: "1px solid rgba(129,140,248,0.25)" }}>
                       Score {impliedScore}
                     </span>
                     <span className="text-[10px] font-bold px-2 py-1 rounded-lg ml-auto"

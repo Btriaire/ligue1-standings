@@ -105,7 +105,7 @@ const ALL_CLUBS: Club[] = [...L1_CLUBS, ...L2_CLUBS];
 /* ══════════════════════════════════════════ ZONES ══ */
 
 const ZONES = [
-  { label:"Champion",            positions:[1],          color:"#60a5fa", bg:"rgba(96,165,250,0.1)"  },
+  { label:"Champion",            positions:[1],          color:"#67d8e6", bg:"rgba(103,216,230,0.1)"  },
   { label:"Ligue des Champions", positions:[2,3],        color:"#34d399", bg:"rgba(52,211,153,0.1)"  },
   { label:"Ligue Europa",        positions:[4],          color:"#fbbf24", bg:"rgba(251,191,36,0.1)"  },
   { label:"Conférence League",   positions:[5],          color:"#a78bfa", bg:"rgba(167,139,250,0.1)" },
@@ -225,7 +225,7 @@ function getSessionId():string {
 }
 
 const POS_FR:Record<string,string>    = {Goalkeeper:"Gardien",Defender:"Défenseur",Midfielder:"Milieu",Winger:"Ailier","Centre-Forward":"Attaquant"};
-const POS_COLOR:Record<string,string> = {Goalkeeper:"#f59e0b",Defender:"#3b82f6",Midfielder:"#a78bfa",Winger:"#34d399","Centre-Forward":"#ef4444"};
+const POS_COLOR:Record<string,string> = {Goalkeeper:"#f59e0b",Defender:"#0e7490",Midfielder:"#a78bfa",Winger:"#34d399","Centre-Forward":"#ef4444"};
 const POS_CODE:Record<string,string>  = {Goalkeeper:"GB",Defender:"DEF",Midfielder:"MIL",Winger:"AIL","Centre-Forward":"ATT"};
 const POS_ORD:Record<string,number>   = {Goalkeeper:1,Defender:2,Midfielder:3,Winger:4,"Centre-Forward":5};
 function slotPosMatch(type:"GK"|"DF"|"MF"|"FW", pos:string):boolean {
@@ -352,8 +352,8 @@ function ClubSelector({onSelectClub}:{onSelectClub:(c:Club)=>void}) {
     <div>
       <div className="text-center mb-6">
         <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-3"
-          style={{background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.2)"}}>
-          <Shield size={26} style={{color:"#60a5fa"}}/>
+          style={{background:"rgba(103,216,230,0.1)",border:"1px solid rgba(103,216,230,0.2)"}}>
+          <Shield size={26} style={{color:"#67d8e6"}}/>
         </div>
         <h2 className="text-xl font-black mb-1" style={{color:"#e8edf5"}}>Choisissez votre club de cœur</h2>
         <p className="text-xs" style={{color:"#6b7c96"}}>Aperçu · Effectif · Résultats · Prédictions AI · Ma Compo</p>
@@ -880,7 +880,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
               <div>
                 <p className="text-[9px] font-bold uppercase tracking-widest mb-2" style={{color:"#6b7c96"}}>Défense</p>
                 <div className="space-y-1.5">
-                  {[{l:"Enc.",v:Math.max(0,60-standing.goalsAgainst),max:60,c:"#3b82f6",raw:standing.goalsAgainst},
+                  {[{l:"Enc.",v:Math.max(0,60-standing.goalsAgainst),max:60,c:"#0e7490",raw:standing.goalsAgainst},
                     {l:"DB",  v:Math.max(0,standing.goalDifference+35),max:70,c:standing.goalDifference>=0?"#34d399":"#f87171",raw:(standing.goalDifference>0?"+":"")+standing.goalDifference}
                   ].map(r=>(
                     <div key={r.l} className="flex items-center gap-2 text-xs">
@@ -911,7 +911,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                   {p.formBadge==="hot"&&<span className="text-xs">🔥</span>}
                   <span className="flex-1 text-sm font-semibold truncate" style={{color:"#e8edf5"}}>{p.name}</span>
                   <span className="font-black text-sm" style={{color:"#22c55e"}}>{(p.usGoals ?? Math.round(p.xG ?? 0)) || "—"}<span className="text-[9px] font-normal ml-0.5" style={{color:"#6b7c96"}}>B</span></span>
-                  <span className="font-black text-sm" style={{color:"#60a5fa"}}>{(p.usAssists ?? Math.round(p.xA ?? 0)) || "—"}<span className="text-[9px] font-normal ml-0.5" style={{color:"#6b7c96"}}>PD</span></span>
+                  <span className="font-black text-sm" style={{color:"#67d8e6"}}>{(p.usAssists ?? Math.round(p.xA ?? 0)) || "—"}<span className="text-[9px] font-normal ml-0.5" style={{color:"#6b7c96"}}>PD</span></span>
                 </div>
               ))}
             </div>
@@ -1054,8 +1054,8 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
 
           {resTab==="predictions"&&(
             <div className="space-y-3">
-              <div className="rounded-xl px-3 py-2 flex items-center gap-2" style={{background:"rgba(59,130,246,0.06)",border:"1px solid rgba(59,130,246,0.2)"}}>
-                <Pulse size={10} style={{color:"#60a5fa"}}/>
+              <div className="rounded-xl px-3 py-2 flex items-center gap-2" style={{background:"rgba(14,116,144,0.06)",border:"1px solid rgba(14,116,144,0.2)"}}>
+                <Pulse size={10} style={{color:"#67d8e6"}}/>
                 <p className="text-[10px]" style={{color:"#6b7c96"}}>Probabilités calculées sur la forme, la position et les stats de la saison en cours.</p>
               </div>
               {loading||!standing?(
@@ -1943,7 +1943,7 @@ type ZoneLevel = "red"|"orange"|"blue";
 function zoneColor(score: number): { fill: string; stroke: string; label: ZoneLevel } {
   if(score>=70) return { fill:"rgba(239,68,68,0.55)", stroke:"#ef4444", label:"red" };
   if(score>=50) return { fill:"rgba(251,146,60,0.50)", stroke:"#f97316", label:"orange" };
-  return { fill:"rgba(96,165,250,0.45)", stroke:"#60a5fa", label:"blue" };
+  return { fill:"rgba(103,216,230,0.45)", stroke:"#67d8e6", label:"blue" };
 }
 
 function SectorBar({label,myVal,oppVal,myColor,oppColor}:{label:string;myVal:number;oppVal:number;myColor:string;oppColor:string}) {
@@ -1978,7 +1978,7 @@ function SectorBar({label,myVal,oppVal,myColor,oppColor}:{label:string;myVal:num
 
 const POS_COLORS: Record<string,string> = {
   "Goalkeeper":     "#f59e0b",
-  "Defender":       "#3b82f6",
+  "Defender":       "#0e7490",
   "Midfielder":     "#a78bfa",
   "Winger":         "#34d399",
   "Centre-Forward": "#ef4444",
@@ -2045,7 +2045,7 @@ function HeatmapPitch({oppSquad, oppColor, riskPlayers, mySquad, myColor}:{
   const heatColor = (s: number) =>
     s>=70 ? { fill:"rgba(239,68,68,0.82)",  label:"#ef4444" } :
     s>=45 ? { fill:"rgba(249,115,22,0.75)", label:"#f97316" } :
-            { fill:"rgba(96,165,250,0.70)", label:"#60a5fa" };
+            { fill:"rgba(103,216,230,0.70)", label:"#67d8e6" };
 
   // ── Zone ellipses (cx,cy,rx,ry) — opponent attacks from top ──
   // labelX/labelY: score placed at EDGE of zone, away from player dot positions
@@ -2174,7 +2174,7 @@ function HeatmapPitch({oppSquad, oppColor, riskPlayers, mySquad, myColor}:{
 
       {/* ── Legend ── */}
       <div className="flex justify-center gap-4 mt-2">
-        {([["#ef4444","Danger élevé"],["#f97316","Modéré"],["#60a5fa","Faible"]] as [string,string][]).map(([c,l])=>(
+        {([["#ef4444","Danger élevé"],["#f97316","Modéré"],["#67d8e6","Faible"]] as [string,string][]).map(([c,l])=>(
           <div key={l} className="flex items-center gap-1">
             <div className="w-2 h-2 rounded-full flex-shrink-0" style={{background:c,boxShadow:`0 0 4px ${c}60`}}/>
             <span className="text-[9px]" style={{color:"#6b7c96"}}>{l}</span>
@@ -2465,7 +2465,7 @@ function FicheSection({club,nextMatch,opponentId,ficheTeamData,ficheSquad,mySqua
               const sec2 = isGK
                 ? { label:"CS", val: p.dm_cleanSheets!=null?String(p.dm_cleanSheets):"—" }
                 : { label:"xA/90", val: p.dm_xa90?p.dm_xa90.toFixed(2):"—" };
-              const posColor = {"Goalkeeper":"#f59e0b","Defender":"#3b82f6","Midfielder":"#a78bfa","Winger":"#34d399","Centre-Forward":"#ef4444"}[p.position]??OPP_COLOR;
+              const posColor = {"Goalkeeper":"#f59e0b","Defender":"#0e7490","Midfielder":"#a78bfa","Winger":"#34d399","Centre-Forward":"#ef4444"}[p.position]??OPP_COLOR;
               const entry: PlayerEntry = {
                 ...p,
                 nationality: p.nationality??[],
@@ -3131,7 +3131,7 @@ export default function MonClubTab() {
     localStorage.removeItem(STORAGE_KEY);
     setClubId(null);
   };
-  if(!ready) return <div className="flex items-center justify-center py-20"><div className="w-7 h-7 rounded-full border-2 animate-spin" style={{borderColor:"#3b82f6",borderTopColor:"transparent"}}/></div>;
+  if(!ready) return <div className="flex items-center justify-center py-20"><div className="w-7 h-7 rounded-full border-2 animate-spin" style={{borderColor:"#0e7490",borderTopColor:"transparent"}}/></div>;
   const club=ALL_CLUBS.find(c=>c.id===clubId)??null;
   if(club) return <ClubDashboard club={club} onChangeClub={drop}/>;
   return <ClubSelector onSelectClub={pickClub}/>;

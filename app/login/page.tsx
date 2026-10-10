@@ -30,7 +30,7 @@ function Field({ label, name, type = "text", placeholder, value, onChange }: {
           onChange={e => onChange(e.target.value)}
           className="w-full rounded-xl px-4 py-3 text-sm outline-none"
           style={{ background: "rgba(255,255,255,0.05)", border: "1px solid #1e2d42", color: "#e8edf5" }}
-          onFocus={e => (e.target.style.borderColor = "#3b82f6")}
+          onFocus={e => (e.target.style.borderColor = "#0e7490")}
           onBlur={e => (e.target.style.borderColor = "#1e2d42")}
         />
         {isPass && (
@@ -144,12 +144,12 @@ function LoginForm() {
       </div>
 
       <div className="w-full max-w-sm rounded-2xl p-1"
-        style={{ background: "linear-gradient(135deg, rgba(59,130,246,0.15), rgba(129,140,248,0.12))" }}>
+        style={{ background: "linear-gradient(135deg, rgba(14,116,144,0.15), rgba(129,140,248,0.12))" }}>
         <div className="rounded-2xl p-6" style={{ background: "#0d1421" }}>
 
           <div className="text-center mb-6">
             <div className="text-2xl font-black mb-1" style={{ color: "#e8edf5" }}>
-              Ligue 1 <span style={{ color: "#3b82f6" }}>Insider</span>
+              Ligue 1 <span style={{ color: "#0e7490" }}>Insider</span>
             </div>
             <p className="text-xs" style={{ color: "#6b7c96" }}>Accès aux analyses avancées</p>
           </div>
@@ -160,9 +160,9 @@ function LoginForm() {
               <button key={t} onClick={() => { setTab(t); setError(""); }}
                 className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold transition-all"
                 style={{
-                  background: tab === t ? "rgba(59,130,246,0.12)" : "transparent",
-                  color: tab === t ? "#3b82f6" : "#6b7c96",
-                  borderBottom: tab === t ? "2px solid #3b82f6" : "2px solid transparent",
+                  background: tab === t ? "rgba(14,116,144,0.12)" : "transparent",
+                  color: tab === t ? "#0e7490" : "#6b7c96",
+                  borderBottom: tab === t ? "2px solid #0e7490" : "2px solid transparent",
                 }}>
                 {t === "login" ? <><SignIn size={12} /> Connexion</> : <><UserPlus size={12} /> Inscription</>}
               </button>
@@ -181,12 +181,12 @@ function LoginForm() {
               )}
               <button type="submit" disabled={pending}
                 className="w-full py-3 rounded-xl text-sm font-black transition-all hover:opacity-90 disabled:opacity-50"
-                style={{ background: "linear-gradient(135deg, #3b82f6, #6366f1)", color: "#080c14" }}>
+                style={{ background: "linear-gradient(135deg, #0e7490, #0e7490)", color: "#080c14" }}>
                 {pending ? "Connexion…" : "Se connecter"}
               </button>
               <p className="text-center text-xs" style={{ color: "#6b7c96" }}>
                 Pas encore de compte ?{" "}
-                <button type="button" onClick={() => { setTab("register"); setError(""); }} style={{ color: "#3b82f6" }}>
+                <button type="button" onClick={() => { setTab("register"); setError(""); }} style={{ color: "#0e7490" }}>
                   S&apos;inscrire
                 </button>
               </p>
@@ -206,12 +206,12 @@ function LoginForm() {
               )}
               <button type="submit" disabled={pending}
                 className="w-full py-3 rounded-xl text-sm font-black transition-all hover:opacity-90 disabled:opacity-50"
-                style={{ background: "linear-gradient(135deg, #6366f1, #3b82f6)", color: "#080c14" }}>
+                style={{ background: "linear-gradient(135deg, #0e7490, #0e7490)", color: "#080c14" }}>
                 {pending ? "Création…" : "Créer mon compte"}
               </button>
               <p className="text-center text-xs" style={{ color: "#6b7c96" }}>
                 Déjà un compte ?{" "}
-                <button type="button" onClick={() => { setTab("login"); setError(""); }} style={{ color: "#3b82f6" }}>
+                <button type="button" onClick={() => { setTab("login"); setError(""); }} style={{ color: "#0e7490" }}>
                   Se connecter
                 </button>
               </p>

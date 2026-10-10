@@ -309,7 +309,7 @@ function computeMatchPrediction(homeS: StandingEntry, awayS: StandingEntry) {
 const POS_ORDER = ["Goalkeeper", "Defender", "Midfielder", "Winger", "Centre-Forward"];
 const POS_FR: Record<string, string> = { Goalkeeper: "Gardiens", Defender: "Défenseurs", Midfielder: "Milieux", Winger: "Ailiers", "Centre-Forward": "Attaquants" };
 const POS_SHORT: Record<string, string> = { Goalkeeper: "G", Defender: "D", Midfielder: "M", Winger: "A", "Centre-Forward": "BU" };
-const POS_COL: Record<string, string> = { Goalkeeper: "#f59e0b", Defender: "#3b82f6", Midfielder: "#22c55e", Winger: "#a78bfa", "Centre-Forward": "#ef4444" };
+const POS_COL: Record<string, string> = { Goalkeeper: "#f59e0b", Defender: "#0e7490", Midfielder: "#22c55e", Winger: "#a78bfa", "Centre-Forward": "#ef4444" };
 
 const TR_CFG = {
   arrival:   { color: "#22c55e", label: "Arrivée",  emoji: "🟢" },
@@ -454,18 +454,18 @@ function ClubHistoryCard({ name, profile }: { name: string; profile?: ClubProfil
   };
 
   return (
-    <div className="rounded-xl mb-2" style={{ border: "1px solid rgba(255,255,255,0.06)", background: "rgba(96,165,250,0.04)" }}>
+    <div className="rounded-xl mb-2" style={{ border: "1px solid rgba(255,255,255,0.06)", background: "rgba(103,216,230,0.04)" }}>
       <button onClick={onToggle}
         className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-white/[0.03] transition-colors rounded-xl"
         aria-expanded={open}>
-        <ClockClockwise size={12} weight="fill" style={{ color: "#60a5fa" }} />
-        <p className="text-[10px] font-bold uppercase tracking-widest flex-1" style={{ color: "#60a5fa" }}>
+        <ClockClockwise size={12} weight="fill" style={{ color: "#67d8e6" }} />
+        <p className="text-[10px] font-bold uppercase tracking-widest flex-1" style={{ color: "#67d8e6" }}>
           Historique du club
         </p>
         <span className="text-[10px] font-semibold" style={{ color: "#94a3b8" }}>
           {open ? "Masquer" : "Détailler"}
         </span>
-        <CaretDown size={11} style={{ color: "#60a5fa", transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
+        <CaretDown size={11} style={{ color: "#67d8e6", transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
       </button>
 
       {open && (
@@ -562,7 +562,7 @@ function NewsModal({ item, clubName, onClose }: {
 
         <div className="px-4 py-3 space-y-3">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#60a5fa" }}>
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#67d8e6" }}>
               ✨ Résumé IA
             </p>
             {loading
@@ -1250,12 +1250,12 @@ export default function ClubPage() {
               <span className="text-xs font-bold px-2 py-0.5 rounded-md"
                 style={{
                   background: clubAnalysis.tag === "excellent" ? "rgba(52,211,153,0.12)" :
-                    clubAnalysis.tag === "good" ? "rgba(96,165,250,0.12)" :
+                    clubAnalysis.tag === "good" ? "rgba(103,216,230,0.12)" :
                     clubAnalysis.tag === "difficult" ? "rgba(251,191,36,0.12)" :
                     clubAnalysis.tag === "crisis" ? "rgba(248,113,113,0.12)" :
                     "rgba(255,255,255,0.06)",
                   color: clubAnalysis.tag === "excellent" ? "#34d399" :
-                    clubAnalysis.tag === "good" ? "#60a5fa" :
+                    clubAnalysis.tag === "good" ? "#67d8e6" :
                     clubAnalysis.tag === "difficult" ? "#fbbf24" :
                     clubAnalysis.tag === "crisis" ? "#f87171" :
                     "#94a3b8",
@@ -1513,7 +1513,7 @@ export default function ClubPage() {
                       <p className="flex-1 text-xs leading-snug" style={{ color: "#cbd5e1" }}>{item.title}</p>
                       <div className="flex items-center gap-1 flex-shrink-0 opacity-50 group-hover:opacity-100">
                         <span className="text-[9px]" style={{ color: "#6b7c96" }}>{item.source}</span>
-                        <Info size={10} style={{ color: "#60a5fa" }} />
+                        <Info size={10} style={{ color: "#67d8e6" }} />
                       </div>
                     </button>
                   );
@@ -1646,7 +1646,7 @@ export default function ClubPage() {
             <span className="text-center" style={{ color: "#fbbf24" }}>Forme</span>
             <span className="text-center" style={{ color: "#fbbf24" }}>1vs1</span>
             <span className="text-center" style={{ color: "#34d399" }}>⚽</span>
-            <span className="text-center" style={{ color: "#60a5fa" }}>🅰</span>
+            <span className="text-center" style={{ color: "#67d8e6" }}>🅰</span>
             <span className="text-center hidden sm:block" style={{ color: "#22c55e" }}>xG/90</span>
             <span className="text-center hidden sm:block" style={{ color: "#a78bfa" }}>xA/90</span>
             <span className="text-right" style={{ color: "#67d8e6" }}>Cote</span>
@@ -1700,7 +1700,7 @@ export default function ClubPage() {
                     const rating = vs1?.rating ?? 0;
                     const goals = vs1?.goals ?? 0;
                     const assists = vs1?.assists ?? 0;
-                    const ratingColor = rating >= 80 ? "#34d399" : rating >= 70 ? "#60a5fa" : rating >= 60 ? "#fbbf24" : "#94a3b8";
+                    const ratingColor = rating >= 80 ? "#34d399" : rating >= 70 ? "#67d8e6" : rating >= 60 ? "#fbbf24" : "#94a3b8";
 
                     return (
                       <button key={p.id} onClick={() => setExpandedPlayer(p)}
@@ -1756,7 +1756,7 @@ export default function ClubPage() {
 
                         {/* Assists */}
                         <span className="text-[10px] text-center font-bold"
-                          style={{ color: assists > 0 ? "#60a5fa" : "#2d3748" }}>
+                          style={{ color: assists > 0 ? "#67d8e6" : "#2d3748" }}>
                           {assists > 0 ? assists : "—"}
                         </span>
 

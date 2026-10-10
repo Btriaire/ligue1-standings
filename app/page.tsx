@@ -53,7 +53,7 @@ type TabId = "ligue1" | "ligue2" | "tv" | "monclub" | "predictions" | "results" 
 type L1SubTab = "classement" | "mercato" | "joueurs" | "transfert" | "arbitres";
 
 const ZONE_CONFIG = [
-  { label: "Champion",            positions: [1],          color: "#60a5fa", bg: "rgba(96,165,250,0.05)"  },
+  { label: "Champion",            positions: [1],          color: "#67d8e6", bg: "rgba(103,216,230,0.05)"  },
   { label: "Ligue des Champions", positions: [2, 3],       color: "#34d399", bg: "rgba(52,211,153,0.05)"  },
   { label: "Ligue Europa",        positions: [4],           color: "#fbbf24", bg: "rgba(251,191,36,0.05)"  },
   { label: "Conf. League",        positions: [5],           color: "#a78bfa", bg: "rgba(167,139,250,0.05)" },
@@ -90,8 +90,8 @@ function FormStreak({ form }: { form: string }) {
 function PositionBadge({ position }: { position: number }) {
   if (position === 1) {
     return (
-      <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#3b82f6]/10 border border-[#3b82f6]/30">
-        <Trophy size={14} className="text-[#3b82f6]" />
+      <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#0e7490]/10 border border-[#0e7490]/30">
+        <Trophy size={14} className="text-[#0e7490]" />
       </div>
     );
   }
@@ -160,7 +160,7 @@ function StandingsTable({ standings }: { standings: Standing[] }) {
               style={{
                 gridTemplateColumns: "44px 1fr 40px 90px 40px 40px 48px 56px 100px 40px",
                 background: isExpanded
-                  ? "rgba(59,130,246,0.07)"
+                  ? "rgba(14,116,144,0.07)"
                   : zone ? zone.bg : idx % 2 === 0 ? "rgba(13,20,33,0.6)" : "transparent",
                 borderBottom: isExpanded ? "none" : "1px solid rgba(30,45,66,0.4)",
                 borderLeft: zone ? `3px solid ${zone.color}` : "3px solid transparent",
@@ -234,8 +234,8 @@ function StandingsTable({ standings }: { standings: Standing[] }) {
 
             {/* Inline compact panel */}
             {isExpanded && (
-              <div style={{ borderBottom: "1px solid rgba(30,45,66,0.6)", borderLeft: zone ? `3px solid ${zone.color}` : "3px solid rgba(59,130,246,0.4)" }}>
-                <TeamPanel standing={s} zoneColor={zone?.color ?? "#3b82f6"} />
+              <div style={{ borderBottom: "1px solid rgba(30,45,66,0.6)", borderLeft: zone ? `3px solid ${zone.color}` : "3px solid rgba(14,116,144,0.4)" }}>
+                <TeamPanel standing={s} zoneColor={zone?.color ?? "#0e7490"} />
               </div>
             )}
           </React.Fragment>
@@ -272,7 +272,7 @@ function ErrorState({ error, onRetry }: { error: string; onRetry: () => void }) 
       <h2 className="text-lg font-bold mb-2" style={{ color: "#e8edf5" }}>Impossible de charger les données</h2>
       <p className="text-sm mb-6" style={{ color: "#6b7c96" }}>{error}</p>
       <button onClick={onRetry} className="px-6 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-80"
-        style={{ background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.3)", color: "#3b82f6" }}>
+        style={{ background: "rgba(14,116,144,0.1)", border: "1px solid rgba(14,116,144,0.3)", color: "#0e7490" }}>
         Réessayer
       </button>
       <p className="mt-4 text-xs" style={{ color: "#6b7c96" }}>
@@ -288,36 +288,7 @@ function FootPredictomLogo() {
     <div className="flex items-center gap-2 sm:gap-3 min-w-0">
       {/* Ball icon */}
       <div className="relative w-10 h-10 flex-shrink-0">
-        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <radialGradient id="ball-grad" cx="40%" cy="35%" r="60%">
-              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.8" />
-              <stop offset="100%" stopColor="#6366f1" stopOpacity="0.8" />
-            </radialGradient>
-            <radialGradient id="glow-grad" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.15" />
-              <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
-            </radialGradient>
-          </defs>
-          {/* Glow */}
-          <circle cx="20" cy="20" r="19" fill="url(#glow-grad)" />
-          {/* Ball body */}
-          <circle cx="20" cy="20" r="16" fill="url(#ball-grad)" opacity="0.15" />
-          <circle cx="20" cy="20" r="16" stroke="url(#ball-grad)" strokeWidth="1.5" fill="none" />
-          {/* Pentagon pattern */}
-          <path d="M20 6 L25 14 L20 18 L15 14 Z" fill="#3b82f6" opacity="0.7" />
-          <path d="M28 13 L34 16 L32 22 L26 20 L25 14 Z" fill="#6366f1" opacity="0.5" />
-          <path d="M12 13 L15 14 L14 20 L8 22 L6 16 Z" fill="#6366f1" opacity="0.5" />
-          <path d="M26 20 L32 22 L30 28 L24 27 L20 22 Z" fill="#3b82f6" opacity="0.4" />
-          <path d="M14 20 L20 22 L16 27 L10 28 L8 22 Z" fill="#3b82f6" opacity="0.4" />
-          <path d="M20 22 L24 27 L20 32 L16 27 Z" fill="#6366f1" opacity="0.6" />
-          {/* Shine */}
-          <ellipse cx="15" cy="13" rx="4" ry="2.5" fill="white" opacity="0.15" transform="rotate(-20 15 13)" />
-          {/* AI badge */}
-          <circle cx="30" cy="10" r="7" fill="#080c14" />
-          <circle cx="30" cy="10" r="6.5" stroke="#3b82f6" strokeWidth="1" fill="rgba(59,130,246,0.1)" />
-          <text x="30" y="13.5" textAnchor="middle" fontSize="7" fontWeight="900" fill="#3b82f6">AI</text>
-        </svg>
+        <img src="/icons/icon.svg" width={40} height={40} alt="" />
       </div>
       {/* Text */}
       <div>
@@ -327,7 +298,7 @@ function FootPredictomLogo() {
             Foot
           </span>
           <span className="text-lg font-black tracking-tight leading-none"
-            style={{ color: "#60a5fa" }}>
+            style={{ color: "#67d8e6" }}>
             Predictom
           </span>
         </div>
@@ -578,7 +549,7 @@ function AuthGate({ label, icon }: { label: string; icon: React.ReactNode }) {
       <div className="flex gap-3">
         <Link href="/login"
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black hover:opacity-90 transition-all"
-          style={{ background: "#3b82f6", color: "#fff" }}>
+          style={{ background: "#0e7490", color: "#fff" }}>
           <SignIn size={14} /> Se connecter
         </Link>
         <Link href="/login?tab=register"
@@ -1077,7 +1048,7 @@ export default function Home() {
 
         {tab === "tv" && <TVTab />}
         {tab === "monclub" && <MonClubTab />}
-        {tab === "predictions" && (user ? <PredictionsTab /> : <AuthGate label="AI FootPredictom" icon={<Lightning size={16} className="inline" style={{ color: "#3b82f6" }} />} />)}
+        {tab === "predictions" && (user ? <PredictionsTab /> : <AuthGate label="AI FootPredictom" icon={<Lightning size={16} className="inline" style={{ color: "#0e7490" }} />} />)}
         {tab === "results" && <ResultsTab />}
         {tab === "emotional" && (user ? <EmotionalScoreTab /> : <AuthGate label="Facteur additionnel" icon={<Pulse size={16} className="inline" style={{ color: "#a78bfa" }} />} />)}
         {tab === "config" && <ConfigTab />}

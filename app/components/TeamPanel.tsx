@@ -50,7 +50,7 @@ export default function TeamPanel({ standing, zoneColor }: Props) {
   return (
     <div
       className="px-4 py-3 space-y-3"
-      style={{ background: "rgba(59,130,246,0.04)" }}
+      style={{ background: "rgba(14,116,144,0.04)" }}
     >
       {/* ── Stat pills ─────────────────────────────────────────── */}
       <div className="flex flex-wrap gap-2">

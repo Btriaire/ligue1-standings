@@ -576,7 +576,7 @@ export default function AdminPage() {
               </h2>
               <div className="grid grid-cols-2 gap-2">
                 <ActionBtn label="Warm cache joueurs" sub="Tous les 18 clubs L1 → Firestore" icon={<HardDrives size={13}/>}
-                  color="#3b82f6" log={logs["warm"]} onClick={() => trigger("warm", "/api/cron/warm-players")} />
+                  color="#0e7490" log={logs["warm"]} onClick={() => trigger("warm", "/api/cron/warm-players")} />
                 <ActionBtn label="Scraper SofaScore" sub="Blessures · valeurs · matchs" icon={<ArrowsClockwise size={13}/>}
                   color="#f59e0b" log={logs["sofa"]} onClick={() => trigger("sofa", "/api/cron/sofascore")} />
                 <ActionBtn label="Refresh classement L1" sub="Cache football-data.org" icon={<Globe size={13}/>}
@@ -623,7 +623,7 @@ export default function AdminPage() {
                       background: "#0d1421",
                     }}>
                     <div className="flex-1 min-w-0">
-                      <code className="text-[10px] font-mono" style={{ color: "#60a5fa" }}>{cron.path}</code>
+                      <code className="text-[10px] font-mono" style={{ color: "#67d8e6" }}>{cron.path}</code>
                       <p className="text-[9px] mt-0.5" style={{ color: "#475569" }}>{cron.schedule}</p>
                       <p className="text-[9px]" style={{ color: "#334155" }}>{cron.lastRun}</p>
                       {logs[cron.path] && (
@@ -686,7 +686,7 @@ export default function AdminPage() {
                           onClick={() => importSeason(season)}
                           disabled={!!histImporting[season]}
                           className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-semibold hover:opacity-80 disabled:opacity-40 flex-shrink-0"
-                          style={{ background: imp ? "rgba(34,197,94,0.08)" : "rgba(59,130,246,0.08)", border: `1px solid ${imp ? "rgba(34,197,94,0.2)" : "rgba(59,130,246,0.25)"}`, color: imp ? "#22c55e" : "#60a5fa" }}>
+                          style={{ background: imp ? "rgba(34,197,94,0.08)" : "rgba(14,116,144,0.08)", border: `1px solid ${imp ? "rgba(34,197,94,0.2)" : "rgba(14,116,144,0.25)"}`, color: imp ? "#22c55e" : "#67d8e6" }}>
                           {histImporting[season]
                             ? <ArrowsClockwise size={8} className="animate-spin"/>
                             : <CloudArrowDown size={8}/>}
@@ -786,7 +786,7 @@ export default function AdminPage() {
               </h2>
               <div className="rounded-xl overflow-hidden" style={{ border: "1px solid #1e2d42" }}>
                 {[
-                  { label: "Users Firebase", value: s?.firebase.registeredUsers, icon: <Users size={11}/>, color: "#3b82f6" },
+                  { label: "Users Firebase", value: s?.firebase.registeredUsers, icon: <Users size={11}/>, color: "#0e7490" },
                   { label: "Clubs SofaScore", value: s?.firestore.sofascoreClubs, icon: <HardDrives size={11}/>, color: "#f59e0b" },
                   { label: "Clubs compos", value: s?.firestore.composClubs, icon: <Funnel size={11}/>, color: "#a78bfa" },
                   { label: "Total votes compo", value: s?.firestore.totalCompoVotes, icon: <Database size={11}/>, color: "#22c55e" },
@@ -958,9 +958,9 @@ export default function AdminPage() {
                   <button key={sc} onClick={() => { setFanScope(sc); setFanOpen(null); }}
                     className="px-2.5 py-1 rounded-lg text-[10px] font-bold"
                     style={{
-                      background: fanScope===sc ? "rgba(59,130,246,0.15)" : "rgba(255,255,255,0.04)",
-                      border: `1px solid ${fanScope===sc ? "#3b82f6" : "#1e2d42"}`,
-                      color: fanScope===sc ? "#3b82f6" : "#94a3b8",
+                      background: fanScope===sc ? "rgba(14,116,144,0.15)" : "rgba(255,255,255,0.04)",
+                      border: `1px solid ${fanScope===sc ? "#0e7490" : "#1e2d42"}`,
+                      color: fanScope===sc ? "#0e7490" : "#94a3b8",
                     }}>
                     {sc==="L1" ? "Ligue 1 (18)" : sc==="L2" ? "Ligue 2 (18)" : "CdM 2026 (48)"}
                   </button>
@@ -1114,7 +1114,7 @@ export default function AdminPage() {
                 <p className="text-[9px] font-mono break-all" style={{ color: "#334155" }}>{s.app.base}</p>
                 <div className="flex gap-2 mt-1">
                   <Pill label={s.app.env} color="#22c55e"/>
-                  <Pill label="Session 8h" color="#3b82f6"/>
+                  <Pill label="Session 8h" color="#0e7490"/>
                 </div>
               </div>
             )}
