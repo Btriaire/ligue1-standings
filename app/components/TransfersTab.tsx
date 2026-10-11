@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useNow } from "@/app/lib/useNow";
 import dynamic from "next/dynamic";
 import { ArrowsClockwise, ArrowSquareOut, TrendUp, TrendDown, Newspaper, CaretDown, ArrowRight, ChartLine, User, Calendar } from "@phosphor-icons/react";
 import type { ClubTransfers, TransferItem } from "@/app/api/transfers/route";
@@ -363,7 +364,7 @@ function MarketChart({ transfers }: { transfers: BoardTransfer[] }) {
   const [windowDays, setWindowDays] = useState<90 | 180 | 365>(180);
 
   // Filter to valued transfers within the chosen window.
-  const now = Date.now();
+  const now = useNow();
   const minTs = now - windowDays * 24 * 3600 * 1000;
   const valid = transfers
     .filter((t) => (t.marketValue ?? 0) > 0)

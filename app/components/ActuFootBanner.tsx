@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useNow } from "@/app/lib/useNow";
 import dynamic from "next/dynamic";
 
 const TweetModal = dynamic(() => import("./TweetModal"), { ssr: false });
@@ -46,7 +47,7 @@ export default function ActuFootBanner() {
 
   // Ticker only shows posts from the last 7 days — older feels stale.
   const SEVEN_DAYS_MS = 7 * 24 * 3600 * 1000;
-  const nowMs = Date.now();
+  const nowMs = useNow();
   const recentTweets = tweets.filter(t => nowMs - new Date(t.pubDate).getTime() < SEVEN_DAYS_MS);
 
   // If there are zero recent posts and we're not in an error state, hide the

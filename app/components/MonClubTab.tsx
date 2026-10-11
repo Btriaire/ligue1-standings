@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useNow } from "@/app/lib/useNow";
 import dynamic from "next/dynamic";
 
 const NewsModal = dynamic(() => import("./NewsModal"), { ssr: false });
@@ -396,6 +397,7 @@ function ClubSelector({onSelectClub}:{onSelectClub:(c:Club)=>void}) {
 /* ══════════════════════════════════════════ DASHBOARD ══ */
 
 function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
+  const now = useNow();
   const [standing,     setStanding]     = useState<Standing|null>(null);
   const [allStandings, setAllStandings] = useState<Standing[]>([]);
   const [squad,        setSquad]        = useState<SquadPlayer[]>([]);
@@ -1537,7 +1539,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                 <>
                   {tweets.map(tweet=>{
                     const d=new Date(tweet.pubDate);
-                    const ago=Date.now()-d.getTime();
+                    const ago=now-d.getTime();
                     const agoStr=ago<3600000?`${Math.round(ago/60000)}min`
                       :ago<86400000?`${Math.round(ago/3600000)}h`
                       :`${d.toLocaleDateString("fr-FR",{day:"2-digit",month:"short"})}`;
@@ -1712,7 +1714,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
               )}
               {hashtagTweets.map(tweet=>{
                 const d=new Date(tweet.pubDate);
-                const ago=Date.now()-d.getTime();
+                const ago=now-d.getTime();
                 const agoStr=ago<3600000?`${Math.round(ago/60000)}min`:ago<86400000?`${Math.round(ago/3600000)}h`:d.toLocaleDateString("fr-FR",{day:"2-digit",month:"short"});
                 return (
                   <button key={tweet.id} type="button"
@@ -1804,7 +1806,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                     const hero=fanArticles.find(a=>a.image)??fanArticles[0];
                     if(!hero) return null;
                     const d=new Date(hero.pubDate);
-                    const ago=Date.now()-d.getTime();
+                    const ago=now-d.getTime();
                     const agoStr=ago<86400000?`${Math.round(ago/3600000)}h`:ago<604800000?`${Math.round(ago/86400000)}j`:d.toLocaleDateString("fr-FR",{day:"2-digit",month:"short"});
                     return (
                       <button type="button"
@@ -1835,7 +1837,7 @@ function ClubDashboard({club,onChangeClub}:{club:Club;onChangeClub:()=>void}) {
                   {/* OTHER articles — image card grid */}
                   {fanArticles.filter(a=>a!==(fanArticles.find(x=>x.image)??fanArticles[0])).map(art=>{
                     const d=new Date(art.pubDate);
-                    const ago=Date.now()-d.getTime();
+                    const ago=now-d.getTime();
                     const agoStr=ago<86400000?`${Math.round(ago/3600000)}h`:ago<604800000?`${Math.round(ago/86400000)}j`:d.toLocaleDateString("fr-FR",{day:"2-digit",month:"short"});
                     return (
                       <button key={art.id} type="button"
