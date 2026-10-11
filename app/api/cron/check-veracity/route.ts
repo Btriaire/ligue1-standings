@@ -28,7 +28,7 @@ export async function GET(req: Request) {
   const hookUrl = process.env.VERACITY_WEBHOOK_URL;
   if (hookUrl && mismatched.length > 0) {
     try {
-      await fetch(hookUrl, {
+      await fetch(hookUrl, { signal: AbortSignal.timeout(8000), 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

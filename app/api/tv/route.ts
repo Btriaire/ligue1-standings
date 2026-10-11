@@ -94,7 +94,7 @@ async function fetchL1(): Promise<{ matches: TvMatch[]; source: "football-data" 
   try {
     const res = await fetch(
       "https://api.football-data.org/v4/competitions/FL1/matches?status=SCHEDULED,TIMED",
-      { headers: { "X-Auth-Token": FOOTBALL_DATA_API_KEY }, next: { revalidate: 1800 } },
+      { headers: { "X-Auth-Token": FOOTBALL_DATA_API_KEY }, next: { revalidate: 1800 }, signal: AbortSignal.timeout(8000) },
     );
     if (!res.ok) {
       return { matches: [], source: "stub", error: `football-data → ${res.status}` };

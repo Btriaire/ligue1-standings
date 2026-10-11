@@ -1,30 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { ADMIN_COOKIE, ADMIN_TTL_MS, createAdminToken, isAdminToken } from "@/app/lib/adminAuth";
 
 export const dynamic = "force-dynamic";
 
-// Simple HMAC-free token: base64(username:timestamp) signed with secret
-// Good enough for a private admin panel — upgrade to JWT if needed
-const ADMIN_USER = process.env.ADMIN_USER ?? "Admin";
-const ADMIN_PASS = process.env.ADMIN_PASS ?? "admin";
-const COOKIE_NAME = "fp_admin";
-const TTL = 8 * 3600; // 8h
-
-function makeToken() {
-  return Buffer.from(`${ADMIN_USER}:${Date.now()}`).toString("base64");
-}
+// Login needs ADMIN_SECRET (token signing) and ADMIN_PASS (no built-in default).
+const TTL_S = ADMIN_TTL_MS / 1000;
 
 export async function POST(req: NextRequest) {
+  const adminUser = process.env.ADMIN_USER ?? "Admin";
+  const adminPass = process.env.ADMIN_PASS;
+  if (!adminPass) return NextResponse.json({ error: "ADMIN_PASS non configuré" }, { status: 503 });
   const { username, password } = await req.json().catch(() => ({}));
-  if (username?.toLowerCase() !== ADMIN_USER.toLowerCase() || password !== ADMIN_PASS) {
+  if (username?.toLowerCase() !== adminUser.toLowerCase() || password !== adminPass) {
     return NextResponse.json({ error: "Identifiants incorrects" }, { status: 401 });
   }
+  const token = createAdminToken(adminUser);
+  if (!token) return NextResponse.json({ error: "ADMIN_SECRET non configuré" }, { status: 503 });
   const store = await cookies();
-  store.set(COOKIE_NAME, makeToken(), {
+  store.set(ADMIN_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: TTL,
+    maxAge: TTL_S,
     path: "/",
   });
   return NextResponse.json({ ok: true });
@@ -32,20 +30,11 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE() {
   const store = await cookies();
-  store.delete(COOKIE_NAME);
+  store.delete(ADMIN_COOKIE);
   return NextResponse.json({ ok: true });
 }
 
 export async function GET() {
   const store = await cookies();
-  const token = store.get(COOKIE_NAME)?.value;
-  if (!token) return NextResponse.json({ admin: false });
-  // Validate: token is base64, check it starts with admin username
-  try {
-    const decoded = Buffer.from(token, "base64").toString("utf-8");
-    const [user, tsStr] = decoded.split(":");
-    const age = Date.now() - parseInt(tsStr);
-    if (user === ADMIN_USER && age < TTL * 1000) return NextResponse.json({ admin: true });
-  } catch { /* invalid */ }
-  return NextResponse.json({ admin: false });
+  return NextResponse.json({ admin: isAdminToken(store.get(ADMIN_COOKIE)?.value) });
 }

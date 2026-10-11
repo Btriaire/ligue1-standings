@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminFirestore } from "@/app/lib/firebase-admin";
+import { createHash } from "node:crypto";
 
 export const dynamic = "force-dynamic";
 
@@ -14,15 +15,27 @@ export async function POST(req: NextRequest) {
       sessionId: string;
     };
 
-    if (!clubId || !formation || !Array.isArray(players) || !sessionId) {
-      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    if (!Number.isInteger(clubId) || !/^\d(-\d){2,3}$/.test(formation) || !Array.isArray(players) || players.length !== 11
+      || !players.every(p => p === null || (typeof p === "string" && p.length <= 60))
+      || typeof sessionId !== "string" || sessionId.length < 8 || sessionId.length > 64) {
+      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
+    // One vote per network per club: the IP is hashed and bound to the first
+    // sessionId that voted from it. Shared networks (cafés, carrier NAT) share a vote.
+    const ip = (req.headers.get("x-forwarded-for")?.split(",")[0] ?? req.headers.get("x-real-ip") ?? "unknown").trim();
+    const ipKey = createHash("sha256").update(ip).digest("hex");
     const db = getAdminFirestore();
+    const clubRef = db.collection("compos").doc(String(clubId));
+    const ipRef = clubRef.collection("ipVotes").doc(ipKey);
+    const bound = await ipRef.get();
+    if (bound.exists && (bound.data() as { sessionId?: string }).sessionId !== sessionId) {
+      return NextResponse.json({ error: "Un seul vote par connexion pour ce club" }, { status: 429 });
+    }
+    await ipRef.set({ sessionId, savedAt: Date.now() });
+
     // One vote per sessionId per club — upsert
-    await db
-      .collection("compos")
-      .doc(String(clubId))
+    await clubRef
       .collection("votes")
       .doc(sessionId)
       .set({

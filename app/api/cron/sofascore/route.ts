@@ -38,7 +38,7 @@ const SOFA_HEADERS = {
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 async function sofaFetch(url: string) {
-  const res = await fetch(url, { headers: SOFA_HEADERS, next: { revalidate: 0 } });
+  const res = await fetch(url, { signal: AbortSignal.timeout(8000),  headers: SOFA_HEADERS, next: { revalidate: 0 } });
   if (!res.ok) throw new Error(`SofaScore ${res.status} — ${url}`);
   return res.json();
 }

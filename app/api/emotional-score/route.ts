@@ -503,7 +503,7 @@ export async function GET() {
   try {
     const standingsRes = await fetch(
       `https://api.football-data.org/v4/competitions/FL1/standings`,
-      { headers: { "X-Auth-Token": API_KEY }, next: { revalidate: 600 } }
+      { signal: AbortSignal.timeout(8000),  headers: { "X-Auth-Token": API_KEY }, next: { revalidate: 600 } }
     );
     const standingsData = await standingsRes.json();
     const table = standingsData.standings?.[0]?.table ?? [];

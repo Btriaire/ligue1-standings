@@ -14,7 +14,7 @@ async function warmSerial(base: string, ids: number[], path: string, gapMs: numb
   const summary: string[] = [];
   for (const id of ids) {
     try {
-      const r = await fetch(`${base}${path}/${id}`, {
+      const r = await fetch(`${base}${path}/${id}`, { signal: AbortSignal.timeout(8000), 
         headers: { "Cache-Control": "no-cache" },
       });
       summary.push(`${id}: ${r.ok ? "ok" : r.status}`);

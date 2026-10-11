@@ -48,7 +48,7 @@ export async function GET() {
   try {
     const res = await fetch(
       `https://site.api.espn.com/apis/site/v2/sports/soccer/fra.1/scoreboard?dates=${todayRange()}&limit=50`,
-      { cache: "no-store" } as RequestInit,
+      { cache: "no-store", signal: AbortSignal.timeout(8000) } as RequestInit,
     );
     if (!res.ok) throw new Error(`ESPN error ${res.status}`);
     const data = await res.json() as { events?: EspnEvent[] };

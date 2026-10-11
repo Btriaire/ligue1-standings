@@ -1246,7 +1246,7 @@ export default function PredictionsTab() {
     ).length;
   }, [data, expertMatches]);
 
-  const SubTabs = () => (
+  const renderSubTabs = () => (
     <div className="flex gap-1 mb-5 p-1 rounded-xl" style={{ background: "#0a0f1c", border: "1px solid #1a2235", display: "inline-flex" }}>
       {([["l1", "🏆 Ligue 1"], ["l2", "🥈 Ligue 2"]] as const).map(([id, label]) => {
         const active = subTab === id;
@@ -1269,7 +1269,7 @@ export default function PredictionsTab() {
     if (loadingL2 || !l2Fetched) {
       return (
         <div>
-          <SubTabs />
+          {renderSubTabs()}
           <div className="py-3">
             <LoadingBar color="#a855f7" caption="Chargement des prédictions Ligue 2" />
           </div>
@@ -1279,7 +1279,7 @@ export default function PredictionsTab() {
     if (!dataL2?.predictions.length) {
       return (
         <div>
-          <SubTabs />
+          {renderSubTabs()}
           <div className="text-center py-16" style={{ color: "#6b7c96" }}>Aucun match Ligue 2 à venir.</div>
         </div>
       );
@@ -1287,7 +1287,7 @@ export default function PredictionsTab() {
     const emptyMap = new Map<number, EmoEntry>();
     return (
       <div>
-        <SubTabs />
+        {renderSubTabs()}
         <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
           <div>
             <h2 className="text-base font-bold" style={{ color: "#e8edf5" }}>
@@ -1328,7 +1328,7 @@ export default function PredictionsTab() {
   if (loading) {
     return (
       <div>
-        <SubTabs />
+        {renderSubTabs()}
         <div className="py-3">
           <LoadingBar color="#a855f7" caption="Chargement des prédictions" />
         </div>
@@ -1336,12 +1336,12 @@ export default function PredictionsTab() {
     );
   }
 
-  if (error) return <div><SubTabs /><div className="text-center py-16 text-red-400 text-sm">{error}</div></div>;
-  if (!data?.predictions.length) return <div><SubTabs /><div className="text-center py-16" style={{ color: "#6b7c96" }}>Aucun match à venir disponible.</div></div>;
+  if (error) return <div>{renderSubTabs()}<div className="text-center py-16 text-red-400 text-sm">{error}</div></div>;
+  if (!data?.predictions.length) return <div>{renderSubTabs()}<div className="text-center py-16" style={{ color: "#6b7c96" }}>Aucun match à venir disponible.</div></div>;
 
   return (
     <div>
-      <SubTabs />
+      {renderSubTabs()}
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
         <div>

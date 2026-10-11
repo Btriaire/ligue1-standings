@@ -31,7 +31,7 @@ export async function GET(req: Request) {
   const subLabel = subreddit ? `r/${subreddit}` : "r/ligue1";
 
   try {
-    const res = await fetch(url, {
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000), 
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; FootPredictom/1.0; +https://footpredictom.vercel.app)",
         Accept: "application/json",

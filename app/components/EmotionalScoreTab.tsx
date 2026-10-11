@@ -792,7 +792,7 @@ export default function EmotionalScoreTab() {
     );
   }, [scored, sortBy]);
 
-  const SubTabs = () => (
+  const renderSubTabs = () => (
     <div className="flex gap-1 mb-5 p-1 rounded-xl" style={{ background: "#0a0f1c", border: "1px solid #1a2235", display: "inline-flex" }}>
       {([["l1", "🏆 Ligue 1"], ["cdm", "🌍 Coupe du Monde"]] as const).map(([id, label]) => (
         <button key={id} onClick={() => setSubTab(id)}
@@ -804,23 +804,23 @@ export default function EmotionalScoreTab() {
     </div>
   );
 
-  if (subTab === "cdm") return <div><SubTabs /><WCEmotionalView /></div>;
+  if (subTab === "cdm") return <div>{renderSubTabs()}<WCEmotionalView /></div>;
 
   if (loading) {
     return (
       <div>
-        <SubTabs />
+        {renderSubTabs()}
         <div className="py-3">
           <LoadingBar color="#f43f5e" caption="Analyse émotionnelle" />
         </div>
       </div>
     );
   }
-  if (error) return <div><SubTabs /><div className="text-center py-16 text-red-400 text-sm">{error}</div></div>;
+  if (error) return <div>{renderSubTabs()}<div className="text-center py-16 text-red-400 text-sm">{error}</div></div>;
 
   return (
     <div>
-      <SubTabs />
+      {renderSubTabs()}
       {data && <Methodology sources={data.sources} />}
       <WeightSliders weights={weights} onChange={setWeights} />
 

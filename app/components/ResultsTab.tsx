@@ -465,7 +465,7 @@ export default function ResultsTab() {
     ? Math.round((correctPredictions.length / matchesWithPredictions.length) * 100)
     : null;
 
-  const SubTabs = () => (
+  const renderSubTabs = () => (
     <div className="flex gap-1 mb-5 p-1 rounded-xl" style={{ background: "#0a0f1c", border: "1px solid #1a2235", display: "inline-flex" }}>
       {([["l1", "🏆 Ligue 1"], ["l2", "🥈 Ligue 2"], ["cdm", "🌍 Coupe du Monde"]] as const).map(([id, label]) => (
         <button key={id} onClick={() => setSubTab(id)}
@@ -477,22 +477,22 @@ export default function ResultsTab() {
     </div>
   );
 
-  if (subTab === "cdm") return <div><SubTabs /><WCResultsView /></div>;
+  if (subTab === "cdm") return <div>{renderSubTabs()}<WCResultsView /></div>;
 
   if (subTab === "l2") {
     if (loadingL2 || (!dataL2 && !errorL2)) {
       return (
-        <div><SubTabs />
+        <div>{renderSubTabs()}
           <div className="py-3"><LoadingBar color="#a78bfa" caption="Chargement des résultats Ligue 2" /></div>
         </div>
       );
     }
-    if (errorL2) return <div><SubTabs /><div className="text-center py-16 text-red-400 text-sm">{errorL2}</div></div>;
+    if (errorL2) return <div>{renderSubTabs()}<div className="text-center py-16 text-red-400 text-sm">{errorL2}</div></div>;
     const l2Matchdays = dataL2 ? [...new Set(dataL2.matches.map((m) => m.matchday))].sort((a, b) => b - a) : [];
     const l2Filtered = dataL2?.matches.filter((m) => filterMatchdayL2 === null || m.matchday === filterMatchdayL2) ?? [];
     return (
       <div>
-        <SubTabs />
+        {renderSubTabs()}
         <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
           <div>
             <h2 className="text-base font-bold flex items-center gap-2" style={{ color: "#e8edf5" }}>
@@ -552,7 +552,7 @@ export default function ResultsTab() {
 
   if (loading) {
     return (
-      <div><SubTabs />
+      <div>{renderSubTabs()}
       <div className="py-3">
         <LoadingBar color="#22c55e" caption="Chargement des résultats" />
       </div>
@@ -560,11 +560,11 @@ export default function ResultsTab() {
     );
   }
 
-  if (error) return <div><SubTabs /><div className="text-center py-16 text-red-400 text-sm">{error}</div></div>;
+  if (error) return <div>{renderSubTabs()}<div className="text-center py-16 text-red-400 text-sm">{error}</div></div>;
 
   return (
     <div>
-      <SubTabs />
+      {renderSubTabs()}
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
         <div>

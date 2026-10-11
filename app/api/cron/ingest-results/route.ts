@@ -1,3 +1,4 @@
+import { isCronRequest } from "@/app/lib/adminAuth";
 import { NextResponse } from "next/server";
 import { fetchEspnResults } from "@/app/lib/espn-results";
 import { getAdminFirestore } from "@/app/lib/firebase-admin";
@@ -39,22 +40,7 @@ async function ingest(daysBack: number) {
 }
 
 function isAuthorized(req: Request): boolean {
-  // Allow Vercel cron header
-  if (req.headers.get("authorization") === `Bearer ${process.env.CRON_SECRET}`) return true;
-  // Allow admin session cookie (so admin "Run now" button works without CRON_SECRET exposure)
-  const cookie = req.headers.get("cookie") ?? "";
-  if (/(?:^|;\s*)fp_admin=([^;]+)/.test(cookie)) {
-    const m = cookie.match(/fp_admin=([^;]+)/);
-    if (m) {
-      try {
-        const [user, ts] = Buffer.from(m[1], "base64").toString("utf-8").split(":");
-        if (user === (process.env.ADMIN_USER ?? "Admin") && Date.now() - parseInt(ts) < 8 * 3600 * 1000) {
-          return true;
-        }
-      } catch { /* ignore */ }
-    }
-  }
-  return false;
+  return isCronRequest(req);
 }
 
 export async function GET(req: Request) {

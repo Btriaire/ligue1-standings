@@ -230,15 +230,10 @@ function TopTransferRow({ item, onOpen }: { item: TransferItem; onOpen: (i: Tran
     background: `linear-gradient(90deg, ${color}10, rgba(13,20,33,0.7))`,
     border: `1px solid ${color}30`,
   };
-  const Wrapper = external
-    ? ({ children }: { children: React.ReactNode }) => (
-        <a href={item.url} target="_blank" rel="noopener noreferrer" className={cls} style={style}>{children}</a>
-      )
-    : ({ children }: { children: React.ReactNode }) => (
-        <button type="button" onClick={() => onOpen(item)} className={cls} style={style}>{children}</button>
-      );
-  return (
-    <Wrapper>
+  const wrap = (children: React.ReactNode) => external
+    ? <a href={item.url} target="_blank" rel="noopener noreferrer" className={cls} style={style}>{children}</a>
+    : <button type="button" onClick={() => onOpen(item)} className={cls} style={style}>{children}</button>;
+  return wrap(<>
       <div className="flex items-center gap-3">
         <PlayerAvatar id={item.playerId} name={item.player} color={color} />
 
@@ -285,8 +280,7 @@ function TopTransferRow({ item, onOpen }: { item: TransferItem; onOpen: (i: Tran
           </span>
         </div>
       </div>
-    </Wrapper>
-  );
+    </>);
 }
 
 // ── Market index chart (stock-ticker style) ──────────────────────────────────

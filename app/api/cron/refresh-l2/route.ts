@@ -1,3 +1,4 @@
+import { isCronRequest } from "@/app/lib/adminAuth";
 // Daily cron — snapshots Ligue 2 standings + fixtures from FotMob into
 // Firestore. Pure safety net: the live routes (/api/standings?competition=FL2,
 // /api/tv) already scrape FotMob directly and refresh far more often (60s /
@@ -18,25 +19,14 @@ import { writeL2StandingsSnapshot, writeL2MatchesSnapshot } from "@/app/lib/l2Sn
 export const maxDuration = 60;
 
 function isAuthorized(req: Request): boolean {
-  if (req.headers.get("authorization") === `Bearer ${process.env.CRON_SECRET}`) return true;
-  const cookie = req.headers.get("cookie") ?? "";
-  const m = cookie.match(/fp_admin=([^;]+)/);
-  if (m) {
-    try {
-      const [user, ts] = Buffer.from(m[1], "base64").toString("utf-8").split(":");
-      if (user === (process.env.ADMIN_USER ?? "Admin") && Date.now() - parseInt(ts) < 8 * 3600 * 1000) {
-        return true;
-      }
-    } catch { /* ignore */ }
-  }
-  return false;
+  return isCronRequest(req);
 }
 
 async function alertWebhook(text: string) {
   const hookUrl = process.env.VERACITY_WEBHOOK_URL;
   if (!hookUrl) return;
   try {
-    await fetch(hookUrl, {
+    await fetch(hookUrl, { signal: AbortSignal.timeout(8000), 
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text }),

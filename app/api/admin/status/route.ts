@@ -1,3 +1,4 @@
+import { ADMIN_COOKIE, isAdminToken } from "@/app/lib/adminAuth";
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getAdminFirestore } from "@/app/lib/firebase-admin";
@@ -5,19 +6,10 @@ import { getAdminAuth } from "@/app/lib/firebase-admin";
 
 export const dynamic = "force-dynamic";
 
-const ADMIN_USER = process.env.ADMIN_USER ?? "Admin";
-const COOKIE_NAME = "fp_admin";
-const TTL = 8 * 3600 * 1000;
 
 async function checkAdmin(): Promise<boolean> {
   const store = await cookies();
-  const token = store.get(COOKIE_NAME)?.value;
-  if (!token) return false;
-  try {
-    const decoded = Buffer.from(token, "base64").toString("utf-8");
-    const [user, tsStr] = decoded.split(":");
-    return user === ADMIN_USER && Date.now() - parseInt(tsStr) < TTL;
-  } catch { return false; }
+  return isAdminToken(store.get(ADMIN_COOKIE)?.value);
 }
 
 // ── Check one URL and return latency ms or "error" ──────────────
