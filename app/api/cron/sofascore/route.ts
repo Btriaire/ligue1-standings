@@ -1,3 +1,4 @@
+import { isCronRequest } from "@/app/lib/adminAuth";
 import { NextResponse } from "next/server";
 import { getAdminFirestore } from "@/app/lib/firebase-admin";
 
@@ -127,7 +128,7 @@ function parseEvents(raw: { events?: Record<string, unknown>[] }): SofaMatch[] {
 export async function GET(req: Request) {
   // Protect: Vercel sends CRON_SECRET in Authorization header
   const auth = req.headers.get("authorization");
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isCronRequest(req)) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 

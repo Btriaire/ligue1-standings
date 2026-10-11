@@ -1,3 +1,4 @@
+import { isCronRequest } from "@/app/lib/adminAuth";
 import { NextResponse } from "next/server";
 import { L1_IDS, L2_IDS } from "@/app/lib/clubProfile";
 
@@ -28,7 +29,7 @@ async function warmSerial(base: string, ids: number[], path: string, gapMs: numb
 
 export async function GET(req: Request) {
   const authHeader = req.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isCronRequest(req)) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 

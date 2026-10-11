@@ -1,3 +1,4 @@
+import { isCronRequest } from "@/app/lib/adminAuth";
 // Weekly cron — runs the veracity check, logs a summary, and (if configured)
 // posts a Discord/Slack webhook when mismatches are found. The full report is
 // fetched on-demand from /api/club-veracity by the admin UI.
@@ -9,7 +10,7 @@ export const maxDuration = 120;
 
 export async function GET(req: Request) {
   const authHeader = req.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isCronRequest(req)) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 
