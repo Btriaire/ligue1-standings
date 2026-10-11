@@ -292,7 +292,7 @@ function avatarUrl(name: string, hex: string): string {
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&size=128&background=${bg}&color=fff&bold=true&format=svg`;
 }
 
-function RefereeCard({ ref: r }: { ref: Referee }) {
+function RefereeCard({ referee: r }: { referee: Referee }) {
   const [open, setOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
   const repCfg = REPUTATION_CONFIG[r.reputation] ?? { color: "#94a3b8", emoji: "⚪" };
@@ -455,7 +455,7 @@ export default function RefereesL1Tab() {
 
       {/* List */}
       <div className="space-y-2">
-        {sorted.map(r => <RefereeCard key={r.id} ref={r} />)}
+        {sorted.map(r => <RefereeCard key={r.id} referee={r} />)}
       </div>
 
       <p className="text-[9px] text-center pt-1" style={{ color: "#334155" }}>

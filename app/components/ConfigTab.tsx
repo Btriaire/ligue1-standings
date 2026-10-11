@@ -131,7 +131,7 @@ export default function ConfigTab() {
             <GearSix size={17} style={{ color: "#67d8e6" }} /> Configuration
           </h2>
           <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>
-            Personnalisez l'algorithme et les fonctionnalités
+            Personnalisez l&apos;algorithme et les fonctionnalités
           </p>
         </div>
         {!isDefault && (
@@ -340,7 +340,7 @@ export default function ConfigTab() {
           <div className="flex items-center justify-between px-4 py-3 rounded-xl"
             style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
             <div>
-              <p className="text-sm font-medium" style={{ color: "#e8edf5" }}>Effacer l'historique</p>
+              <p className="text-sm font-medium" style={{ color: "#e8edf5" }}>Effacer l&apos;historique</p>
               <p className="text-xs mt-0.5" style={{ color: "#6b7c96" }}>
                 Supprime toutes les prédictions du stockage local
               </p>
@@ -363,7 +363,7 @@ export default function ConfigTab() {
           <CaretRight size={13} style={{ color: "#67d8e6", marginTop: 1, flexShrink: 0 }} />
           <div>
             <p>Les paramètres sont sauvegardés automatiquement dans votre navigateur (localStorage).</p>
-            <p className="mt-1">Les prédictions sont auto-sauvegardées à chaque chargement de l'onglet AI FootPredictom, avant chaque match.</p>
+            <p className="mt-1">Les prédictions sont auto-sauvegardées à chaque chargement de l&apos;onglet AI FootPredictom, avant chaque match.</p>
           </div>
         </div>
       </div>

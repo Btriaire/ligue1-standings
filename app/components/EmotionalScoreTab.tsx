@@ -202,7 +202,7 @@ function Methodology({ sources }: { sources: EmotionalData["sources"] }) {
       {open && (
         <div className="px-5 pb-5 space-y-4" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
           <p className="text-sm mt-4" style={{ color: "#94a3b8" }}>
-            Le Facteur additionnel (0–100) mesure la <strong style={{ color: "#e8edf5" }}>santé globale d'un club</strong> en 4 dimensions,
+            Le Facteur additionnel (0–100) mesure la <strong style={{ color: "#e8edf5" }}>santé globale d&apos;un club</strong> en 4 dimensions,
             puis corrige automatiquement les <strong style={{ color: "#e8edf5" }}>prédictions IA</strong> (±2 à ±7%).
           </p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">

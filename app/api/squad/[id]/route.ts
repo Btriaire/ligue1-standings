@@ -438,7 +438,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const goalsByPlayer = new Map<string, number>();
   const assistsByPlayer = new Map<string, number>();
   let recentMatchCount = 0;
-  let teamWins = 0, teamDraws = 0, teamLosses = 0;
+  const teamWins = 0, teamDraws = 0, teamLosses = 0;
 
   if (matchesRes?.ok) {
     try {
