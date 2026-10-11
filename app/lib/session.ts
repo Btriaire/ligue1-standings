@@ -1,5 +1,6 @@
 import { getAdminAuth } from "./firebase-admin";
 import { cookies } from "next/headers";
+import { openPayload, signPayload } from "./adminAuth";
 
 const COOKIE = "session";
 const TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -30,20 +31,16 @@ export async function getSession(): Promise<SessionPayload | null> {
     if (!cookie) return null;
 
     // ── Bypass token (owner login without Firebase) ────────────
-    // Format: base64(JSON {type:"bypass", email, ts})
-    try {
-      const raw = Buffer.from(cookie, "base64").toString("utf-8");
-      if (raw.startsWith("{")) {
-        const p = JSON.parse(raw) as { type?: string; email?: string; ts?: number };
-        if (p.type === "bypass" && p.email && p.ts) {
-          const ownerEmail = process.env.ADMIN_EMAIL || process.env.ADMIN_USER || "Admin";
-          if (p.email.toLowerCase() === ownerEmail.toLowerCase() && Date.now() - p.ts < TTL_MS) {
-            return { userId: "owner", email: p.email, name: "Admin" };
-          }
-          return null; // expired or email mismatch
-        }
+    // Format: signed "bypass:<email>:<ts>" (HMAC, see adminAuth.ts)
+    const bypass = openPayload(cookie);
+    if (bypass?.startsWith("bypass:")) {
+      const [, email, tsStr] = bypass.split(":");
+      const ownerEmail = process.env.ADMIN_EMAIL || process.env.ADMIN_USER || "Admin";
+      if (email.toLowerCase() === ownerEmail.toLowerCase() && Date.now() - Number(tsStr) < TTL_MS) {
+        return { userId: "owner", email, name: "Admin" };
       }
-    } catch { /* not a bypass token — fall through to Firebase */ }
+      return null; // expired or email mismatch
+    }
 
     // ── Normal Firebase session cookie ─────────────────────────
     const adminAuth = getAdminAuth();

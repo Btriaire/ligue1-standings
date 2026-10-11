@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createSession } from "@/app/lib/session";
+import { ADMIN_COOKIE, createAdminToken, signPayload } from "@/app/lib/adminAuth";
 
 export const dynamic = "force-dynamic";
 
 const SESSION_COOKIE = "session";
-const ADMIN_COOKIE   = "fp_admin";
 const TTL_S  = 7 * 24 * 3600; // 7 days
 const ADMIN_TTL_S = 7 * 24 * 3600; // 7 days
 
@@ -13,15 +13,17 @@ const ADMIN_TTL_S = 7 * 24 * 3600; // 7 days
 // Set ADMIN_EMAIL + ADMIN_PASS in Vercel env vars.
 async function tryOwnerBypass(email: string, password: string): Promise<boolean> {
   const ownerEmail = process.env.ADMIN_EMAIL || process.env.ADMIN_USER || "Admin";
-  const ownerPass  = process.env.ADMIN_PASS  || "admin";
+  const ownerPass  = process.env.ADMIN_PASS;
+  if (!ownerPass) return false; // no built-in default password
   if (email.toLowerCase() !== ownerEmail.toLowerCase() || password !== ownerPass) return false;
+  const sessionToken = signPayload(`bypass:${email}:${Date.now()}`);
+  const adminToken = createAdminToken(process.env.ADMIN_USER ?? "Admin");
+  if (!sessionToken || !adminToken) return false; // ADMIN_SECRET missing
 
   const store = await cookies();
 
   // ── Set regular session cookie (unlocks predictions / emotional tabs) ──
-  const payload = JSON.stringify({ type: "bypass", email, ts: Date.now() });
-  const token = Buffer.from(payload).toString("base64");
-  store.set(SESSION_COOKIE, token, {
+  store.set(SESSION_COOKIE, sessionToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -30,8 +32,6 @@ async function tryOwnerBypass(email: string, password: string): Promise<boolean>
   });
 
   // ── ALSO set admin cookie (unlocks /admin dashboard) ─────────
-  const adminUser = process.env.ADMIN_USER ?? "Admin";
-  const adminToken = Buffer.from(`${adminUser}:${Date.now()}`).toString("base64");
   store.set(ADMIN_COOKIE, adminToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
