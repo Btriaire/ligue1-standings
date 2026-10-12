@@ -35,25 +35,49 @@ export interface LiveMatch {
 
 const LIVE_STATES = new Set(["STATUS_IN_PROGRESS", "STATUS_HALFTIME", "STATUS_FIRST_HALF", "STATUS_SECOND_HALF", "STATUS_END_PERIOD"]);
 
-function todayRange(): string {
-  // ESPN uses YYYYMMDD-YYYYMMDD; use ±1 day window to cover TZ edges.
+function scoreboardDates(): string[] {
+  // ESPN now requires single dates, so we fetch yesterday and today
   const now = new Date();
-  const start = new Date(now.getTime() - 24 * 3600 * 1000);
-  const end   = new Date(now.getTime() + 24 * 3600 * 1000);
+  const yesterday = new Date(now.getTime() - 24 * 3600 * 1000);
   const fmt = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, "");
-  return `${fmt(start)}-${fmt(end)}`;
+  return [fmt(yesterday), fmt(now)];
 }
 
 export async function GET() {
   try {
-    const res = await fetch(
-      `https://site.api.espn.com/apis/site/v2/sports/soccer/fra.1/scoreboard?dates=${todayRange()}&limit=50`,
-      { cache: "no-store", signal: AbortSignal.timeout(8000) } as RequestInit,
-    );
-    if (!res.ok) throw new Error(`ESPN error ${res.status}`);
-    const data = await res.json() as { events?: EspnEvent[] };
+    const dates = scoreboardDates();
+    const fetchOptions = { cache: "no-store", signal: AbortSignal.timeout(8000) } as RequestInit;
 
-    const matches: LiveMatch[] = (data.events ?? []).map(e => {
+    const results = await Promise.allSettled(
+      dates.map(date =>
+        fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/fra.1/scoreboard?dates=${date}&limit=50`, fetchOptions)
+          .then(res => {
+            if (!res.ok) throw new Error(`ESPN error ${res.status}`);
+            return res.json() as Promise<{ events?: EspnEvent[] }>;
+          })
+      )
+    );
+
+    const allEvents: EspnEvent[] = [];
+    const eventIds = new Set<string>();
+
+    for (const result of results) {
+      if (result.status === "fulfilled") {
+        const events = result.value.events ?? [];
+        for (const event of events) {
+          if (!eventIds.has(event.id)) {
+            eventIds.add(event.id);
+            allEvents.push(event);
+          }
+        }
+      }
+    }
+
+    if (allEvents.length === 0) {
+      throw new Error("ESPN error: no events found");
+    }
+
+    const matches: LiveMatch[] = allEvents.map(e => {
       const comp = e.competitions[0];
       const home = comp.competitors.find(c => c.homeAway === "home")!;
       const away = comp.competitors.find(c => c.homeAway === "away")!;
